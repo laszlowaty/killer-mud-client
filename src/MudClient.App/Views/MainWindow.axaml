@@ -293,10 +293,10 @@
                 <Border Classes="mud-section">
                   <StackPanel Spacing="4" DataContext="{Binding Vitals}">
                     <Grid ColumnDefinitions="Auto,*">
-                      <TextBlock Classes="mud-muted" Text="Klasa:" />
+                      <TextBlock Classes="mud-muted" Text="Imię:" />
                       <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                                 Text="{Binding ClassName}"
-                                 Foreground="{StaticResource MudBrushArcaneBlue}" />
+                                 Text="{Binding Name}" FontWeight="SemiBold"
+                                 Foreground="{StaticResource MudBrushGoldBright}" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*">
                       <TextBlock Classes="mud-muted" Text="Poziom:" />
@@ -304,22 +304,47 @@
                                  Text="{Binding Level}" FontWeight="Bold" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*">
-                      <TextBlock Classes="mud-muted" Text="Rasa:" />
+                      <TextBlock Classes="mud-muted" Text="Płeć:" />
                       <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                                 Text="{Binding Race}" />
+                                 Text="{Binding SexDisplay}" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*">
-                      <TextBlock Classes="mud-muted" Text="Dośw.:" />
-                      <TextBlock Grid.Column="1" HorizontalAlignment="Right">
-                        <Run Text="{Binding Experience}" />
-                        <Run Text=" / " Foreground="{StaticResource MudBrushParchmentFaint}" />
-                        <Run Text="{Binding ExperienceToLevel}" Foreground="{StaticResource MudBrushParchmentFaint}" />
-                      </TextBlock>
+                      <TextBlock Classes="mud-muted" Text="Pozycja:" />
+                      <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                                 Text="{Binding PositionDisplay}"
+                                 Foreground="{StaticResource MudBrushArcaneBlue}" />
                     </Grid>
                   </StackPanel>
                 </Border>
 
-                <!-- Effects -->
+                <!-- Conditions (live from Char.Condition GMCP) -->
+                <TextBlock Classes="mud-heading" Text="KONDYCJA" Margin="0,6,0,0" />
+                <Border Classes="mud-section" Padding="8,6">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="mud-faint" Text="W pełni sił — brak dolegliwości."
+                               IsVisible="{Binding !Conditions.Count}" />
+                    <ItemsControl ItemsSource="{Binding Conditions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                          <Border Background="{StaticResource MudBrushStoneLight}"
+                                  BorderBrush="{StaticResource MudBrushCrimson}"
+                                  BorderThickness="1"
+                                  CornerRadius="3" Padding="7,3" Margin="0,2,4,2">
+                            <TextBlock Text="{Binding}" FontSize="11"
+                                       Foreground="{StaticResource MudBrushCrimsonBright}" />
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+
+                <!-- Effects (live from Char.Affects GMCP) -->
                 <TextBlock Classes="mud-heading" Text="EFEKTY" Margin="0,6,0,0" />
                 <Border Classes="mud-section" Padding="8,6">
                   <StackPanel Spacing="2">
@@ -328,14 +353,70 @@
                     <ItemsControl ItemsSource="{Binding Effects}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:StatusEffect">
-                          <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
-                            <TextBlock Grid.Column="0" Text="{Binding Icon}"
-                                       Foreground="{StaticResource MudBrushEmeraldBright}"
-                                       FontSize="12" Margin="0,0,6,0" />
-                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
-                            <TextBlock Grid.Column="2"
-                                       Classes="mud-faint"
-                                       Text="{Binding Duration}" />
+                          <Grid>
+                            <Border BorderBrush="{StaticResource MudBrushCrimson}"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="6,3"
+                                    Margin="0,1"
+                                    IsVisible="{Binding IsDebuff}">
+                              <Grid ColumnDefinitions="Auto,*,Auto"
+                                    RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Column="0" Grid.Row="0"
+                                           Text="{Binding Icon}" FontSize="12"
+                                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                                           Margin="0,0,6,0" />
+                                <TextBlock Grid.Column="1" Grid.Row="0"
+                                           Text="{Binding Name}" FontSize="12"
+                                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                                           ToolTip.Tip="{Binding Description}" />
+                                <TextBlock Grid.Column="2" Grid.Row="0"
+                                           Text="{Binding Duration}"
+                                           FontSize="11"
+                                           Classes="mud-faint"
+                                           HorizontalAlignment="Right"
+                                           Margin="6,0,0,0"
+                                           IsVisible="{Binding HasDuration}" />
+                                <TextBlock Grid.Column="1" Grid.Row="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding Description}"
+                                           FontSize="10"
+                                           Classes="mud-faint"
+                                           TextTrimming="CharacterEllipsis"
+                                           IsVisible="{Binding HasDescription}" />
+                              </Grid>
+                            </Border>
+                            <Border BorderBrush="{StaticResource MudBrushEmerald}"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="6,3"
+                                    Margin="0,1"
+                                    IsVisible="{Binding !IsDebuff}">
+                              <Grid ColumnDefinitions="Auto,*,Auto"
+                                    RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Column="0" Grid.Row="0"
+                                           Text="{Binding Icon}" FontSize="12"
+                                           Foreground="{StaticResource MudBrushEmeraldBright}"
+                                           Margin="0,0,6,0" />
+                                <TextBlock Grid.Column="1" Grid.Row="0"
+                                           Text="{Binding Name}" FontSize="12"
+                                           ToolTip.Tip="{Binding Description}" />
+                                <TextBlock Grid.Column="2" Grid.Row="0"
+                                           Text="{Binding Duration}"
+                                           FontSize="11"
+                                           Classes="mud-faint"
+                                           HorizontalAlignment="Right"
+                                           Margin="6,0,0,0"
+                                           IsVisible="{Binding HasDuration}" />
+                                <TextBlock Grid.Column="1" Grid.Row="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding Description}"
+                                           FontSize="10"
+                                           Classes="mud-faint"
+                                           TextTrimming="CharacterEllipsis"
+                                           IsVisible="{Binding HasDescription}" />
+                              </Grid>
+                            </Border>
                           </Grid>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
@@ -352,9 +433,14 @@
                     <ItemsControl ItemsSource="{Binding People}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:PersonEntry">
-                          <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,1">
                             <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
                             <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding FightingText}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource MudBrushCrimsonBright}"
+                                       IsVisible="{Binding IsFighting}" />
                           </Grid>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
@@ -362,31 +448,49 @@
                   </StackPanel>
                 </Border>
 
-                <!-- Group -->
+                <!-- Group (live from Char.Group GMCP) -->
                 <TextBlock Classes="mud-heading" Text="DRUŻYNA" Margin="0,6,0,0" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Brak członków drużyny."
+                           IsVisible="{Binding !Group.Count}" />
                 <ItemsControl ItemsSource="{Binding Group}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:GroupMember">
                       <Border Classes="mud-section" Padding="6,4" Margin="0,1">
-                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
-                          <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="4">
+                        <StackPanel Spacing="2">
+                          <!-- Row 1: leader marker + name + NPC marker -->
+                          <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="{Binding LeaderMarker}"
                                        Foreground="{StaticResource MudBrushGoldBright}"
                                        FontWeight="Bold" />
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
+                            <TextBlock Text="{Binding NpcDisplay}"
+                                       FontSize="9"
+                                       Foreground="{StaticResource MudBrushParchmentDim}" />
                           </StackPanel>
-                          <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushCrimson}">
-                              HP <Run Text="{Binding HpPercent}" />%
-                            </TextBlock>
-                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushArcaneBlue}">
-                              SP <Run Text="{Binding SpPercent}" />%
-                            </TextBlock>
-                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushEmerald}">
-                              EP <Run Text="{Binding EpPercent}" />%
-                            </TextBlock>
+                          <!-- Row 2: HP + MV + MEM -->
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock FontSize="10"
+                                       Foreground="{StaticResource MudBrushCrimson}"
+                                       Text="{Binding HpDisplay}" />
+                            <TextBlock FontSize="10"
+                                       Foreground="{StaticResource MudBrushEmerald}"
+                                       Text="{Binding MvDisplay}" />
+                            <TextBlock FontSize="10"
+                                       Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                                       Text="{Binding MemDisplay}"
+                                       IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                           </StackPanel>
-                        </Grid>
+                          <!-- Row 3: position + room -->
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushParchmentDim}"
+                                       ToolTip.Tip="Pozycja"
+                                       Text="{Binding PositionDisplay}" />
+                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushParchmentFaint}"
+                                       ToolTip.Tip="Pokój"
+                                       Text="{Binding RoomDisplay}" />
+                          </StackPanel>
+                        </StackPanel>
                       </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -527,10 +631,11 @@
                     </StackPanel>
 
                     <StackPanel Spacing="2">
-                      <TextBlock Classes="mud-faint" Text="Akcja — możesz użyć grup: $1, $2…" />
+                      <TextBlock Classes="mud-faint" Text="Akcja — jedna komenda w linii; możesz użyć grup: $1, $2…" />
                       <TextBox Text="{Binding NewRuleAction}"
-                               PlaceholderText="np. zabij $1"
-                               FontFamily="Consolas,Courier New,monospace" />
+                               PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
+                               FontFamily="Consolas,Courier New,monospace"
+                               MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
                     </StackPanel>
 
                     <Button Content="Dodaj regułę" Command="{Binding AddRuleCommand}"
@@ -577,7 +682,7 @@
                             <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
                             <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
                                        FontFamily="Consolas,Courier New,monospace"
-                                       Text="{Binding Action}" TextTrimming="CharacterEllipsis" />
+                                       Text="{Binding Action}" TextWrapping="Wrap" />
                           </Grid>
 
                         </StackPanel>
@@ -762,7 +867,7 @@
     <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
         <TextBlock Classes="mud-faint" Text="Telnet + ANSI + GMCP  •  MudClient Starter" />
-        <TextBlock Classes="mud-faint" Text="{Binding Vitals.ClassName, StringFormat='Klasa: {0}'}" />
+        <TextBlock Classes="mud-faint" Text="{Binding Vitals.Name, StringFormat='Postać: {0}'}" />
         <TextBlock Classes="mud-faint" Text="{Binding StatusText}" />
       </Grid>
     </Border>

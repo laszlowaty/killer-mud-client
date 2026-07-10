@@ -24,10 +24,18 @@ public sealed class TriggerEngine
             var match = rule.Regex.Match(line);
             if (match.Success)
             {
-                commands.Add(match.Result(rule.CommandTemplate));
+                var text = match.Result(rule.CommandTemplate);
+                commands.AddRange(SplitCommands(text));
             }
         }
 
         return commands;
     }
+
+    private static IReadOnlyList<string> SplitCommands(string text) =>
+        (text ?? string.Empty)
+            .Split('\n')
+            .Select(line => line.Trim().TrimEnd('\r'))
+            .Where(line => line.Length > 0)
+            .ToList();
 }

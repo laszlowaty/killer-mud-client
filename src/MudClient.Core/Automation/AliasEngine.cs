@@ -42,4 +42,35 @@ public sealed class AliasEngine
 
         return command;
     }
+
+    /// <summary>
+    /// Like <see cref="Process"/> but splits the replacement result into
+    /// multiple commands (one per line).  Empty/whitespace lines are skipped.
+    /// </summary>
+    public IReadOnlyList<string> ProcessCommands(string command)
+    {
+        foreach (var rule in _rules)
+        {
+            if (!rule.Enabled)
+            {
+                continue;
+            }
+
+            var match = rule.Regex.Match(command);
+            if (match.Success)
+            {
+                var text = match.Result(rule.Replacement);
+                return SplitCommands(text);
+            }
+        }
+
+        return new[] { command };
+    }
+
+    private static IReadOnlyList<string> SplitCommands(string text) =>
+        (text ?? string.Empty)
+            .Split('\n')
+            .Select(line => line.Trim().TrimEnd('\r'))
+            .Where(line => line.Length > 0)
+            .ToList();
 }

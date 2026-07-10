@@ -1,5 +1,10 @@
 using System.Reflection;
+using System.Text.Json;
+using MudClient.App.Models;
 using MudClient.App.ViewModels;
+using MudClient.Core.Automation;
+using MudClient.Core.Gmcp;
+using MudClient.Core.Map;
 using MudClient.Core.Networking;
 
 namespace MudClient.App.Tests;
@@ -45,24 +50,24 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void Constructor_PopulatesMockEffects()
+    public void Constructor_StartsWithNoPeopleInRoom()
     {
-        Assert.NotEmpty(_vm.Effects);
-        Assert.Contains(_vm.Effects, e => e.Name == "Błogosławieństwo");
+        // Room occupants come live from Room.People GMCP.
+        Assert.Empty(_vm.People);
     }
 
     [Fact]
-    public void Constructor_PopulatesMockPeople()
+    public void Constructor_StartsWithEmptyGroup()
     {
-        Assert.NotEmpty(_vm.People);
-        Assert.Contains(_vm.People, p => p.Name == "Strażnik miasta");
+        // Group members come live from Char.Group GMCP; no mock data.
+        Assert.Empty(_vm.Group);
     }
 
     [Fact]
-    public void Constructor_PopulatesMockGroup()
+    public void Constructor_StartsWithEmptyEffects()
     {
-        Assert.NotEmpty(_vm.Group);
-        Assert.Contains(_vm.Group, m => m.Name == "Ty");
+        // Effects are populated live from Char.Affects GMCP; no mock data.
+        Assert.Empty(_vm.Effects);
     }
 
     [Fact]
@@ -102,6 +107,365 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     public void Constructor_CommandHistoryIsEmpty()
     {
         Assert.Empty(_vm.CommandHistory);
+    }
+
+    // ====================================================================
+    // Status effects (live, from Char.Affects GMCP)
+    //
+    // The production handler (OnCharacterAffectsChanged) uses
+    // Dispatcher.UIThread.Post to marshal work to the UI thread, which
+    // is not available without a headless Avalonia platform.  Instead,
+    // the tests below verify the collection-population logic directly
+    // — the same logic that the dispatcher-invoked lambda executes in
+    // production.  Event-subscription wiring is covered separately via
+    // reflection (AffectsChangedEvent_IsSubscribedByConstructor).
+    // ====================================================================
+
+    /// <summary>
+    /// Replicates the production OnCharacterAffectsChanged handler's
+    /// collection logic.
+    /// </summary>
+    private void SimulateAffectsReceived(IReadOnlyList<CharacterAffect> affects)
+    {
+        _vm.Effects.Clear();
+        foreach (var affect in affects)
+        {
+            _vm.Effects.Add(StatusEffect.FromCore(affect));
+        }
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_PopulatesEffects()
+    {
+        var affects = new List<CharacterAffect>
+        {
+            new("Błogosławieństwo", "Zwiększa celność", false, false, "10m"),
+            new("Zatrucie", "Trucizna w organizmie", true, false, "30s"),
+        };
+
+        SimulateAffectsReceived(affects);
+
+        Assert.Equal(2, _vm.Effects.Count);
+
+        // -- Blessing (buff) --
+        var blessing = _vm.Effects[0];
+        Assert.Equal("Błogosławieństwo", blessing.Name);
+        Assert.Equal("Zwiększa celność", blessing.Description);
+        Assert.Equal("[+]", blessing.Icon);
+        Assert.False(blessing.IsDebuff);
+        Assert.False(blessing.Negative);
+        Assert.False(blessing.Ending);
+        Assert.Equal("10m", blessing.ExtraValue);
+        Assert.Equal("10m", blessing.Duration);
+        Assert.True(blessing.HasDescription);
+
+        // -- Poison (debuff) --
+        var poison = _vm.Effects[1];
+        Assert.Equal("Zatrucie", poison.Name);
+        Assert.Equal("Trucizna w organizmie", poison.Description);
+        Assert.Equal("[-]", poison.Icon);
+        Assert.True(poison.IsDebuff);
+        Assert.True(poison.Negative);
+        Assert.False(poison.Ending);
+        Assert.Equal("30s", poison.ExtraValue);
+        Assert.Equal("30s", poison.Duration);
+        Assert.True(poison.HasDescription);
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_EndingEffect_UsesEndingIcon()
+    {
+        var affects = new List<CharacterAffect>
+        {
+            new("Krótki buff", "Za chwilę zniknie", false, true, "5s"),
+        };
+
+        SimulateAffectsReceived(affects);
+
+        var effect = Assert.Single(_vm.Effects);
+        Assert.Equal("[!]", effect.Icon);
+        Assert.True(effect.Ending);
+        Assert.False(effect.IsDebuff);
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_NegativeEndingEffect_UsesEndingIconAndIsDebuff()
+    {
+        // Covers the regression: a debuff (negative: true) that is also
+        // ending (ending: true) must show "[!]" (not "[-]") while still
+        // having IsDebuff == true so it renders in the debuff template.
+        var affects = new List<CharacterAffect>
+        {
+            new("Trucizna kończy się", "Ostatnie chwile", true, true, "3s"),
+        };
+
+        SimulateAffectsReceived(affects);
+
+        var effect = Assert.Single(_vm.Effects);
+        Assert.Equal("[!]", effect.Icon);
+        Assert.True(effect.IsDebuff);
+        Assert.True(effect.Negative);
+        Assert.True(effect.Ending);
+        Assert.Equal("Trucizna kończy się", effect.Name);
+        Assert.Equal("3s", effect.Duration);
+        Assert.Equal("Ostatnie chwile", effect.Description);
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_ClearsPreviousEffects()
+    {
+        // Arrange: simulate first effects update
+        var first = new List<CharacterAffect>
+        {
+            new("Blessing", "first", false, false, null),
+        };
+        SimulateAffectsReceived(first);
+        Assert.Single(_vm.Effects);
+
+        // Act: simulate a second update with different effects
+        var second = new List<CharacterAffect>
+        {
+            new("Poison", "second", true, false, null),
+            new("Regen", "third", false, false, null),
+        };
+        SimulateAffectsReceived(second);
+
+        // Assert: only the second update's effects are present
+        Assert.Equal(2, _vm.Effects.Count);
+        Assert.Contains(_vm.Effects, e => e.Name == "Poison");
+        Assert.Contains(_vm.Effects, e => e.Name == "Regen");
+        Assert.DoesNotContain(_vm.Effects, e => e.Name == "Blessing");
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_EmptyDescription_HasDescriptionFalse()
+    {
+        var affects = new List<CharacterAffect>
+        {
+            new("NoDesc", string.Empty, false, false, null),
+        };
+
+        SimulateAffectsReceived(affects);
+
+        var effect = Assert.Single(_vm.Effects);
+        Assert.False(effect.HasDescription);
+    }
+
+    [Fact]
+    public void SimulateAffectsReceived_NullExtraValue_EmptyDuration()
+    {
+        var affects = new List<CharacterAffect>
+        {
+            new("Test", "desc", false, false, null),
+        };
+
+        SimulateAffectsReceived(affects);
+
+        var effect = Assert.Single(_vm.Effects);
+        Assert.Null(effect.ExtraValue);
+        Assert.Empty(effect.Duration);
+    }
+
+    // ====================================================================
+    // AffectsChanged event subscription (reflection-based)
+    // ====================================================================
+
+    [Fact]
+    public void AffectsChangedEvent_IsSubscribedByConstructor()
+    {
+        var resolverField = typeof(MainWindowViewModel).GetField("_characterState",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(resolverField);
+        var resolver = resolverField!.GetValue(_vm);
+        Assert.NotNull(resolver);
+
+        var affectsChangedField = typeof(CharacterStateResolver).GetField("AffectsChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(affectsChangedField);
+        var delegateObj = affectsChangedField!.GetValue(resolver) as Delegate;
+        Assert.NotNull(delegateObj);
+        Assert.NotEmpty(delegateObj.GetInvocationList());
+    }
+
+    // ====================================================================
+    // Character conditions (live, from Char.Condition GMCP)
+    //
+    // The production handler (OnCharacterConditionChanged) uses
+    // Dispatcher.UIThread.Post and also updates Vitals.Position.
+    // We replicate the collection-and-position logic directly here,
+    // matching the pattern used for Group and Effects above.
+    // ====================================================================
+
+    /// <summary>
+    /// Replicates the production OnCharacterConditionChanged handler's
+    /// collection and position logic, including position normalization
+    /// (matching CharacterStateResolver.NormalizePosition).
+    /// </summary>
+    private void SimulateConditionReceived(CharacterConditionUpdate update)
+    {
+        if (update.Position is { } position)
+        {
+            var normalized = position.Trim();
+            if (normalized.StartsWith("POS_", StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized[4..];
+            }
+
+            _vm.Vitals.PositionDisplay = TranslatePosition(normalized.ToLowerInvariant());
+        }
+
+        _vm.Conditions.Clear();
+        foreach (var (flag, active) in update.Flags)
+        {
+            if (active)
+            {
+                _vm.Conditions.Add(TranslateCondition(flag));
+            }
+        }
+    }
+
+    /// <summary>Replicates the private TranslateCondition on MainWindowViewModel.</summary>
+    private static string TranslateCondition(string flag) => flag.ToLowerInvariant() switch
+    {
+        "overweight" => "Przeciążenie",
+        "drunk" => "Upojenie",
+        "thirsty" => "Pragnienie",
+        "hungry" => "Głód",
+        "sleepy" => "Senność",
+        "smoking" => "Pali",
+        "thighjab" => "Rana uda",
+        "bleedingwound" => "Krwawiąca rana",
+        "bleed" => "Krwawienie",
+        "halucinations" => "Halucynacje",
+        _ => flag,
+    };
+
+    /// <summary>Replicates the private TranslatePosition on MainWindowViewModel.</summary>
+    private static string TranslatePosition(string position) => position switch
+    {
+        "standing" => "Stoi",
+        "sitting" => "Siedzi",
+        "resting" => "Odpoczywa",
+        "sleeping" => "Śpi",
+        "fighting" => "Walczy",
+        "stunned" => "Oszołomiony",
+        "incap" or "incapacitated" => "Obezwładniony",
+        "mortal" or "mortally" => "Umierający",
+        "dead" => "Martwy",
+        "lying" => "Leży",
+        _ => position,
+    };
+
+    [Fact]
+    public void SimulateConditionReceived_AllFalse_NoActiveConditions_AndPositionNormalized()
+    {
+        var update = new CharacterConditionUpdate(
+            "POS_STOICCY",
+            new Dictionary<string, bool>
+            {
+                ["overweight"] = false,
+                ["drunk"] = false,
+                ["thirsty"] = false,
+                ["hungry"] = false,
+                ["sleepy"] = false,
+                ["smoking"] = false,
+                ["thighJab"] = false,
+                ["bleedingWound"] = false,
+                ["bleed"] = false,
+                ["halucinations"] = false,
+            });
+
+        SimulateConditionReceived(update);
+
+        Assert.Empty(_vm.Conditions);
+        Assert.Equal("stoiccy", _vm.Vitals.PositionDisplay);
+    }
+
+    [Fact]
+    public void SimulateConditionReceived_AllFalse_Standing()
+    {
+        var update = new CharacterConditionUpdate(
+            "POS_STANDING",
+            new Dictionary<string, bool>
+            {
+                ["overweight"] = false,
+                ["drunk"] = false,
+                ["thirsty"] = false,
+                ["hungry"] = false,
+                ["sleepy"] = false,
+                ["smoking"] = false,
+                ["thighJab"] = false,
+                ["bleedingWound"] = false,
+                ["bleed"] = false,
+                ["halucinations"] = false,
+            });
+
+        SimulateConditionReceived(update);
+
+        Assert.Empty(_vm.Conditions);
+        Assert.Equal("Stoi", _vm.Vitals.PositionDisplay);
+    }
+
+    [Fact]
+    public void SimulateConditionReceived_SelectiveFlags_PopulatesConditions()
+    {
+        var update = new CharacterConditionUpdate(
+            null,
+            new Dictionary<string, bool>
+            {
+                ["thirsty"] = true,
+                ["hungry"] = true,
+                ["drunk"] = false,
+                ["sleepy"] = false,
+                ["overweight"] = false,
+                ["smoking"] = false,
+                ["thighJab"] = false,
+                ["bleedingWound"] = false,
+                ["bleed"] = false,
+                ["halucinations"] = false,
+            });
+
+        SimulateConditionReceived(update);
+
+        Assert.Equal(2, _vm.Conditions.Count);
+        Assert.Contains("Pragnienie", _vm.Conditions);
+        Assert.Contains("Głód", _vm.Conditions);
+        Assert.DoesNotContain("Upojenie", _vm.Conditions);
+    }
+
+    [Fact]
+    public void SimulateConditionReceived_ClearsPreviousConditions()
+    {
+        // Arrange: first update with some active flags
+        var first = new CharacterConditionUpdate(
+            null,
+            new Dictionary<string, bool>
+            {
+                ["thirsty"] = true,
+                ["hungry"] = false,
+                ["drunk"] = true,
+                ["sleepy"] = false,
+            });
+        SimulateConditionReceived(first);
+        Assert.Equal(2, _vm.Conditions.Count);
+
+        // Act: second update with different flags
+        var second = new CharacterConditionUpdate(
+            null,
+            new Dictionary<string, bool>
+            {
+                ["thirsty"] = false,
+                ["hungry"] = true,
+                ["drunk"] = false,
+                ["sleepy"] = false,
+            });
+        SimulateConditionReceived(second);
+
+        // Assert: only the new active conditions are present
+        Assert.Single(_vm.Conditions);
+        Assert.Contains("Głód", _vm.Conditions);
+        Assert.DoesNotContain("Pragnienie", _vm.Conditions);
+        Assert.DoesNotContain("Upojenie", _vm.Conditions);
     }
 
     // ====================================================================
@@ -456,11 +820,11 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Act
         await _vm.SendCommandCommand.ExecuteAsync(null);
 
-        // Assert: history stores the alias-expanded command ("look")
-        //         but NOT the short form ("l")
+        // Assert: history stores the original typed command ("l")
+        //         but NOT the expanded version ("look")
         Assert.NotEmpty(_vm.CommandHistory);
-        Assert.Contains("look", _vm.CommandHistory);
-        Assert.DoesNotContain("l", _vm.CommandHistory);
+        Assert.Contains("l", _vm.CommandHistory);
+        Assert.DoesNotContain("look", _vm.CommandHistory);
     }
 
     [Fact]
@@ -533,11 +897,66 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Act
         await _vm.SendCommandCommand.ExecuteAsync(null);
 
-        // Assert: CommandText ("l") differs from history entry ("look")
+        // Assert: CommandText ("l") matches the history entry ("l")
+        //         because history now stores the original typed command.
         Assert.Equal("l", _vm.CommandText);
         var historyEntry = Assert.Single(_vm.CommandHistory);
-        Assert.Equal("look", historyEntry);
-        Assert.NotEqual(_vm.CommandText, historyEntry);
+        Assert.Equal("l", historyEntry);
+    }
+
+    // ====================================================================
+    // Multi-line alias test (VM level, sequential send)
+    //
+    // The SendCommand pipeline uses _aliases.ProcessCommands() which splits
+    // the replacement on newlines.  We verify that the original typed command
+    // is still recorded in history.  Actual sequential send to the network
+    // cannot be verified without a fake/controllable MudSession (the current
+    // architecture hard-codes TcpClient inside MudSession with no injectable
+    // transport seam), so network-level send ordering is validated by the
+    // core-level AliasEngine.ProcessCommands tests in MudClient.Core.Tests.
+    // ====================================================================
+
+    /// <summary>Registers a "ml" → multi-line alias through the real rule pipeline.</summary>
+    private void AddMultiLineAlias()
+    {
+        _vm.NewRuleName = "Multi look-north";
+        _vm.NewRuleType = "alias";
+        _vm.NewRulePattern = "^ml$";
+        _vm.NewRuleAction = "look\nnorth";
+        _vm.AddRuleCommand.Execute(null);
+    }
+
+    [Fact]
+    public async Task SendCommand_WithMultiLineAlias_OriginalTypedCommandStoredInHistory()
+    {
+        // Arrange
+        AddMultiLineAlias();
+        SetIsConnected(true);
+        _vm.CommandText = "ml";
+
+        // Act
+        await _vm.SendCommandCommand.ExecuteAsync(null);
+
+        // Assert: history stores the original typed command, not the expanded lines
+        Assert.NotEmpty(_vm.CommandHistory);
+        Assert.Contains("ml", _vm.CommandHistory);
+        Assert.DoesNotContain("look", _vm.CommandHistory);
+        Assert.DoesNotContain("north", _vm.CommandHistory);
+    }
+
+    [Fact]
+    public async Task SendCommand_WithMultiLineAlias_CommandTextPreserved()
+    {
+        // Arrange
+        AddMultiLineAlias();
+        SetIsConnected(true);
+        _vm.CommandText = "ml";
+
+        // Act
+        await _vm.SendCommandCommand.ExecuteAsync(null);
+
+        // Assert: the original typed text remains in CommandText
+        Assert.Equal("ml", _vm.CommandText);
     }
 
     // ====================================================================
@@ -795,6 +1214,122 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
+    // GroupChanged event subscription (reflection-based)
+    // ====================================================================
+
+    [Fact]
+    public void GroupChangedEvent_IsSubscribedByConstructor()
+    {
+        // Check that the private _characterState.GroupChanged event has at
+        // least one subscriber after MainWindowViewModel construction.
+        var resolverField = typeof(MainWindowViewModel).GetField("_characterState",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(resolverField);
+        var resolver = resolverField!.GetValue(_vm);
+        Assert.NotNull(resolver);
+
+        var groupChangedField = typeof(CharacterStateResolver).GetField("GroupChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(groupChangedField);
+        var delegateObj = groupChangedField!.GetValue(resolver) as Delegate;
+        Assert.NotNull(delegateObj);
+        Assert.NotEmpty(delegateObj.GetInvocationList());
+    }
+
+    // ====================================================================
+    // Char.Group → Group collection (simulated handler)
+    //
+    // The production handler (OnGroupChanged) uses
+    // Dispatcher.UIThread.Post to marshal work to the UI thread, which
+    // is not available without a headless Avalonia platform.  Instead,
+    // the test below verifies the collection-population logic directly
+    // — the same logic that the dispatcher-invoked lambda executes in
+    // production.  Event-subscription wiring is covered separately via
+    // reflection (GroupChangedEvent_IsSubscribedByConstructor).
+    // ====================================================================
+
+    /// <summary>
+    /// Replicates the production OnGroupChanged handler's collection logic.
+    /// </summary>
+    private void SimulateGroupReceived(CharacterGroupUpdate update)
+    {
+        _vm.Group.Clear();
+        foreach (var member in update.Members)
+        {
+            _vm.Group.Add(GroupMember.FromCore(member));
+        }
+    }
+
+    [Fact]
+    public void SimulateGroupReceived_PopulatesGroup()
+    {
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "Temple", true),
+            new("Gimli", "sitting", "ogromne rany", 2, "zmeczony", 2, 0,
+                false, "Temple", false),
+        });
+
+        SimulateGroupReceived(update);
+
+        Assert.Equal(2, _vm.Group.Count);
+
+        // -- Leader --
+        Assert.Equal("Hero", _vm.Group[0].Name);
+        Assert.True(_vm.Group[0].IsLeader);
+        Assert.Equal("standing", _vm.Group[0].Position);
+        Assert.Equal("zadnych sladow", _vm.Group[0].HpText);
+        Assert.Equal(7, _vm.Group[0].HpScale);
+        Assert.Equal(4, _vm.Group[0].MvScale);
+        Assert.Equal(0, _vm.Group[0].Mem);
+        Assert.False(_vm.Group[0].IsNpc);
+        Assert.Equal("Temple", _vm.Group[0].Room);
+        Assert.Equal("*", _vm.Group[0].LeaderMarker);
+        Assert.Equal("zadnych sladow (7/7)", _vm.Group[0].HpDisplay);
+        Assert.Equal("wypoczety (4/4)", _vm.Group[0].MvDisplay);
+
+        // -- Non-leader --
+        Assert.Equal("Gimli", _vm.Group[1].Name);
+        Assert.False(_vm.Group[1].IsLeader);
+        Assert.Equal("sitting", _vm.Group[1].Position);
+        Assert.Equal("ogromne rany", _vm.Group[1].HpText);
+        Assert.Equal(2, _vm.Group[1].HpScale);
+        Assert.Equal(2, _vm.Group[1].MvScale);
+        Assert.Equal(0, _vm.Group[1].Mem);
+        Assert.False(_vm.Group[1].IsNpc);
+        Assert.Equal("Temple", _vm.Group[1].Room);
+        Assert.Equal(" ", _vm.Group[1].LeaderMarker);
+        Assert.Equal("ogromne rany (2/7)", _vm.Group[1].HpDisplay);
+    }
+
+    [Fact]
+    public void SimulateGroupReceived_ClearsPreviousEntries()
+    {
+        // Arrange: simulate one group update
+        var first = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "Room1", true),
+        });
+        SimulateGroupReceived(first);
+        Assert.Single(_vm.Group);
+
+        // Act: simulate a second update
+        var second = new CharacterGroupUpdate("Gimli", new List<CharacterGroupMember>
+        {
+            new("Gimli", "sitting", "lekkie rany", 5, "zmeczony", 2, 0,
+                false, "Room2", true),
+        });
+        SimulateGroupReceived(second);
+
+        // Assert: only the second group's members are present
+        Assert.Single(_vm.Group);
+        Assert.Equal("Gimli", _vm.Group[0].Name);
+        Assert.NotEqual("Hero", _vm.Group[0].Name);
+    }
+
+    // ====================================================================
     // GMCP tab structure — XAML validation note
     // ====================================================================
     //
@@ -947,6 +1482,1026 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // The ViewModel-level history (CommandHistory) and its insert/cap
     // behaviour are tested above (SendCommand_History* tests).  The
     // Down-at-fresh guard is a View-level concern and cannot be exercised
-    // without either (a) instantiating MainWindow with a headless UI
-    // framework or (b) extracting the navigation logic into the ViewModel.
+    //     without either (a) instantiating MainWindow with a headless UI
+    //     framework or (b) extracting the navigation logic into the ViewModel.
+
+    // ====================================================================
+    // Group room display resolution (ResolveRoomDisplay)
+    //
+    // ResolveRoomDisplay is a private method on MainWindowViewModel.  It
+    // consults Map.MapIndex? to look up a room name for a given vnum.
+    // We invoke it via reflection, setting up a MapIndex on the MapViewModel
+    // through the private _mapIndex field (same pattern as MapViewModelTests).
+    // ====================================================================
+
+    /// <summary>
+    /// Sets the private _mapIndex field on the VM's Map property using
+    /// reflection, matching the pattern in MapViewModelTests.
+    /// </summary>
+    private void SetMapViewModelMapIndex(MapIndex? index)
+    {
+        var field = typeof(MapViewModel).GetField("_mapIndex",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        field!.SetValue(_vm.Map, index);
+    }
+
+    /// <summary>Invokes the private ResolveRoomDisplay method via reflection.</summary>
+    private string InvokeResolveRoomDisplay(string? room)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("ResolveRoomDisplay",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return (string)method!.Invoke(_vm, [room])!;
+    }
+
+    /// <summary>Sets the private _latestGroupUpdate field via reflection.</summary>
+    private void SetLatestGroupUpdate(CharacterGroupUpdate? update)
+    {
+        var field = typeof(MainWindowViewModel).GetField("_latestGroupUpdate",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        field!.SetValue(_vm, update);
+    }
+
+    /// <summary>
+    /// Replicates the production OnMapPropertyChanged handler's dispatcher
+    /// lambda: rebuilds the Group collection from _latestGroupUpdate using
+    /// the current MapIndex for room name resolution.
+    /// </summary>
+    private void SimulateMapIndexChangedRebuild(CharacterGroupUpdate update)
+    {
+        _vm.Group.Clear();
+        foreach (var member in update.Members)
+        {
+            var roomDisplay = InvokeResolveRoomDisplay(member.Room);
+            _vm.Group.Add(GroupMember.FromCore(member, roomDisplay));
+        }
+    }
+
+    /// <summary>
+    /// Creates a trivial MapIndex containing one room with the given vnum
+    /// and room name, suitable for ResolveRoomDisplay tests.
+    /// </summary>
+    private static MapIndex CreateMapIndexWithVnum(string vnum, string roomName)
+    {
+        var room = new MapRoom
+        {
+            Id = 1,
+            AreaId = 1,
+            Name = roomName,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement(vnum),
+            },
+        };
+
+        return new MapIndex(new MapDocument
+        {
+            Areas =
+            [
+                new MapArea { Id = 1, Name = "Test Area", Rooms = [room] },
+            ],
+        });
+    }
+
+    // ====================================================================
+    // ResolveRoomDisplay unit tests
+    // ====================================================================
+
+    [Fact]
+    public void ResolveRoomDisplay_WithNullRoom_ReturnsQuestionMark()
+    {
+        var result = InvokeResolveRoomDisplay(null);
+        Assert.Equal("?", result);
+    }
+
+    [Fact]
+    public void ResolveRoomDisplay_WithRoomAndMapIndexNull_ReturnsPokojFallback()
+    {
+        // Map.MapIndex is null after construction (no map loaded yet).
+        var result = InvokeResolveRoomDisplay("6017");
+        Assert.Equal("pokój 6017", result);
+    }
+
+    [Fact]
+    public void ResolveRoomDisplay_WithRoomAndMapIndexNoMatch_ReturnsPokojFallback()
+    {
+        var index = CreateMapIndexWithVnum("100", "Some Room");
+        SetMapViewModelMapIndex(index);
+
+        var result = InvokeResolveRoomDisplay("999");  // not in index
+        Assert.Equal("pokój 999", result);
+    }
+
+    [Fact]
+    public void ResolveRoomDisplay_WithRoomAndMapIndexMatch_ReturnsRoomName()
+    {
+        var index = CreateMapIndexWithVnum("6017", "Town Square");
+        SetMapViewModelMapIndex(index);
+
+        var result = InvokeResolveRoomDisplay("6017");
+        Assert.Equal("Town Square", result);
+    }
+
+    [Fact]
+    public void ResolveRoomDisplay_WithRoomAndMapIndexMatchButEmptyName_ReturnsPokojFallback()
+    {
+        var index = CreateMapIndexWithVnum("6017", string.Empty);
+        SetMapViewModelMapIndex(index);
+
+        var result = InvokeResolveRoomDisplay("6017");
+        Assert.Equal("pokój 6017", result);
+    }
+
+    [Fact]
+    public void ResolveRoomDisplay_WithRoomAndMapIndexMatchButWhitespaceName_ReturnsPokojFallback()
+    {
+        var index = CreateMapIndexWithVnum("6017", "   ");
+        SetMapViewModelMapIndex(index);
+
+        var result = InvokeResolveRoomDisplay("6017");
+        Assert.Equal("pokój 6017", result);
+    }
+
+    // ====================================================================
+    // Group rebuild via OnMapPropertyChanged when MapIndex loads
+    //
+    // The production handler posts to Dispatcher.UIThread, which is not
+    // available without headless Avalonia.  We replicate the lambda logic
+    // directly (see SimulateMapIndexChangedRebuild), matching the pattern
+    // used by SimulateGroupReceived above.
+    // ====================================================================
+
+    [Fact]
+    public void GroupRebuild_WithMapIndexChange_UpdatesRoomDisplayToResolvedName()
+    {
+        // Arrange: simulate a previous group update was stored
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "6017", true),
+        });
+        SetLatestGroupUpdate(update);
+
+        // Pre-populate group with fallback names (as OnGroupChanged would
+        // when MapIndex is not yet loaded).
+        _vm.Group.Clear();
+        _vm.Group.Add(GroupMember.FromCore(update.Members[0], "pokój 6017"));
+
+        // Act: MapIndex becomes available → rebuild
+        var index = CreateMapIndexWithVnum("6017", "Town Square");
+        SetMapViewModelMapIndex(index);
+        SimulateMapIndexChangedRebuild(update);
+
+        // Assert: room names are now resolved
+        var entry = Assert.Single(_vm.Group);
+        Assert.Equal("Town Square", entry.RoomDisplay);
+        Assert.Equal("6017", entry.Room);
+    }
+
+    [Fact]
+    public void GroupRebuild_WithMapIndexChangeNoMatch_KeepsPokojFallback()
+    {
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "9999", true),
+        });
+        SetLatestGroupUpdate(update);
+        _vm.Group.Clear();
+        _vm.Group.Add(GroupMember.FromCore(update.Members[0], "pokój 9999"));
+
+        // MapIndex has a different vnum
+        var index = CreateMapIndexWithVnum("100", "Some Room");
+        SetMapViewModelMapIndex(index);
+        SimulateMapIndexChangedRebuild(update);
+
+        var entry = Assert.Single(_vm.Group);
+        Assert.Equal("pokój 9999", entry.RoomDisplay);
+    }
+
+    // ====================================================================
+    // Map-load timing: group received before MapIndex is loaded
+    // ====================================================================
+
+    [Fact]
+    public void GroupBeforeMapLoad_ShowsFallbackAndRefreshesAfterMapIndexChange()
+    {
+        // Step 1: Simulate group received before map is loaded.
+        // No MapIndex → ResolveRoomDisplay returns fallback.
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "6017", true),
+        });
+
+        _vm.Group.Clear();
+        _vm.Group.Add(GroupMember.FromCore(update.Members[0], "pokój 6017"));
+        Assert.Equal("pokój 6017", _vm.Group[0].RoomDisplay);
+
+        // Store the update as OnGroupChanged does.
+        SetLatestGroupUpdate(update);
+
+        // Step 2: Map finishes loading, MapIndex becomes available.
+        var index = CreateMapIndexWithVnum("6017", "Town Square");
+        SetMapViewModelMapIndex(index);
+
+        // Step 3: PropertyChanged fires, group is rebuilt.
+        SimulateMapIndexChangedRebuild(update);
+
+        // Assert: group entry now shows the resolved room name.
+        Assert.Single(_vm.Group);
+        Assert.Equal("Town Square", _vm.Group[0].RoomDisplay);
+        Assert.Equal("6017", _vm.Group[0].Room);
+    }
+
+    [Fact]
+    public void GroupRebuild_MultipleMembers_AllResolvedCorrectly()
+    {
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "6017", true),  // known vnum
+            new("Thorin", "standing", "rany", 3, "zmeczony", 2, 0,
+                false, "9999", false),  // unknown vnum
+            new("Balin", "sitting", "rany", 4, "senny", 1, 0,
+                false, null, false),    // null room
+        });
+        SetLatestGroupUpdate(update);
+
+        // MapIndex only knows "6017"
+        var index = CreateMapIndexWithVnum("6017", "Town Square");
+        SetMapViewModelMapIndex(index);
+
+        SimulateMapIndexChangedRebuild(update);
+
+        Assert.Equal(3, _vm.Group.Count);
+        Assert.Equal("Town Square",   _vm.Group[0].RoomDisplay);  // resolved
+        Assert.Equal("pokój 9999",    _vm.Group[1].RoomDisplay);  // fallback
+        Assert.Equal("?",             _vm.Group[2].RoomDisplay);  // null → ?
+    }
+
+    // ====================================================================
+    // SimulateGroupReceivedResolved — end-to-end from a fresh VM state
+    // (no _latestGroupUpdate prerequisite needed)
+    // ====================================================================
+
+    [Fact]
+    public void SimulateGroupReceivedResolved_WithMapIndex_UsesResolvedNames()
+    {
+        var index = CreateMapIndexWithVnum("6017", "Town Square");
+        SetMapViewModelMapIndex(index);
+
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "6017", true),
+        });
+
+        _vm.Group.Clear();
+        foreach (var member in update.Members)
+        {
+            var roomDisplay = InvokeResolveRoomDisplay(member.Room);
+            _vm.Group.Add(GroupMember.FromCore(member, roomDisplay));
+        }
+
+        var entry = Assert.Single(_vm.Group);
+        Assert.Equal("Town Square", entry.RoomDisplay);
+    }
+
+    [Fact]
+    public void SimulateGroupReceivedResolved_WithoutMapIndex_UsesFallback()
+    {
+        // MapIndex is null by default
+        var update = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", "standing", "zadnych sladow", 7, "wypoczety", 4, 0,
+                false, "6017", true),
+        });
+
+        _vm.Group.Clear();
+        foreach (var member in update.Members)
+        {
+            var roomDisplay = InvokeResolveRoomDisplay(member.Room);
+            _vm.Group.Add(GroupMember.FromCore(member, roomDisplay));
+        }
+
+        var entry = Assert.Single(_vm.Group);
+        Assert.Equal("pokój 6017", entry.RoomDisplay);
+    }
+
+    // ====================================================================
+    // Trigger batch serialization — SendTriggeredCommandsAsync / _triggerSendLock
+    //
+    // The coder added a SemaphoreSlim (_triggerSendLock, initialised to
+    // new(1, 1)) to MainWindowViewModel so that trigger batches fired from
+    // OnLineReceived do not interleave: one batch must finish sending all
+    // its commands before the next batch can start.
+    //
+    // Production flow:
+    //   OnLineReceived(line)
+    //     → var commands = _triggers.Evaluate(line)
+    //     → if commands.Count > 0: _ = SendTriggeredCommandsAsync(commands)
+    //       → _triggerSendLock.WaitAsync()
+    //       → foreach command: SendTriggeredCommandAsync(command)
+    //         → Dispatcher.UIThread.Post(() => EmitSystem(...))
+    //         → _session.SendCommandAsync(command)
+    //       → _triggerSendLock.Release()
+    //
+    // Testability limitations:
+    //   * SendTriggeredCommandAsync uses Dispatcher.UIThread.Post, which
+    //     requires a running Avalonia platform (not available here).
+    //   * _session is typed as MudSession (sealed, no interface), so we
+    //     cannot inject a fake session that records command order.
+    //
+    // Therefore the tests below verify the SemaphoreSlim's presence, initial
+    // state, acquire/release cycle with an empty batch (which exercises the
+    // lock but does NOT call SendTriggeredCommandAsync), and proper disposal.
+    // Verifying actual network-level ordering would require either:
+    //   (a) an injectable IMudSession / ITransport seam in production code,
+    //   (b) a headless Avalonia test runner, or
+    //   (c) an integration test against a controllable TCP loopback.
+    // ====================================================================
+
+    private static FieldInfo GetTriggerSendLockField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggerSendLock",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static MethodInfo GetSendTriggeredCommandsAsyncMethod()
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("SendTriggeredCommandsAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return method!;
+    }
+
+    private static MethodInfo GetOnLineReceivedMethod()
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("OnLineReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return method!;
+    }
+
+    private static FieldInfo GetTriggerCtsField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggerCts",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static FieldInfo GetTriggerTasksField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggerTasks",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static FieldInfo GetTriggerTasksLockField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggerTasksLock",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static FieldInfo GetAcceptingTriggerTasksField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_acceptingTriggerTasks",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static FieldInfo GetTriggersField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggers",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static MethodInfo GetRemoveWhenCompletedMethod()
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("RemoveWhenCompleted",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return method!;
+    }
+
+    private static FieldInfo GetTriggerQueueTailField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_triggerQueueTail",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static MethodInfo GetEnqueueBatchAsyncMethod()
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("EnqueueBatchAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return method!;
+    }
+
+    [Fact]
+    public void TriggerSendLock_FieldExists_WithInitialCountOne()
+    {
+        var field = GetTriggerSendLockField();
+        var semaphore = field.GetValue(_vm) as SemaphoreSlim;
+
+        Assert.NotNull(semaphore);
+        Assert.Equal(1, semaphore!.CurrentCount);
+    }
+
+    [Fact]
+    public async Task TriggerSendLock_EmptyBatch_AcquiresAndReleasesLock()
+    {
+        // Arrange
+        var field = GetTriggerSendLockField();
+        var semaphore = (SemaphoreSlim)field.GetValue(_vm)!;
+        var method = GetSendTriggeredCommandsAsyncMethod();
+
+        // Verify initial state
+        Assert.Equal(1, semaphore.CurrentCount);
+
+        // Act: invoke SendTriggeredCommandsAsync with an empty list.
+        // This exercises the WaitAsync/try/finally/Release pattern but
+        // does NOT call SendTriggeredCommandAsync, so the Dispatcher
+        // dependency is avoided.
+        var task = (Task)method.Invoke(_vm, [Array.Empty<string>()])!;
+        await task;
+
+        // Assert: lock is released after batch completes
+        Assert.Equal(1, semaphore.CurrentCount);
+    }
+
+    [Fact]
+    public async Task TriggerSendLock_DisposeDisposesSemaphore()
+    {
+        // Use a separate VM so we can call DisposeAsync without affecting
+        // the fixture VM (which is disposed by the test harness after each test).
+        var isolatedVm = new MainWindowViewModel();
+
+        var field = GetTriggerSendLockField();
+        var semaphore = (SemaphoreSlim)field.GetValue(isolatedVm)!;
+
+        // Act
+        await isolatedVm.DisposeAsync();
+
+        // Assert: WaitAsync on a disposed SemaphoreSlim throws
+        // ObjectDisposedException.  (CurrentCount does NOT throw on
+        // .NET 10, but WaitAsync does.)
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            semaphore.WaitAsync());
+    }
+
+    [Fact]
+    public void OnLineReceived_NoMatchingTriggers_DoesNotThrow()
+    {
+        // Arrange
+        var method = GetOnLineReceivedMethod();
+
+        // Act / Assert: no matching trigger → SendTriggeredCommandsAsync
+        // is never called → no Dispatcher / session dependency is touched.
+        var exception = Record.Exception(() =>
+            method.Invoke(_vm, ["ordinary line with no match"]));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void OnLineReceived_NoMatchingTriggers_SendTriggeredCommandsNotCalled()
+    {
+        // Verify that the semaphore is not affected when there are no
+        // matching triggers (i.e. SendTriggeredCommandsAsync is skipped).
+        var field = GetTriggerSendLockField();
+        var semaphore = (SemaphoreSlim)field.GetValue(_vm)!;
+        var method = GetOnLineReceivedMethod();
+
+        Assert.Equal(1, semaphore.CurrentCount);
+
+        method.Invoke(_vm, ["another non-matching line"]);
+
+        // CurrentCount must remain 1 — no lock acquisition happened.
+        Assert.Equal(1, semaphore.CurrentCount);
+    }
+
+    // ====================================================================
+    // Trigger lifecycle — CTS, task tracking, and DisposeAsync draining
+    //
+    // The coder added _triggerCts (CancellationTokenSource), _triggerTasks
+    // (List&lt;Task&gt;), and _triggerTasksLock (object) to MainWindowViewModel
+    // so that DisposeAsync can cancel waiting trigger batches and drain
+    // in-flight fire-and-forget tasks before disposing the semaphore and CTS.
+    //
+    // Production flow during disposal:
+    //   1. Unsubscribe LineReceived (prevents new batches)
+    //   2. _triggerCts.Cancel() (unblocks WaitAsync on the semaphore)
+    //   3. Drain loop: snapshot _triggerTasks, await each task
+    //   4. Final gate: acquire + release the semaphore
+    //   5. Dispose semaphore and CTS
+    // ====================================================================
+
+    [Fact]
+    public void TriggerCts_FieldExists_NotCancelledInitially()
+    {
+        var field = GetTriggerCtsField();
+        var cts = field.GetValue(_vm) as CancellationTokenSource;
+
+        Assert.NotNull(cts);
+        Assert.False(cts!.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void TriggerTasks_FieldExists_EmptyInitially()
+    {
+        var field = GetTriggerTasksField();
+        var tasks = field.GetValue(_vm) as List<Task>;
+
+        Assert.NotNull(tasks);
+        Assert.NotNull(field.GetValue(_vm)); // list instance exists
+        Assert.Empty(tasks!);
+    }
+
+    [Fact]
+    public void TriggerTasksLock_FieldExists()
+    {
+        var field = GetTriggerTasksLockField();
+        Assert.NotNull(field.GetValue(_vm));
+    }
+
+    [Fact]
+    public async Task TriggerCts_DisposeAsync_CancelsToken()
+    {
+        var isolatedVm = new MainWindowViewModel();
+        var field = GetTriggerCtsField();
+        var cts = (CancellationTokenSource)field.GetValue(isolatedVm)!;
+
+        Assert.False(cts.IsCancellationRequested);
+
+        await isolatedVm.DisposeAsync();
+
+        Assert.True(cts.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task TriggerCts_DisposeAsync_DisposesCts()
+    {
+        var isolatedVm = new MainWindowViewModel();
+        var field = GetTriggerCtsField();
+        var cts = (CancellationTokenSource)field.GetValue(isolatedVm)!;
+
+        await isolatedVm.DisposeAsync();
+
+        // Accessing Token on a disposed CancellationTokenSource throws.
+        Assert.Throws<ObjectDisposedException>(() => cts.Token);
+    }
+
+    [Fact]
+    public void OnLineReceived_NoMatchingTriggers_DoesNotAddTasks()
+    {
+        // Arrange
+        var method = GetOnLineReceivedMethod();
+        var tasksField = GetTriggerTasksField();
+        var tasks = (List<Task>)tasksField.GetValue(_vm)!;
+
+        Assert.Empty(tasks);
+
+        // Act: invoke with a non-matching line
+        method.Invoke(_vm, ["some random line with no trigger match"]);
+
+        // Assert: no tasks were added to the tracking list
+        Assert.Empty(tasks);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WithNoTriggerTasks_DoesNotThrow()
+    {
+        var isolatedVm = new MainWindowViewModel();
+
+        var exception = await Record.ExceptionAsync(
+            () => isolatedVm.DisposeAsync().AsTask());
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WithEmptyBatchTask_DrainsTaskWithoutUnobservedException()
+    {
+        // Arrange: create an isolated VM, invoke SendTriggeredCommandsAsync
+        // with an empty batch, and manually track the returned Task (as
+        // OnLineReceived does in production via _triggerTasks.Add(task)).
+        var isolatedVm = new MainWindowViewModel();
+        var sendMethod = GetSendTriggeredCommandsAsyncMethod();
+        var tasksField = GetTriggerTasksField();
+        var tasks = (List<Task>)tasksField.GetValue(isolatedVm)!;
+
+        var task = (Task)sendMethod.Invoke(isolatedVm, [Array.Empty<string>()])!;
+
+        // Track the task the same way OnLineReceived does.
+        lock (tasks)
+        {
+            tasks.Add(task);
+        }
+
+        // Act: dispose should drain the tracked task without throwing.
+        var exception = await Record.ExceptionAsync(
+            () => isolatedVm.DisposeAsync().AsTask());
+
+        // Assert
+        Assert.Null(exception);
+        Assert.True(task.IsCompleted);
+    }
+
+    // ====================================================================
+    // Trigger serialisation — validation note
+    //
+    // Full verification that two concurrent trigger batches do not interleave
+    // (e.g. batch A command 1, batch B command 1, batch A command 2) requires
+    // exercising the production flow through SendTriggeredCommandAsync, which
+    // calls both Dispatcher.UIThread.Post and _session.SendCommandAsync.
+    //
+    // Without a headless Avalonia platform or a test seam for MudSession,
+    // the interleaving guarantee is validated by:
+    //
+    //   1. Core-level TriggerEngine.Evaluate tests (MudClient.Core.Tests)
+    //      — confirm correct command extraction per match.
+    //   2. Semaphore reflection tests above — confirm the lock exists,
+    //      starts free (Count = 1), is acquired/released correctly for an
+    //      empty batch, and is disposed during DisposeAsync.
+    //   3. Lifecycle tests above — verify _triggerCts, _triggerTasks,
+    //      _triggerTasksLock field existence, cancellation on DisposeAsync,
+    //      CTS disposal, no-task dispose safety, and tracked task drain.
+    //   4. Code review — the pattern (WaitAsync / try-finally / Release)
+    //      matches the standard SemaphoreSlim serialisation idiom and
+    //      mirrors the existing MudSession._sendLock pattern in SendRawAsync.
+    //   5. Manual integration testing — connecting to the MUD server and
+    //      verifying that rapid trigger lines produce commands in order.
+    //
+    // ====================================================================
+
+    // ====================================================================
+    // _acceptingTriggerTasks flag — field existence, initial value,
+    // disposal transition, and rejection of new work after disposal.
+    // ====================================================================
+
+    [Fact]
+    public void AcceptingTriggerTasks_FieldExists_StartsTrue()
+    {
+        var field = GetAcceptingTriggerTasksField();
+
+        var value = (bool)field.GetValue(_vm)!;
+
+        Assert.True(value);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_SetsAcceptingFlagFalse()
+    {
+        var isolatedVm = new MainWindowViewModel();
+        var field = GetAcceptingTriggerTasksField();
+
+        Assert.True((bool)field.GetValue(isolatedVm)!);
+
+        await isolatedVm.DisposeAsync();
+
+        Assert.False((bool)field.GetValue(isolatedVm)!);
+    }
+
+    [Fact]
+    public async Task OnLineReceived_AfterDisposal_WithMatchingTrigger_DoesNotAddTask()
+    {
+        // Arrange: isolated VM with a trigger rule registered
+        var isolatedVm = new MainWindowViewModel();
+        var onLineReceived = GetOnLineReceivedMethod();
+        var tasksField = GetTriggerTasksField();
+        var triggersField = GetTriggersField();
+        var acceptingField = GetAcceptingTriggerTasksField();
+
+        var triggers = (TriggerEngine)triggersField.GetValue(isolatedVm)!;
+        triggers.Add(new TriggerRule("test", "match", "cmd"));
+
+        var tasks = (List<Task>)tasksField.GetValue(isolatedVm)!;
+
+        Assert.Empty(tasks);
+        Assert.True((bool)acceptingField.GetValue(isolatedVm)!);
+
+        // Act: dispose first, then try to fire a trigger match
+        await isolatedVm.DisposeAsync();
+
+        Assert.False((bool)acceptingField.GetValue(isolatedVm)!);
+
+        // This invocation should hit the early-return guard
+        // (!_acceptingTriggerTasks) inside OnLineReceived — no task created.
+        onLineReceived.Invoke(isolatedVm, ["match"]);
+
+        // Assert: no new task was added after disposal
+        Assert.Empty(tasks);
+    }
+
+    // ====================================================================
+    // RemoveWhenCompleted observer — completed, faulted, and cancelled
+    // tasks are removed from _triggerTasks, preventing unbounded growth.
+    // ====================================================================
+
+    [Fact]
+    public async Task RemoveWhenCompleted_CompletedTask_RemovedFromList()
+    {
+        var method = GetRemoveWhenCompletedMethod();
+        var tasksField = GetTriggerTasksField();
+        var lockField = GetTriggerTasksLockField();
+        var tasks = (List<Task>)tasksField.GetValue(_vm)!;
+        var lockObj = lockField.GetValue(_vm)!;
+
+        var completed = Task.CompletedTask;
+        lock (lockObj) { tasks.Add(completed); }
+        _ = Assert.Single(tasks);
+
+        var resultTask = (Task)method.Invoke(_vm, [completed])!;
+        await resultTask;
+
+        Assert.Empty(tasks);
+    }
+
+    [Fact]
+    public async Task RemoveWhenCompleted_FaultedTask_RemovedFromList()
+    {
+        var method = GetRemoveWhenCompletedMethod();
+        var tasksField = GetTriggerTasksField();
+        var lockField = GetTriggerTasksLockField();
+        var tasks = (List<Task>)tasksField.GetValue(_vm)!;
+        var lockObj = lockField.GetValue(_vm)!;
+
+        var faulted = Task.FromException(new InvalidOperationException("fail"));
+        lock (lockObj) { tasks.Add(faulted); }
+        _ = Assert.Single(tasks);
+
+        var resultTask = (Task)method.Invoke(_vm, [faulted])!;
+        await resultTask;
+
+        Assert.Empty(tasks);
+    }
+
+    [Fact]
+    public async Task RemoveWhenCompleted_CancelledTask_RemovedFromList()
+    {
+        var method = GetRemoveWhenCompletedMethod();
+        var tasksField = GetTriggerTasksField();
+        var lockField = GetTriggerTasksLockField();
+        var tasks = (List<Task>)tasksField.GetValue(_vm)!;
+        var lockObj = lockField.GetValue(_vm)!;
+
+        var cancelled = Task.FromCanceled(new CancellationToken(canceled: true));
+        lock (lockObj) { tasks.Add(cancelled); }
+        _ = Assert.Single(tasks);
+
+        var resultTask = (Task)method.Invoke(_vm, [cancelled])!;
+        await resultTask;
+
+        Assert.Empty(tasks);
+    }
+
+    // ====================================================================
+    // OnLineReceived matching trigger — before disposal, the accepting flag
+    // check and task registration proceed without synchronously throwing.
+    // (The task itself runs SendTriggeredCommandsAsync which calls
+    // Dispatcher.UIThread.Post, so we can only verify the synchronous path.)
+    // ====================================================================
+
+    [Fact]
+    public void OnLineReceived_WithMatchingTrigger_FlagAndTaskRegistrationDoNotThrowSynchronously()
+    {
+        // Arrange: register a trigger that produces a single command
+        var triggersField = GetTriggersField();
+        var triggers = (TriggerEngine)triggersField.GetValue(_vm)!;
+        triggers.Add(new TriggerRule("test-sync", "^sync-match$", "do something"));
+
+        var method = GetOnLineReceivedMethod();
+
+        // Act: the synchronous portion (flag check + Task.Run + Add)
+        // must not throw.  The returned task runs asynchronously and
+        // will encounter the missing Dispatcher, but the fire-and-forget
+        // RemoveWhenCompleted continuation swallows that exception.
+        var exception = Record.Exception(() =>
+            method.Invoke(_vm, ["sync-match"]));
+
+        // Assert
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void OnLineReceived_WithMatchingTrigger_AddsTaskToList()
+    {
+        // Arrange
+        var triggersField = GetTriggersField();
+        var triggers = (TriggerEngine)triggersField.GetValue(_vm)!;
+        triggers.Add(new TriggerRule("test-add", "^add-me$", "something"));
+
+        var method = GetOnLineReceivedMethod();
+        var tasksField = GetTriggerTasksField();
+        var tasks = (List<Task>)tasksField.GetValue(_vm)!;
+        var lockField = GetTriggerTasksLockField();
+        var lockObj = lockField.GetValue(_vm)!;
+
+        Assert.Empty(tasks);
+
+        // Act
+        method.Invoke(_vm, ["add-me"]);
+
+        // Assert: one task was registered
+        // (lock the list to read it, same as production code does)
+        lock (lockObj)
+        {
+            Assert.Single(tasks);
+        }
+    }
+
+    // ====================================================================
+    // _triggerQueueTail — FIFO queue tail field, initial state, and update
+    // on matching trigger.  The tail is a Task that each new batch awaits
+    // (swallowing its faults) before sending, ensuring batches execute in
+    // receive order.
+    //
+    // Testability limitation: verifying actual send ordering would require
+    // either an injectable IMudSession seam (to record command order as
+    // they pass through SendCommandAsync) or a headless Avalonia platform
+    // (to run Dispatcher.UIThread.Post).  The tests below verify the
+    // chain mechanics at the Task level:
+    //
+    //   • field existence and initial value (CompletedTask),
+    //   • tail update after a matching trigger,
+    //   • EnqueueBatchAsync awaiting the previous task (FIFO chaining),
+    //   • fault tolerance — a faulted previous does not stall the chain.
+    // ====================================================================
+
+    [Fact]
+    public void TriggerQueueTail_FieldExists_StartsCompleted()
+    {
+        var field = GetTriggerQueueTailField();
+        var tail = (Task)field.GetValue(_vm)!;
+
+        Assert.NotNull(tail);
+        Assert.True(tail.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public void TriggerQueueTail_OnLineReceived_UpdatesTail()
+    {
+        // Arrange
+        var triggersField = GetTriggersField();
+        var triggers = (TriggerEngine)triggersField.GetValue(_vm)!;
+        triggers.Add(new TriggerRule("test-tail", "^update-tail$", "cmd"));
+
+        var method = GetOnLineReceivedMethod();
+        var tailField = GetTriggerQueueTailField();
+        var originalTail = (Task)tailField.GetValue(_vm)!;
+
+        Assert.True(originalTail.IsCompletedSuccessfully);
+
+        // Act
+        method.Invoke(_vm, ["update-tail"]);
+
+        // Assert: the tail is now a different (incomplete) task
+        var newTail = (Task)tailField.GetValue(_vm)!;
+        Assert.NotSame(originalTail, newTail);
+        Assert.False(newTail.IsCompleted);
+    }
+
+    [Fact]
+    public void TriggerQueueTail_TwoMatches_TailsAreDistinct()
+    {
+        // Note: each batch task completes quickly in the test environment
+        // because SendTriggeredCommandAsync hits Dispatcher.UIThread.Post
+        // which throws (no Avalonia platform).  The exception is swallowed
+        // by RemoveWhenCompleted, so the task finishes (faulted) almost
+        // immediately.  Therefore we only assert the synchronous contract:
+        // each match produces a distinct tail Task reference.
+        // Arrange
+        var triggersField = GetTriggersField();
+        var triggers = (TriggerEngine)triggersField.GetValue(_vm)!;
+        triggers.Add(new TriggerRule("tail-a", "^first$", "cmd1"));
+        triggers.Add(new TriggerRule("tail-b", "^second$", "cmd2"));
+
+        var method = GetOnLineReceivedMethod();
+        var tailField = GetTriggerQueueTailField();
+
+        // Act — first match
+        method.Invoke(_vm, ["first"]);
+        var tailAfterFirst = (Task)tailField.GetValue(_vm)!;
+
+        // Act — second match
+        method.Invoke(_vm, ["second"]);
+        var tailAfterSecond = (Task)tailField.GetValue(_vm)!;
+
+        // Assert: each match creates a new tail distinct from the previous
+        // one and neither is the original CompletedTask sentinel.
+        Assert.NotSame(tailAfterFirst, tailAfterSecond);
+        Assert.NotSame(Task.CompletedTask, tailAfterFirst);
+        Assert.NotSame(Task.CompletedTask, tailAfterSecond);
+    }
+
+    // ====================================================================
+    // EnqueueBatchAsync — FIFO chaining via the "previous" parameter.
+    //
+    // Each call to EnqueueBatchAsync receives the previous queue tail and
+    // awaits it before executing its own batch.  By passing a controlled
+    // TaskCompletionSource as "previous" we can prove the chaining
+    // without real MudSession sends (empty command list avoids the
+    // Dispatcher dependency).
+    // ====================================================================
+
+    [Fact]
+    public async Task EnqueueBatchAsync_AwaitsPreviousBeforeExecuting()
+    {
+        // Arrange: use a TCS as the "previous" task that the batch must
+        // await before proceeding.  Empty commands keep the test free of
+        // Dispatcher / MudSession dependencies.
+        var method = GetEnqueueBatchAsyncMethod();
+        var previousTcs = new TaskCompletionSource();
+        var commands = Array.Empty<string>();
+
+        // Act: enqueue a batch that must wait for previousTcs.Task.
+        var batchTask = (Task)method.Invoke(_vm, [previousTcs.Task, commands])!;
+
+        // The method yields immediately (Task.Yield) then awaits previous.
+        // Spin-wait briefly for the async machinery to reach the await point.
+        for (var i = 0; i < 20 && batchTask.IsCompleted; i++)
+        {
+            await Task.Delay(10);
+        }
+
+        // Assert: batchTask is NOT complete because previous is incomplete.
+        Assert.False(batchTask.IsCompleted,
+            "Batch task should not complete before its previous task completes.");
+
+        // Complete the previous task — the batch should now be unblocked.
+        previousTcs.SetResult();
+
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(batchTask.IsCompletedSuccessfully,
+            "Batch task must complete successfully after previous completes.");
+    }
+
+    [Fact]
+    public async Task EnqueueBatchAsync_FaultedPrevious_DoesNotBlockOrFaultBatch()
+    {
+        // Arrange: a faulted previous task — the batch must swallow the
+        // exception and still execute normally.
+        var method = GetEnqueueBatchAsyncMethod();
+        var faultedPrevious = Task.FromException(new InvalidOperationException("prior crash"));
+        var commands = Array.Empty<string>();
+
+        // Act
+        var batchTask = (Task)method.Invoke(_vm, [faultedPrevious, commands])!;
+
+        // Assert: the batch completes successfully despite the faulted
+        // previous (exception is caught and swallowed in EnqueueBatchAsync).
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(batchTask.IsCompletedSuccessfully,
+            "Batch must complete successfully even when the previous task is faulted.");
+    }
+
+    [Fact]
+    public async Task EnqueueBatchAsync_CancelledPrevious_DoesNotBlockOrFaultBatch()
+    {
+        // Arrange: a cancelled previous task — the batch must swallow the
+        // OperationCanceledException and still execute normally.
+        var method = GetEnqueueBatchAsyncMethod();
+        var cancelledPrevious = Task.FromCanceled(new CancellationToken(canceled: true));
+        var commands = Array.Empty<string>();
+
+        // Act
+        var batchTask = (Task)method.Invoke(_vm, [cancelledPrevious, commands])!;
+
+        // Assert
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(batchTask.IsCompletedSuccessfully,
+            "Batch must complete successfully even when the previous task is cancelled.");
+    }
+
+    [Fact]
+    public async Task EnqueueBatchAsync_CompletedPrevious_CompletesSuccessfully()
+    {
+        // Arrange
+        var method = GetEnqueueBatchAsyncMethod();
+        var commands = Array.Empty<string>();
+
+        // Act: with Task.CompletedTask as previous, the batch proceeds
+        // immediately after the initial yield.
+        var batchTask = (Task)method.Invoke(_vm, [Task.CompletedTask, commands])!;
+
+        // Assert
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(batchTask.IsCompletedSuccessfully);
+    }
 }

@@ -3,10 +3,21 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace MudClient.App.Models;
 
 /// <summary>
-/// Mock character vitals and stats. Replace with real data from GMCP/parsing later.
+/// Character vitals and stats. HP/MV/level/name/sex/position come live from
+/// GMCP (Char.Vitals); the remaining stats are placeholders until the server
+/// exposes them.
 /// </summary>
 public sealed partial class CharacterVitals : ObservableObject
 {
+    [ObservableProperty]
+    private string _name = "—";
+
+    [ObservableProperty]
+    private string _sexDisplay = "—";
+
+    [ObservableProperty]
+    private string _positionDisplay = "—";
+
     [ObservableProperty]
     private int _hitPoints = 120;
 

@@ -19,7 +19,37 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly TriggerEngine _triggers = new();
     private readonly MudTimerService _timers = new();
     private readonly GmcpLocationResolver _locationResolver = new();
+    private readonly CharacterStateResolver _characterState = new();
     private readonly ProfileService _profiles;
+
+    private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
+    private CancellationTokenSource _triggerCts = new();
+
+    // Tracks fire-and-forget trigger-batch tasks so they can be safely
+    // drained during DisposeAsync, preventing unobserved exceptions
+    // and ensuring no task holds _triggerSendLock when it is disposed.
+    private readonly object _triggerTasksLock = new();
+    private readonly List<Task> _triggerTasks = new();
+
+    /// <summary>
+    /// Tail of the FIFO task chain that guarantees trigger batches are
+    /// sent in receive order.  Each new batch created by
+    /// <c>OnLineReceived</c> awaits this task (swallowing its faults)
+    /// before sending its own commands.  Read and written under
+    /// <see cref="_triggerTasksLock"/>.
+    /// </summary>
+    private Task _triggerQueueTail = Task.CompletedTask;
+
+    /// <summary>
+    /// When false, new trigger tasks are rejected.  Set and read under
+    /// <see cref="_triggerTasksLock"/> to make task acceptance atomic with
+    /// disposal, preventing the shutdown race where <c>DisposeAsync</c>
+    /// drains an empty list and disposes the semaphore before
+    /// <c>OnLineReceived</c> registers a task that will later touch it.
+    /// </summary>
+    private bool _acceptingTriggerTasks = true;
+
+    private CharacterGroupUpdate? _latestGroupUpdate;
 
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
@@ -88,6 +118,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DeleteRuleCommand = new RelayCommand<AutomationRuleEntry>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomationRuleEntry>(ToggleRule);
 
+        _characterState.VitalsChanged += OnCharacterVitalsChanged;
+        _characterState.ConditionChanged += OnCharacterConditionChanged;
+        _characterState.PeopleChanged += OnRoomPeopleChanged;
+        _characterState.GroupChanged += OnGroupChanged;
+        _characterState.AffectsChanged += OnCharacterAffectsChanged;
+
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
         _session.GmcpReceived += OnGmcpReceived;
@@ -96,6 +132,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.ConnectionError += OnConnectionError;
 
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
+        Map.PropertyChanged += OnMapPropertyChanged;
 
         PopulateMockData();
 
@@ -938,7 +975,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // --- Character vitals (mock) ---
     public CharacterVitals Vitals { get; } = new();
 
-    // --- Status effects (mock) ---
+    // --- Character conditions (live, from Char.Condition GMCP) ---
+    public ObservableCollection<string> Conditions { get; } = [];
+
+    // --- Status effects (live, from Char.Affects GMCP) ---
     public ObservableCollection<StatusEffect> Effects { get; } = [];
 
     // --- People in room (mock) ---
@@ -1019,24 +1059,27 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private async Task SendCurrentCommandAsync()
     {
         var sourceCommand = CommandText.Trim();
-        var command = _aliases.Process(sourceCommand);
+        var commands = _aliases.ProcessCommands(sourceCommand);
 
-        // Track history
-        CommandHistory.Insert(0, command);
+        // Track history – record the original typed command.
+        CommandHistory.Insert(0, sourceCommand);
         while (CommandHistory.Count > CommandHistoryMaxSize)
         {
             CommandHistory.RemoveAt(CommandHistory.Count - 1);
         }
 
-        EmitSystem($"> {command}", 90);
+        foreach (var command in commands)
+        {
+            EmitSystem($"> {command}", 90);
 
-        try
-        {
-            await _session.SendCommandAsync(command);
-        }
-        catch (Exception exception)
-        {
-            EmitSystem(exception.Message, 31);
+            try
+            {
+                await _session.SendCommandAsync(command);
+            }
+            catch (Exception exception)
+            {
+                EmitSystem(exception.Message, 31);
+            }
         }
     }
 
@@ -1156,14 +1199,121 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnLineReceived(string line)
     {
-        foreach (var command in _triggers.Evaluate(line))
+        var commands = _triggers.Evaluate(line);
+        if (commands.Count == 0)
         {
-            _ = SendTriggeredCommandAsync(command);
+            return;
+        }
+
+        Task task;
+        lock (_triggerTasksLock)
+        {
+            // Reject new work if the view-model is shutting down.
+            // This check + task creation + registration are all inside
+            // the same critical section that DisposeAsync uses to flip
+            // _acceptingTriggerTasks, so no task can be started after
+            // DisposeAsync has already drained and disposed the semaphore.
+            if (!_acceptingTriggerTasks)
+            {
+                return;
+            }
+
+            // Capture the current tail of the FIFO chain.  The new task
+            // will await this previous batch (swallowing its faults) so
+            // that batches are sent strictly in receive order.
+            var previous = _triggerQueueTail;
+
+            // Create the new batch task and register it as the new tail.
+            // EnqueueBatchAsync yields immediately so the lock is held
+            // only for the duration of the synchronous preamble.
+            task = EnqueueBatchAsync(previous, commands);
+            _triggerQueueTail = task;
+            _triggerTasks.Add(task);
+        }
+
+        // Fire-and-forget continuation that removes the task from the
+        // tracking list once it completes, preventing unbounded growth
+        // of _triggerTasks during normal operation.
+        _ = RemoveWhenCompleted(task);
+    }
+
+    /// <summary>
+    /// Awaits <paramref name="task"/> and removes it from
+    /// <see cref="_triggerTasks"/> under lock when it completes (or faults,
+    /// or is cancelled).  All exceptions are swallowed — trigger-command
+    /// errors are already logged inside <see cref="SendTriggeredCommandAsync"/>,
+    /// and <see cref="OperationCanceledException"/> is expected during
+    /// disposal shutdown.
+    /// </summary>
+    private async Task RemoveWhenCompleted(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Swallow all exceptions (see xmldoc above).
+        }
+
+        lock (_triggerTasksLock)
+        {
+            _triggerTasks.Remove(task);
+        }
+    }
+
+    /// <summary>
+    /// Awaits <paramref name="previous"/> (the prior batch in the FIFO
+    /// chain) and then sends <paramref name="commands"/>.  Exceptions
+    /// from the previous task are swallowed so a faulted batch never
+    /// stalls later batches.  The semaphore inside
+    /// <see cref="SendTriggeredCommandsAsync"/> provides an additional
+    /// layer of non-interleaving protection (belt-and-suspenders).
+    /// </summary>
+    private async Task EnqueueBatchAsync(Task previous, IReadOnlyList<string> commands)
+    {
+        // Yield immediately so the caller's lock is released and this
+        // method returns a Task to the caller.  The continuation runs
+        // on a thread-pool thread (the caller fires from the network
+        // receive loop, which has no SynchronizationContext).
+        await Task.Yield();
+
+        try
+        {
+            await previous.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Swallow all exceptions from the prior batch so the FIFO
+            // chain continues.  Individual command errors are already
+            // logged inside SendTriggeredCommandAsync, and cancellation
+            // of the current batch will be observed in its own
+            // SendTriggeredCommandsAsync call below.
+        }
+
+        await SendTriggeredCommandsAsync(commands);
+    }
+
+    private async Task SendTriggeredCommandsAsync(IReadOnlyList<string> commands)
+    {
+        await _triggerSendLock.WaitAsync(_triggerCts.Token);
+        try
+        {
+            foreach (var command in commands)
+            {
+                await SendTriggeredCommandAsync(command);
+            }
+        }
+        finally
+        {
+            _triggerSendLock.Release();
         }
     }
 
     private async Task SendTriggeredCommandAsync(string command)
     {
+        Dispatcher.UIThread.Post(() => EmitSystem($"> {command}", 90));
+
         try
         {
             await _session.SendCommandAsync(command);
@@ -1177,6 +1327,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnGmcpReceived(GmcpMessage message)
     {
         _locationResolver.Process(message);
+        _characterState.Process(message);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -1191,6 +1342,168 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
         });
     }
+
+    private void OnCharacterVitalsChanged(CharacterVitalsUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Hp is { } hp) Vitals.HitPoints = hp;
+            if (update.MaxHp is { } maxHp) Vitals.MaxHitPoints = maxHp;
+            if (update.Mv is { } mv) Vitals.EndurancePoints = mv;
+            if (update.MaxMv is { } maxMv) Vitals.MaxEndurancePoints = maxMv;
+            if (update.Level is { } level) Vitals.Level = level;
+            if (update.Name is { } name) Vitals.Name = name;
+            if (update.Sex is { } sex) Vitals.SexDisplay = TranslateSex(sex);
+            if (update.Position is { } position) Vitals.PositionDisplay = TranslatePosition(position);
+
+            if (update.Mem is { } mem)
+            {
+                Vitals.SpellPoints = mem;
+                if (mem > Vitals.MaxSpellPoints)
+                {
+                    Vitals.MaxSpellPoints = mem;
+                }
+            }
+        });
+    }
+
+    private void OnCharacterConditionChanged(CharacterConditionUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Position is { } position)
+            {
+                Vitals.PositionDisplay = TranslatePosition(position);
+            }
+
+            Conditions.Clear();
+            foreach (var (flag, active) in update.Flags)
+            {
+                if (active)
+                {
+                    Conditions.Add(TranslateCondition(flag));
+                }
+            }
+        });
+    }
+
+    private void OnCharacterAffectsChanged(IReadOnlyList<CharacterAffect> affects)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            Effects.Clear();
+            foreach (var affect in affects)
+            {
+                Effects.Add(StatusEffect.FromCore(affect));
+            }
+        });
+    }
+
+    private void OnRoomPeopleChanged(IReadOnlyList<RoomPerson> people)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            People.Clear();
+            foreach (var person in people)
+            {
+                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy));
+            }
+        });
+    }
+
+    private void OnGroupChanged(CharacterGroupUpdate update)
+    {
+        _latestGroupUpdate = update;
+        Dispatcher.UIThread.Post(() =>
+        {
+            Group.Clear();
+            foreach (var member in update.Members)
+            {
+                var roomDisplay = ResolveRoomDisplay(member.Room);
+                Group.Add(GroupMember.FromCore(member, roomDisplay));
+            }
+        });
+    }
+
+    /// <summary>
+    /// Resolves a raw room vnum to a display string.
+    /// Uses the loaded map room name when available, falls back to "pokój {vnum}",
+    /// or "?" when there is no room value at all.
+    /// </summary>
+    private string ResolveRoomDisplay(string? room)
+    {
+        if (room is null)
+        {
+            return "?";
+        }
+
+        var mapRoom = Map.MapIndex?.FindFirstRoomByVnum(room);
+        var mapName = mapRoom?.Name?.Trim();
+        if (!string.IsNullOrEmpty(mapName))
+        {
+            return mapName;
+        }
+
+        return $"pokój {room}";
+    }
+
+    /// <summary>
+    /// Rebuilds the Group collection when MapIndex becomes available after map loading,
+    /// so that entries that previously showed "pokój xxx" switch to resolved room names.
+    /// </summary>
+    private void OnMapPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MapViewModel.MapIndex) && _latestGroupUpdate is not null)
+        {
+            var update = _latestGroupUpdate;
+            Dispatcher.UIThread.Post(() =>
+            {
+                Group.Clear();
+                foreach (var member in update.Members)
+                {
+                    var roomDisplay = ResolveRoomDisplay(member.Room);
+                    Group.Add(GroupMember.FromCore(member, roomDisplay));
+                }
+            });
+        }
+    }
+
+    private static string TranslateSex(string sex) => sex.ToUpperInvariant() switch
+    {
+        "M" => "Mężczyzna",
+        "F" or "K" => "Kobieta",
+        _ => sex,
+    };
+
+    private static string TranslatePosition(string position) => position switch
+    {
+        "standing" => "Stoi",
+        "sitting" => "Siedzi",
+        "resting" => "Odpoczywa",
+        "sleeping" => "Śpi",
+        "fighting" => "Walczy",
+        "stunned" => "Oszołomiony",
+        "incap" or "incapacitated" => "Obezwładniony",
+        "mortal" or "mortally" => "Umierający",
+        "dead" => "Martwy",
+        "lying" => "Leży",
+        _ => position,
+    };
+
+    private static string TranslateCondition(string flag) => flag.ToLowerInvariant() switch
+    {
+        "overweight" => "Przeciążenie",
+        "drunk" => "Upojenie",
+        "thirsty" => "Pragnienie",
+        "hungry" => "Głód",
+        "sleepy" => "Senność",
+        "smoking" => "Pali",
+        "thighjab" => "Rana uda",
+        "bleedingwound" => "Krwawiąca rana",
+        "bleed" => "Krwawienie",
+        "halucinations" => "Halucynacje",
+        _ => flag,
+    };
 
     private void OnGmcpSent(GmcpMessage message)
     {
@@ -1271,18 +1584,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             LogFilters.Add(filter);
         }
 
-        // Status effects (mock)
-        Effects.Add(new StatusEffect("Błogosławieństwo", "[+]", "12 min", false));
-        Effects.Add(new StatusEffect("Kamienna skóra", "[+]", "8 min", false));
-        Effects.Add(new StatusEffect("Zatrucie", "[-]", "3 min", true));
+        // Status effects are populated live from Char.Affects GMCP.
 
-        // People in room (mock)
-        People.Add(new PersonEntry("Strażnik miasta", "(NPC)", false));
-        People.Add(new PersonEntry("Stary mag", "(NPC)", false));
-
-        // Group members (mock)
-        Group.Add(new GroupMember("Ty", "*", 100, 80, 100));
-        Group.Add(new GroupMember("Aelindra", " ", 85, 60, 92));
+        // Group members are populated live from Char.Group GMCP.
 
         // Notes (mock)
         Notes.Add(new NoteEntry
@@ -1310,6 +1614,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         SaveActiveProfile();
 
+        _characterState.VitalsChanged -= OnCharacterVitalsChanged;
+        _characterState.ConditionChanged -= OnCharacterConditionChanged;
+        _characterState.PeopleChanged -= OnRoomPeopleChanged;
+        _characterState.GroupChanged -= OnGroupChanged;
+        _characterState.AffectsChanged -= OnCharacterAffectsChanged;
+
         _session.TextReceived -= OnTextReceived;
         _session.LineReceived -= OnLineReceived;
         _session.GmcpReceived -= OnGmcpReceived;
@@ -1317,8 +1627,88 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.StatusChanged -= OnStatusChanged;
         _session.ConnectionError -= OnConnectionError;
 
+        Map.PropertyChanged -= OnMapPropertyChanged;
+
+        // Phase 1 — stop accepting new trigger tasks atomically.
+        // OnLineReceived holds the same lock when it checks the flag,
+        // creates a task, and registers it, so after this block no new
+        // task will be added to _triggerTasks.
+        List<Task> pending;
+        lock (_triggerTasksLock)
+        {
+            _acceptingTriggerTasks = false;
+            pending = new List<Task>(_triggerTasks);
+            _triggerTasks.Clear();
+        }
+
+        // Phase 2 — cancel the CTS so any in-flight WaitAsync calls
+        // on the semaphore observe cancellation and exit without
+        // acquiring the lock.
+        _triggerCts.Cancel();
+
+        // Phase 3 — drain the tasks we snapshotted above.
+        foreach (var task in pending)
+        {
+            try
+            {
+                await task;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected — the batch was cancelled by our CTS.
+            }
+            catch (Exception)
+            {
+                // Swallow any other exceptions during shutdown so that
+                // they do not become unobserved and tear down the process.
+            }
+        }
+
+        // Phase 4 — belt-and-suspenders re-check.  The flag gate above
+        // prevents new additions, and RemoveWhenCompleted only removes
+        // from the list, so this loop should be empty.  We keep it as a
+        // defense-in-depth measure against any unanticipated path.
+        while (true)
+        {
+            lock (_triggerTasksLock)
+            {
+                if (_triggerTasks.Count == 0)
+                {
+                    break;
+                }
+
+                pending = new List<Task>(_triggerTasks);
+                _triggerTasks.Clear();
+            }
+
+            foreach (var task in pending)
+            {
+                try
+                {
+                    await task;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected.
+                }
+                catch (Exception)
+                {
+                    // Swallow.
+                }
+            }
+        }
+
+        // Final gate: acquire the semaphore and release it immediately.
+        // This protects against the edge case where a trigger task managed
+        // to acquire the semaphore before the CTS was cancelled but had
+        // not yet released it.  Waiting ensures the release happened.
+        await _triggerSendLock.WaitAsync();
+        _triggerSendLock.Release();
+
         await _timers.DisposeAsync();
         await _session.DisposeAsync();
         Map.Dispose();
+        _triggerSendLock.Dispose();
+        _triggerCts.Dispose();
     }
 }
