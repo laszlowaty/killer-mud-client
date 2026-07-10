@@ -22,7 +22,6 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        LoadIcon();
         _mudOutput = this.FindControl<MudOutputView>("MudOutput")
             ?? throw new InvalidOperationException("MudOutput not found.");
         _commandBox = this.FindControl<TextBox>("CommandBox")
@@ -42,16 +41,6 @@ public partial class MainWindow : Window
             "Aplikacja łączy się z domyślnym hostem po wyborze profilu.\n" +
             "Możesz zmienić host/port i połączyć się ponownie ręcznie.\n" +
             "Przykładowy alias: \u001b[93ml\u001b[0m -> \u001b[93mlook\u001b[0m\n\n");
-    }
-
-    private void LoadIcon()
-    {
-        var icoPath = System.IO.Path.Combine(
-            AppContext.BaseDirectory, "Assets", "killer.ico");
-        if (System.IO.File.Exists(icoPath))
-        {
-            Icon = new WindowIcon(icoPath);
-        }
     }
 
     private void OnDataContextChanged(object? sender, EventArgs eventArgs)
