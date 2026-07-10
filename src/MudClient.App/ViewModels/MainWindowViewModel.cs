@@ -19,6 +19,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly TriggerEngine _triggers = new();
     private readonly MudTimerService _timers = new();
     private readonly GmcpLocationResolver _locationResolver = new();
+    private readonly RoomExitsResolver _roomExits = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly ProfileService _profiles;
 
@@ -83,6 +84,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newRulePattern = string.Empty;
     private string _newRuleAction = string.Empty;
     private string? _newRulePatternError;
+    private AutomationRuleEntry? _editedRule;
+    private bool _isRuleFormExpanded;
 
     // --- Timers ---
     private string _newTimerName = string.Empty;
@@ -90,6 +93,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newTimerSeconds = "0";
     private string _newTimerMilliseconds = "0";
     private string _newTimerCommands = string.Empty;
+    private TimerEntry? _editedTimer;
+    private bool _isTimerFormExpanded;
+
+    // --- Autowalk ---
+    private string _newLocationName = string.Empty;
+    private string _newLocationVnum = string.Empty;
+    private MapPathfinder? _pathfinder;
+    private MapIndex? _pathfinderIndex;
+    private MapPath? _autowalkPath;
+    private int _autowalkStep;
+    private string? _autowalkTargetName;
+    private string _autowalkStatusText = "Bezczynny.";
+    private AutowalkLocation? _temporaryTarget;
 
     // --- Profiles ---
     private string? _activeProfileName;
@@ -114,9 +130,31 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
         ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
+        EditTimerCommand = new RelayCommand<TimerEntry>(EditTimer);
+        CancelTimerEditCommand = new RelayCommand(CancelTimerEdit);
         AddRuleCommand = new RelayCommand(AddRule, CanAddRule);
         DeleteRuleCommand = new RelayCommand<AutomationRuleEntry>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomationRuleEntry>(ToggleRule);
+        EditRuleCommand = new RelayCommand<AutomationRuleEntry>(EditRule);
+        CancelRuleEditCommand = new RelayCommand(CancelRuleEdit);
+        AddCurrentLocationCommand = new RelayCommand(AddCurrentLocation);
+        AddLocationCommand = new RelayCommand(AddLocation);
+        DeleteLocationCommand = new RelayCommand<AutowalkLocation>(DeleteLocation);
+        GoToLocationCommand = new RelayCommand<AutowalkLocation>(entry =>
+        {
+            if (entry is not null)
+            {
+                StartAutowalk(entry);
+            }
+        });
+        StopAutowalkCommand = new RelayCommand(() => StopAutowalk("Autowalk zatrzymany."));
+        GoToTemporaryTargetCommand = new RelayCommand(() =>
+        {
+            if (_temporaryTarget is not null)
+            {
+                StartAutowalk(_temporaryTarget);
+            }
+        });
 
         _characterState.VitalsChanged += OnCharacterVitalsChanged;
         _characterState.ConditionChanged += OnCharacterConditionChanged;
@@ -133,6 +171,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
         Map.PropertyChanged += OnMapPropertyChanged;
+        _locationResolver.LocationChanged += OnAutowalkLocationChanged;
+        Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
 
         PopulateMockData();
 
@@ -414,6 +454,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand AddRuleCommand { get; }
     public RelayCommand<AutomationRuleEntry> DeleteRuleCommand { get; }
     public RelayCommand<AutomationRuleEntry> ToggleRuleCommand { get; }
+    public RelayCommand<AutomationRuleEntry> EditRuleCommand { get; }
+    public RelayCommand CancelRuleEditCommand { get; }
+
+    public bool IsEditingRule => _editedRule is not null;
+
+    /// <summary>Backs the rule form Expander (two-way); editing a rule opens it.</summary>
+    public bool IsRuleFormExpanded
+    {
+        get => _isRuleFormExpanded;
+        set => SetProperty(ref _isRuleFormExpanded, value);
+    }
+
+    public string RuleFormButtonText => IsEditingRule ? "Zapisz zmiany" : "Dodaj regułę";
+
+    public string RuleFormHeader => IsEditingRule ? "✎ Edytuj alias / trigger" : "＋ Nowy alias / trigger";
 
     public string NewRuleName
     {
@@ -515,15 +570,56 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        AutomationRules.Add(new AutomationRuleEntry(
-            NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction, isEnabled: true));
+        if (_editedRule is { } edited)
+        {
+            edited.Name = NewRuleName.Trim();
+            edited.Type = NewRuleType;
+            edited.Pattern = NewRulePattern;
+            edited.Action = NewRuleAction;
+        }
+        else
+        {
+            AutomationRules.Add(new AutomationRuleEntry(
+                NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction, isEnabled: true));
+        }
 
+        ClearRuleForm();
+        ApplyAutomation();
+        SaveActiveProfile();
+    }
+
+    private void EditRule(AutomationRuleEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        _editedRule = entry;
+        NewRuleName = entry.Name;
+        NewRuleType = entry.Type;
+        NewRulePattern = entry.Pattern;
+        NewRuleAction = entry.Action;
+        IsRuleFormExpanded = true;
+        NotifyRuleEditModeChanged();
+    }
+
+    private void CancelRuleEdit() => ClearRuleForm();
+
+    private void ClearRuleForm()
+    {
+        _editedRule = null;
         NewRuleName = string.Empty;
         NewRulePattern = string.Empty;
         NewRuleAction = string.Empty;
+        NotifyRuleEditModeChanged();
+    }
 
-        ApplyAutomation();
-        SaveActiveProfile();
+    private void NotifyRuleEditModeChanged()
+    {
+        OnPropertyChanged(nameof(IsEditingRule));
+        OnPropertyChanged(nameof(RuleFormButtonText));
+        OnPropertyChanged(nameof(RuleFormHeader));
     }
 
     private void DeleteRule(AutomationRuleEntry? entry)
@@ -531,6 +627,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (entry is null)
         {
             return;
+        }
+
+        if (ReferenceEquals(entry, _editedRule))
+        {
+            ClearRuleForm();
         }
 
         AutomationRules.Remove(entry);
@@ -559,6 +660,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand AddTimerCommand { get; }
     public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
     public RelayCommand<TimerEntry> ToggleTimerCommand { get; }
+    public RelayCommand<TimerEntry> EditTimerCommand { get; }
+    public RelayCommand CancelTimerEditCommand { get; }
+
+    public bool IsEditingTimer => _editedTimer is not null;
+
+    /// <summary>Backs the timer form Expander (two-way); editing a timer opens it.</summary>
+    public bool IsTimerFormExpanded
+    {
+        get => _isTimerFormExpanded;
+        set => SetProperty(ref _isTimerFormExpanded, value);
+    }
+
+    public string TimerFormButtonText => IsEditingTimer ? "Zapisz zmiany" : "Dodaj timer";
+
+    public string TimerFormHeader => IsEditingTimer ? "✎ Edytuj timer" : "＋ Nowy timer";
 
     public string NewTimerName
     {
@@ -605,36 +721,88 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var entry = new TimerEntry
-        {
-            Name = name,
-            Minutes = ParseNonNegative(NewTimerMinutes),
-            Seconds = ParseNonNegative(NewTimerSeconds),
-            Milliseconds = ParseNonNegative(NewTimerMilliseconds),
-            CommandsText = NewTimerCommands,
-        };
+        var minutes = ParseNonNegative(NewTimerMinutes);
+        var seconds = ParseNonNegative(NewTimerSeconds);
+        var milliseconds = ParseNonNegative(NewTimerMilliseconds);
+        var interval = TimeSpan.FromMinutes(minutes) +
+                       TimeSpan.FromSeconds(seconds) +
+                       TimeSpan.FromMilliseconds(milliseconds);
 
-        if (entry.Interval <= TimeSpan.Zero)
+        if (interval <= TimeSpan.Zero)
         {
             AddToast("Interwał timera musi być większy od zera.", "error");
             return;
         }
 
-        if (entry.GetCommands().Count == 0)
+        var hasCommands = NewTimerCommands
+            .Split('\n')
+            .Any(line => line.Trim().TrimEnd('\r').Length > 0);
+        if (!hasCommands)
         {
             AddToast("Timer musi mieć przynajmniej jedną komendę.", "error");
             return;
         }
 
-        Timers.Add(entry);
+        if (_editedTimer is { } edited)
+        {
+            edited.Name = name;
+            edited.Minutes = minutes;
+            edited.Seconds = seconds;
+            edited.Milliseconds = milliseconds;
+            edited.CommandsText = NewTimerCommands;
+            SyncTimer(edited);
+        }
+        else
+        {
+            Timers.Add(new TimerEntry
+            {
+                Name = name,
+                Minutes = minutes,
+                Seconds = seconds,
+                Milliseconds = milliseconds,
+                CommandsText = NewTimerCommands,
+            });
+        }
 
+        ClearTimerForm();
+        SaveActiveProfile();
+    }
+
+    private void EditTimer(TimerEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        _editedTimer = entry;
+        NewTimerName = entry.Name;
+        NewTimerMinutes = entry.Minutes.ToString();
+        NewTimerSeconds = entry.Seconds.ToString();
+        NewTimerMilliseconds = entry.Milliseconds.ToString();
+        NewTimerCommands = entry.CommandsText;
+        IsTimerFormExpanded = true;
+        NotifyTimerEditModeChanged();
+    }
+
+    private void CancelTimerEdit() => ClearTimerForm();
+
+    private void ClearTimerForm()
+    {
+        _editedTimer = null;
         NewTimerName = string.Empty;
         NewTimerMinutes = "0";
         NewTimerSeconds = "0";
         NewTimerMilliseconds = "0";
         NewTimerCommands = string.Empty;
+        NotifyTimerEditModeChanged();
+    }
 
-        SaveActiveProfile();
+    private void NotifyTimerEditModeChanged()
+    {
+        OnPropertyChanged(nameof(IsEditingTimer));
+        OnPropertyChanged(nameof(TimerFormButtonText));
+        OnPropertyChanged(nameof(TimerFormHeader));
     }
 
     private void DeleteTimer(TimerEntry? entry)
@@ -642,6 +810,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (entry is null)
         {
             return;
+        }
+
+        if (ReferenceEquals(entry, _editedTimer))
+        {
+            ClearTimerForm();
         }
 
         StopTimer(entry);
@@ -712,6 +885,432 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private static int ParseNonNegative(string text) =>
         int.TryParse(text?.Trim(), out var value) && value > 0 ? value : 0;
+
+    // ========================================================================
+    // Autowalk (named locations + pathfinding over the world map)
+    // ========================================================================
+
+    public ObservableCollection<AutowalkLocation> Locations { get; } = [];
+
+    public RelayCommand AddCurrentLocationCommand { get; }
+    public RelayCommand AddLocationCommand { get; }
+    public RelayCommand<AutowalkLocation> DeleteLocationCommand { get; }
+    public RelayCommand<AutowalkLocation> GoToLocationCommand { get; }
+    public RelayCommand StopAutowalkCommand { get; }
+
+    public string NewLocationName
+    {
+        get => _newLocationName;
+        set => SetProperty(ref _newLocationName, value);
+    }
+
+    /// <summary>Room vnum typed by the user when defining a remote location.</summary>
+    public string NewLocationVnum
+    {
+        get => _newLocationVnum;
+        set => SetProperty(ref _newLocationVnum, value);
+    }
+
+    public bool IsAutowalking => _autowalkPath is not null;
+
+    public RelayCommand GoToTemporaryTargetCommand { get; }
+
+    /// <summary>Target picked by double-clicking the map; not saved to the profile.</summary>
+    public bool HasTemporaryTarget => _temporaryTarget is not null;
+
+    public string TemporaryTargetDisplay => _temporaryTarget is { } target
+        ? $"Cel z mapy: {target.Name} (vnum {target.Vnum})"
+        : string.Empty;
+
+    private void SetTemporaryTarget(AutowalkLocation? target)
+    {
+        _temporaryTarget = target;
+        OnPropertyChanged(nameof(HasTemporaryTarget));
+        OnPropertyChanged(nameof(TemporaryTargetDisplay));
+    }
+
+    private void OnMapRoomDoubleClicked(MapRoom room)
+    {
+        var vnum = room.Vnum;
+        if (string.IsNullOrWhiteSpace(vnum))
+        {
+            AddToast("Ten pokój nie ma vnum — nie można do niego nawigować.", "error");
+            return;
+        }
+
+        SetTemporaryTarget(new AutowalkLocation(
+            string.IsNullOrWhiteSpace(room.Name) ? $"pokój {vnum}" : room.Name!, vnum, room.Name));
+
+        if (IsAutowalking)
+        {
+            // Don't clobber the active walk's painted route; the new target
+            // is armed and can be started with /idz or the panel button.
+            AddToast($"Nowy cel „{_temporaryTarget!.Name}” — /idz albo IDŹ DO CELU po zatrzymaniu.", "info");
+            return;
+        }
+
+        // Preview the route without walking.
+        var currentVnum = Map.CurrentVnum;
+        var path = string.IsNullOrWhiteSpace(currentVnum)
+            ? null
+            : GetPathfinder()?.FindPathByVnum(currentVnum, vnum);
+
+        if (path is null)
+        {
+            Map.RouteRooms = null;
+            AutowalkStatusText = $"Cel: „{_temporaryTarget!.Name}” — brak podglądu trasy (nieznana pozycja lub brak drogi).";
+            return;
+        }
+
+        PaintRoute(path, 0);
+        AutowalkStatusText = $"Cel: „{_temporaryTarget!.Name}” — {path.Steps.Count} kroków. Wpisz /idz albo kliknij IDŹ DO CELU.";
+    }
+
+    /// <summary>
+    /// Paints the remaining part of a path on the map, starting at the room
+    /// the walker currently occupies (fromStep = next step to execute).
+    /// </summary>
+    private void PaintRoute(MapPath path, int fromStep)
+    {
+        var rooms = new List<MapRoom>(path.Steps.Count - fromStep + 1)
+        {
+            fromStep == 0 ? path.From : path.Steps[fromStep - 1].ToRoom,
+        };
+
+        for (var i = fromStep; i < path.Steps.Count; i++)
+        {
+            rooms.Add(path.Steps[i].ToRoom);
+        }
+
+        Map.RouteRooms = rooms;
+    }
+
+    public string AutowalkStatusText
+    {
+        get => _autowalkStatusText;
+        private set => SetProperty(ref _autowalkStatusText, value);
+    }
+
+    /// <summary>
+    /// Returns the pathfinder for the currently loaded map, building it once
+    /// per MapIndex instance (the CSR graph build is the expensive part).
+    /// </summary>
+    private MapPathfinder? GetPathfinder()
+    {
+        var index = Map.MapIndex;
+        if (index is null)
+        {
+            return null;
+        }
+
+        if (!ReferenceEquals(index, _pathfinderIndex))
+        {
+            _pathfinder = new MapPathfinder(index);
+            _pathfinderIndex = index;
+        }
+
+        return _pathfinder;
+    }
+
+    private void AddCurrentLocation()
+    {
+        var vnum = Map.CurrentVnum;
+        if (string.IsNullOrWhiteSpace(vnum))
+        {
+            AddToast("Nieznana obecna pozycja — brak danych GMCP.", "error");
+            return;
+        }
+
+        AddLocationCore(NewLocationName, vnum);
+    }
+
+    private void AddLocation()
+    {
+        AddLocationCore(NewLocationName, NewLocationVnum);
+    }
+
+    private void AddLocationCore(string rawName, string rawVnum)
+    {
+        var name = rawName.Trim();
+        var vnum = rawVnum.Trim();
+
+        if (name.Length == 0)
+        {
+            AddToast("Podaj nazwę lokacji.", "error");
+            return;
+        }
+
+        if (vnum.Length == 0)
+        {
+            AddToast("Podaj numer pomieszczenia (vnum).", "error");
+            return;
+        }
+
+        if (Locations.Any(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            AddToast($"Lokacja „{name}” już istnieje.", "error");
+            return;
+        }
+
+        var room = Map.MapIndex?.FindFirstRoomByVnum(vnum);
+        if (Map.MapIndex is not null && room is null)
+        {
+            AddToast($"Uwaga: vnum {vnum} nie istnieje w mapie.", "error");
+        }
+
+        Locations.Add(new AutowalkLocation(name, vnum, room?.Name));
+        NewLocationName = string.Empty;
+        NewLocationVnum = string.Empty;
+        SaveActiveProfile();
+        AddToast($"Dodano lokację „{name}”.", "info");
+    }
+
+    private void DeleteLocation(AutowalkLocation? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        Locations.Remove(entry);
+        SaveActiveProfile();
+    }
+
+    private void StartAutowalk(AutowalkLocation entry)
+    {
+        var pathfinder = GetPathfinder();
+        if (pathfinder is null)
+        {
+            AddToast("Mapa nie jest załadowana.", "error");
+            return;
+        }
+
+        var currentVnum = Map.CurrentVnum;
+        if (string.IsNullOrWhiteSpace(currentVnum))
+        {
+            AddToast("Nieznana obecna pozycja — brak danych GMCP.", "error");
+            return;
+        }
+
+        var path = pathfinder.FindPathByVnum(currentVnum, entry.Vnum);
+        if (path is null)
+        {
+            AddToast($"Nie znaleziono trasy do „{entry.Name}”.", "error");
+            return;
+        }
+
+        if (path.Steps.Count == 0)
+        {
+            AddToast($"Już jesteś w lokacji „{entry.Name}”.", "info");
+            return;
+        }
+
+        _autowalkPath = path;
+        _autowalkStep = 0;
+        _autowalkTargetName = entry.Name;
+        OnPropertyChanged(nameof(IsAutowalking));
+        AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
+        PaintRoute(path, 0);
+        SendAutowalkStep();
+    }
+
+    private void StopAutowalk(string message, string toastType = "info")
+    {
+        var wasWalking = _autowalkPath is not null;
+        _autowalkPath = null;
+        _autowalkStep = 0;
+        _autowalkTargetName = null;
+        OnPropertyChanged(nameof(IsAutowalking));
+        AutowalkStatusText = "Bezczynny.";
+        Map.RouteRooms = null;
+        SetTemporaryTarget(null);
+
+        if (wasWalking)
+        {
+            AddToast(message, toastType);
+        }
+    }
+
+    private void SendAutowalkStep()
+    {
+        if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count)
+        {
+            return;
+        }
+
+        var step = _autowalkPath.Steps[_autowalkStep];
+        var remaining = _autowalkPath.Steps.Count - _autowalkStep;
+        AutowalkStatusText = $"Idę do „{_autowalkTargetName}” — pozostało {remaining} kroków.";
+
+        // A named exit (GMCP "name" or a custom exit name in the map) must be
+        // entered by its name — the plain direction command does not work.
+        var exit = FindGmcpExit(step.Command);
+        var moveCommand = exit?.Name ?? step.Command;
+
+        _ = SendAutowalkCommandsAsync(TryGetOpenCommand(exit), moveCommand);
+    }
+
+    private async Task SendAutowalkCommandsAsync(string? openCommand, string moveCommand)
+    {
+        if (openCommand is not null)
+        {
+            await SendTriggeredCommandAsync(openCommand);
+        }
+
+        await SendTriggeredCommandAsync(moveCommand);
+    }
+
+    /// <summary>
+    /// When GMCP Room.Info reports the step's exit as a closed door, returns
+    /// the command that opens it: "open" + the exit name from GMCP, or the
+    /// direction when the exit has no name. (The map's "door" field holds the
+    /// door state, e.g. "closed" — never a usable name.)
+    /// </summary>
+    private static string? TryGetOpenCommand(RoomExitInfo? exit)
+    {
+        if (exit is null || !exit.HasDoor || !exit.IsClosed)
+        {
+            return null;
+        }
+
+        return $"open {exit.Name ?? exit.Dir}";
+    }
+
+    /// <summary>
+    /// Matches a map exit command against the current room's GMCP exits,
+    /// either by canonical direction (map "west" ↔ GMCP "W") or, for
+    /// custom-named exits, by the exit name itself.
+    /// </summary>
+    private RoomExitInfo? FindGmcpExit(string stepCommand)
+    {
+        var canonical = CanonicalDirection(stepCommand);
+
+        foreach (var exit in _roomExits.CurrentExits)
+        {
+            if (string.Equals(CanonicalDirection(exit.Dir), canonical, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(exit.Name, stepCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                return exit;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Maps full direction names to the short form used by GMCP dirs.</summary>
+    private static string CanonicalDirection(string direction) => direction.ToLowerInvariant() switch
+    {
+        "north" => "N",
+        "south" => "S",
+        "east" => "E",
+        "west" => "W",
+        "northeast" => "NE",
+        "northwest" => "NW",
+        "southeast" => "SE",
+        "southwest" => "SW",
+        "up" => "U",
+        "down" => "D",
+        _ => direction.ToUpperInvariant(),
+    };
+
+    /// <summary>
+    /// Advances the walk when GMCP confirms a room change: if the new room is
+    /// one of the upcoming path steps we move past it, otherwise the route is
+    /// recomputed from the new position (e.g. after a failed or extra move).
+    /// </summary>
+    private void OnAutowalkLocationChanged(string vnum)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_autowalkPath is null)
+            {
+                return;
+            }
+
+            var steps = _autowalkPath.Steps;
+            for (var i = _autowalkStep; i < steps.Count; i++)
+            {
+                if (string.Equals(steps[i].ToRoom.Vnum, vnum, StringComparison.Ordinal))
+                {
+                    _autowalkStep = i + 1;
+                    if (_autowalkStep >= steps.Count)
+                    {
+                        StopAutowalk($"Dotarłeś do lokacji „{_autowalkTargetName}”.");
+                    }
+                    else
+                    {
+                        PaintRoute(_autowalkPath, _autowalkStep);
+                        SendAutowalkStep();
+                    }
+
+                    return;
+                }
+            }
+
+            // Off the planned route — recompute from where we actually are.
+            var targetName = _autowalkTargetName;
+            var path = GetPathfinder()?.FindPathByVnum(vnum, _autowalkPath.To.Vnum ?? string.Empty);
+            if (path is null)
+            {
+                StopAutowalk($"Zgubiłem trasę do „{targetName}” — autowalk przerwany.", "error");
+                return;
+            }
+
+            if (path.Steps.Count == 0)
+            {
+                StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
+                return;
+            }
+
+            _autowalkPath = path;
+            _autowalkStep = 0;
+            PaintRoute(path, 0);
+            SendAutowalkStep();
+        });
+    }
+
+    /// <summary>Handles chat-bar commands: /idz &lt;nazwa&gt; and /stop. Returns true when consumed.</summary>
+    private bool TryHandleAutowalkCommand(string command)
+    {
+        if (string.Equals(command, "/stop", StringComparison.OrdinalIgnoreCase))
+        {
+            StopAutowalk("Autowalk zatrzymany.");
+            return true;
+        }
+
+        const string prefix = "/idz";
+        if (!command.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var argument = command.Length > prefix.Length ? command[prefix.Length..].Trim() : string.Empty;
+        if (argument.Length == 0)
+        {
+            // Bare /idz walks to the target picked by double-clicking the map.
+            if (_temporaryTarget is { } target)
+            {
+                StartAutowalk(target);
+            }
+            else
+            {
+                AddToast("Użycie: /idz <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
+            }
+
+            return true;
+        }
+
+        var entry = Locations.FirstOrDefault(
+            l => string.Equals(l.Name, argument, StringComparison.OrdinalIgnoreCase));
+        if (entry is null)
+        {
+            AddToast($"Nie znam lokacji „{argument}”.", "error");
+            return true;
+        }
+
+        StartAutowalk(entry);
+        return true;
+    }
 
     // ========================================================================
     // Profiles
@@ -869,6 +1468,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             });
         }
 
+        StopAutowalk("Autowalk zatrzymany (zmiana profilu).");
+        Locations.Clear();
+        foreach (var location in profile.Locations)
+        {
+            var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
+            Locations.Add(new AutowalkLocation(location.Name, location.Vnum, room?.Name));
+        }
+
         ActiveProfileName = profile.Name;
         ApplyAutomation();
         _timers.CancelAll();
@@ -911,6 +1518,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     Commands = t.GetCommands().ToList(),
                     IsEnabled = t.IsEnabled,
                 })
+                .ToList(),
+            Locations = Locations
+                .Select(l => new ProfileLocation { Name = l.Name, Vnum = l.Vnum })
                 .ToList(),
         };
 
@@ -1059,6 +1669,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private async Task SendCurrentCommandAsync()
     {
         var sourceCommand = CommandText.Trim();
+
+        if (TryHandleAutowalkCommand(sourceCommand))
+        {
+            CommandHistory.Insert(0, sourceCommand);
+            while (CommandHistory.Count > CommandHistoryMaxSize)
+            {
+                CommandHistory.RemoveAt(CommandHistory.Count - 1);
+            }
+
+            return;
+        }
+
         var commands = _aliases.ProcessCommands(sourceCommand);
 
         // Track history – record the original typed command.
@@ -1152,10 +1774,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public void ReportStartupError(Exception exception)
     {
+        // Unwrap TargetInvocationException etc. so the dialog shows the real cause.
+        var rootCause = exception.GetBaseException();
         StartupErrorMessage = "Nie udało się uruchomić interfejsu.";
-        StartupErrorDetails = exception.Message;
+        StartupErrorDetails = rootCause.Message;
         AddToast("Wystąpił błąd uruchamiania interfejsu.", "error");
-        EmitSystem(exception.Message, 31);
+        EmitSystem(rootCause.Message, 31);
     }
 
     private void ClearStartupError()
@@ -1326,6 +1950,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnGmcpReceived(GmcpMessage message)
     {
+        // Exits must be parsed before the location resolver fires
+        // LocationChanged, so autowalk sees the new room's doors.
+        _roomExits.Process(message);
         _locationResolver.Process(message);
         _characterState.Process(message);
 
@@ -1628,6 +2255,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.ConnectionError -= OnConnectionError;
 
         Map.PropertyChanged -= OnMapPropertyChanged;
+        _locationResolver.LocationChanged -= OnAutowalkLocationChanged;
+        Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
 
         // Phase 1 — stop accepting new trigger tasks atomically.
         // OnLineReceived holds the same lock when it checks the flag,

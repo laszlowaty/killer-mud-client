@@ -2504,4 +2504,170 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(batchTask.IsCompletedSuccessfully);
     }
+
+    // ====================================================================
+    // Editing rules (aliases / triggers)
+    // ====================================================================
+
+    private AutomationRuleEntry AddSampleRule()
+    {
+        _vm.NewRuleName = "Skrót look";
+        _vm.NewRuleType = "alias";
+        _vm.NewRulePattern = "^l$";
+        _vm.NewRuleAction = "look";
+        _vm.AddRuleCommand.Execute(null);
+        return _vm.AutomationRules[^1];
+    }
+
+    [Fact]
+    public void EditRule_LoadsValuesIntoForm_AndEntersEditMode()
+    {
+        var rule = AddSampleRule();
+
+        _vm.EditRuleCommand.Execute(rule);
+
+        Assert.True(_vm.IsEditingRule);
+        Assert.Equal("Zapisz zmiany", _vm.RuleFormButtonText);
+        Assert.Equal(rule.Name, _vm.NewRuleName);
+        Assert.Equal(rule.Pattern, _vm.NewRulePattern);
+        Assert.Equal(rule.Action, _vm.NewRuleAction);
+    }
+
+    [Fact]
+    public void EditRule_Save_UpdatesEntryInPlace()
+    {
+        var rule = AddSampleRule();
+        var countBefore = _vm.AutomationRules.Count;
+
+        _vm.EditRuleCommand.Execute(rule);
+        _vm.NewRuleName = "Nowa nazwa";
+        _vm.NewRulePattern = "^lo$";
+        _vm.NewRuleAction = "look north";
+        _vm.AddRuleCommand.Execute(null);
+
+        Assert.Equal(countBefore, _vm.AutomationRules.Count);
+        Assert.Equal("Nowa nazwa", rule.Name);
+        Assert.Equal("^lo$", rule.Pattern);
+        Assert.Equal("look north", rule.Action);
+        Assert.False(_vm.IsEditingRule);
+        Assert.Equal(string.Empty, _vm.NewRuleName);
+    }
+
+    [Fact]
+    public void CancelRuleEdit_ClearsFormAndEditMode()
+    {
+        var rule = AddSampleRule();
+        _vm.EditRuleCommand.Execute(rule);
+
+        _vm.CancelRuleEditCommand.Execute(null);
+
+        Assert.False(_vm.IsEditingRule);
+        Assert.Equal(string.Empty, _vm.NewRuleName);
+        Assert.Equal(string.Empty, _vm.NewRulePattern);
+    }
+
+    [Fact]
+    public void DeleteRule_WhileEditingIt_CancelsEdit()
+    {
+        var rule = AddSampleRule();
+        _vm.EditRuleCommand.Execute(rule);
+
+        _vm.DeleteRuleCommand.Execute(rule);
+
+        Assert.False(_vm.IsEditingRule);
+        Assert.DoesNotContain(rule, _vm.AutomationRules);
+    }
+
+    // ====================================================================
+    // Editing timers
+    // ====================================================================
+
+    private TimerEntry AddSampleTimer()
+    {
+        _vm.NewTimerName = "Leczenie";
+        _vm.NewTimerMinutes = "1";
+        _vm.NewTimerSeconds = "30";
+        _vm.NewTimerCommands = "rzuc 'leczenie'";
+        _vm.AddTimerCommand.Execute(null);
+        return _vm.Timers[^1];
+    }
+
+    [Fact]
+    public void EditTimer_LoadsValuesIntoForm_AndEntersEditMode()
+    {
+        var timer = AddSampleTimer();
+
+        _vm.EditTimerCommand.Execute(timer);
+
+        Assert.True(_vm.IsEditingTimer);
+        Assert.Equal("Zapisz zmiany", _vm.TimerFormButtonText);
+        Assert.Equal(timer.Name, _vm.NewTimerName);
+        Assert.Equal("1", _vm.NewTimerMinutes);
+        Assert.Equal("30", _vm.NewTimerSeconds);
+        Assert.Equal(timer.CommandsText, _vm.NewTimerCommands);
+    }
+
+    [Fact]
+    public void EditTimer_Save_UpdatesEntryInPlace_KeepsId()
+    {
+        var timer = AddSampleTimer();
+        var id = timer.Id;
+        var countBefore = _vm.Timers.Count;
+
+        _vm.EditTimerCommand.Execute(timer);
+        _vm.NewTimerName = "Leczenie 2";
+        _vm.NewTimerMinutes = "0";
+        _vm.NewTimerSeconds = "45";
+        _vm.NewTimerCommands = "pij miksture";
+        _vm.AddTimerCommand.Execute(null);
+
+        Assert.Equal(countBefore, _vm.Timers.Count);
+        Assert.Equal(id, timer.Id);
+        Assert.Equal("Leczenie 2", timer.Name);
+        Assert.Equal(0, timer.Minutes);
+        Assert.Equal(45, timer.Seconds);
+        Assert.Equal("pij miksture", timer.CommandsText);
+        Assert.False(_vm.IsEditingTimer);
+    }
+
+    [Fact]
+    public void EditTimer_SaveWithZeroInterval_KeepsEditModeAndOldValues()
+    {
+        var timer = AddSampleTimer();
+
+        _vm.EditTimerCommand.Execute(timer);
+        _vm.NewTimerMinutes = "0";
+        _vm.NewTimerSeconds = "0";
+        _vm.NewTimerMilliseconds = "0";
+        _vm.AddTimerCommand.Execute(null);
+
+        Assert.True(_vm.IsEditingTimer);
+        Assert.Equal(1, timer.Minutes);
+        Assert.Equal(30, timer.Seconds);
+    }
+
+    [Fact]
+    public void CancelTimerEdit_ClearsFormAndEditMode()
+    {
+        var timer = AddSampleTimer();
+        _vm.EditTimerCommand.Execute(timer);
+
+        _vm.CancelTimerEditCommand.Execute(null);
+
+        Assert.False(_vm.IsEditingTimer);
+        Assert.Equal(string.Empty, _vm.NewTimerName);
+        Assert.Equal("0", _vm.NewTimerMinutes);
+    }
+
+    [Fact]
+    public void DeleteTimer_WhileEditingIt_CancelsEdit()
+    {
+        var timer = AddSampleTimer();
+        _vm.EditTimerCommand.Execute(timer);
+
+        _vm.DeleteTimerCommand.Execute(timer);
+
+        Assert.False(_vm.IsEditingTimer);
+        Assert.DoesNotContain(timer, _vm.Timers);
+    }
 }

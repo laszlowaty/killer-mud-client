@@ -14,6 +14,9 @@ public sealed class WorldMapControl : Control
 
     private static readonly Pen ExitPen = new(Brushes.Silver, 2.5);
 
+    private static readonly Pen RoutePen = new(Brushes.Orange, 3.5) { LineCap = PenLineCap.Round };
+    private static readonly Pen RouteTargetPen = new(Brushes.Orange, 3);
+
     private readonly CollisionLayoutService _collisionLayout = new();
     private readonly HashSet<MapCellKey> _expandedGroups = [];
 
@@ -26,6 +29,7 @@ public sealed class WorldMapControl : Control
     private double _z;
     private MapRoom? _currentRoom;
     private MapRoom? _selectedRoom;
+    private IReadOnlyList<MapRoom>? _route;
 
     private double _cameraX;
     private double _cameraY;
@@ -44,6 +48,8 @@ public sealed class WorldMapControl : Control
     }
 
     public event Action<MapRoom?>? RoomClicked;
+
+    public event Action<MapRoom>? RoomDoubleClicked;
 
     public event Action? ManualNavigationOccurred;
 
@@ -152,6 +158,17 @@ public sealed class WorldMapControl : Control
         }
     }
 
+    /// <summary>Autowalk route to draw: consecutive rooms from start to target.</summary>
+    public IReadOnlyList<MapRoom>? Route
+    {
+        get => _route;
+        set
+        {
+            _route = value;
+            RequestInvalidateVisual();
+        }
+    }
+
     public double Zoom => _zoom;
 
     public double CameraX => _cameraX;
@@ -238,6 +255,18 @@ public sealed class WorldMapControl : Control
         Focus();
 
         var point = e.GetCurrentPoint(this);
+
+        if (point.Properties.IsLeftButtonPressed && e.ClickCount == 2)
+        {
+            if (HitTestRoom(point.Position) is { } doubleClicked)
+            {
+                RoomDoubleClicked?.Invoke(doubleClicked);
+                _dragStartScreen = null;
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (point.Properties.IsLeftButtonPressed || point.Properties.IsMiddleButtonPressed)
         {
             _dragStartScreen = point.Position;
@@ -478,6 +507,7 @@ public sealed class WorldMapControl : Control
 
         DrawExits(context, roomsWithOffsets, roomLookup);
         DrawRooms(context, roomsWithOffsets);
+        DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
     }
 
@@ -615,6 +645,47 @@ public sealed class WorldMapControl : Control
 
                 context.DrawText(label, new Point(rect.X, rect.Bottom + 1));
             }
+        }
+    }
+
+    private void DrawRoute(DrawingContext context, Dictionary<int, MapOffset> offsets)
+    {
+        if (_route is not { Count: > 0 } route)
+        {
+            return;
+        }
+
+        Point RoomCenter(MapRoom room)
+        {
+            var offset = offsets.GetValueOrDefault(room.Id, MapOffset.Zero);
+            return WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
+        }
+
+        bool OnThisLayer(MapRoom room) =>
+            room.AreaId == _areaId && room.Coordinates.Z == _z;
+
+        for (var i = 1; i < route.Count; i++)
+        {
+            var from = route[i - 1];
+            var to = route[i];
+
+            // Segments that leave the visible area/level (portals, stairs)
+            // are skipped; the route resumes where it re-enters this layer.
+            if (!OnThisLayer(from) || !OnThisLayer(to))
+            {
+                continue;
+            }
+
+            context.DrawLine(RoutePen, RoomCenter(from), RoomCenter(to));
+        }
+
+        var target = route[^1];
+        if (OnThisLayer(target))
+        {
+            var roomSize = Math.Max(_settings.RoomSize * _zoom, 2);
+            var center = RoomCenter(target);
+            var radius = roomSize / 2 + 5;
+            context.DrawEllipse(null, RouteTargetPen, center, radius, radius);
         }
     }
 

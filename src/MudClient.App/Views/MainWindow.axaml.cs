@@ -300,6 +300,45 @@ public partial class MainWindow : Window
         }
     }
 
+    private void EditRule_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutomationRuleEntry rule &&
+            _viewModel is not null)
+        {
+            _viewModel.EditRuleCommand.Execute(rule);
+        }
+    }
+
+    private void ProfileList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        // Only react to double-clicks on an actual item, not on empty list space.
+        if (eventArgs.Source is Visual source &&
+            source.FindAncestorOfType<ListBoxItem>(includeSelf: true) is { DataContext: string profileName })
+        {
+            _viewModel.SelectedProfileName = profileName;
+            if (_viewModel.SelectProfileCommand.CanExecute(null))
+            {
+                _viewModel.SelectProfileCommand.Execute(null);
+            }
+        }
+    }
+
+    private void EditTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is TimerEntry timer &&
+            _viewModel is not null)
+        {
+            _viewModel.EditTimerCommand.Execute(timer);
+        }
+    }
+
     private void ToggleTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is ToggleButton button &&
@@ -317,6 +356,26 @@ public partial class MainWindow : Window
             _viewModel is not null)
         {
             _viewModel.DeleteTimerCommand.Execute(timer);
+        }
+    }
+
+    private void GoToLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutowalkLocation location &&
+            _viewModel is not null)
+        {
+            _viewModel.GoToLocationCommand.Execute(location);
+        }
+    }
+
+    private void DeleteLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutowalkLocation location &&
+            _viewModel is not null)
+        {
+            _viewModel.DeleteLocationCommand.Execute(location);
         }
     }
 

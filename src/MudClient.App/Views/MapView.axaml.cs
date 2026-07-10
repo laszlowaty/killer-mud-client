@@ -13,6 +13,7 @@ public sealed partial class MapView : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         MapControl.RoomClicked += OnRoomClicked;
+        MapControl.RoomDoubleClicked += OnRoomDoubleClicked;
         MapControl.ManualNavigationOccurred += OnManualNavigation;
     }
 
@@ -59,6 +60,12 @@ public sealed partial class MapView : UserControl
         MapControl.Z = _viewModel.SelectedZ;
         MapControl.CurrentRoom = _viewModel.CurrentRoom;
         MapControl.SelectedRoom = _viewModel.SelectedRoom;
+        MapControl.Route = _viewModel.RouteRooms;
+    }
+
+    private void OnRoomDoubleClicked(MudClient.Core.Map.MapRoom room)
+    {
+        _viewModel?.NotifyRoomDoubleClicked(room);
     }
 
     private void OnRoomClicked(MudClient.Core.Map.MapRoom? room)

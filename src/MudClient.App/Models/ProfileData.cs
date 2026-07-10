@@ -12,6 +12,16 @@ public sealed class ProfileData
     public List<ProfileRule> Rules { get; set; } = [];
 
     public List<ProfileTimer> Timers { get; set; } = [];
+
+    public List<ProfileLocation> Locations { get; set; } = [];
+}
+
+/// <summary>A named autowalk target room stored per character.</summary>
+public sealed class ProfileLocation
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string Vnum { get; set; } = string.Empty;
 }
 
 /// <summary>

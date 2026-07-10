@@ -32,6 +32,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private double _selectedZ;
     private MapRoom? _currentRoom;
     private MapRoom? _selectedRoom;
+    private IReadOnlyList<MapRoom>? _routeRooms;
     private string? _currentSectorName;
     private bool _followPlayer = true;
 
@@ -53,6 +54,9 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     }
 
     public event Action? CenterOnCurrentRoomRequested;
+
+    /// <summary>Raised by the view when the user double-clicks a room on the map.</summary>
+    public event Action<MapRoom>? RoomDoubleClicked;
 
     public event Action? ResetZoomRequested;
 
@@ -162,6 +166,15 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             }
         }
     }
+
+    /// <summary>Autowalk route to paint on the map, or null when idle.</summary>
+    public IReadOnlyList<MapRoom>? RouteRooms
+    {
+        get => _routeRooms;
+        set => SetProperty(ref _routeRooms, value);
+    }
+
+    public void NotifyRoomDoubleClicked(MapRoom room) => RoomDoubleClicked?.Invoke(room);
 
     public Bitmap? SelectedRoomIcon =>
         RoomImages?.GetFullImage(SelectedRoom?.Vnum)
