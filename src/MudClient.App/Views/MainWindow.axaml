@@ -7,7 +7,6 @@
         x:Class="MudClient.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         x:Name="RootWindow"
-        Icon="/Assets/appicon.ico"
         Title="KillerMUD Klient"
          Width="1400"
          Height="900"
