@@ -128,6 +128,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        // SelectableTextBlock inside MudOutput: allow redirect (MUD output text click).
+        // SelectableTextBlock elsewhere (e.g., GMCP panel, MapView): exclude from redirect.
+        var selectable = visual.FindAncestorOfType<SelectableTextBlock>(includeSelf: true);
+        if (selectable is not null)
+        {
+            var mudOutputAncestor = selectable.FindAncestorOfType<MudOutputView>(includeSelf: true);
+            if (mudOutputAncestor is null || !ReferenceEquals(mudOutputAncestor, _mudOutput))
+            {
+                return;
+            }
+        }
+
         if (visual.FindAncestorOfType<Button>(includeSelf: true) is not null ||
             visual.FindAncestorOfType<ListBox>(includeSelf: true) is not null ||
             visual.FindAncestorOfType<TabControl>(includeSelf: true) is not null ||
@@ -136,14 +148,12 @@ public partial class MainWindow : Window
             visual.FindAncestorOfType<ComboBox>(includeSelf: true) is not null ||
             visual.FindAncestorOfType<ToggleButton>(includeSelf: true) is not null ||
             visual.FindAncestorOfType<WorldMapControl>(includeSelf: true) is not null ||
-            visual.FindAncestorOfType<SelectableTextBlock>(includeSelf: true) is not null ||
             visual.FindAncestorOfType<ProgressBar>(includeSelf: true) is not null)
         {
             return;
         }
 
-        _commandBox.Focus();
-        _commandBox.CaretIndex = _commandBox.Text?.Length ?? 0;
+        FocusCommandBoxAndSelectAll();
     }
 
     private void OnPreviewTextInput(object? sender, TextInputEventArgs e)
@@ -194,14 +204,23 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Focuses the command box and selects all currently entered text.
+    /// Used both for click-to-focus redirects and post-send cleanup.
+    /// </summary>
+    private void FocusCommandBoxAndSelectAll()
+    {
+        _commandBox.Focus();
+        _commandBox.SelectAll();
+    }
+
+    /// <summary>
     /// Shared post-send behavior: focus the command box, select all text,
     /// and reset history navigation so the next keypress replaces the
     /// selected text instead of appending.
     /// </summary>
     private void HandlePostSend()
     {
-        _commandBox.Focus();
-        _commandBox.SelectAll();
+        FocusCommandBoxAndSelectAll();
         _historyIndex = -1;
     }
 
