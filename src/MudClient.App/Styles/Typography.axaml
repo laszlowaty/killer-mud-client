@@ -1,0 +1,53 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="Georgia,Cambria,Times New Roman,serif" />
+    <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
+  </Style>
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
+  </Style>
+
+  <!-- Section / caption headings, small-caps gold -->
+  <Style Selector="TextBlock.mud-heading">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LetterSpacing" Value="1" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-heading-lg">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="LetterSpacing" Value="1" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-muted">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-faint">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentFaint}" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-status-ok">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-status-bad">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-status-warn">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushAmberWarn}" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-status-info">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushArcaneBlueBright}" />
+  </Style>
+
+</Styles>

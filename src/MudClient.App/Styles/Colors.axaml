@@ -1,0 +1,73 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <ResourceDictionary>
+
+      <!-- ===== Palette ===== -->
+      <Color x:Key="MudColorVoid">#0A0C10</Color>
+      <Color x:Key="MudColorAbyss">#0E1015</Color>
+      <Color x:Key="MudColorStone">#171A21</Color>
+      <Color x:Key="MudColorStoneLight">#20242E</Color>
+      <Color x:Key="MudColorSlate">#2A2F3B</Color>
+      <Color x:Key="MudColorSlateLight">#3A4152</Color>
+
+      <Color x:Key="MudColorGold">#C9A24B</Color>
+      <Color x:Key="MudColorGoldBright">#E8C878</Color>
+      <Color x:Key="MudColorGoldDim">#8A7238</Color>
+
+      <Color x:Key="MudColorParchment">#E8DFC8</Color>
+      <Color x:Key="MudColorParchmentDim">#A79E8C</Color>
+      <Color x:Key="MudColorParchmentFaint">#6B6558</Color>
+
+      <Color x:Key="MudColorEmerald">#4E9A6B</Color>
+      <Color x:Key="MudColorEmeraldBright">#6FC98F</Color>
+      <Color x:Key="MudColorCrimson">#B04A4A</Color>
+      <Color x:Key="MudColorCrimsonBright">#E36A6A</Color>
+      <Color x:Key="MudColorArcaneBlue">#5E8FC9</Color>
+      <Color x:Key="MudColorArcaneBlueBright">#7FB0EA</Color>
+      <Color x:Key="MudColorAmberWarn">#D9922E</Color>
+
+      <!-- ===== Brushes ===== -->
+      <SolidColorBrush x:Key="MudBrushVoid" Color="{StaticResource MudColorVoid}" />
+      <SolidColorBrush x:Key="MudBrushAbyss" Color="{StaticResource MudColorAbyss}" />
+      <SolidColorBrush x:Key="MudBrushStone" Color="{StaticResource MudColorStone}" />
+      <SolidColorBrush x:Key="MudBrushStoneLight" Color="{StaticResource MudColorStoneLight}" />
+      <SolidColorBrush x:Key="MudBrushSlate" Color="{StaticResource MudColorSlate}" />
+      <SolidColorBrush x:Key="MudBrushSlateLight" Color="{StaticResource MudColorSlateLight}" />
+
+      <SolidColorBrush x:Key="MudBrushGold" Color="{StaticResource MudColorGold}" />
+      <SolidColorBrush x:Key="MudBrushGoldBright" Color="{StaticResource MudColorGoldBright}" />
+      <SolidColorBrush x:Key="MudBrushGoldDim" Color="{StaticResource MudColorGoldDim}" />
+
+      <SolidColorBrush x:Key="MudBrushParchment" Color="{StaticResource MudColorParchment}" />
+      <SolidColorBrush x:Key="MudBrushParchmentDim" Color="{StaticResource MudColorParchmentDim}" />
+      <SolidColorBrush x:Key="MudBrushParchmentFaint" Color="{StaticResource MudColorParchmentFaint}" />
+
+      <SolidColorBrush x:Key="MudBrushEmerald" Color="{StaticResource MudColorEmerald}" />
+      <SolidColorBrush x:Key="MudBrushEmeraldBright" Color="{StaticResource MudColorEmeraldBright}" />
+      <SolidColorBrush x:Key="MudBrushCrimson" Color="{StaticResource MudColorCrimson}" />
+      <SolidColorBrush x:Key="MudBrushCrimsonBright" Color="{StaticResource MudColorCrimsonBright}" />
+      <SolidColorBrush x:Key="MudBrushArcaneBlue" Color="{StaticResource MudColorArcaneBlue}" />
+      <SolidColorBrush x:Key="MudBrushArcaneBlueBright" Color="{StaticResource MudColorArcaneBlueBright}" />
+      <SolidColorBrush x:Key="MudBrushAmberWarn" Color="{StaticResource MudColorAmberWarn}" />
+
+      <LinearGradientBrush x:Key="MudBrushHeaderGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="{StaticResource MudColorStoneLight}" Offset="0" />
+        <GradientStop Color="{StaticResource MudColorStone}" Offset="1" />
+      </LinearGradientBrush>
+
+      <LinearGradientBrush x:Key="MudBrushButtonGradient" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="{StaticResource MudColorSlateLight}" Offset="0" />
+        <GradientStop Color="{StaticResource MudColorSlate}" Offset="1" />
+      </LinearGradientBrush>
+
+      <LinearGradientBrush x:Key="MudBrushButtonGradientHover" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="{StaticResource MudColorGoldDim}" Offset="0" />
+        <GradientStop Color="{StaticResource MudColorSlate}" Offset="1" />
+      </LinearGradientBrush>
+
+    </ResourceDictionary>
+  </Styles.Resources>
+
+</Styles>

@@ -1,0 +1,61 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Button">
+    <Setter Property="Background" Value="{StaticResource MudBrushButtonGradient}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource MudBrushButtonGradientHover}" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource MudColorGoldBright}" />
+  </Style>
+  <Style Selector="Button:pointerover">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
+  </Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+
+  <Style Selector="Button.mud-danger">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimson}" />
+  </Style>
+
+  <Style Selector="Button.mud-small">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+
+  <Style Selector="Button.mud-chip">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+  </Style>
+  <Style Selector="Button.mud-chip:pointerover">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+  </Style>
+
+  <Style Selector="ToggleButton.mud-chip">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushArcaneBlueBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlateLight}" />
+  </Style>
+  <Style Selector="ToggleButton.mud-chip:checked">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
+  </Style>
+
+</Styles>

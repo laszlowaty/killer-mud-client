@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MudClient.App.Controls.MudOutputView">
+  <Border Classes="mud-inset" Padding="8">
+    <Border.ContextMenu>
+      <ContextMenu>
+        <MenuItem Header="Kopiuj zaznaczenie" Click="CopySelection_OnClick" />
+        <MenuItem Header="Kopiuj cały bufor" Click="CopyAll_OnClick" />
+        <Separator />
+        <MenuItem Header="Wyczyść ekran" Click="ClearOutput_OnClick" />
+      </ContextMenu>
+    </Border.ContextMenu>
+    <ScrollViewer x:Name="OutputScroller"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <StackPanel x:Name="LinesPanel" Spacing="0" />
+    </ScrollViewer>
+  </Border>
+</UserControl>

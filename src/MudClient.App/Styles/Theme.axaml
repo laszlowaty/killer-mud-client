@@ -1,0 +1,12 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <StyleInclude Source="avares://MudClient.App/Styles/Colors.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Typography.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Panels.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Buttons.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Inputs.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Tabs.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Lists.axaml" />
+
+</Styles>

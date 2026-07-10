@@ -1,0 +1,46 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Border.mud-panel">
+    <Setter Property="Background" Value="{StaticResource MudBrushAbyss}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="Border.mud-bar">
+    <Setter Property="Background" Value="{StaticResource MudBrushHeaderGradient}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+
+  <Style Selector="Border.mud-bar-top">
+    <Setter Property="Background" Value="{StaticResource MudBrushHeaderGradient}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+  <Style Selector="Border.mud-bar-bottom">
+    <Setter Property="Background" Value="{StaticResource MudBrushHeaderGradient}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+
+  <Style Selector="Border.mud-inset">
+    <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+
+  <Style Selector="Border.mud-section">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="10" />
+  </Style>
+
+</Styles>

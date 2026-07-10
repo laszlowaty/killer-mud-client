@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "AvaloniaTeam.vscode-avalonia",
+    "editorconfig.editorconfig"
+  ]
+}

@@ -1,0 +1,44 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+  </Style>
+
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
+  </Style>
+
+  <Style Selector="ScrollBar">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ComboBox">
+    <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlateLight}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+
+  <Style Selector="ToggleButton">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+  <Style Selector="ToggleButton:checked">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
+  </Style>
+
+</Styles>

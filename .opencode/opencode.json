@@ -1,0 +1,64 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:14b": {
+          "name": "Qwen2.5 Coder 14B"
+        },
+        "qwen2.5-coder:7b": {
+          "name": "Qwen2.5 Coder 7B"
+        }
+      }
+    }
+  },
+  "agent": {
+    "planner": {
+      "mode": "primary",
+      "model": "openai/gpt-5.4-mini",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "external_directory": "deny",
+        "task": {
+          "*": "allow"
+        }
+      }
+    },
+    "coder": {
+      "mode": "subagent",
+      "model": "ollama/qwen2.5-coder:7b",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "external_directory": "deny"
+      }
+    },
+    "tester": {
+      "mode": "subagent",
+      "model": "ollama/qwen2.5-coder:7b",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "external_directory": "deny"
+      }
+    },
+    "reviewer": {
+      "mode": "subagent",
+      "model": "openai/gpt-5.5",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "external_directory": "deny"
+      }
+    }
+  },
+  "plugin": [
+    ".opencode/plugins/graphify.js"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "worldFile": "world-map.json",
+  "sectorDirectory": "Sectors",
+  "sectorManifest": "Sectors/sectors.json",
+  "pixelsPerCoordinateUnit": 12.0,
+  "roomSize": 20.0,
+  "minimumZoom": 0.15,
+  "maximumZoom": 5.0,
+  "spatialBucketSize": 32,
+  "gmcpLocation": {
+    "packages": [
+      "Room.Info"
+    ],
+    "vnumPaths": [
+      "vnum",
+      "num",
+      "room.vnum",
+      "room.num",
+      "location.vnum",
+      "location.num"
+    ]
+  }
+}

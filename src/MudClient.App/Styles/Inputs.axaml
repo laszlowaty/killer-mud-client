@@ -1,0 +1,27 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
+    <Setter Property="CaretBrush" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlateLight}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="SelectionBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="Padding" Value="8,6" />
+  </Style>
+  <Style Selector="TextBox:focus">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
+  </Style>
+  <Style Selector="TextBox /template/ TextBlock#PART_PlaceholderText">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentFaint}" />
+  </Style>
+
+  <Style Selector="TextBox.terminal-input">
+    <Setter Property="FontFamily" Value="Cascadia Code,Consolas,monospace" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Background" Value="{StaticResource MudBrushAbyss}" />
+  </Style>
+
+</Styles>

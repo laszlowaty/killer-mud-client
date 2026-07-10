@@ -1,0 +1,483 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:MudClient.App.Controls"
+        xmlns:views="using:MudClient.App.Views"
+        xmlns:vm="using:MudClient.App.ViewModels"
+        xmlns:models="using:MudClient.App.Models"
+        x:Class="MudClient.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        x:Name="RootWindow"
+        Title="⚔ MudClient"
+        Width="1400"
+        Height="900"
+        MinWidth="1024"
+        MinHeight="680"
+        PointerPressed="Window_OnPointerPressed">
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- ========================================================================
+         Row 0: Top bar – 4 sections
+         ======================================================================== -->
+    <Border Grid.Row="0" Classes="mud-bar-top">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+        <!-- Section 1: Logo + area -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="⚔" FontSize="20" Foreground="{StaticResource MudBrushGoldBright}" VerticalAlignment="Center" />
+          <TextBlock Classes="mud-heading-lg" Text="MudClient" VerticalAlignment="Center" />
+          <Border Background="{StaticResource MudBrushSlate}"
+                  CornerRadius="3"
+                  Padding="8,3"
+                  Margin="12,0,0,0">
+            <TextBlock Text="{Binding HeaderAreaText}"
+                       FontSize="11"
+                       Foreground="{StaticResource MudBrushParchmentDim}" />
+          </Border>
+        </StackPanel>
+
+        <!-- Section 2: Vitals (HP / SP / EP) -->
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="14"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    DataContext="{Binding Vitals}">
+          <!-- Hit Points -->
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="HP" FontSize="11" FontWeight="Bold"
+                       Foreground="{StaticResource MudBrushCrimsonBright}" VerticalAlignment="Center" />
+            <ProgressBar Minimum="0" Maximum="{Binding MaxHitPoints}"
+                         Value="{Binding HitPoints}" Width="80" Height="8"
+                         Foreground="{StaticResource MudBrushCrimson}"
+                         Background="{StaticResource MudBrushVoid}" />
+            <TextBlock FontSize="10" VerticalAlignment="Center"
+                       Foreground="{StaticResource MudBrushParchmentDim}">
+              <Run Text="{Binding HitPoints}" Foreground="{StaticResource MudBrushParchment}" />
+              <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
+              <Run Text="{Binding MaxHitPoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
+            </TextBlock>
+          </StackPanel>
+
+          <!-- Spell Points -->
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="SP" FontSize="11" FontWeight="Bold"
+                       Foreground="{StaticResource MudBrushArcaneBlueBright}" VerticalAlignment="Center" />
+            <ProgressBar Minimum="0" Maximum="{Binding MaxSpellPoints}"
+                         Value="{Binding SpellPoints}" Width="80" Height="8"
+                         Foreground="{StaticResource MudBrushArcaneBlue}"
+                         Background="{StaticResource MudBrushVoid}" />
+            <TextBlock FontSize="10" VerticalAlignment="Center"
+                       Foreground="{StaticResource MudBrushParchmentDim}">
+              <Run Text="{Binding SpellPoints}" Foreground="{StaticResource MudBrushParchment}" />
+              <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
+              <Run Text="{Binding MaxSpellPoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
+            </TextBlock>
+          </StackPanel>
+
+          <!-- Endurance Points -->
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="EP" FontSize="11" FontWeight="Bold"
+                       Foreground="{StaticResource MudBrushEmeraldBright}" VerticalAlignment="Center" />
+            <ProgressBar Minimum="0" Maximum="{Binding MaxEndurancePoints}"
+                         Value="{Binding EndurancePoints}" Width="80" Height="8"
+                         Foreground="{StaticResource MudBrushEmerald}"
+                         Background="{StaticResource MudBrushVoid}" />
+            <TextBlock FontSize="10" VerticalAlignment="Center"
+                       Foreground="{StaticResource MudBrushParchmentDim}">
+              <Run Text="{Binding EndurancePoints}" Foreground="{StaticResource MudBrushParchment}" />
+              <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
+              <Run Text="{Binding MaxEndurancePoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
+            </TextBlock>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Section 3: Connection controls -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBox Text="{Binding Host}" PlaceholderText="host" MinWidth="130" Width="140" />
+          <TextBox Text="{Binding Port}" PlaceholderText="port" MinWidth="60" Width="70" />
+          <Button Content="Połącz" Command="{Binding ConnectCommand}" Padding="12,6" />
+          <Button Classes="mud-danger" Content="Rozłącz" Command="{Binding DisconnectCommand}" Padding="12,6" />
+        </StackPanel>
+
+        <!-- Section 4: Status + toasts -->
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Right">
+          <TextBlock Text="{Binding StatusText}"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center"
+                     Foreground="{StaticResource MudBrushEmeraldBright}" />
+          <ItemsControl ItemsSource="{Binding Toasts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ToastMessage">
+                <Border CornerRadius="3" Padding="6,3"
+                        Classes="mud-section"
+                        IsVisible="{Binding IsVisible}">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                     <TextBlock Text="{Binding IconGlyph}" FontSize="11"
+                               Foreground="{Binding ForegroundBrush}" />
+                    <TextBlock Text="{Binding Text}" FontSize="11" MaxWidth="200"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="mud-small" Content="✕" Command="{Binding ClearToastsCommand}"
+                  Padding="6,2" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ========================================================================
+         Row 1: Main content – 38* (map), 35* (terminal), 27*
+         ======================================================================== -->
+    <Grid Grid.Row="1" ColumnDefinitions="38*,4,35*,4,27*">
+
+      <!-- ============================================
+           Col 0 (38*): Map panel
+           ============================================ -->
+      <Border Grid.Column="0" Classes="mud-panel" Margin="8,8,0,8">
+        <views:MapView DataContext="{Binding Map}" />
+      </Border>
+
+      <!-- GridSplitter -->
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+      <!-- ============================================
+           Col 2 (35*): Terminal panel
+           ============================================ -->
+      <Border Grid.Column="2" Classes="mud-panel" Margin="0,8,0,8">
+        <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+          <!-- Log filter tabs (mock buttons via code-behind) -->
+          <Border Grid.Row="0" Classes="mud-bar" Padding="6,4">
+            <StackPanel Orientation="Horizontal" Spacing="2"
+                        x:Name="LogFilterPanel">
+              <ToggleButton Classes="mud-chip" Content="Wszystko" IsChecked="True" Click="LogFilter_OnClick" Tag="all" />
+              <ToggleButton Classes="mud-chip" Content="Walka" Click="LogFilter_OnClick" Tag="combat" />
+              <ToggleButton Classes="mud-chip" Content="Czaty" Click="LogFilter_OnClick" Tag="chat" />
+              <ToggleButton Classes="mud-chip" Content="System" Click="LogFilter_OnClick" Tag="system" />
+            </StackPanel>
+          </Border>
+
+          <!-- MUD output -->
+          <controls:MudOutputView Grid.Row="1" x:Name="MudOutput" />
+
+          <!-- Quick command chips -->
+          <ScrollViewer Grid.Row="2"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled"
+                        Height="36">
+            <ItemsControl ItemsSource="{Binding QuickCommands}" Margin="6,2">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="4" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:QuickCommand">
+                  <Button Classes="mud-chip"
+                          Content="{Binding Label}"
+                          Click="QuickCommandChip_OnClick" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <!-- Command bar -->
+          <Border Grid.Row="3" Classes="mud-bar-bottom" Padding="8,6">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <TextBox Grid.Column="0"
+                       x:Name="CommandBox"
+                       Classes="terminal-input"
+                       Text="{Binding CommandText}"
+                       PlaceholderText="Wpisz komendę i naciśnij Enter…"
+                       KeyDown="CommandBox_OnKeyDown" />
+              <Button Grid.Column="1"
+                      Content="➤ Wyślij"
+                      Padding="20,7"
+                      Command="{Binding SendCommandCommand}"
+                      Click="SendButton_OnClick" />
+            </Grid>
+          </Border>
+
+        </Grid>
+      </Border>
+
+      <!-- GridSplitter -->
+      <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
+
+      <!-- ============================================
+           Col 4 (27*): Right sidebar
+           ============================================ -->
+      <Border Grid.Column="4" Classes="mud-panel" Margin="0,8,8,8">
+        <TabControl SelectedIndex="{Binding SelectedRightTab}">
+
+          <!-- ========================================
+               Tab 0: Postać (Character)
+               ======================================== -->
+          <TabItem Header="Postać">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="12">
+
+                <!-- Character info -->
+                <TextBlock Classes="mud-heading" Text="INFORMACJE" />
+                <Border Classes="mud-section">
+                  <StackPanel Spacing="4" DataContext="{Binding Vitals}">
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Classes="mud-muted" Text="Klasa:" />
+                      <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                                 Text="{Binding ClassName}"
+                                 Foreground="{StaticResource MudBrushArcaneBlue}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Classes="mud-muted" Text="Poziom:" />
+                      <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                                 Text="{Binding Level}" FontWeight="Bold" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Classes="mud-muted" Text="Rasa:" />
+                      <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                                 Text="{Binding Race}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Classes="mud-muted" Text="Dośw.:" />
+                      <TextBlock Grid.Column="1" HorizontalAlignment="Right">
+                        <Run Text="{Binding Experience}" />
+                        <Run Text=" / " Foreground="{StaticResource MudBrushParchmentFaint}" />
+                        <Run Text="{Binding ExperienceToLevel}" Foreground="{StaticResource MudBrushParchmentFaint}" />
+                      </TextBlock>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <!-- Effects -->
+                <TextBlock Classes="mud-heading" Text="EFEKTY" />
+                <ItemsControl ItemsSource="{Binding Effects}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:StatusEffect">
+                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="{Binding Icon}"
+                                   Foreground="{StaticResource MudBrushEmeraldBright}"
+                                   FontSize="12" Margin="0,0,4,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
+                        <TextBlock Grid.Column="2"
+                                   Classes="mud-faint"
+                                   Text="{Binding Duration}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- People in room -->
+                <TextBlock Classes="mud-heading" Text="W POKOJU" />
+                <ItemsControl ItemsSource="{Binding People}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:PersonEntry">
+                      <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Group -->
+                <TextBlock Classes="mud-heading" Text="DRUŻYNA" />
+                <ItemsControl ItemsSource="{Binding Group}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:GroupMember">
+                      <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
+                          <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding LeaderMarker}"
+                                       Foreground="{StaticResource MudBrushGoldBright}"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
+                          </StackPanel>
+                          <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushCrimson}">
+                              HP <Run Text="{Binding HpPercent}" />%
+                            </TextBlock>
+                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushArcaneBlue}">
+                              SP <Run Text="{Binding SpPercent}" />%
+                            </TextBlock>
+                            <TextBlock FontSize="10" Foreground="{StaticResource MudBrushEmerald}">
+                              EP <Run Text="{Binding EpPercent}" />%
+                            </TextBlock>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <!-- ========================================
+               Tab 1: Automatyzacja (Automation)
+               ======================================== -->
+          <TabItem Header="Automatyzacja">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="12">
+
+                <TextBlock Classes="mud-heading" Text="REGULY" />
+                <TextBlock Classes="mud-muted" FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="Mock — połącz z MudClient.Core.Automation w następnym etapie." />
+
+                <ItemsControl ItemsSource="{Binding AutomationRules}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:AutomationRuleEntry">
+                      <Border Classes="mud-section" Padding="8" Margin="0,2">
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                          <StackPanel Grid.Row="0" Grid.ColumnSpan="2"
+                                      Orientation="Horizontal" Spacing="6">
+                            <Border CornerRadius="2" Padding="4,2"
+                                    Background="{StaticResource MudBrushStone}">
+                              <TextBlock Text="{Binding Type}"
+                                         FontSize="10" FontWeight="Bold"
+                                         Foreground="{StaticResource MudBrushGold}" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
+                          </StackPanel>
+
+                          <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                     Classes="mud-faint"
+                                     Text="{Binding Pattern, StringFormat='Wzorzec: {0}'}" />
+
+                          <TextBlock Grid.Row="2" Grid.Column="0"
+                                     Classes="mud-faint"
+                                     Text="{Binding Action, StringFormat='Akcja: {0}'}" />
+
+                          <ToggleButton Grid.Row="2" Grid.Column="1"
+                                        IsChecked="{Binding IsEnabled}"
+                                        Padding="8,2" FontSize="10">
+                            <TextBlock Text="ON" />
+                          </ToggleButton>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <!-- ========================================
+               Tab 2: Notatki (Notes)
+               ======================================== -->
+          <TabItem Header="Notatki">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="12">
+
+                <TextBlock Classes="mud-heading" Text="DODAJ NOTATKĘ" />
+                <Border Classes="mud-section" Padding="8">
+                  <StackPanel Spacing="6">
+                    <TextBox Text="{Binding NewNoteTitle}" PlaceholderText="Tytuł…" />
+                    <TextBox Text="{Binding NewNoteContent}" PlaceholderText="Treść…"
+                             Height="60" AcceptsReturn="True" TextWrapping="Wrap" />
+                    <Button Content="Dodaj" Command="{Binding AddNoteCommand}"
+                            HorizontalAlignment="Right" Padding="16,6" />
+                  </StackPanel>
+                </Border>
+
+                <TextBlock Classes="mud-heading" Text="MOJE NOTATKI" />
+                <ItemsControl ItemsSource="{Binding Notes}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:NoteEntry">
+                      <Border Classes="mud-section" Padding="8" Margin="0,2">
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                          <TextBlock Grid.Row="0" Grid.Column="0"
+                                     Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" />
+                          <Button Grid.Row="0" Grid.Column="1"
+                                  Classes="mud-small mud-danger"
+                                  Content="✕" Padding="6,2"
+                                  Click="DeleteNote_OnClick" />
+
+                          <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                     Classes="mud-muted" FontSize="11"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding Content}" />
+
+                          <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                                     Classes="mud-faint"
+                                     Text="{Binding CreatedAt}" Margin="0,2,0,0" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+        </TabControl>
+      </Border>
+
+    </Grid>
+
+    <!-- ========================================================================
+         Row 2: Footer bar
+         ======================================================================== -->
+    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+        <TextBlock Classes="mud-faint" Text="Telnet + ANSI + GMCP  •  MudClient Starter" />
+        <TextBlock Classes="mud-faint" Text="{Binding Vitals.ClassName, StringFormat='Klasa: {0}'}" />
+        <TextBlock Classes="mud-faint" Text="{Binding StatusText}" />
+      </Grid>
+    </Border>
+
+    <!-- Startup / fatal error overlay -->
+    <Grid Grid.RowSpan="3"
+          IsVisible="{Binding HasStartupError}"
+          Background="#B0080A0B">
+      <Border HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="620"
+              MaxWidth="900"
+              Classes="mud-panel"
+              BorderBrush="{StaticResource MudBrushCrimson}"
+              BorderThickness="1"
+              Padding="24">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="☠" FontSize="28" Foreground="{StaticResource MudBrushCrimsonBright}" />
+            <StackPanel>
+              <TextBlock Classes="mud-heading-lg" Text="BŁĄD URUCHAMIANIA" />
+              <TextBlock Classes="mud-muted"
+                         Text="Aplikacja napotkała problem przy inicjalizacji widoku." />
+            </StackPanel>
+          </StackPanel>
+
+          <TextBlock Text="{Binding StartupErrorMessage}"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     TextWrapping="Wrap" />
+
+          <Border Classes="mud-section" Background="{StaticResource MudBrushVoid}" Padding="12">
+            <TextBlock Text="{Binding StartupErrorDetails}"
+                       Classes="mud-faint"
+                       TextWrapping="Wrap" />
+          </Border>
+
+          <TextBlock Classes="mud-faint"
+                     Text="Możesz spróbować ponownie albo zamknąć aplikację i uruchomić ją jeszcze raz." />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Ponów" Command="{Binding RetryStartupCommand}" Padding="16,7" />
+            <Button Content="Zamknij" Classes="mud-danger" Click="Close_OnClick" Padding="16,7" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+  </Grid>
+</Window>
