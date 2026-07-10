@@ -20,7 +20,7 @@ internal sealed class AnsiStreamParser
 
     private static readonly Color[] NormalColors =
     [
-        Color.FromRgb(0, 0, 0),
+        Color.FromRgb(80, 80, 80),
         Color.FromRgb(205, 49, 49),
         Color.FromRgb(13, 188, 121),
         Color.FromRgb(229, 229, 16),

@@ -397,7 +397,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void RequestCenterOnCurrentRoom()
+    public void CenterOnPlayer()
     {
         if (CurrentRoom is null)
         {
@@ -415,6 +415,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         FollowPlayer = true;
         CenterOnCurrentRoomRequested?.Invoke();
     }
+
+    private void RequestCenterOnCurrentRoom() => CenterOnPlayer();
 
     private void RequestResetZoom()
     {

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Text;
 using System.Text.RegularExpressions;
 using MudClient.App.Models;
 using MudClient.App.Services;
@@ -1105,12 +1106,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
+        Map.CenterOnPlayer();
         _autowalkPath = path;
         _autowalkStep = 0;
         _autowalkTargetName = entry.Name;
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
         PaintRoute(path, 0);
+        _ = SendTriggeredCommandAsync("stand");
         SendAutowalkStep();
     }
 
@@ -1145,7 +1148,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // A named exit (GMCP "name" or a custom exit name in the map) must be
         // entered by its name — the plain direction command does not work.
         var exit = FindGmcpExit(step.Command);
-        var moveCommand = exit?.Name ?? step.Command;
+        var moveCommand = RemoveDiacritics(exit?.Name) ?? step.Command;
 
         _ = SendAutowalkCommandsAsync(TryGetOpenCommand(exit), moveCommand);
     }
@@ -1173,7 +1176,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return null;
         }
 
-        return $"open {exit.Name ?? exit.Dir}";
+        return $"open {RemoveDiacritics(exit.Name) ?? exit.Dir}";
     }
 
     /// <summary>
@@ -1195,6 +1198,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         return null;
+    }
+
+    /// <summary>Strips diacritics so autowalk commands are plain ASCII (e.g. "wyjście" → "wyjscie").</summary>
+    private static string RemoveDiacritics(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text ?? string.Empty;
+
+        var normalized = text.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in normalized)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(ch);
+        }
+        return sb.ToString().Normalize(NormalizationForm.FormC);
     }
 
     /// <summary>Maps full direction names to the short form used by GMCP dirs.</summary>
@@ -1235,6 +1254,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     _autowalkStep = i + 1;
                     if (_autowalkStep >= steps.Count)
                     {
+                        _ = SendTriggeredCommandAsync("rest");
                         StopAutowalk($"Dotarłeś do lokacji „{_autowalkTargetName}”.");
                     }
                     else
@@ -1258,6 +1278,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             if (path.Steps.Count == 0)
             {
+                _ = SendTriggeredCommandAsync("rest");
                 StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
                 return;
             }

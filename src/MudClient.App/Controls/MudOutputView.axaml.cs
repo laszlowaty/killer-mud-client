@@ -46,8 +46,12 @@ public partial class MudOutputView : UserControl
     private readonly Grid _grid;
     private readonly List<string> _completedLineTexts = [];
     private readonly StringBuilder _currentLineText = new();
-    private SelectableTextBlock _currentLine;
-    private SelectableTextBlock _liveTailCurrentLine;
+    private readonly List<int> _lineInlineCounts = [];
+    private SelectableTextBlock _scrollbackBlock = null!;
+    private SelectableTextBlock _liveTailBlock = null!;
+    private int _currentLineInlineCount;
+    private int _scrollbackLineOffset;
+    private int _liveTailLineOffset;
     private bool _isSplitMode;
 
     public MudOutputView()
@@ -66,11 +70,11 @@ public partial class MudOutputView : UserControl
         _grid = this.FindControl<Grid>("OutputGrid")
             ?? throw new InvalidOperationException("OutputGrid not found.");
 
-        _currentLine = CreateLine();
-        _scrollbackPanel.Children.Add(_currentLine);
+        _scrollbackBlock = CreatePaneBlock();
+        _scrollbackPanel.Children.Add(_scrollbackBlock);
 
-        _liveTailCurrentLine = CreateLine();
-        _liveTailPanel.Children.Add(_liveTailCurrentLine);
+        _liveTailBlock = CreatePaneBlock();
+        _liveTailPanel.Children.Add(_liveTailBlock);
 
         // Start in single-pane mode.
         _isSplitMode = false;
@@ -95,15 +99,10 @@ public partial class MudOutputView : UserControl
                     break;
 
                 case AnsiCarriageReturnToken:
-                    // CR in MUD streams normally belongs to CRLF. Cursor-return semantics are
-                    // deliberately ignored by this append-only line renderer.
                     break;
             }
         }
 
-        // Auto-scroll behavior:
-        // When split mode is off, auto-scroll the scrollback pane to the newest output.
-        // The live-tail pane is always auto-scrolled (harmless when hidden).
         Dispatcher.UIThread.Post(
             () =>
             {
@@ -119,18 +118,22 @@ public partial class MudOutputView : UserControl
 
     public void Clear()
     {
-        // Deterministically return to single-pane layout so the next append starts
-        // from a clean default state.
         SetSplitMode(false);
 
         _scrollbackPanel.Children.Clear();
         _liveTailPanel.Children.Clear();
         _completedLineTexts.Clear();
         _currentLineText.Clear();
-        _currentLine = CreateLine();
-        _scrollbackPanel.Children.Add(_currentLine);
-        _liveTailCurrentLine = CreateLine();
-        _liveTailPanel.Children.Add(_liveTailCurrentLine);
+        _lineInlineCounts.Clear();
+        _currentLineInlineCount = 0;
+        _scrollbackLineOffset = 0;
+        _liveTailLineOffset = 0;
+
+        _scrollbackBlock = CreatePaneBlock();
+        _scrollbackPanel.Children.Add(_scrollbackBlock);
+
+        _liveTailBlock = CreatePaneBlock();
+        _liveTailPanel.Children.Add(_liveTailBlock);
     }
 
     private void AppendRun(AnsiTextToken token)
@@ -138,8 +141,9 @@ public partial class MudOutputView : UserControl
         var scrollbackRun = CreateRun(token);
         var liveTailRun = CreateRun(token);
 
-        _currentLine.Inlines?.Add(scrollbackRun);
-        _liveTailCurrentLine.Inlines?.Add(liveTailRun);
+        _scrollbackBlock.Inlines?.Add(scrollbackRun);
+        _liveTailBlock.Inlines?.Add(liveTailRun);
+        _currentLineInlineCount++;
         _currentLineText.Append(token.Text);
     }
 
@@ -174,37 +178,61 @@ public partial class MudOutputView : UserControl
         _completedLineTexts.Add(_currentLineText.ToString());
         _currentLineText.Clear();
 
-        // The current live-tail line is already in the panel with all inlines
-        // mirrored by AppendRun. Start a fresh live-tail line for the next row.
-        _liveTailCurrentLine = CreateLine();
-        _liveTailPanel.Children.Add(_liveTailCurrentLine);
-
-        while (_liveTailPanel.Children.Count > LiveTailMaxLines)
+        if (_currentLineInlineCount == 0)
         {
-            _liveTailPanel.Children.RemoveAt(0);
+            var placeholder = new Run { Text = "\u200B" };
+            _scrollbackBlock.Inlines?.Add(placeholder);
+            _liveTailBlock.Inlines?.Add(placeholder);
+            _currentLineInlineCount++;
         }
 
-        _currentLine = CreateLine();
-        _scrollbackPanel.Children.Add(_currentLine);
+        _scrollbackBlock.Inlines?.Add(new LineBreak());
+        _liveTailBlock.Inlines?.Add(new LineBreak());
+        _currentLineInlineCount++;
 
-        while (_scrollbackPanel.Children.Count > MaximumLines)
-        {
-            _scrollbackPanel.Children.RemoveAt(0);
-        }
+        _lineInlineCounts.Add(_currentLineInlineCount);
+        _currentLineInlineCount = 0;
 
-        while (_completedLineTexts.Count > MaximumLines)
+        TrimBlock(_scrollbackBlock, ref _scrollbackLineOffset, MaximumLines);
+        TrimBlock(_liveTailBlock, ref _liveTailLineOffset, LiveTailMaxLines);
+
+        TrimCompletedLineTexts();
+    }
+
+    private void TrimBlock(SelectableTextBlock block, ref int lineOffset, int maxLines)
+    {
+        int lineCount = _lineInlineCounts.Count - lineOffset;
+        while (lineCount > maxLines)
         {
-            _completedLineTexts.RemoveAt(0);
+            int count = _lineInlineCounts[lineOffset];
+            var inlines = block.Inlines;
+            for (int i = 0; i < count && inlines?.Count > 0; i++)
+            {
+                inlines.RemoveAt(0);
+            }
+            lineOffset++;
+            lineCount--;
         }
     }
 
-    private SelectableTextBlock CreateLine() => new()
+    private void TrimCompletedLineTexts()
+    {
+        int trimmed = Math.Min(_scrollbackLineOffset, _liveTailLineOffset);
+        if (trimmed > 0)
+        {
+            _completedLineTexts.RemoveRange(0, trimmed);
+            _lineInlineCounts.RemoveRange(0, trimmed);
+            _scrollbackLineOffset -= trimmed;
+            _liveTailLineOffset -= trimmed;
+        }
+    }
+
+    private SelectableTextBlock CreatePaneBlock() => new()
     {
         FontFamily = OutputFontFamily,
         FontSize = OutputFontSize,
         Foreground = new SolidColorBrush(Color.FromRgb(215, 221, 230)),
         TextWrapping = TextWrapping.NoWrap,
-        MinHeight = OutputFontSize + 4,
     };
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -218,54 +246,22 @@ public partial class MudOutputView : UserControl
         }
     }
 
-    /// <summary>Re-styles lines already on screen so a settings change takes effect immediately.</summary>
     private void ApplyFontToExistingLines()
     {
-        foreach (var panel in new[] { _scrollbackPanel, _liveTailPanel })
+        foreach (var block in new[] { _scrollbackBlock, _liveTailBlock })
         {
-            foreach (var child in panel.Children)
-            {
-                if (child is SelectableTextBlock line)
-                {
-                    line.FontFamily = OutputFontFamily;
-                    line.FontSize = OutputFontSize;
-                    line.MinHeight = OutputFontSize + 4;
-                }
-            }
+            block.FontFamily = OutputFontFamily;
+            block.FontSize = OutputFontSize;
         }
     }
 
     private async void CopySelection_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        var selected = _currentLine.SelectedText;
-        var text = string.IsNullOrEmpty(selected)
-            ? FindAnySelectedText()
-            : selected;
+        var text = _scrollbackBlock.SelectedText;
+        if (string.IsNullOrEmpty(text))
+            text = _liveTailBlock.SelectedText;
 
         await CopyToClipboardAsync(text);
-    }
-
-    private string? FindAnySelectedText()
-    {
-        // Search the scrollback panel first (most likely to have user selections).
-        for (var i = _scrollbackPanel.Children.Count - 1; i >= 0; i--)
-        {
-            if (_scrollbackPanel.Children[i] is SelectableTextBlock { SelectedText.Length: > 0 } line)
-            {
-                return line.SelectedText;
-            }
-        }
-
-        // Fall back to the live tail panel.
-        for (var i = _liveTailPanel.Children.Count - 1; i >= 0; i--)
-        {
-            if (_liveTailPanel.Children[i] is SelectableTextBlock { SelectedText.Length: > 0 } line)
-            {
-                return line.SelectedText;
-            }
-        }
-
-        return null;
     }
 
     private void ClearOutput_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -296,24 +292,18 @@ public partial class MudOutputView : UserControl
     private void OnScrollbackScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
         const double bottomTolerance = 10.0;
-        // Require a larger offset for enabling split to avoid flicker from layout recalculations.
         const double splitActivationThreshold = 30.0;
 
         double distanceFromBottom = _scrollbackScroller.Extent.Height
             - _scrollbackScroller.Viewport.Height
             - _scrollbackScroller.Offset.Y;
 
-        // Disable split when the user scrolls all the way to the bottom.
         if (distanceFromBottom <= bottomTolerance && _isSplitMode)
         {
             SetSplitMode(false);
             return;
         }
 
-        // Enable split only when the user actively scrolls upward (negative OffsetDelta.Y).
-        // Extent growth from AppendText() also increases distanceFromBottom, but the offset
-        // hasn't changed — we must ignore those events so that split mode is only triggered
-        // by deliberate user scroll-up, not by content-height increases.
         if (distanceFromBottom > splitActivationThreshold
             && !_isSplitMode
             && e.OffsetDelta.Y < 0)
