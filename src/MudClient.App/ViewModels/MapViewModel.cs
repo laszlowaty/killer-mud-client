@@ -15,10 +15,12 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private readonly string _mapSettingsPath;
     private readonly string _sectorDirectory;
     private readonly string _sectorManifestPath;
+    private readonly string _roomImageDirectory;
     private readonly GmcpLocationResolver _locationResolver;
 
     private MapIndex? _mapIndex;
     private SectorTextureCache? _textureCache;
+    private RoomImageCache? _roomImages;
     private MapSettings _settings = MapSettings.CreateDefault();
     private CancellationTokenSource? _loadCancellation;
 
@@ -40,6 +42,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         _mapSettingsPath = Path.Combine(mapDirectory, "map-settings.json");
         _sectorDirectory = Path.Combine(mapDirectory, "Sectors");
         _sectorManifestPath = Path.Combine(_sectorDirectory, "sectors.json");
+        _roomImageDirectory = Path.Combine(mapDirectory, "Rooms");
 
         _locationResolver = locationResolver;
         _locationResolver.LocationChanged += OnLocationChanged;
@@ -75,6 +78,18 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         private set
         {
             if (SetProperty(ref _textureCache, value))
+            {
+                OnPropertyChanged(nameof(SelectedRoomIcon));
+            }
+        }
+    }
+
+    public RoomImageCache? RoomImages
+    {
+        get => _roomImages;
+        private set
+        {
+            if (SetProperty(ref _roomImages, value))
             {
                 OnPropertyChanged(nameof(SelectedRoomIcon));
             }
@@ -149,7 +164,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     }
 
     public Bitmap? SelectedRoomIcon =>
-        TextureCache?.GetTexture(SelectedRoom?.Sector ?? string.Empty);
+        RoomImages?.GetFullImage(SelectedRoom?.Vnum)
+        ?? TextureCache?.GetTexture(SelectedRoom?.Sector ?? string.Empty);
 
     public string? CurrentVnum => _locationResolver.CurrentVnum;
 
@@ -180,6 +196,9 @@ public sealed class MapViewModel : ObservableObject, IDisposable
 
             TextureCache?.Dispose();
             TextureCache = new SectorTextureCache(_sectorDirectory, _sectorManifestPath);
+
+            RoomImages?.Dispose();
+            RoomImages = new RoomImageCache(_roomImageDirectory);
 
             if (!File.Exists(_worldMapPath))
             {
@@ -395,5 +414,6 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
         TextureCache?.Dispose();
+        RoomImages?.Dispose();
     }
 }

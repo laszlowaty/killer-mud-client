@@ -10,10 +10,29 @@
         <MenuItem Header="Wyczyść ekran" Click="ClearOutput_OnClick" />
       </ContextMenu>
     </Border.ContextMenu>
-    <ScrollViewer x:Name="OutputScroller"
-                  HorizontalScrollBarVisibility="Auto"
-                  VerticalScrollBarVisibility="Auto">
-      <StackPanel x:Name="LinesPanel" Spacing="0" />
-    </ScrollViewer>
+    <Grid x:Name="OutputGrid" RowDefinitions="*,Auto,0">
+      <!-- Upper pane: scrollback buffer (manual scroll) -->
+      <ScrollViewer Grid.Row="0"
+                    x:Name="ScrollbackScroller"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="ScrollbackPanel" Spacing="0" />
+      </ScrollViewer>
+
+      <!-- GridSplitter between panes -->
+      <GridSplitter Grid.Row="1"
+                    x:Name="OutputSplitter"
+                    Height="6"
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource MudBrushStone}" />
+
+      <!-- Lower pane: live tail (auto-scroll) -->
+      <ScrollViewer Grid.Row="2"
+                    x:Name="LiveTailScroller"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="LiveTailPanel" Spacing="0" />
+      </ScrollViewer>
+    </Grid>
   </Border>
 </UserControl>

@@ -1,26 +1,27 @@
-# Plan: keep sent MUD command selected in input
+Plan: make MUD output split-screen conditional on scrollback
 
-## Context
-- The command input is `CommandBox` in `src/MudClient.App/Views/MainWindow.axaml`.
-- Enter handling lives in `src/MudClient.App/Views/MainWindow.axaml.cs` in `CommandBox_OnKeyDown()`.
-- Sending currently calls `MainWindowViewModel.SendCurrentCommandAsync()`, which trims `CommandText`, clears it immediately, processes aliases, adds history, and sends the processed command.
-- User wants the old typed text to remain in the input after sending and be selected so pressing Enter resends it, while typing a different command replaces it immediately.
+Context:
+- `MudOutputView` currently always shows two panes: upper full scrollback and lower live-tail.
+- User wants split-screen to enable only while they are scrolled up in the main output.
+- When the user scrolls back down to the newest/active messages, the split should turn off and the output should return to a single-pane live view.
 
-## Implementation
-1. Change command sending so a sent command is not cleared from the command input.
-   - In `MainWindowViewModel.SendCurrentCommandAsync()`, remove the `CommandText = string.Empty;` clearing behavior.
-   - Preserve the existing send semantics: trim the source text, process aliases, record/send the processed command, and keep error handling.
-   - Prefer keeping the user's original typed text in `CommandText`, not the alias-expanded command, so the visible text matches what the user entered.
-2. Select the full command text after sending from the command box.
-   - In `CommandBox_OnKeyDown()` after `SendCommandCommand.Execute(null)` succeeds/starts, focus `CommandBox` and select all current text.
-   - Use Avalonia `TextBox.SelectAll()` if available, otherwise set selection start/end explicitly.
-   - Keep `eventArgs.Handled = true` and `_historyIndex = -1` behavior.
-   - Ensure the selected text remains in place so pressing Enter again sends the same command; normal typing should replace selected text using default TextBox behavior.
-3. Keep scope limited to app UI/view-model command-input behavior.
-   - Do not modify `MudClient.Core`, Telnet/networking, alias processing, or unrelated UI.
-   - No README update is required because this is a small interaction change.
+Implementation:
+1. Update `src/MudClient.App/Controls/MudOutputView.axaml` so the live-tail pane and splitter can be hidden when split mode is off.
+   - The normal/default mode should be a single full-height scrollback output pane.
+   - The split mode should show upper scrollback + splitter + lower live-tail.
+2. Update `MudOutputView.axaml.cs` to track whether the scrollback pane is at the bottom.
+   - Define a small bottom tolerance to account for floating-point/layout differences.
+   - Subscribe to the scrollback `ScrollChanged` event or equivalent Avalonia event.
+   - If the user/main scrollback offset moves away from the bottom, enable split mode.
+   - If the scrollback reaches the bottom again, disable split mode.
+3. Preserve auto-scroll behavior:
+   - When split mode is off, appended text should auto-scroll the main scrollback pane to the newest output.
+   - When split mode is on, appended text should not move the user's upper scrollback position, but the lower live-tail pane should continue auto-scrolling to newest output.
+4. Keep existing functionality intact:
+   - The live-tail pane must still mirror in-progress lines that do not end with newline.
+   - Copy selection, copy all, clear, line caps, ANSI styling, and selectable text must continue to work.
+5. Avoid `Thread.Sleep`; use Avalonia dispatcher posts as already done.
 
-## Verification
-- Add/update app tests only if existing test structure can directly cover the view-model change (for example, asserting `CommandText` remains after send where practical). Do not ask the production-code coder to write tests.
-- Build with `dotnet build MudClientStarter.sln`.
-- Run relevant tests, preferably `dotnet test MudClientStarter.sln` or at least `dotnet test tests/MudClient.App.Tests/MudClient.App.Tests.csproj`.
+Validation to be handled by tester:
+1. Add/update tests only if feasible with current test infrastructure. The project currently lacks Avalonia Headless, so direct visual/scroll tests may not be possible.
+2. At minimum, run `dotnet test MudClientStarter.sln` and document any UI testing limitations.

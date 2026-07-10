@@ -8,6 +8,8 @@ public sealed class AliasEngine
 
     public void Add(AliasRule rule) => _rules.Add(rule);
 
+    public void Clear() => _rules.Clear();
+
     public bool Remove(string name)
     {
         var index = _rules.FindIndex(rule =>

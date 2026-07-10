@@ -8,7 +8,15 @@
   <Style Selector="TabItem">
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Padding" Value="16,10" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+
+  <!-- Compact inner tab strip (e.g. GMCP sub-tabs) -->
+  <Style Selector="TabControl.mud-subtabs TabItem">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="10,5" />
   </Style>
   <Style Selector="TabItem:selected">
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />

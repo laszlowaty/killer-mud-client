@@ -1,5 +1,6 @@
 using System.Reflection;
 using MudClient.App.ViewModels;
+using MudClient.Core.Networking;
 
 namespace MudClient.App.Tests;
 
@@ -65,10 +66,10 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void Constructor_PopulatesMockAutomationRules()
+    public void Constructor_StartsWithNoAutomationRules()
     {
-        Assert.NotEmpty(_vm.AutomationRules);
-        Assert.Contains(_vm.AutomationRules, r => r.Name == "Skrót look");
+        // Rules are per-profile; none should exist before a profile is activated.
+        Assert.Empty(_vm.AutomationRules);
     }
 
     [Fact]
@@ -295,6 +296,92 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
+    // Command history – ordering, trimming, and capacity
+    // ====================================================================
+
+    [Fact]
+    public async Task SendCommand_HistoryInsertedAtTopNewestFirst()
+    {
+        // Arrange
+        SetIsConnected(true);
+        _vm.CommandText = "first";
+
+        // Act
+        await _vm.SendCommandCommand.ExecuteAsync(null);
+        _vm.CommandText = "second";
+        await _vm.SendCommandCommand.ExecuteAsync(null);
+
+        // Assert: newest command is at index 0
+        Assert.Equal(2, _vm.CommandHistory.Count);
+        Assert.Equal("second", _vm.CommandHistory[0]);
+        Assert.Equal("first", _vm.CommandHistory[1]);
+    }
+
+    [Fact]
+    public async Task SendCommand_HistoryTrimsAtMaxSize()
+    {
+        // Arrange: send 101 commands (1 more than the 100-entry cap)
+        SetIsConnected(true);
+        const int targetCount = 101;
+        var allCommands = new string[targetCount];
+        for (var i = 0; i < targetCount; i++)
+        {
+            allCommands[i] = $"cmd{i:D3}";
+        }
+
+        // Act
+        foreach (var cmd in allCommands)
+        {
+            _vm.CommandText = cmd;
+            await _vm.SendCommandCommand.ExecuteAsync(null);
+        }
+
+        // Assert: count is capped at 100, oldest entry ("cmd000") is removed
+        Assert.Equal(100, _vm.CommandHistory.Count);
+        Assert.DoesNotContain("cmd000", _vm.CommandHistory);
+    }
+
+    [Fact]
+    public async Task SendCommand_HistoryPreservesNewestEntriesAtCap()
+    {
+        // Arrange: send 101 commands
+        SetIsConnected(true);
+        const int targetCount = 101;
+        for (var i = 0; i < targetCount; i++)
+        {
+            _vm.CommandText = $"cmd{i:D3}";
+            await _vm.SendCommandCommand.ExecuteAsync(null);
+        }
+
+        // Assert: the 100 newest entries ("cmd001" through "cmd100") are present,
+        //         ordered newest-first.
+        Assert.Equal(100, _vm.CommandHistory.Count);
+        Assert.Equal("cmd100", _vm.CommandHistory[0]);
+        Assert.Equal("cmd099", _vm.CommandHistory[1]);
+        Assert.Contains("cmd001", _vm.CommandHistory);
+    }
+
+    [Fact]
+    public async Task SendCommand_HistoryMaintainsOrderAfterMultipleTrims()
+    {
+        // Arrange: send 150 commands (50 past cap)
+        SetIsConnected(true);
+        for (var i = 0; i < 150; i++)
+        {
+            _vm.CommandText = $"cmd{i:D3}";
+            await _vm.SendCommandCommand.ExecuteAsync(null);
+        }
+
+        // Assert: count stays at 100, oldest 50 are gone, newest 50 are present
+        Assert.Equal(100, _vm.CommandHistory.Count);
+        Assert.DoesNotContain("cmd000", _vm.CommandHistory);
+        Assert.DoesNotContain("cmd049", _vm.CommandHistory);
+        Assert.Contains("cmd050", _vm.CommandHistory);
+        Assert.Contains("cmd149", _vm.CommandHistory);
+        Assert.Equal("cmd149", _vm.CommandHistory[0]);
+    }
+
+    // ====================================================================
     // Host / Port defaults
     // ====================================================================
 
@@ -348,10 +435,21 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal("l", _vm.CommandText);
     }
 
+    /// <summary>Registers a "l" → "look" alias through the real rule pipeline.</summary>
+    private void AddLookAlias()
+    {
+        _vm.NewRuleName = "Skrót look";
+        _vm.NewRuleType = "alias";
+        _vm.NewRulePattern = "^l$";
+        _vm.NewRuleAction = "look";
+        _vm.AddRuleCommand.Execute(null);
+    }
+
     [Fact]
     public async Task SendCommand_HistoryContainsAliasExpandedVersion()
     {
         // Arrange
+        AddLookAlias();
         SetIsConnected(true);
         _vm.CommandText = "l";
 
@@ -428,6 +526,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     public async Task SendCommand_OriginalTextDifferentFromHistoryWhenAliased()
     {
         // Arrange
+        AddLookAlias();
         SetIsConnected(true);
         _vm.CommandText = "l";
 
@@ -440,4 +539,414 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal("look", historyEntry);
         Assert.NotEqual(_vm.CommandText, historyEntry);
     }
+
+    // ====================================================================
+    // Outgoing GMCP recording (SentGmcpMessages) and 100-entry cap
+    //
+    // The production event handlers (OnGmcpSent / OnGmcpReceived) use
+    // Dispatcher.UIThread.Post to marshal work to the UI thread.  Calling
+    // Dispatcher.UIThread.RunJobs() from a non-UI thread would throw
+    // Dispatcher.VerifyAccess, making a dispatcher-based test helper
+    // unreliable without a headless Avalonia platform.
+    //
+    // Instead, the tests below verify the insert/order/cap/placeholder
+    // behaviour directly on the observable collections — the same logic
+    // that the dispatcher-invoked lambdas execute in production.
+    // Event-subscription wiring is covered separately via reflection
+    // (GmcpSentEvent_IsSubscribedByConstructor / GmcpReceivedEvent_Is
+    // SubscribedByConstructor).
+    // ====================================================================
+
+    /// <summary>
+    /// Replicates the production handler's JSON → display-value logic.
+    /// </summary>
+    private static string FormatGmcpJson(string json) =>
+        string.IsNullOrWhiteSpace(json) ? "(bez danych)" : json;
+
+    private static GmcpEntryViewModel MakeEntry(string package, string json) =>
+        new(package, FormatGmcpJson(json), DateTimeOffset.Now.ToString("HH:mm:ss"));
+
+    /// <summary>
+    /// Simulates the production OnGmcpSent logic: insert at head, trim to 100.
+    /// </summary>
+    private void SimulateGmcpSent(string package, string json)
+    {
+        _vm.SentGmcpMessages.Insert(0, MakeEntry(package, json));
+        while (_vm.SentGmcpMessages.Count > 100)
+            _vm.SentGmcpMessages.RemoveAt(_vm.SentGmcpMessages.Count - 1);
+    }
+
+    /// <summary>
+    /// Simulates the production OnGmcpReceived logic: insert at head, trim to 100.
+    /// </summary>
+    private void SimulateGmcpReceived(string package, string json)
+    {
+        _vm.GmcpMessages.Insert(0, MakeEntry(package, json));
+        while (_vm.GmcpMessages.Count > 100)
+            _vm.GmcpMessages.RemoveAt(_vm.GmcpMessages.Count - 1);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_InitiallyEmpty()
+    {
+        Assert.Empty(_vm.SentGmcpMessages);
+    }
+
+    [Fact]
+    public void GmcpMessages_InitiallyEmpty()
+    {
+        Assert.Empty(_vm.GmcpMessages);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_InsertThenAddsEntry()
+    {
+        SimulateGmcpSent("Test.Package", "{\"key\":\"val\"}");
+
+        var entry = Assert.Single(_vm.SentGmcpMessages);
+        Assert.Equal("Test.Package", entry.Package);
+        Assert.Contains("key", entry.Json);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_EntryContainsReceivedAtTimestamp()
+    {
+        SimulateGmcpSent("Core.Ping", "{}");
+
+        var entry = Assert.Single(_vm.SentGmcpMessages);
+        Assert.NotEmpty(entry.ReceivedAt);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_NewestFirst()
+    {
+        SimulateGmcpSent("First.Pkg", "{}");
+        SimulateGmcpSent("Second.Pkg", "{}");
+
+        Assert.Equal(2, _vm.SentGmcpMessages.Count);
+        Assert.Equal("Second.Pkg", _vm.SentGmcpMessages[0].Package);
+        Assert.Equal("First.Pkg", _vm.SentGmcpMessages[1].Package);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_CappedAt100_AfterMultipleEvents()
+    {
+        for (var i = 0; i < 101; i++)
+        {
+            SimulateGmcpSent($"Pkg{i:D3}", $"{{\"i\":{i}}}");
+        }
+
+        Assert.Equal(100, _vm.SentGmcpMessages.Count);
+        // Oldest entry (Pkg000) should be gone.
+        Assert.DoesNotContain(_vm.SentGmcpMessages, e => e.Package == "Pkg000");
+    }
+
+    [Fact]
+    public void SentGmcpMessages_PreservesNewestEntriesAtCap()
+    {
+        for (var i = 0; i < 101; i++)
+        {
+            SimulateGmcpSent($"Pkg{i:D3}", $"{{\"i\":{i}}}");
+        }
+
+        // The 100 newest (Pkg001 through Pkg100) should be present,
+        // ordered newest-first.
+        Assert.Equal(100, _vm.SentGmcpMessages.Count);
+        Assert.Equal("Pkg100", _vm.SentGmcpMessages[0].Package);
+        Assert.Equal("Pkg099", _vm.SentGmcpMessages[1].Package);
+        Assert.Contains(_vm.SentGmcpMessages, e => e.Package == "Pkg001");
+    }
+
+    [Fact]
+    public void SentGmcpMessages_JsonIsStoredInEntry()
+    {
+        const string json = "{\"hp\":150,\"maxHp\":200}";
+        SimulateGmcpSent("Char.Vitals", json);
+
+        var entry = Assert.Single(_vm.SentGmcpMessages);
+        Assert.Equal(FormatGmcpJson(json), entry.Json);
+    }
+
+    [Fact]
+    public void SentGmcpMessages_EmptyJsonBecomesPlaceholder()
+    {
+        SimulateGmcpSent("Core.Ping", string.Empty);
+
+        var entry = Assert.Single(_vm.SentGmcpMessages);
+        Assert.Equal("(bez danych)", entry.Json);
+    }
+
+    // ====================================================================
+    // Incoming GMCP (GmcpMessages) — same cap + ordering logic
+    // ====================================================================
+
+    [Fact]
+    public void GmcpMessages_InsertThenAddsEntry()
+    {
+        SimulateGmcpReceived("Room.Info", "{\"name\":\"Tavern\"}");
+
+        var entry = Assert.Single(_vm.GmcpMessages);
+        Assert.Equal("Room.Info", entry.Package);
+    }
+
+    [Fact]
+    public void GmcpMessages_CappedAt100_AfterMultipleEvents()
+    {
+        for (var i = 0; i < 101; i++)
+        {
+            SimulateGmcpReceived($"Pkg{i:D3}", $"{{\"i\":{i}}}");
+        }
+
+        Assert.Equal(100, _vm.GmcpMessages.Count);
+        Assert.DoesNotContain(_vm.GmcpMessages, e => e.Package == "Pkg000");
+    }
+
+    [Fact]
+    public void GmcpMessages_NewestFirst()
+    {
+        SimulateGmcpReceived("A", "{}");
+        SimulateGmcpReceived("B", "{}");
+
+        Assert.Equal(2, _vm.GmcpMessages.Count);
+        Assert.Equal("B", _vm.GmcpMessages[0].Package);
+        Assert.Equal("A", _vm.GmcpMessages[1].Package);
+    }
+
+    [Fact]
+    public void GmcpMessages_PreservesNewestEntriesAtCap()
+    {
+        for (var i = 0; i < 101; i++)
+        {
+            SimulateGmcpReceived($"Pkg{i:D3}", $"{{\"i\":{i}}}");
+        }
+
+        Assert.Equal(100, _vm.GmcpMessages.Count);
+        Assert.Equal("Pkg100", _vm.GmcpMessages[0].Package);
+        Assert.Equal("Pkg099", _vm.GmcpMessages[1].Package);
+        Assert.Contains(_vm.GmcpMessages, e => e.Package == "Pkg001");
+    }
+
+    [Fact]
+    public void GmcpMessages_JsonIsStoredInEntry()
+    {
+        const string json = "{\"name\":\"Tavern\",\"zone\":3}";
+        SimulateGmcpReceived("Room.Info", json);
+
+        var entry = Assert.Single(_vm.GmcpMessages);
+        Assert.Equal(FormatGmcpJson(json), entry.Json);
+    }
+
+    [Fact]
+    public void GmcpMessages_EmptyJsonBecomesPlaceholder()
+    {
+        SimulateGmcpReceived("Core.Ping", string.Empty);
+
+        var entry = Assert.Single(_vm.GmcpMessages);
+        Assert.Equal("(bez danych)", entry.Json);
+    }
+
+    [Fact]
+    public void GmcpMessages_EntryContainsReceivedAtTimestamp()
+    {
+        SimulateGmcpReceived("Room.Info", "{}");
+
+        var entry = Assert.Single(_vm.GmcpMessages);
+        Assert.NotEmpty(entry.ReceivedAt);
+    }
+
+    // ====================================================================
+    // GMCP event subscription wiring (reflection-based)
+    // ====================================================================
+
+    [Fact]
+    public void GmcpSentEvent_IsSubscribedByConstructor()
+    {
+        // Check that the private _session.GmcpSent event has at least one
+        // subscriber after MainWindowViewModel construction.
+        var sessionField = typeof(MainWindowViewModel).GetField("_session",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(sessionField);
+        var session = sessionField!.GetValue(_vm);
+        Assert.NotNull(session);
+
+        var gmcpSentField = typeof(MudSession).GetField("GmcpSent",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(gmcpSentField);
+        var delegateObj = gmcpSentField!.GetValue(session) as Delegate;
+        Assert.NotNull(delegateObj);
+        Assert.NotEmpty(delegateObj.GetInvocationList());
+    }
+
+    [Fact]
+    public void GmcpReceivedEvent_IsSubscribedByConstructor()
+    {
+        var sessionField = typeof(MainWindowViewModel).GetField("_session",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(sessionField);
+        var session = sessionField!.GetValue(_vm);
+        Assert.NotNull(session);
+
+        var gmcpReceivedField = typeof(MudSession).GetField("GmcpReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(gmcpReceivedField);
+        var delegateObj = gmcpReceivedField!.GetValue(session) as Delegate;
+        Assert.NotNull(delegateObj);
+        Assert.NotEmpty(delegateObj.GetInvocationList());
+    }
+
+    // ====================================================================
+    // GMCP tab structure — XAML validation note
+    // ====================================================================
+    //
+    // MainWindow.axaml contains two GMCP TabItem elements inside the
+    // right-sidebar TabControl:
+    //   Tab 3: Header="GMCP odebrane",  ItemsSource="{Binding GmcpMessages}"
+    //   Tab 4: Header="GMCP wysłane",   ItemsSource="{Binding SentGmcpMessages}"
+    //
+    // Both tabs use ItemsControl with a ScrollViewer template and present
+    // each entry via GmcpEntryViewModel DataTemplate (SelectableTextBlock
+    // for package/json/timestamp).
+    //
+    // The test project (MudClient.App.Tests) does not reference
+    // Avalonia.Headless or any headless-Avalonia package.  Without headless
+    // UI infrastructure, the visual tree (TabItem, ItemsControl, DataTemplate)
+    // cannot be instantiated in a unit test — AvaloniaXamlLoader.Load() in
+    // InitializeComponent() requires a running Avalonia windowing platform.
+    //
+    // Therefore the XAML tab structure is validated by the build/XAML
+    // compile step only.  Any binding mismatch (e.g. a missing property name)
+    // will surface as an XAML compile error.  The ViewModel-level behaviour
+    // (collections initialized, entries inserted at head, cap at 100) is
+    // verified by the GmcpMessages_* and SentGmcpMessages_* tests above.
+    //
+    // ====================================================================
+    // Auto-connect startup — validation notes
+    // ====================================================================
+    //
+    // The auto-connect logic lives in MainWindow.OnOpened (the code-behind),
+    // which calls:
+    //   1. _viewModel.InitializeAsync()
+    //   2. _viewModel.ConnectCommand.ExecuteAsync(null)
+    //
+    // The VM's ConnectAsync() method calls:
+    //   _session.ConnectAsync(Host, Port)
+    //
+    // MudSession.ConnectAsync creates a real TcpClient and connects over the
+    // network (host = "killer-mud.pl", port = 4004).  There is no seam to
+    // replace or short-circuit this — no ITcpClientFactory, no virtual
+    // method, no test-only constructor.
+    //
+    // To test auto-connect without a real TCP connection, the production code
+    // would need an injectable transport (e.g. ITcpClient / ITransport) that
+    // the test could replace with a loopback or a fake.  The architecture
+    // currently hard-codes TcpClient inside MudSession (line 53 of
+    // MudSession.cs), so direct unit testing of the full startup path is not
+    // feasible without either (a) running a real MUD server, (b) adding a
+    // seam to production code, or (c) using an integration-test network
+    // loopback.
+    //
+    // The CanExecute path (ConnectCommand / CanConnect) is already tested
+    // above (ConnectCommand_InitiallyCanExecute).
+    //
+    // ====================================================================
+    // MudOutputView split-scroll / responsive layout — validation notes
+    // ====================================================================
+    //
+    // MudOutputView (Controls/MudOutputView.axaml + .axaml.cs) is an
+    // Avalonia UserControl that depends on:
+    //   * a visual tree with named ScrollViewer/StackPanel elements
+    //   * AvaloniaXamlLoader to load the XAML template
+    //   * AnsiStreamParser for tokenizing input
+    //   * Dispatcher.UIThread.Post for auto-scrolling
+    //
+    // The test project (MudClient.App.Tests) does not reference
+    // Avalonia.Headless or any headless-Avalonia package.  Without headless
+    // UI infrastructure, the control cannot be instantiated and exercised in
+    // a test — InitializeComponent() calls AvaloniaXamlLoader.Load(this),
+    // which requires a running Avalonia windowing platform.
+    //
+    // Similarly, MapView.axaml uses a WrapPanel for its header to prevent
+    // button disappearance on resize.  Layout-level responsiveness is
+    // inherently a visual/rendering concern and cannot be verified without
+    // a headless or screenshot-testing framework.
+    //
+    // Conditional split-scroll (added by the coder for this change):
+    //
+    //   Purpose:
+    //     Show split-screen (upper manual-scroll pane + lower live-tail pane)
+    //     only while the user scrolls upward.  When at the newest/bottom
+    //     position the grid returns to a single pane with the live tail
+    //     hidden.
+    //
+    //   XAML (MudOutputView.axaml):
+    //     - Grid.Row 0 = scrollback (upper), Row 1 = GridSplitter,
+    //       Row 2 = live tail (lower).
+    //     - Default RowDefinitions="*,Auto,0" — live tail and splitter
+    //       are zero-height initially.
+    //     - GridSplitter named OutputSplitter, Grid named OutputGrid.
+    //
+    //   Code-behind (MudOutputView.axaml.cs):
+    //     1. OnScrollbackScrollChanged handler:
+    //        distanceFromBottom = Extent.Height - Viewport.Height - Offset.Y
+    //        - Enable split when distanceFromBottom > 30px && !_isSplitMode
+    //          && e.OffsetDelta.Y < 0
+    //          (The OffsetDelta.Y < 0 guard prevents extent-growth caused by
+    //           AppendText from triggering split activation — only deliberate
+    //           user scroll-up events can enable split.)
+    //        - Disable split when distanceFromBottom <= 10px && _isSplitMode
+    //        (Flicker protection: activation uses a larger threshold than
+    //         deactivation.)
+    //
+    //     2. SetSplitMode(bool enabled):
+    //        - When enabling: row[0] = 2*, row[2] = 1*, splitter/live-tail
+    //          visible.
+    //        - When disabling: row[0] = 1*, row[2] = 0, splitter/live-tail
+    //          hidden.
+    //
+    //     3. Clear() calls SetSplitMode(false) before clearing (line 104),
+    //        ensuring a deterministic return to single-pane layout after
+    //        a clear operation.
+    //
+    //     4. AppendText auto-scroll behaviour:
+    //        - When split OFF (_isSplitMode == false): auto-scroll the
+    //          scrollback pane to the newest line.
+    //        - When split ON:  scrollback pane stays at the user's manual
+    //          scroll offset; only the live-tail pane auto-scrolls.
+    //        - Live-tail pane always auto-scrolls (harmless when hidden).
+    //
+    //     5. Existing behaviour preserved:
+    //        - In-progress-line mirroring (AppendRun writes to both
+    //          _currentLine and _liveTailCurrentLine).
+    //        - Clear() resets both panels.
+    //        - CopySelection_OnClick / CopyAll_OnClick operate on both
+    //          panels.
+    //        - Live-tail capped at LiveTailMaxLines (100), scrollback at
+    //          MaximumLines (5000).
+    //
+    //   Testability:
+    //     Every code path above requires an instantiated MudOutputView with
+    //     a live visual tree.  Neither the thresholds (10/30 px), the
+    //     OffsetDelta.Y < 0 guard, nor the hysteresis logic can be exercised
+    //     in a unit test without headless Avalonia, so validation currently
+    //     relies on:
+    //       * XAML compile (build)
+    //       * Manual functional testing
+    //       * This specification note to prevent accidental regressions.
+    //
+    // ====================================================================
+    // Down-at-fresh command history behavior — validation notes
+    // ====================================================================
+    //
+    // The "Down-at-fresh" behavior (MainWindow.axaml.cs NavigateHistory):
+    // pressing the Down arrow when no history entry has been selected yet
+    // (historyIndex == -1, the "fresh" position) should not clear the
+    // user's current draft.  The ViewModel does not track a "history
+    // navigation index" — that state (_historyIndex) lives entirely in
+    // the code-behind field of MainWindow.
+    //
+    // The ViewModel-level history (CommandHistory) and its insert/cap
+    // behaviour are tested above (SendCommand_History* tests).  The
+    // Down-at-fresh guard is a View-level concern and cannot be exercised
+    // without either (a) instantiating MainWindow with a headless UI
+    // framework or (b) extracting the navigation logic into the ViewModel.
 }

@@ -8,6 +8,8 @@ public sealed class TriggerEngine
 
     public void Add(TriggerRule rule) => _rules.Add(rule);
 
+    public void Clear() => _rules.Clear();
+
     public IReadOnlyList<string> Evaluate(string line)
     {
         var commands = new List<string>();

@@ -20,6 +20,7 @@ public sealed class WorldMapControl : Control
     private MapIndex? _mapIndex;
     private MapSettings _settings = MapSettings.CreateDefault();
     private SectorTextureCache? _textureCache;
+    private RoomImageCache? _roomImages;
 
     private int _areaId;
     private double _z;
@@ -73,6 +74,32 @@ public sealed class WorldMapControl : Control
         set
         {
             _textureCache = value;
+            RequestInvalidateVisual();
+        }
+    }
+
+    public RoomImageCache? RoomImages
+    {
+        get => _roomImages;
+        set
+        {
+            if (ReferenceEquals(_roomImages, value))
+            {
+                return;
+            }
+
+            if (_roomImages is not null)
+            {
+                _roomImages.MapIconLoaded -= RequestInvalidateVisual;
+            }
+
+            _roomImages = value;
+
+            if (_roomImages is not null)
+            {
+                _roomImages.MapIconLoaded += RequestInvalidateVisual;
+            }
+
             RequestInvalidateVisual();
         }
     }
@@ -545,7 +572,8 @@ public sealed class WorldMapControl : Control
             var center = WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
             var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
 
-            var texture = room.Sector is not null ? _textureCache?.GetTexture(room.Sector) : null;
+            var texture = _roomImages?.GetMapIcon(room.Vnum)
+                ?? (room.Sector is not null ? _textureCache?.GetTexture(room.Sector) : null);
 
             if (texture is not null)
             {

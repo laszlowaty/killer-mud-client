@@ -32,6 +32,8 @@ public sealed class MudSession : IAsyncDisposable
 
     public event Action<GmcpMessage>? GmcpReceived;
 
+    public event Action<GmcpMessage>? GmcpSent;
+
     public event Action<string>? StatusChanged;
 
     public event Action<Exception>? ConnectionError;
@@ -126,6 +128,8 @@ public sealed class MudSession : IAsyncDisposable
         await SendRawAsync(
             TelnetWriter.Subnegotiation(TelnetConstants.Gmcp, payload),
             cancellationToken).ConfigureAwait(false);
+
+        GmcpSent?.Invoke(new GmcpMessage(package, json ?? string.Empty));
     }
 
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)

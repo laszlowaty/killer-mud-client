@@ -23,6 +23,14 @@ public sealed class MudTimerService : IAsyncDisposable
         Start(name, interval, periodic: true, callback);
     }
 
+    public void CancelAll()
+    {
+        foreach (var timerName in _timers.Keys)
+        {
+            Cancel(timerName);
+        }
+    }
+
     public bool Cancel(string name)
     {
         if (!_timers.TryRemove(name, out var cancellation))
@@ -86,11 +94,7 @@ public sealed class MudTimerService : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        foreach (var timerName in _timers.Keys)
-        {
-            Cancel(timerName);
-        }
-
+        CancelAll();
         return ValueTask.CompletedTask;
     }
 }

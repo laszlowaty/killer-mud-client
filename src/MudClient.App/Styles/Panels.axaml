@@ -43,4 +43,42 @@
     <Setter Property="Padding" Value="10" />
   </Style>
 
+  <!-- Small rounded label pill, e.g. rule type or interval -->
+  <Style Selector="Border.mud-badge">
+    <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.mud-badge > TextBlock">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+  </Style>
+  <Style Selector="Border.mud-badge-gold > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+  </Style>
+  <Style Selector="Border.mud-badge-green > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+  </Style>
+
+  <!-- Themed expander used for "add new..." forms in the sidebar -->
+  <Style Selector="Expander.mud-expander">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="10" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Expander.mud-expander /template/ ToggleButton">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="10,7" />
+  </Style>
+
 </Styles>

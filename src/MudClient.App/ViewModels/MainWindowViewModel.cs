@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Text.RegularExpressions;
 using MudClient.App.Models;
+using MudClient.App.Services;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
@@ -17,6 +19,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly TriggerEngine _triggers = new();
     private readonly MudTimerService _timers = new();
     private readonly GmcpLocationResolver _locationResolver = new();
+    private readonly ProfileService _profiles;
 
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
@@ -39,26 +42,69 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newNoteTitle = string.Empty;
     private string _newNoteContent = string.Empty;
 
-    public MainWindowViewModel()
+    // --- App settings ---
+    private readonly AppSettingsService _settingsService;
+    private readonly AppSettings _settings;
+    private bool _settingsLoaded;
+
+    // --- New alias/trigger form ---
+    private string _newRuleName = string.Empty;
+    private string _newRuleType = "alias";
+    private string _newRulePattern = string.Empty;
+    private string _newRuleAction = string.Empty;
+    private string? _newRulePatternError;
+
+    // --- Timers ---
+    private string _newTimerName = string.Empty;
+    private string _newTimerMinutes = "0";
+    private string _newTimerSeconds = "0";
+    private string _newTimerMilliseconds = "0";
+    private string _newTimerCommands = string.Empty;
+
+    // --- Profiles ---
+    private string? _activeProfileName;
+    private string? _selectedProfileName;
+    private string _newProfileName = string.Empty;
+
+    public MainWindowViewModel(ProfileService? profileService = null, AppSettingsService? settingsService = null)
     {
+        _profiles = profileService ?? new ProfileService();
+        _settingsService = settingsService ?? new AppSettingsService();
+        _settings = _settingsService.Load();
+        PopulateAvailableFonts();
+        _settingsLoaded = true;
         _connectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
         _disconnectCommand = new AsyncRelayCommand(DisconnectAsync, CanDisconnect);
         _sendCommandCommand = new AsyncRelayCommand(SendCurrentCommandAsync, CanSendCommand);
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
         QuickCommandExecuteCommand = new RelayCommand<string>(ExecuteQuickCommand);
+        SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
+        CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
+        SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
+        AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
+        DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
+        ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
+        AddRuleCommand = new RelayCommand(AddRule, CanAddRule);
+        DeleteRuleCommand = new RelayCommand<AutomationRuleEntry>(DeleteRule);
+        ToggleRuleCommand = new RelayCommand<AutomationRuleEntry>(ToggleRule);
 
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
         _session.GmcpReceived += OnGmcpReceived;
+        _session.GmcpSent += OnGmcpSent;
         _session.StatusChanged += OnStatusChanged;
         _session.ConnectionError += OnConnectionError;
-
-        // Demonstracyjny alias. Usuń go, gdy powstanie edytor aliasów.
-        _aliases.Add(new AliasRule("krótkie-look", "^l$", "look"));
 
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
 
         PopulateMockData();
+
+        foreach (var name in _profiles.ListProfileNames())
+        {
+            AvailableProfiles.Add(name);
+        }
+
+        AvailableProfiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProfiles));
     }
 
     public MapViewModel Map { get; }
@@ -70,6 +116,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public event Action<string>? OutputReceived;
+
+    /// <summary>Raised when a profile becomes active; the view auto-connects then.</summary>
+    public event Action<string>? ProfileActivated;
 
     // ========================================================================
     // Existing connection / command properties (preserved unchanged)
@@ -151,6 +200,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<GmcpEntryViewModel> GmcpMessages { get; } = [];
 
+    public ObservableCollection<GmcpEntryViewModel> SentGmcpMessages { get; } = [];
+
     public IAsyncRelayCommand ConnectCommand => _connectCommand;
     public IAsyncRelayCommand DisconnectCommand => _disconnectCommand;
     public IAsyncRelayCommand SendCommandCommand => _sendCommandCommand;
@@ -210,7 +261,671 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => SetProperty(ref _newNoteContent, value);
     }
 
+    // ========================================================================
+    // App settings (system-wide, not per profile)
+    // ========================================================================
+
+    public ObservableCollection<string> AvailableFonts { get; } = [];
+
+    public double MinOutputFontSize => AppSettings.MinOutputFontSize;
+    public double MaxOutputFontSize => AppSettings.MaxOutputFontSize;
+
+    /// <summary>Font family name for MUD output in the main screen.</summary>
+    public string OutputFontFamily
+    {
+        get => _settings.OutputFontFamily;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || _settings.OutputFontFamily == value)
+            {
+                return;
+            }
+
+            _settings.OutputFontFamily = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public double OutputFontSize
+    {
+        get => _settings.OutputFontSize;
+        set
+        {
+            var clamped = Math.Clamp(
+                Math.Round(value), AppSettings.MinOutputFontSize, AppSettings.MaxOutputFontSize);
+            if (Math.Abs(_settings.OutputFontSize - clamped) < 0.1)
+            {
+                return;
+            }
+
+            _settings.OutputFontSize = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(OutputFontSizeText));
+            SaveSettings();
+        }
+    }
+
+    public string OutputFontSizeText => $"{_settings.OutputFontSize:0} px";
+
+    public RelayCommand ResetOutputFontCommand => new(() =>
+    {
+        OutputFontFamily = AppSettings.DefaultOutputFontFamily;
+        OutputFontSize = AppSettings.DefaultOutputFontSize;
+    });
+
+    private void SaveSettings()
+    {
+        if (!_settingsLoaded)
+        {
+            return;
+        }
+
+        try
+        {
+            _settingsService.Save(_settings);
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Nie udało się zapisać ustawień: {exception.Message}", "error");
+        }
+    }
+
+    private void PopulateAvailableFonts()
+    {
+        var fonts = new List<string>();
+        try
+        {
+            fonts = Avalonia.Media.FontManager.Current.SystemFonts
+                .Select(f => f.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct()
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception)
+        {
+            // Headless environment (e.g. unit tests) — fall back to a curated list.
+        }
+
+        if (fonts.Count == 0)
+        {
+            fonts =
+            [
+                "Cascadia Mono", "Consolas", "Courier New", "Fira Code",
+                "JetBrains Mono", "Lucida Console", "Segoe UI", "Verdana",
+            ];
+        }
+
+        if (!fonts.Contains(_settings.OutputFontFamily))
+        {
+            fonts.Insert(0, _settings.OutputFontFamily);
+        }
+
+        foreach (var font in fonts)
+        {
+            AvailableFonts.Add(font);
+        }
+    }
+
+    // ========================================================================
+    // Aliases & triggers (regex-based, saved per profile)
+    // ========================================================================
+
+    public IReadOnlyList<string> RuleTypes { get; } = ["alias", "trigger"];
+
+    public RelayCommand AddRuleCommand { get; }
+    public RelayCommand<AutomationRuleEntry> DeleteRuleCommand { get; }
+    public RelayCommand<AutomationRuleEntry> ToggleRuleCommand { get; }
+
+    public string NewRuleName
+    {
+        get => _newRuleName;
+        set
+        {
+            if (SetProperty(ref _newRuleName, value))
+            {
+                AddRuleCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>"alias" or "trigger".</summary>
+    public string NewRuleType
+    {
+        get => _newRuleType;
+        set
+        {
+            if (SetProperty(ref _newRuleType, value))
+            {
+                OnPropertyChanged(nameof(NewRuleIsAlias));
+            }
+        }
+    }
+
+    public bool NewRuleIsAlias => NewRuleType == "alias";
+
+    /// <summary>.NET regex tested against typed commands (alias) or received lines (trigger).</summary>
+    public string NewRulePattern
+    {
+        get => _newRulePattern;
+        set
+        {
+            if (SetProperty(ref _newRulePattern, value))
+            {
+                NewRulePatternError = ValidatePattern(value);
+                AddRuleCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>Command to send; may use capture groups like $1.</summary>
+    public string NewRuleAction
+    {
+        get => _newRuleAction;
+        set
+        {
+            if (SetProperty(ref _newRuleAction, value))
+            {
+                AddRuleCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>Live regex validation message, or null when the pattern is valid.</summary>
+    public string? NewRulePatternError
+    {
+        get => _newRulePatternError;
+        private set
+        {
+            if (SetProperty(ref _newRulePatternError, value))
+            {
+                OnPropertyChanged(nameof(HasNewRulePatternError));
+            }
+        }
+    }
+
+    public bool HasNewRulePatternError => NewRulePatternError is not null;
+
+    private static string? ValidatePattern(string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = new Regex(pattern);
+            return null;
+        }
+        catch (ArgumentException exception)
+        {
+            return $"Nieprawidłowy regex: {exception.Message}";
+        }
+    }
+
+    private bool CanAddRule() =>
+        !string.IsNullOrWhiteSpace(NewRuleName) &&
+        !string.IsNullOrWhiteSpace(NewRulePattern) &&
+        !string.IsNullOrWhiteSpace(NewRuleAction) &&
+        ValidatePattern(NewRulePattern) is null;
+
+    private void AddRule()
+    {
+        if (!CanAddRule())
+        {
+            return;
+        }
+
+        AutomationRules.Add(new AutomationRuleEntry(
+            NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction, isEnabled: true));
+
+        NewRuleName = string.Empty;
+        NewRulePattern = string.Empty;
+        NewRuleAction = string.Empty;
+
+        ApplyAutomation();
+        SaveActiveProfile();
+    }
+
+    private void DeleteRule(AutomationRuleEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        AutomationRules.Remove(entry);
+        ApplyAutomation();
+        SaveActiveProfile();
+    }
+
+    private void ToggleRule(AutomationRuleEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        entry.IsEnabled = !entry.IsEnabled;
+        ApplyAutomation();
+        SaveActiveProfile();
+    }
+
+    // ========================================================================
+    // Timers (per-character, repeating until disabled)
+    // ========================================================================
+
+    public ObservableCollection<TimerEntry> Timers { get; } = [];
+
+    public RelayCommand AddTimerCommand { get; }
+    public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
+    public RelayCommand<TimerEntry> ToggleTimerCommand { get; }
+
+    public string NewTimerName
+    {
+        get => _newTimerName;
+        set
+        {
+            if (SetProperty(ref _newTimerName, value))
+            {
+                AddTimerCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string NewTimerMinutes
+    {
+        get => _newTimerMinutes;
+        set => SetProperty(ref _newTimerMinutes, value);
+    }
+
+    public string NewTimerSeconds
+    {
+        get => _newTimerSeconds;
+        set => SetProperty(ref _newTimerSeconds, value);
+    }
+
+    public string NewTimerMilliseconds
+    {
+        get => _newTimerMilliseconds;
+        set => SetProperty(ref _newTimerMilliseconds, value);
+    }
+
+    /// <summary>One command per line; sent in order on every tick.</summary>
+    public string NewTimerCommands
+    {
+        get => _newTimerCommands;
+        set => SetProperty(ref _newTimerCommands, value);
+    }
+
+    private void AddTimer()
+    {
+        var name = NewTimerName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var entry = new TimerEntry
+        {
+            Name = name,
+            Minutes = ParseNonNegative(NewTimerMinutes),
+            Seconds = ParseNonNegative(NewTimerSeconds),
+            Milliseconds = ParseNonNegative(NewTimerMilliseconds),
+            CommandsText = NewTimerCommands,
+        };
+
+        if (entry.Interval <= TimeSpan.Zero)
+        {
+            AddToast("Interwał timera musi być większy od zera.", "error");
+            return;
+        }
+
+        if (entry.GetCommands().Count == 0)
+        {
+            AddToast("Timer musi mieć przynajmniej jedną komendę.", "error");
+            return;
+        }
+
+        Timers.Add(entry);
+
+        NewTimerName = string.Empty;
+        NewTimerMinutes = "0";
+        NewTimerSeconds = "0";
+        NewTimerMilliseconds = "0";
+        NewTimerCommands = string.Empty;
+
+        SaveActiveProfile();
+    }
+
+    private void DeleteTimer(TimerEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        StopTimer(entry);
+        Timers.Remove(entry);
+        SaveActiveProfile();
+    }
+
+    private void ToggleTimer(TimerEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        entry.IsEnabled = !entry.IsEnabled;
+        SyncTimer(entry);
+        SaveActiveProfile();
+
+        AddToast(entry.IsEnabled
+            ? $"Timer „{entry.Name}” włączony (co {entry.IntervalText})."
+            : $"Timer „{entry.Name}” wyłączony.", "info");
+    }
+
+    private static string TimerKey(TimerEntry entry) => $"user-timer:{entry.Id}";
+
+    /// <summary>Starts or stops the underlying periodic timer to match IsEnabled.</summary>
+    private void SyncTimer(TimerEntry entry)
+    {
+        if (!entry.IsEnabled)
+        {
+            StopTimer(entry);
+            return;
+        }
+
+        var interval = entry.Interval;
+        if (interval <= TimeSpan.Zero)
+        {
+            entry.IsEnabled = false;
+            AddToast($"Timer „{entry.Name}” ma nieprawidłowy interwał.", "error");
+            return;
+        }
+
+        var commands = entry.GetCommands();
+        _timers.StartPeriodic(TimerKey(entry), interval, async token =>
+        {
+            if (!IsConnected)
+            {
+                return;
+            }
+
+            foreach (var command in commands)
+            {
+                token.ThrowIfCancellationRequested();
+                await _session.SendCommandAsync(command);
+            }
+        });
+    }
+
+    private void StopTimer(TimerEntry entry) => _timers.Cancel(TimerKey(entry));
+
+    private void SyncAllTimers()
+    {
+        foreach (var entry in Timers)
+        {
+            SyncTimer(entry);
+        }
+    }
+
+    private static int ParseNonNegative(string text) =>
+        int.TryParse(text?.Trim(), out var value) && value > 0 ? value : 0;
+
+    // ========================================================================
+    // Profiles
+    // ========================================================================
+
+    public ObservableCollection<string> AvailableProfiles { get; } = [];
+
+    public bool HasProfiles => AvailableProfiles.Count > 0;
+
+    public RelayCommand SelectProfileCommand { get; }
+    public RelayCommand CreateProfileCommand { get; }
+    public RelayCommand SwitchProfileCommand { get; }
+
+    /// <summary>Name of the currently active profile, or null before one is chosen.</summary>
+    public string? ActiveProfileName
+    {
+        get => _activeProfileName;
+        private set
+        {
+            if (SetProperty(ref _activeProfileName, value))
+            {
+                OnPropertyChanged(nameof(IsProfileSelected));
+                SwitchProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>False shows the profile-picker overlay.</summary>
+    public bool IsProfileSelected => _activeProfileName is not null;
+
+    public string? SelectedProfileName
+    {
+        get => _selectedProfileName;
+        set
+        {
+            if (SetProperty(ref _selectedProfileName, value))
+            {
+                SelectProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set
+        {
+            if (SetProperty(ref _newProfileName, value))
+            {
+                CreateProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    private void SelectProfile()
+    {
+        var name = SelectedProfileName?.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var profile = _profiles.Load(name) ?? new ProfileData { Name = name };
+        ActivateProfile(profile);
+    }
+
+    private void CreateProfile()
+    {
+        var name = NewProfileName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        if (_profiles.Exists(name))
+        {
+            // Same name already stored — just activate it instead of overwriting.
+            ActivateProfile(_profiles.Load(name) ?? new ProfileData { Name = name });
+            NewProfileName = string.Empty;
+            return;
+        }
+
+        var profile = new ProfileData
+        {
+            Name = name,
+            Rules =
+            [
+                new ProfileRule
+                {
+                    Name = "Skrót look",
+                    Type = "alias",
+                    Pattern = "^l$",
+                    Action = "look",
+                    IsEnabled = true,
+                },
+            ],
+        };
+
+        _profiles.Save(profile);
+
+        if (!AvailableProfiles.Contains(name))
+        {
+            AvailableProfiles.Add(name);
+        }
+
+        NewProfileName = string.Empty;
+        ActivateProfile(profile);
+    }
+
+    private void SwitchProfile()
+    {
+        if (!IsProfileSelected || IsConnected)
+        {
+            return;
+        }
+
+        SaveActiveProfile();
+        _timers.CancelAll();
+        SelectedProfileName = ActiveProfileName;
+        ActiveProfileName = null;
+    }
+
+    private void ActivateProfile(ProfileData profile)
+    {
+        Notes.Clear();
+        foreach (var note in profile.Notes)
+        {
+            Notes.Add(new NoteEntry
+            {
+                Title = note.Title,
+                Content = note.Content,
+                CreatedAt = note.CreatedAt,
+            });
+        }
+
+        AutomationRules.Clear();
+        foreach (var rule in profile.Rules)
+        {
+            AutomationRules.Add(new AutomationRuleEntry(
+                rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled));
+        }
+
+        Timers.Clear();
+        foreach (var timer in profile.Timers)
+        {
+            Timers.Add(new TimerEntry
+            {
+                Id = string.IsNullOrWhiteSpace(timer.Id) ? Guid.NewGuid().ToString("N") : timer.Id,
+                Name = timer.Name,
+                Minutes = timer.Minutes,
+                Seconds = timer.Seconds,
+                Milliseconds = timer.Milliseconds,
+                CommandsText = string.Join(Environment.NewLine, timer.Commands),
+                IsEnabled = timer.IsEnabled,
+            });
+        }
+
+        ActiveProfileName = profile.Name;
+        ApplyAutomation();
+        _timers.CancelAll();
+        SyncAllTimers();
+        AddToast($"Profil „{profile.Name}” aktywny.", "info");
+        ProfileActivated?.Invoke(profile.Name);
+    }
+
+    private void SaveActiveProfile()
+    {
+        if (ActiveProfileName is null)
+        {
+            return;
+        }
+
+        var profile = new ProfileData
+        {
+            Name = ActiveProfileName,
+            Notes = Notes
+                .Select(n => new ProfileNote { Title = n.Title, Content = n.Content, CreatedAt = n.CreatedAt })
+                .ToList(),
+            Rules = AutomationRules
+                .Select(r => new ProfileRule
+                {
+                    Name = r.Name,
+                    Type = r.Type,
+                    Pattern = r.Pattern,
+                    Action = r.Action,
+                    IsEnabled = r.IsEnabled,
+                })
+                .ToList(),
+            Timers = Timers
+                .Select(t => new ProfileTimer
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Minutes = t.Minutes,
+                    Seconds = t.Seconds,
+                    Milliseconds = t.Milliseconds,
+                    Commands = t.GetCommands().ToList(),
+                    IsEnabled = t.IsEnabled,
+                })
+                .ToList(),
+        };
+
+        try
+        {
+            _profiles.Save(profile);
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Nie udało się zapisać profilu: {exception.Message}", "error");
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the alias/trigger engines from the active profile's rules.
+    /// Timers are managed separately (see SyncTimer).
+    /// </summary>
+    private void ApplyAutomation()
+    {
+        _aliases.Clear();
+        _triggers.Clear();
+
+        foreach (var rule in AutomationRules)
+        {
+            if (!rule.IsEnabled)
+            {
+                continue;
+            }
+
+            try
+            {
+                switch (rule.Type)
+                {
+                    case "alias":
+                        _aliases.Add(new AliasRule(rule.Name, rule.Pattern, rule.Action));
+                        break;
+
+                    case "trigger":
+                        _triggers.Add(new TriggerRule(rule.Name, rule.Pattern, rule.Action));
+                        break;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Invalid regex pattern in a stored rule — skip it.
+                AddToast($"Pominięto regułę „{rule.Name}”: nieprawidłowy wzorzec.", "error");
+            }
+        }
+    }
+
     // --- Command history ---
+    private const int CommandHistoryMaxSize = 100;
     public ObservableCollection<string> CommandHistory { get; } = [];
 
     // --- Quick commands (chips) ---
@@ -308,7 +1023,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         // Track history
         CommandHistory.Insert(0, command);
-        while (CommandHistory.Count > 100)
+        while (CommandHistory.Count > CommandHistoryMaxSize)
         {
             CommandHistory.RemoveAt(CommandHistory.Count - 1);
         }
@@ -367,6 +1082,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         NewNoteTitle = string.Empty;
         NewNoteContent = string.Empty;
+        SaveActiveProfile();
     }
 
     private void DeleteNote(NoteEntry? note)
@@ -374,6 +1090,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (note is not null)
         {
             Notes.Remove(note);
+            SaveActiveProfile();
         }
     }
 
@@ -418,11 +1135,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void AddToast(string text, string type = "info")
     {
+        // Newest goes last: the top-bar strip is right-aligned, so the latest
+        // toast hugs the right edge and older ones get clipped on the left.
         var toast = new ToastMessage { Text = text, Type = type };
-        Toasts.Insert(0, toast);
+        Toasts.Add(toast);
         while (Toasts.Count > 10)
         {
-            Toasts.RemoveAt(Toasts.Count - 1);
+            Toasts.RemoveAt(0);
         }
     }
 
@@ -473,6 +1192,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
+    private void OnGmcpSent(GmcpMessage message)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            SentGmcpMessages.Insert(0, new GmcpEntryViewModel(
+                message.Package,
+                string.IsNullOrWhiteSpace(message.Json) ? "(bez danych)" : message.Json,
+                DateTimeOffset.Now.ToString("HH:mm:ss")));
+
+            while (SentGmcpMessages.Count > 100)
+            {
+                SentGmcpMessages.RemoveAt(SentGmcpMessages.Count - 1);
+            }
+        });
+    }
+
     private void OnStatusChanged(string status)
     {
         Dispatcher.UIThread.Post(() =>
@@ -501,6 +1236,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _connectCommand.NotifyCanExecuteChanged();
         _disconnectCommand.NotifyCanExecuteChanged();
         _sendCommandCommand.NotifyCanExecuteChanged();
+        SwitchProfileCommand.NotifyCanExecuteChanged();
     }
 
     // ========================================================================
@@ -548,11 +1284,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Group.Add(new GroupMember("Ty", "*", 100, 80, 100));
         Group.Add(new GroupMember("Aelindra", " ", 85, 60, 92));
 
-        // Automation rules (mock)
-        AutomationRules.Add(new AutomationRuleEntry("Skrót look", "alias", "^l$", "look", true));
-        AutomationRules.Add(new AutomationRuleEntry("Automatyczne podnoszenie", "trigger", "leży na ziemi", "wez wszystko", true));
-        AutomationRules.Add(new AutomationRuleEntry("Leczenie co 30s", "timer", "co 30s", "rzuc 'leczenie'", false));
-
         // Notes (mock)
         Notes.Add(new NoteEntry
         {
@@ -568,7 +1299,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
 
         // Welcome toast
-        AddToast("Witaj w MudClient! Wpisz host i port, a następnie kliknij Połącz.", "info");
+        AddToast("Witaj w MudClient! Łączenie automatyczne — możesz zmienić host/port i połączyć się ręcznie.", "info");
     }
 
     // ========================================================================
@@ -577,9 +1308,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        SaveActiveProfile();
+
         _session.TextReceived -= OnTextReceived;
         _session.LineReceived -= OnLineReceived;
         _session.GmcpReceived -= OnGmcpReceived;
+        _session.GmcpSent -= OnGmcpSent;
         _session.StatusChanged -= OnStatusChanged;
         _session.ConnectionError -= OnConnectionError;
 

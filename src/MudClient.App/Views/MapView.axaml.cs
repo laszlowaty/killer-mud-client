@@ -54,6 +54,7 @@ public sealed partial class MapView : UserControl
         MapControl.MapIndex = _viewModel.MapIndex;
         MapControl.Settings = _viewModel.Settings;
         MapControl.TextureCache = _viewModel.TextureCache;
+        MapControl.RoomImages = _viewModel.RoomImages;
         MapControl.AreaId = _viewModel.SelectedArea?.Id ?? 0;
         MapControl.Z = _viewModel.SelectedZ;
         MapControl.CurrentRoom = _viewModel.CurrentRoom;

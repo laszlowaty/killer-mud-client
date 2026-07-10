@@ -58,4 +58,25 @@
     <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
   </Style>
 
+  <!-- On/off switch pill: red-ish when off, green when on -->
+  <Style Selector="ToggleButton.mud-switch">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Padding" Value="9,3" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentFaint}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlateLight}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ToggleButton.mud-switch:checked">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushEmerald}" />
+  </Style>
+  <Style Selector="ToggleButton.mud-switch:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+  </Style>
+
 </Styles>

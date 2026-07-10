@@ -38,7 +38,8 @@ public partial class MainWindow : Window
 
         _mudOutput.AppendText(
             "\u001b[96mMudClient Starter\u001b[0m\n" +
-            "Wpisz host i port, a następnie kliknij Połącz.\n" +
+            "Aplikacja łączy się z domyślnym hostem po wyborze profilu.\n" +
+            "Możesz zmienić host/port i połączyć się ponownie ręcznie.\n" +
             "Przykładowy alias: \u001b[93ml\u001b[0m -> \u001b[93mlook\u001b[0m\n\n");
     }
 
@@ -47,6 +48,7 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.OutputReceived -= OnOutputReceived;
+            _viewModel.ProfileActivated -= OnProfileActivated;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
@@ -54,6 +56,21 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.OutputReceived += OnOutputReceived;
+            _viewModel.ProfileActivated += OnProfileActivated;
+        }
+    }
+
+    private async void OnProfileActivated(string profileName)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        // Auto-connect once the user has chosen a profile.
+        if (_viewModel.ConnectCommand.CanExecute(null))
+        {
+            await _viewModel.ConnectCommand.ExecuteAsync(null);
         }
     }
 
@@ -71,6 +88,8 @@ public partial class MainWindow : Window
 
         try
         {
+            // Auto-connect happens after the user picks a profile
+            // (MainWindowViewModel.ActivateProfile).
             await _viewModel.InitializeAsync();
         }
         catch (Exception exception)
@@ -163,12 +182,12 @@ public partial class MainWindow : Window
                 break;
 
             case Key.Up:
-                NavigateHistory(-1);
+                NavigateHistory(+1);
                 eventArgs.Handled = true;
                 break;
 
             case Key.Down:
-                NavigateHistory(1);
+                NavigateHistory(-1);
                 eventArgs.Handled = true;
                 break;
         }
@@ -193,6 +212,14 @@ public partial class MainWindow : Window
         HandlePostSend();
     }
 
+    /// <summary>
+    /// Navigates the command history.
+    /// </summary>
+    /// <param name="direction">
+    /// +1 = older command (Up arrow).
+    /// -1 = newer command (Down arrow).
+    /// CommandHistory is stored newest-first, so older = higher index.
+    /// </param>
     private void NavigateHistory(int direction)
     {
         if (_viewModel is null || _viewModel.CommandHistory.Count == 0)
@@ -200,22 +227,22 @@ public partial class MainWindow : Window
             return;
         }
 
-        // If no history session active, start from the beginning.
-        if (_historyIndex < 0 && direction < 0)
+        if (direction > 0)
         {
-            _historyIndex = 0;
-        }
-        else if (_historyIndex < 0 && direction > 0)
-        {
-            // Already at "new" position — nothing older to go down to.
-            return;
+            // Going older: increase index, clamped to the oldest entry.
+            _historyIndex = Math.Min(_historyIndex + 1, _viewModel.CommandHistory.Count - 1);
         }
         else
         {
-            _historyIndex += direction;
-        }
+            // Going newer: if already at the fresh/current position (-1),
+            // remain there without clearing the user's draft.
+            if (_historyIndex < 0)
+            {
+                return;
+            }
 
-        _historyIndex = Math.Clamp(_historyIndex, -1, _viewModel.CommandHistory.Count - 1);
+            _historyIndex = Math.Max(_historyIndex - 1, -1);
+        }
 
         if (_historyIndex < 0)
         {
@@ -250,6 +277,46 @@ public partial class MainWindow : Window
             _viewModel is not null)
         {
             _viewModel.DeleteNoteCommand.Execute(note);
+        }
+    }
+
+    private void ToggleRule_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is ToggleButton button &&
+            button.DataContext is AutomationRuleEntry rule &&
+            _viewModel is not null)
+        {
+            _viewModel.ToggleRuleCommand.Execute(rule);
+        }
+    }
+
+    private void DeleteRule_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutomationRuleEntry rule &&
+            _viewModel is not null)
+        {
+            _viewModel.DeleteRuleCommand.Execute(rule);
+        }
+    }
+
+    private void ToggleTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is ToggleButton button &&
+            button.DataContext is TimerEntry timer &&
+            _viewModel is not null)
+        {
+            _viewModel.ToggleTimerCommand.Execute(timer);
+        }
+    }
+
+    private void DeleteTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is TimerEntry timer &&
+            _viewModel is not null)
+        {
+            _viewModel.DeleteTimerCommand.Execute(timer);
         }
     }
 
@@ -293,6 +360,7 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.OutputReceived -= OnOutputReceived;
+            _viewModel.ProfileActivated -= OnProfileActivated;
             _ = _viewModel.DisposeAsync();
         }
 
