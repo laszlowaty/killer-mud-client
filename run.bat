@@ -2,7 +2,7 @@
 setlocal EnableExtensions
 
 pushd "%~dp0"
-title Killer MUD Client
+title KillerMUD Klient
 
 echo Uruchamianie Killer MUD Client...
 echo.
