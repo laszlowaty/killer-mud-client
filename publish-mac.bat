@@ -1,20 +1,48 @@
 @echo off
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 rem ============================================================================
 rem  Builds the macOS version of the client (cross-compiled from Windows).
-rem  Output: publish\mac-arm64 (Apple Silicon) and publish\mac-x64 (Intel).
-rem  The executable is named "macMudClient".
+rem  Usage:  publish-mac.bat [beta|release]
+rem
+rem  Output (release):  publish\mac-arm64\KillerMudClient-{version}
+rem                      publish\mac-x64\KillerMudClient-{version}
+rem  Output (beta):     publish\mac-arm64\KillerMudClient-{version}-beta
+rem                      publish\mac-x64\KillerMudClient-{version}-beta
 rem
 rem  On the Mac, before the first run:
-rem      chmod +x macMudClient
+rem      chmod +x KillerMudClient-{version}
 rem      xattr -dr com.apple.quarantine .
 rem  (the binary is not signed/notarized)
 rem ============================================================================
 
+rem ---- Odczyt wersji z Directory.Build.props ----
+for /f "tokens=*" %%A in ('findstr "<Version>" Directory.Build.props') do (
+    set "LINE=%%A"
+)
+set "VERSION=!LINE:*<Version>=!"
+set "VERSION=!VERSION:</Version>=!"
+set "VERSION=!VERSION: =!"
+if "%VERSION%"=="" set "VERSION=0.1.0"
+
+rem ---- Parametr: beta / release (domyslnie release) ----
+set "FLAVOR=%~1"
+if "%FLAVOR%"=="" set "FLAVOR=release"
+if /i "%FLAVOR%"=="beta" (
+    set "SUFFIX=-beta"
+) else (
+    set "FLAVOR=release"
+    set "SUFFIX="
+)
+
 set PROJECT=src\MudClient.App\MudClient.App.csproj
-set APP_NAME=macMudClient
+set APP_NAME=KillerMudClient-%VERSION%%SUFFIX%
+
+echo ============================================================
+echo  MudClient.App  %VERSION%  ^(%FLAVOR%^)
+echo  macOS cross-compile (Apple Silicon + Intel)
+echo ============================================================
 
 call :publish osx-arm64 "Apple Silicon" || goto :error
 call :publish osx-x64 "Intel" || goto :error
@@ -22,8 +50,8 @@ call :publish osx-x64 "Intel" || goto :error
 echo.
 echo ============================================================
 echo  Gotowe!
-echo    Apple Silicon:  publish\mac-arm64\%APP_NAME%
-echo    Intel:          publish\mac-x64\%APP_NAME%
+echo    Apple Silicon:  publish\mac-arm64\%FLAVOR%\%APP_NAME%
+echo    Intel:          publish\mac-x64\%FLAVOR%\%APP_NAME%
 echo.
 echo  Na Macu przed pierwszym uruchomieniem:
 echo    chmod +x %APP_NAME%
@@ -35,14 +63,16 @@ exit /b 0
 setlocal
 set RID=%~1
 set ARCH=%RID:osx-=%
-set OUTDIR=publish\mac-%ARCH%
+set BASE_OUTDIR=publish\mac-%ARCH%
+set OUTDIR=%BASE_OUTDIR%\%FLAVOR%
 
 echo.
-echo === Publikacja macOS (%~2, %RID%) ===
+echo === macOS (%~2, %RID%) ===
 dotnet publish %PROJECT% -c Release -r %RID% --self-contained true ^
     -p:PublishSingleFile=true ^
     -p:IncludeNativeLibrariesForSelfExtract=true ^
-    -o %OUTDIR%
+    -o %OUTDIR% ^
+    -p:Version=%VERSION%
 if errorlevel 1 (endlocal & exit /b 1)
 
 if exist "%OUTDIR%\%APP_NAME%" del "%OUTDIR%\%APP_NAME%"

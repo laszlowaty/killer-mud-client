@@ -125,6 +125,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _sendCommandCommand = new AsyncRelayCommand(SendCurrentCommandAsync, CanSendCommand);
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
         QuickCommandExecuteCommand = new RelayCommand<string>(ExecuteQuickCommand);
+        ExaminePersonCommand = new RelayCommand<string>(ExecuteExaminePerson);
+        KillPersonCommand = new RelayCommand<string>(ExecuteKillPerson);
         SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
         CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
@@ -1201,10 +1203,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>Strips diacritics so autowalk commands are plain ASCII (e.g. "wyjście" → "wyjscie").</summary>
-    private static string RemoveDiacritics(string? text)
+    private static string? RemoveDiacritics(string? text)
     {
         if (string.IsNullOrEmpty(text))
-            return text ?? string.Empty;
+            return text;
 
         var normalized = text.Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder(text.Length);
@@ -1599,6 +1601,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // --- Quick commands (chips) ---
     public ObservableCollection<QuickCommand> QuickCommands { get; } = [];
     public IRelayCommand<string> QuickCommandExecuteCommand { get; }
+    public IRelayCommand<string> ExaminePersonCommand { get; }
+    public IRelayCommand<string> KillPersonCommand { get; }
 
     // --- Log filter tabs ---
     public ObservableCollection<LogFilter> LogFilters { get; } = [];
@@ -1749,6 +1753,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             // When not connected, just set the text for convenience.
             CommandText = command;
+        }
+    }
+
+    private void ExecuteExaminePerson(string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(name) && IsConnected)
+        {
+            _ = _session.SendCommandAsync($"exa {name}");
+        }
+    }
+
+    private void ExecuteKillPerson(string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(name) && IsConnected)
+        {
+            _ = _session.SendCommandAsync($"kill {name}");
         }
     }
 
@@ -2054,7 +2074,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             People.Clear();
             foreach (var person in people)
             {
-                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy));
+                var isSelf = string.Equals(person.Name, Vitals.Name, StringComparison.OrdinalIgnoreCase);
+                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf));
             }
         });
     }
@@ -2067,6 +2088,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Group.Clear();
             foreach (var member in update.Members)
             {
+                if (string.Equals(member.Name, Vitals.Name, StringComparison.OrdinalIgnoreCase))
+                    continue;
                 var roomDisplay = ResolveRoomDisplay(member.Room);
                 Group.Add(GroupMember.FromCore(member, roomDisplay));
             }

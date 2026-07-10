@@ -60,13 +60,15 @@ public sealed class MapLoader
                     continue;
                 }
 
+                var exitOverrides = BuildExitCommandOverrides(rawRoom.UserData);
+
                 var exits = new List<MapExit>();
                 foreach (var rawExit in rawRoom.Exits ?? [])
                 {
                     exits.Add(new MapExit
                     {
                         ExitId = rawExit.ExitId,
-                        Name = rawExit.Name,
+                        Name = exitOverrides.TryGetValue(rawExit.ExitId, out var cmd) ? cmd : rawExit.Name,
                         Door = rawExit.Door,
                     });
                 }
@@ -104,5 +106,54 @@ public sealed class MapLoader
             Document = document,
             Warnings = warnings,
         };
+    }
+
+    /// <summary>
+    /// Old-style exit data is stored in userData keys (direction abbreviations
+    /// like "n", "s", "w", "e", "ne", "u", "d") whose value is a serialised
+    /// JSON object containing the fields "id" (target room id) and "command"
+    /// (the actual text the player must send, e.g. "up" / "down").  The map
+    /// generation pipeline stored the cardinal direction derived from the key
+    /// ("west" for "w") instead of the real command, so we must fix it here.
+    /// </summary>
+    private static Dictionary<int, string> BuildExitCommandOverrides(
+        IReadOnlyDictionary<string, JsonElement>? userData)
+    {
+        if (userData is null)
+            return [];
+
+        var overrides = new Dictionary<int, string>();
+
+        foreach (var kv in userData)
+        {
+            if (kv.Value.ValueKind != JsonValueKind.String)
+                continue;
+
+            try
+            {
+                using var inner = JsonDocument.Parse(kv.Value.GetString()!);
+                var root = inner.RootElement;
+
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("id", out var idProp) &&
+                    idProp.ValueKind == JsonValueKind.Number &&
+                    idProp.TryGetInt32(out var id) &&
+                    root.TryGetProperty("command", out var cmdProp) &&
+                    cmdProp.ValueKind == JsonValueKind.String)
+                {
+                    var command = cmdProp.GetString()!;
+                    if (!string.IsNullOrWhiteSpace(command))
+                    {
+                        overrides[id] = command;
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Malformed old-style exit entry — skip silently.
+            }
+        }
+
+        return overrides;
     }
 }

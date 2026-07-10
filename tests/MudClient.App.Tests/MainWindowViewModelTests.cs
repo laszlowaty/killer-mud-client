@@ -1962,7 +1962,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // ObjectDisposedException.  (CurrentCount does NOT throw on
         // .NET 10, but WaitAsync does.)
         await Assert.ThrowsAsync<ObjectDisposedException>(() =>
-            semaphore.WaitAsync());
+            semaphore.WaitAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -2437,7 +2437,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Spin-wait briefly for the async machinery to reach the await point.
         for (var i = 0; i < 20 && batchTask.IsCompleted; i++)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         // Assert: batchTask is NOT complete because previous is incomplete.
@@ -2447,7 +2447,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Complete the previous task — the batch should now be unblocked.
         previousTcs.SetResult();
 
-        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(batchTask.IsCompletedSuccessfully,
             "Batch task must complete successfully after previous completes.");
     }
@@ -2466,7 +2466,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         // Assert: the batch completes successfully despite the faulted
         // previous (exception is caught and swallowed in EnqueueBatchAsync).
-        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(batchTask.IsCompletedSuccessfully,
             "Batch must complete successfully even when the previous task is faulted.");
     }
@@ -2484,7 +2484,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var batchTask = (Task)method.Invoke(_vm, [cancelledPrevious, commands])!;
 
         // Assert
-        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(batchTask.IsCompletedSuccessfully,
             "Batch must complete successfully even when the previous task is cancelled.");
     }
@@ -2501,7 +2501,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var batchTask = (Task)method.Invoke(_vm, [Task.CompletedTask, commands])!;
 
         // Assert
-        await batchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(batchTask.IsCompletedSuccessfully);
     }
 

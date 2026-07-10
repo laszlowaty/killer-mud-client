@@ -8,10 +8,11 @@
         x:DataType="vm:MainWindowViewModel"
         x:Name="RootWindow"
         Title="⚔ MudClient"
-        Width="1400"
-        Height="900"
-        MinWidth="1024"
-        MinHeight="680"
+         Width="1400"
+         Height="900"
+         MinWidth="1024"
+         MinHeight="680"
+         WindowState="Maximized"
         PointerPressed="Window_OnPointerPressed">
 
   <Window.Resources>
@@ -430,21 +431,30 @@
                   <StackPanel Spacing="2">
                     <TextBlock Classes="mud-faint" Text="Nikogo tu nie ma."
                                IsVisible="{Binding !People.Count}" />
-                    <ItemsControl ItemsSource="{Binding People}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:PersonEntry">
-                          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,1">
-                            <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
-                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
-                            <TextBlock Grid.Row="1" Grid.Column="1"
-                                       Text="{Binding FightingText}"
-                                       FontSize="11"
-                                       Foreground="{StaticResource MudBrushCrimsonBright}"
-                                       IsVisible="{Binding IsFighting}" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <ItemsControl ItemsSource="{Binding People}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="models:PersonEntry">
+                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,1">
+                          <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
+                          <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" />
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                      IsVisible="{Binding !IsSelf}">
+                            <Button Content="exa" Classes="mud-small" Padding="6,1" FontSize="11"
+                                    Command="{Binding $parent[Window].DataContext.ExaminePersonCommand}"
+                                    CommandParameter="{Binding Name}" />
+                            <Button Content="kill" Classes="mud-small mud-danger" Padding="6,1" FontSize="11"
+                                    Command="{Binding $parent[Window].DataContext.KillPersonCommand}"
+                                    CommandParameter="{Binding Name}" />
+                          </StackPanel>
+                          <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                     Text="{Binding FightingText}"
+                                     FontSize="11"
+                                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                                     IsVisible="{Binding IsFighting}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                   </StackPanel>
                 </Border>
 
