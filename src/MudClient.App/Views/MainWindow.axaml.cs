@@ -46,11 +46,11 @@ public partial class MainWindow : Window
 
     private void LoadIcon()
     {
-        var path = System.IO.Path.Combine(
-            AppContext.BaseDirectory, "Assets", "appicon.ico");
-        if (System.IO.File.Exists(path))
+        var icoPath = System.IO.Path.Combine(
+            AppContext.BaseDirectory, "Assets", "killer.ico");
+        if (System.IO.File.Exists(icoPath))
         {
-            Icon = new WindowIcon(path);
+            Icon = new WindowIcon(icoPath);
         }
     }
 
