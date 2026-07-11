@@ -34,9 +34,18 @@ public sealed class ProfileTests : IDisposable
     {
         var encrypted = PasswordProtector.Protect("sekret123");
 
-        Assert.NotEqual(string.Empty, encrypted);
-        Assert.DoesNotContain("sekret123", encrypted);
-        Assert.Equal("sekret123", PasswordProtector.Unprotect(encrypted));
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.NotEqual(string.Empty, encrypted);
+            Assert.DoesNotContain("sekret123", encrypted);
+            Assert.Equal("sekret123", PasswordProtector.Unprotect(encrypted));
+        }
+        else
+        {
+            // DPAPI jest dostępne tylko na Windows; na innych platformach hasła nie są zapisywane.
+            Assert.Equal(string.Empty, encrypted);
+        }
+
         Assert.Equal(string.Empty, PasswordProtector.Unprotect("nie-base64"));
         Assert.Equal(string.Empty, PasswordProtector.Protect(""));
     }
@@ -54,7 +63,10 @@ public sealed class ProfileTests : IDisposable
         var loaded = service.Load("Gandalf");
 
         Assert.NotNull(loaded);
-        Assert.Equal("mellon", PasswordProtector.Unprotect(loaded.EncryptedPassword));
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal("mellon", PasswordProtector.Unprotect(loaded.EncryptedPassword));
+        }
         var json = File.ReadAllText(Path.Combine(_directory, "Gandalf.json"));
         Assert.DoesNotContain("mellon", json);
     }
