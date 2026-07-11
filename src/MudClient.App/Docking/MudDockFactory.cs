@@ -15,6 +15,9 @@ public sealed class MudDockFactory : Factory
 {
     private readonly object _mapContext;
     private readonly object _mainContext;
+    private readonly Dictionary<PanelTool, IDock> _lastOwners = new();
+    private readonly Dictionary<IDock, IDock> _lastDockOwners = new();
+    private IRootDock? _root;
 
     public MudDockFactory(object mapContext, object mainContext)
     {
@@ -38,7 +41,9 @@ public sealed class MudDockFactory : Factory
             ViewType = viewType,
             Context = context,
             CanClose = true,
-            CanFloat = true,
+            // Floating panel windows are disabled: Dock 12 corrupts the layout when
+            // a floated window loses activation (panels vanish from the tree).
+            CanFloat = false,
             CanPin = true,
         };
         AllTools.Add(tool);
@@ -134,6 +139,8 @@ public sealed class MudDockFactory : Factory
         rootDock.ActiveDockable = mainLayout;
         rootDock.DefaultDockable = mainLayout;
 
+        _root = rootDock;
+
         return rootDock;
     }
 
@@ -141,26 +148,57 @@ public sealed class MudDockFactory : Factory
     {
         base.OnDockableClosed(dockable);
 
-        if (dockable is PanelTool tool && !HiddenTools.Contains(tool))
+        foreach (var tool in DescendantTools(dockable))
         {
-            HiddenTools.Add(tool);
+            if (!HiddenTools.Contains(tool))
+            {
+                HiddenTools.Add(tool);
+            }
         }
+    }
+
+    public override bool OnDockableClosing(IDockable? dockable)
+    {
+        foreach (var tool in DescendantTools(dockable))
+        {
+            if (tool.Owner is IDock owner)
+            {
+                _lastOwners[tool] = owner;
+            }
+        }
+
+        if (dockable is IDock dock && dock.Owner is IDock dockOwner)
+        {
+            _lastDockOwners[dock] = dockOwner;
+        }
+
+        return base.OnDockableClosing(dockable);
     }
 
     /// <summary>Re-adds a previously closed panel back to its original dock.</summary>
     public void Restore(PanelTool tool)
     {
-        HiddenTools.Remove(tool);
-
-        var owner = tool.OriginalOwner as IDock ?? tool.Owner as IDock;
+        var owner = tool.Owner as IDock
+            ?? (_lastOwners.TryGetValue(tool, out var lastOwner) ? lastOwner : null)
+            ?? tool.OriginalOwner as IDock;
         if (owner is null)
         {
             return;
         }
 
+        if (!EnsureAttached(owner))
+        {
+            owner = _lastOwners.TryGetValue(tool, out var fallbackOwner) ? fallbackOwner : null;
+            if (owner is null || !EnsureAttached(owner))
+            {
+                return;
+            }
+        }
+
         AddDockable(owner, tool);
         SetActiveDockable(tool);
         SetFocusedDockable(owner, tool);
+        HiddenTools.Remove(tool);
     }
 
     /// <summary>Rebuilds a brand-new default layout (fresh tools, fresh tree) and initializes it.</summary>
@@ -168,11 +206,77 @@ public sealed class MudDockFactory : Factory
     {
         AllTools.Clear();
         HiddenTools.Clear();
+        _lastOwners.Clear();
+        _lastDockOwners.Clear();
 
         var root = CreateLayout();
         InitLayout(root);
         return root;
     }
+
+    private bool EnsureAttached(IDock dock)
+    {
+        if (_root is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(dock, _root) || ContainsDockable(_root, dock))
+        {
+            return true;
+        }
+
+        var parent = dock.Owner as IDock
+            ?? (_lastDockOwners.TryGetValue(dock, out var lastParent) ? lastParent : null);
+        if (parent is not null && EnsureAttached(parent))
+        {
+            AddDockable(parent, dock);
+            return true;
+        }
+
+        // Dock can remove an empty ToolDock without raising a separate close event.
+        // In that case restore the panel as a tab in any still-visible tool group.
+        var fallback = FindFirstToolDock(_root);
+        if (fallback is null || ReferenceEquals(fallback, dock))
+        {
+            return false;
+        }
+
+        _lastOwners.Where(pair => ReferenceEquals(pair.Value, dock))
+            .Select(pair => pair.Key)
+            .ToList()
+            .ForEach(tool => _lastOwners[tool] = fallback);
+        return false;
+    }
+
+    private static bool ContainsDockable(IDock dock, IDockable sought) =>
+        dock.VisibleDockables?.Any(child =>
+            ReferenceEquals(child, sought) || child is IDock nested && ContainsDockable(nested, sought)) == true;
+
+    private static IDock? FindFirstToolDock(IDock dock)
+    {
+        foreach (var child in dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
+        {
+            if (child is ToolDock toolDock)
+            {
+                return toolDock;
+            }
+
+            if (child is IDock nested && FindFirstToolDock(nested) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<PanelTool> DescendantTools(IDockable? dockable) => dockable switch
+    {
+        PanelTool tool => new[] { tool },
+        IDock dock => (dock.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(DescendantTools),
+        _ => Enumerable.Empty<PanelTool>(),
+    };
 
     // ========================================================================
     // Layout persistence (save/restore panel arrangement across app restarts)
