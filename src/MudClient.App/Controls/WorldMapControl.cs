@@ -11,14 +11,19 @@ namespace MudClient.App.Controls;
 public sealed class WorldMapControl : Control
 {
     private const double PanKeyStep = 40;
+    private const double OverviewZoomThreshold = 0.45;
 
     private static readonly Pen ExitPen = new(Brushes.Silver, 2.5);
 
     private static readonly Pen RoutePen = new(Brushes.Orange, 3.5) { LineCap = PenLineCap.Round };
     private static readonly Pen RouteTargetPen = new(Brushes.Orange, 3);
+    private static readonly Dictionary<int, MapOffset> EmptyOffsets = [];
 
     private readonly CollisionLayoutService _collisionLayout = new();
     private readonly HashSet<MapCellKey> _expandedGroups = [];
+    private readonly Dictionary<int, TerrainStyle> _terrainStyles = [];
+    private readonly Dictionary<int, bool> _routeSectors = [];
+    private readonly Dictionary<int, FormattedText> _collisionBadges = [];
 
     private MapIndex? _mapIndex;
     private MapSettings _settings = MapSettings.CreateDefault();
@@ -58,7 +63,15 @@ public sealed class WorldMapControl : Control
         get => _mapIndex;
         set
         {
+            if (ReferenceEquals(_mapIndex, value))
+            {
+                return;
+            }
+
             _mapIndex = value;
+            _terrainStyles.Clear();
+            _routeSectors.Clear();
+            _collisionBadges.Clear();
             RequestInvalidateVisual();
         }
     }
@@ -305,7 +318,7 @@ public sealed class WorldMapControl : Control
         _cameraY = _dragStartCameraY + deltaY / scale;
 
         ManualNavigationOccurred?.Invoke();
-        InvalidateVisual();
+        RequestInvalidateVisual();
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -494,7 +507,8 @@ public sealed class WorldMapControl : Control
         base.Render(context);
 
         var bounds = Bounds;
-        context.FillRectangle(Brushes.Black, bounds);
+        context.FillRectangle(GetCanvasBrush(), bounds);
+        var hasWorldBackdrop = DrawWorldBackground(context, bounds);
 
         if (_mapIndex is null)
         {
@@ -502,13 +516,350 @@ public sealed class WorldMapControl : Control
             return;
         }
 
+        if (_zoom < OverviewZoomThreshold && hasWorldBackdrop)
+        {
+            DrawRoute(context, EmptyOffsets);
+            DrawOverviewSelectionAndCurrent(context);
+            DrawCompass(context);
+            return;
+        }
+
         var roomsWithOffsets = GetVisibleRooms().ToList();
         var roomLookup = roomsWithOffsets.ToDictionary(r => r.Room.Id, r => r.Offset);
 
+        DrawTerrain(context, roomsWithOffsets, roomLookup);
         DrawExits(context, roomsWithOffsets, roomLookup);
         DrawRooms(context, roomsWithOffsets);
         DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
+        DrawCompass(context);
+    }
+
+    private void DrawOverviewSelectionAndCurrent(DrawingContext context)
+    {
+        var roomSize = Math.Max(_settings.RoomSize * _zoom, 2);
+
+        if (_selectedRoom is { } selected && selected.AreaId == _areaId && selected.Coordinates.Z == _z)
+        {
+            var center = WorldToScreen(selected.Coordinates.X, selected.Coordinates.Y);
+            var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
+            context.DrawRectangle(null, new Pen(Brushes.Gold, 2), rect.Inflate(2));
+        }
+
+        if (_currentRoom is { } current && current.AreaId == _areaId && current.Coordinates.Z == _z)
+        {
+            var center = WorldToScreen(current.Coordinates.X, current.Coordinates.Y);
+            var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
+            context.DrawRectangle(null, new Pen(Brushes.LimeGreen, 3), rect.Inflate(4));
+            context.DrawRectangle(null, new Pen(Brushes.White, 1), rect.Inflate(1));
+        }
+    }
+
+    private IBrush GetCanvasBrush() => _z < 0 || _areaId is 10 or 15 or 16
+        ? new SolidColorBrush(Color.FromRgb(8, 10, 13))
+        : new SolidColorBrush(Color.FromRgb(11, 17, 14));
+
+    private bool DrawWorldBackground(DrawingContext context, Rect bounds)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return false;
+        }
+
+        if (_textureCache?.GetBackgroundTexture() is { } texture)
+        {
+            var sourceWidth = texture.PixelSize.Width;
+            var sourceHeight = texture.PixelSize.Height;
+            var sourceAspect = sourceWidth / (double)sourceHeight;
+            var targetAspect = bounds.Width / bounds.Height;
+            var source = targetAspect > sourceAspect
+                ? new Rect(0, (sourceHeight - sourceWidth / targetAspect) / 2, sourceWidth, sourceWidth / targetAspect)
+                : new Rect((sourceWidth - sourceHeight * targetAspect) / 2, 0, sourceHeight * targetAspect, sourceHeight);
+
+            var opacity = _z < 0 || _areaId is 10 or 15 or 16 ? 0.28 : 0.62;
+            using (context.PushOpacity(opacity))
+            {
+                context.DrawImage(texture, source, bounds);
+            }
+        }
+
+        if (_textureCache?.GetWorldBackdrop(_areaId, _z) is not { } backdrop)
+        {
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(54, 5, 9, 7)), bounds);
+            return false;
+        }
+
+        var visible = GetVisibleWorldBounds();
+        var minX = Math.Max(visible.X, backdrop.MinX);
+        var maxX = Math.Min(visible.Right, backdrop.MaxX);
+        var minY = Math.Max(visible.Y, backdrop.MinY);
+        var maxY = Math.Min(visible.Bottom, backdrop.MaxY);
+        if (minX >= maxX || minY >= maxY)
+        {
+            return true;
+        }
+
+        var sourceRect = new Rect(
+            (minX - backdrop.MinX) * backdrop.PixelsPerUnit,
+            (backdrop.MaxY - maxY) * backdrop.PixelsPerUnit,
+            (maxX - minX) * backdrop.PixelsPerUnit,
+            (maxY - minY) * backdrop.PixelsPerUnit);
+        var topLeft = WorldToScreen(minX, maxY);
+        var bottomRight = WorldToScreen(maxX, minY);
+        var destination = new Rect(topLeft, bottomRight);
+        using (context.PushOpacity(_zoom < OverviewZoomThreshold ? 0.74 : 0.5))
+        {
+            context.DrawImage(backdrop.Terrain, sourceRect, destination);
+        }
+
+        if (_zoom < OverviewZoomThreshold)
+        {
+            context.DrawImage(backdrop.Rooms, sourceRect, destination);
+        }
+
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(34, 5, 9, 7)), bounds);
+        return true;
+    }
+
+    private void DrawTerrain(
+        DrawingContext context,
+        List<(MapRoom Room, MapOffset Offset)> rooms,
+        Dictionary<int, MapOffset> offsets)
+    {
+        if (_mapIndex is null || rooms.Count == 0)
+        {
+            return;
+        }
+
+        var fieldWidth = Math.Clamp(_settings.PixelsPerCoordinateUnit * _zoom * 3.2, 7, 58);
+        var visibleIds = rooms.Select(item => item.Room.Id).ToHashSet();
+        var drawn = new HashSet<(int, int)>();
+        var isOverview = _zoom < OverviewZoomThreshold;
+
+        Point Center(MapRoom room)
+        {
+            var offset = offsets.GetValueOrDefault(room.Id, MapOffset.Zero);
+            return WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
+        }
+
+        if (!isOverview)
+        {
+            using (context.PushOpacity(0.82))
+            {
+                var coastBrush = new SolidColorBrush(Color.FromRgb(20, 24, 21));
+                var coastPen = new Pen(coastBrush, fieldWidth + 8) { LineCap = PenLineCap.Round };
+                foreach (var (room, _) in rooms)
+                {
+                    foreach (var exit in room.Exits)
+                    {
+                        if (!visibleIds.Contains(exit.ExitId) || !_mapIndex.RoomsById.TryGetValue(exit.ExitId, out var target))
+                        {
+                            continue;
+                        }
+
+                        var edge = room.Id < target.Id ? (room.Id, target.Id) : (target.Id, room.Id);
+                        if (drawn.Add(edge))
+                        {
+                            context.DrawLine(coastPen, Center(room), Center(target));
+                        }
+                    }
+
+                    context.DrawEllipse(coastBrush, null, Center(room), (fieldWidth + 8) / 2, (fieldWidth + 8) / 2);
+                }
+            }
+        }
+
+        drawn.Clear();
+        var terrainPens = new Dictionary<TerrainStyle, Pen>();
+        using (context.PushOpacity(0.9))
+        {
+            foreach (var (room, _) in rooms)
+            {
+                var style = GetTerrainStyle(room);
+                foreach (var exit in room.Exits)
+                {
+                    if (!visibleIds.Contains(exit.ExitId) || !_mapIndex.RoomsById.TryGetValue(exit.ExitId, out var target))
+                    {
+                        continue;
+                    }
+
+                    var edge = room.Id < target.Id ? (room.Id, target.Id) : (target.Id, room.Id);
+                    if (!drawn.Add(edge))
+                    {
+                        continue;
+                    }
+
+                    var targetStyle = GetTerrainStyle(target);
+                    var connectionStyle = style.Priority >= targetStyle.Priority ? style : targetStyle;
+                    if (!terrainPens.TryGetValue(connectionStyle, out var terrainPen))
+                    {
+                        terrainPen = new Pen(connectionStyle.Brush, fieldWidth) { LineCap = PenLineCap.Round };
+                        terrainPens[connectionStyle] = terrainPen;
+                    }
+
+                    context.DrawLine(terrainPen, Center(room), Center(target));
+                }
+
+                context.DrawEllipse(style.Brush, null, Center(room), fieldWidth * 0.54, fieldWidth * 0.54);
+            }
+        }
+
+        if (!isOverview)
+        {
+            DrawTerrainDetails(context, rooms, offsets, fieldWidth);
+        }
+    }
+
+    private void DrawTerrainDetails(
+        DrawingContext context,
+        List<(MapRoom Room, MapOffset Offset)> rooms,
+        Dictionary<int, MapOffset> offsets,
+        double fieldWidth)
+    {
+        if (_mapIndex is null)
+        {
+            return;
+        }
+
+        if (_zoom is >= 0.55 and <= 1.35 && rooms.Count <= 700)
+        {
+            using (context.PushOpacity(0.14))
+            {
+                foreach (var (room, offset) in rooms)
+                {
+                    if (room.Sector is null || _textureCache?.GetTexture(room.Sector) is not { } texture)
+                    {
+                        continue;
+                    }
+
+                    var center = WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
+                    var size = fieldWidth * 1.05;
+                    context.DrawImage(texture, new Rect(0, 0, texture.PixelSize.Width, texture.PixelSize.Height),
+                        new Rect(center.X - size / 2, center.Y - size / 2, size, size));
+                }
+            }
+        }
+
+        var roadPen = new Pen(new SolidColorBrush(Color.FromRgb(205, 170, 105)), Math.Clamp(fieldWidth * 0.13, 1.2, 5))
+        {
+            LineCap = PenLineCap.Round,
+        };
+        var drawnRoads = new HashSet<(int, int)>();
+        foreach (var (room, offset) in rooms.Where(item => IsRouteSector(item.Room)))
+        {
+            var from = WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
+            foreach (var exit in room.Exits)
+            {
+                if (!_mapIndex.RoomsById.TryGetValue(exit.ExitId, out var target) ||
+                    target.AreaId != _areaId || target.Coordinates.Z != _z || !IsRouteSector(target))
+                {
+                    continue;
+                }
+
+                var edge = room.Id < target.Id ? (room.Id, target.Id) : (target.Id, room.Id);
+                if (!drawnRoads.Add(edge))
+                {
+                    continue;
+                }
+
+                var targetOffset = offsets.GetValueOrDefault(target.Id, MapOffset.Zero);
+                var to = WorldToScreen(target.Coordinates.X + targetOffset.X * 0.6, target.Coordinates.Y + targetOffset.Y * 0.6);
+                context.DrawLine(roadPen, from, to);
+            }
+        }
+    }
+
+    private void DrawCompass(DrawingContext context)
+    {
+        if (Bounds.Width < 180 || Bounds.Height < 180)
+        {
+            return;
+        }
+
+        var center = new Point(Bounds.Right - 39, Bounds.Bottom - 42);
+        var brush = new SolidColorBrush(Color.FromArgb(150, 225, 213, 178));
+        var pen = new Pen(brush, 1.5);
+        context.DrawEllipse(null, pen, center, 19, 19);
+        context.DrawLine(pen, new Point(center.X, center.Y - 25), new Point(center.X, center.Y + 19));
+        context.DrawLine(pen, new Point(center.X - 19, center.Y), new Point(center.X + 19, center.Y));
+
+        var north = new StreamGeometry();
+        using (var geometry = north.Open())
+        {
+            geometry.BeginFigure(new Point(center.X, center.Y - 26), true);
+            geometry.LineTo(new Point(center.X - 5, center.Y - 12));
+            geometry.LineTo(new Point(center.X + 5, center.Y - 12));
+            geometry.EndFigure(true);
+        }
+        context.DrawGeometry(brush, null, north);
+    }
+
+    private TerrainStyle GetTerrainStyle(MapRoom room)
+    {
+        if (_terrainStyles.TryGetValue(room.Id, out var style))
+        {
+            return style;
+        }
+
+        style = TerrainStyle.For(room.Sector, room.Name);
+        _terrainStyles[room.Id] = style;
+        return style;
+    }
+
+    private bool IsRouteSector(MapRoom room)
+    {
+        if (_routeSectors.TryGetValue(room.Id, out var isRoute))
+        {
+            return isRoute;
+        }
+
+        isRoute = TerrainStyle.IsRoute(room.Sector);
+        _routeSectors[room.Id] = isRoute;
+        return isRoute;
+    }
+
+    private sealed record TerrainStyle(IBrush Brush, int Priority)
+    {
+        private static readonly TerrainStyle Default = Style(72, 84, 67, 1);
+        private static readonly TerrainStyle Forest = Style(36, 78, 48, 3);
+        private static readonly TerrainStyle DeepForest = Style(24, 61, 42, 4);
+        private static readonly TerrainStyle Grass = Style(82, 105, 58, 2);
+        private static readonly TerrainStyle Sand = Style(151, 122, 70, 3);
+        private static readonly TerrainStyle Mountain = Style(91, 92, 88, 5);
+        private static readonly TerrainStyle Snow = Style(159, 177, 178, 6);
+        private static readonly TerrainStyle Water = Style(29, 76, 104, 7);
+        private static readonly TerrainStyle Swamp = Style(54, 72, 50, 5);
+        private static readonly TerrainStyle City = Style(111, 91, 72, 6);
+        private static readonly TerrainStyle Underground = Style(49, 45, 52, 6);
+        private static readonly TerrainStyle Lava = Style(126, 43, 25, 8);
+
+        public static TerrainStyle For(string? sector, string? roomName)
+        {
+            var value = (sector ?? string.Empty).Trim().ToLowerInvariant();
+            if (value.Contains("lawa")) return Lava;
+            if (value.Contains("ocean") || value.Contains("morze") || value.Contains("rzeka") ||
+                value.Contains("jezioro") || value.Contains("woda")) return Water;
+            if (value.Contains("lodowiec") || value.Contains("arkty") || value.Contains("tundra")) return Snow;
+            if (value.Contains("gory") || value.Contains("gorska") || value.Contains("wzgorza")) return Mountain;
+            if (value.Contains("pust") || value.Contains("wydmy") || value.Contains("piaski") || value.Contains("plaza")) return Sand;
+            if (value.Contains("bagno") || value.Contains("blotna")) return Swamp;
+            if (value.Contains("puszcza")) return DeepForest;
+            if (value.Contains("las")) return Forest;
+            if (value.Contains("miasto") || value.Contains("plac") || value.Contains("arena") || value.Contains("ruiny")) return City;
+            if (value.Contains("podzi") || value.Contains("jaskinia") || value.Contains("kopalnia") || value.Contains("wewnatrz")) return Underground;
+            if (value.Contains("pole") || value.Contains("laka") || value.Contains("trawa") || value.Contains("step")) return Grass;
+            return roomName?.Contains("ulica", StringComparison.OrdinalIgnoreCase) == true ? City : Default;
+        }
+
+        public static bool IsRoute(string? sector)
+        {
+            var value = sector ?? string.Empty;
+            return value.Contains("droga", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("sciezka", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static TerrainStyle Style(byte r, byte g, byte b, int priority) =>
+            new(new SolidColorBrush(Color.FromRgb(r, g, b)), priority);
     }
 
     private void RequestInvalidateVisual()
@@ -595,8 +946,6 @@ public sealed class WorldMapControl : Control
     private void DrawRooms(DrawingContext context, List<(MapRoom Room, MapOffset Offset)> rooms)
     {
         var roomSize = Math.Max(_settings.RoomSize * _zoom, 2);
-        var showLabels = _zoom > 1.2;
-
         foreach (var (room, offset) in rooms)
         {
             var center = WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
@@ -620,31 +969,23 @@ public sealed class WorldMapControl : Control
             if (group is { HasCollision: true } && !_expandedGroups.Contains(group.Cell) &&
                 room.Id == group.Rooms.Min(r => r.Id))
             {
-                var badgeText = new FormattedText(
-                    group.Rooms.Count.ToString(),
-                    System.Globalization.CultureInfo.CurrentUICulture,
-                    FlowDirection.LeftToRight,
-                    Typeface.Default,
-                    11,
-                    Brushes.White);
+                if (!_collisionBadges.TryGetValue(group.Rooms.Count, out var badgeText))
+                {
+                    badgeText = new FormattedText(
+                        group.Rooms.Count.ToString(),
+                        System.Globalization.CultureInfo.CurrentUICulture,
+                        FlowDirection.LeftToRight,
+                        Typeface.Default,
+                        11,
+                        Brushes.White);
+                    _collisionBadges[group.Rooms.Count] = badgeText;
+                }
 
                 var badgeRect = new Rect(rect.Right - 14, rect.Top - 2, 14, 14);
                 context.FillRectangle(Brushes.DarkRed, badgeRect);
                 context.DrawText(badgeText, new Point(badgeRect.X + 2, badgeRect.Y));
             }
 
-            if (showLabels && !string.IsNullOrEmpty(room.Name))
-            {
-                var label = new FormattedText(
-                    room.Name,
-                    System.Globalization.CultureInfo.CurrentUICulture,
-                    FlowDirection.LeftToRight,
-                    Typeface.Default,
-                    11,
-                    Brushes.White);
-
-                context.DrawText(label, new Point(rect.X, rect.Bottom + 1));
-            }
         }
     }
 
