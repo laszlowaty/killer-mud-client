@@ -2,7 +2,7 @@
   "worldFile": "world-map.json",
   "sectorDirectory": "Sectors",
   "sectorManifest": "Sectors/sectors.json",
-  "pixelsPerCoordinateUnit": 12.0,
+  "pixelsPerCoordinateUnit": 18.0,
   "roomSize": 20.0,
   "minimumZoom": 0.15,
   "maximumZoom": 5.0,

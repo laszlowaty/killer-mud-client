@@ -8,7 +8,7 @@ public sealed class MapSettings
 
     public string SectorManifest { get; init; } = "Sectors/sectors.json";
 
-    public double PixelsPerCoordinateUnit { get; init; } = 12.0;
+    public double PixelsPerCoordinateUnit { get; init; } = 18.0;
 
     public double RoomSize { get; init; } = 20.0;
 
