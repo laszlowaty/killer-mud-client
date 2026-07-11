@@ -282,7 +282,7 @@ public sealed class CharacterStateResolverTests
     }
 
     [Fact]
-    public void Process_CharAffects_SkipsMissingName()
+    public void Process_CharAffects_MissingName_FallsBackToDesc()
     {
         IReadOnlyList<CharacterAffect>? affects = null;
         _resolver.AffectsChanged += a => affects = a;
@@ -292,12 +292,13 @@ public sealed class CharacterStateResolverTests
             """[{"desc":"no name"},{"name":"Valid","desc":"ok"}]"""));
 
         Assert.NotNull(affects);
-        Assert.Single(affects!);
-        Assert.Equal("Valid", affects[0].Name);
+        Assert.Equal(2, affects!.Count);
+        Assert.Equal("no name", affects[0].Name);
+        Assert.Equal("Valid", affects[1].Name);
     }
 
     [Fact]
-    public void Process_CharAffects_SkipsEmptyName()
+    public void Process_CharAffects_EmptyName_FallsBackToDesc()
     {
         IReadOnlyList<CharacterAffect>? affects = null;
         _resolver.AffectsChanged += a => affects = a;
@@ -307,12 +308,13 @@ public sealed class CharacterStateResolverTests
             """[{"name":"","desc":"empty"},{"name":"Valid","desc":"ok"}]"""));
 
         Assert.NotNull(affects);
-        Assert.Single(affects!);
-        Assert.Equal("Valid", affects[0].Name);
+        Assert.Equal(2, affects!.Count);
+        Assert.Equal("empty", affects[0].Name);
+        Assert.Equal("Valid", affects[1].Name);
     }
 
     [Fact]
-    public void Process_CharAffects_SkipsWhitespaceName()
+    public void Process_CharAffects_WhitespaceName_FallsBackToDesc()
     {
         IReadOnlyList<CharacterAffect>? affects = null;
         _resolver.AffectsChanged += a => affects = a;
@@ -320,6 +322,22 @@ public sealed class CharacterStateResolverTests
         _resolver.Process(new GmcpMessage(
             "Char.Affects",
             """[{"name":"   ","desc":"whitespace"},{"name":"Valid","desc":"ok"}]"""));
+
+        Assert.NotNull(affects);
+        Assert.Equal(2, affects!.Count);
+        Assert.Equal("whitespace", affects[0].Name);
+        Assert.Equal("Valid", affects[1].Name);
+    }
+
+    [Fact]
+    public void Process_CharAffects_EmptyNameAndDesc_Skipped()
+    {
+        IReadOnlyList<CharacterAffect>? affects = null;
+        _resolver.AffectsChanged += a => affects = a;
+
+        _resolver.Process(new GmcpMessage(
+            "Char.Affects",
+            """[{"name":"","desc":""},{"name":"Valid","desc":"ok"}]"""));
 
         Assert.NotNull(affects);
         Assert.Single(affects!);

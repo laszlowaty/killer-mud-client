@@ -254,12 +254,19 @@ public sealed class CharacterStateResolver
             }
 
             var name = GetString(element, "name")?.Trim();
+            var description = GetString(element, "desc") ?? string.Empty;
+
+            // Some affects come with an empty "name" and carry the real label in "desc"
+            // (e.g. curses/wounds) — fall back to desc so they aren't silently dropped.
+            if (string.IsNullOrEmpty(name))
+            {
+                name = description.Trim();
+            }
+
             if (string.IsNullOrEmpty(name))
             {
                 continue;
             }
-
-            var description = GetString(element, "desc") ?? string.Empty;
 
             var negative = element.TryGetProperty("negative", out var negProp)
                            && negProp.ValueKind == JsonValueKind.True;
