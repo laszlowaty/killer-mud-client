@@ -321,20 +321,20 @@ public sealed class MainWindowClickTests
 
         EnsureLayout(window);
 
-        // Find a SelectableTextBlock inside MudOutput with non-zero bounds.
+        // Find the output pane inside MudOutput with non-zero bounds.
         var mudLine = mudOutput
             .GetVisualDescendants()
-            .OfType<SelectableTextBlock>()
+            .OfType<OutputPaneControl>()
             .FirstOrDefault(s => s.Bounds.Width > 0 && s.Bounds.Height > 0);
         Assert.NotNull(mudLine);
         Assert.True(mudLine.Bounds.Width > 0,
-            "SelectableTextBlock inside MudOutput must have non-zero width after layout.");
+            "OutputPaneControl inside MudOutput must have non-zero width after layout.");
 
-        // Translate its center to window coordinates for MouseDown.
-        var relativeCenter = new Point(
-            mudLine.Bounds.Width / 2,
-            mudLine.Bounds.Height / 2);
-        var windowPoint = mudLine.TranslatePoint(relativeCenter, window);
+        // Click near the pane's top-left corner (where the output text lives) instead of
+        // its center: the pane spans the whole output area, and the window's center is
+        // covered by the profile-selection overlay when no profile is active yet.
+        var relativePoint = new Point(10, 10);
+        var windowPoint = mudLine.TranslatePoint(relativePoint, window);
         Assert.NotNull(windowPoint);
 
         // Act: simulate a click at the SelectableTextBlock's center.
@@ -439,17 +439,15 @@ public sealed class MainWindowClickTests
 
         var mudLine = mudOutput
             .GetVisualDescendants()
-            .OfType<SelectableTextBlock>()
+            .OfType<OutputPaneControl>()
             .FirstOrDefault(s => s.Bounds.Width > 0);
         Assert.NotNull(mudLine);
 
-        // Act: simulate what Window_OnPointerPressed does.
-        var selectable = mudLine.FindAncestorOfType<SelectableTextBlock>(includeSelf: true);
-        Assert.NotNull(selectable);
-        var mudOutputAncestor = selectable.FindAncestorOfType<MudOutputView>(includeSelf: true);
+        // Act: the output pane must be inside MudOutputView, so clicks on it
+        // are not excluded from the command-box focus redirect.
+        var mudOutputAncestor = mudLine.FindAncestorOfType<MudOutputView>(includeSelf: true);
 
         // Assert
-        Assert.Same(mudLine, selectable);
         Assert.NotNull(mudOutputAncestor);
         Assert.Same(mudOutput, mudOutputAncestor);
     }

@@ -1,0 +1,525 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Media.TextFormatting;
+using Avalonia.Rendering;
+using Avalonia.Utilities;
+
+namespace MudClient.App.Controls;
+
+/// <summary>
+/// Virtualized MUD output pane. Renders only the lines visible in the viewport, so the cost
+/// of drawing is independent of scrollback size — appending never re-lays-out the history.
+/// Implements its own text selection (mouse drag + Ctrl+C) because per-line virtualization
+/// rules out SelectableTextBlock.
+/// </summary>
+internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHitTest
+{
+    private const double ExtentWidthPadding = 8;
+
+    private static readonly ImmutableSolidColorBrush DefaultForeground =
+        new(Color.FromRgb(215, 221, 230));
+
+    private static readonly ImmutableSolidColorBrush SelectionBrush =
+        new(Color.FromArgb(96, 51, 153, 255));
+
+    private static readonly Dictionary<uint, ImmutableSolidColorBrush> BrushCache = [];
+
+    private OutputBuffer? _buffer;
+    private Vector _offset;
+    private Size _viewport;
+    private bool _canHorizontallyScroll = true;
+    private bool _canVerticallyScroll = true;
+    private EventHandler? _scrollInvalidated;
+
+    private FontFamily _fontFamily = new("Consolas");
+    private double _fontSize = 14;
+    private Typeface _typeface;
+    private Typeface _boldTypeface;
+    private double _lineHeight = 16;
+    private double _charWidth = 8;
+    private int _fontVersion;
+
+    private bool _isSelecting;
+    private bool _hasSelection;
+    private long _anchorLine;
+    private int _anchorChar;
+    private long _caretLine;
+    private int _caretChar;
+
+    public OutputPaneControl()
+    {
+        ClipToBounds = true;
+        UpdateFontMetrics();
+    }
+
+    /// <summary>When true the pane keeps itself scrolled to the bottom as content arrives.</summary>
+    public bool PinToBottom { get; set; } = true;
+
+    public OutputBuffer? Buffer
+    {
+        get => _buffer;
+        set
+        {
+            if (_buffer is not null)
+            {
+                _buffer.LinesTrimmed -= OnLinesTrimmed;
+            }
+
+            _buffer = value;
+
+            if (_buffer is not null)
+            {
+                _buffer.LinesTrimmed += OnLinesTrimmed;
+            }
+
+            ClearSelection();
+            NotifyContentChanged();
+        }
+    }
+
+    public void SetFont(FontFamily fontFamily, double fontSize)
+    {
+        _fontFamily = fontFamily;
+        _fontSize = fontSize;
+        _fontVersion++;
+        UpdateFontMetrics();
+        NotifyContentChanged();
+    }
+
+    /// <summary>
+    /// Called after new text has been appended to the shared buffer. Cheap: it only updates
+    /// the scroll extent and schedules a repaint; the actual drawing happens once per frame.
+    /// </summary>
+    public void NotifyContentChanged()
+    {
+        if (PinToBottom)
+        {
+            _offset = new Vector(_offset.X, MaxOffsetY());
+        }
+        else
+        {
+            _offset = ClampOffset(_offset);
+        }
+
+        _scrollInvalidated?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+    }
+
+    public void ClearSelection()
+    {
+        if (_hasSelection)
+        {
+            _hasSelection = false;
+            InvalidateVisual();
+        }
+    }
+
+    public string? GetSelectedText()
+    {
+        var buffer = _buffer;
+        if (buffer is null || !_hasSelection)
+        {
+            return null;
+        }
+
+        var (startLine, startChar, endLine, endChar) = NormalizedSelection();
+
+        var firstAvailable = buffer.FirstGlobalIndex;
+        var lastAvailable = buffer.FirstGlobalIndex + buffer.Count - 1;
+
+        if (endLine < firstAvailable || startLine > lastAvailable)
+        {
+            return null;
+        }
+
+        if (startLine < firstAvailable)
+        {
+            startLine = firstAvailable;
+            startChar = 0;
+        }
+
+        if (endLine > lastAvailable)
+        {
+            endLine = lastAvailable;
+            endChar = int.MaxValue;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var global = startLine; global <= endLine; global++)
+        {
+            var text = buffer[(int)(global - buffer.FirstGlobalIndex)].Text;
+            var from = global == startLine ? Math.Min(startChar, text.Length) : 0;
+            var to = global == endLine ? Math.Min(endChar, text.Length) : text.Length;
+
+            if (global > startLine)
+            {
+                builder.Append(Environment.NewLine);
+            }
+
+            if (to > from)
+            {
+                builder.Append(text, from, to - from);
+            }
+        }
+
+        var result = builder.ToString();
+        return result.Length == 0 ? null : result;
+    }
+
+    // ------------------------------------------------------------------
+    // ILogicalScrollable
+    // ------------------------------------------------------------------
+
+    public Size Extent
+    {
+        get
+        {
+            var buffer = _buffer;
+            if (buffer is null)
+            {
+                return default;
+            }
+
+            return new Size(
+                buffer.MaxLineLength * _charWidth + ExtentWidthPadding,
+                buffer.Count * _lineHeight);
+        }
+    }
+
+    public Vector Offset
+    {
+        get => _offset;
+        set
+        {
+            var clamped = ClampOffset(value);
+            if (clamped == _offset)
+            {
+                return;
+            }
+
+            _offset = clamped;
+            InvalidateVisual();
+        }
+    }
+
+    public Size Viewport => _viewport;
+
+    bool IScrollable.CanHorizontallyScroll => _canHorizontallyScroll;
+
+    bool IScrollable.CanVerticallyScroll => _canVerticallyScroll;
+
+    bool ILogicalScrollable.CanHorizontallyScroll
+    {
+        get => _canHorizontallyScroll;
+        set => _canHorizontallyScroll = value;
+    }
+
+    bool ILogicalScrollable.CanVerticallyScroll
+    {
+        get => _canVerticallyScroll;
+        set => _canVerticallyScroll = value;
+    }
+
+    bool ILogicalScrollable.IsLogicalScrollEnabled => true;
+
+    Size ILogicalScrollable.ScrollSize => new(_charWidth * 4, _lineHeight);
+
+    Size ILogicalScrollable.PageScrollSize => _viewport;
+
+    event EventHandler? ILogicalScrollable.ScrollInvalidated
+    {
+        add => _scrollInvalidated += value;
+        remove => _scrollInvalidated -= value;
+    }
+
+    bool ILogicalScrollable.BringIntoView(Control target, Rect targetRect) => false;
+
+    Control? ILogicalScrollable.GetControlInDirection(NavigationDirection direction, Control? from) =>
+        null;
+
+    void ILogicalScrollable.RaiseScrollInvalidated(EventArgs e) =>
+        _scrollInvalidated?.Invoke(this, e);
+
+    // ------------------------------------------------------------------
+    // Layout & rendering
+    // ------------------------------------------------------------------
+
+    protected override Size MeasureOverride(Size availableSize) => new(
+        double.IsFinite(availableSize.Width) ? availableSize.Width : 0,
+        double.IsFinite(availableSize.Height) ? availableSize.Height : 0);
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (_viewport != finalSize)
+        {
+            _viewport = finalSize;
+
+            if (PinToBottom)
+            {
+                _offset = new Vector(_offset.X, MaxOffsetY());
+            }
+
+            _scrollInvalidated?.Invoke(this, EventArgs.Empty);
+        }
+
+        return finalSize;
+    }
+
+    // Text rendering leaves most of the surface unpainted, which would make it invisible
+    // to pointer hit-testing; treat the whole bounds as hit-testable instead.
+    public bool HitTest(Point point) => new Rect(Bounds.Size).Contains(point);
+
+    // Alpha of 0 would get culled from the compositor's hit-testing entirely, so the
+    // hit-test surface is painted with the lowest non-zero alpha instead.
+    private static readonly ImmutableSolidColorBrush HitTestSurface =
+        new(Color.FromArgb(1, 0, 0, 0));
+
+    public override void Render(DrawingContext context)
+    {
+        context.FillRectangle(HitTestSurface, new Rect(Bounds.Size));
+
+        var buffer = _buffer;
+        if (buffer is null)
+        {
+            return;
+        }
+
+        var count = buffer.Count;
+        var firstVisible = Math.Clamp((int)(_offset.Y / _lineHeight), 0, count - 1);
+        var y = firstVisible * _lineHeight - _offset.Y;
+        var (selStartLine, selStartChar, selEndLine, selEndChar) = NormalizedSelection();
+
+        for (var i = firstVisible; i < count && y < Bounds.Height; i++, y += _lineHeight)
+        {
+            var line = buffer[i];
+            var layout = GetLayout(line);
+
+            if (_hasSelection)
+            {
+                var global = buffer.FirstGlobalIndex + i;
+                if (global >= selStartLine && global <= selEndLine)
+                {
+                    var from = global == selStartLine ? Math.Min(selStartChar, line.Length) : 0;
+                    var to = global == selEndLine ? Math.Min(selEndChar, line.Length) : line.Length;
+
+                    if (to > from)
+                    {
+                        foreach (var rect in layout.HitTestTextRange(from, to - from))
+                        {
+                            context.FillRectangle(
+                                SelectionBrush,
+                                new Rect(rect.X - _offset.X, y + rect.Y, rect.Width, rect.Height));
+                        }
+                    }
+
+                    // Show that the line break itself is part of a multi-line selection.
+                    if (global < selEndLine)
+                    {
+                        var newlineX = layout.WidthIncludingTrailingWhitespace - _offset.X;
+                        context.FillRectangle(
+                            SelectionBrush,
+                            new Rect(newlineX, y, _charWidth, _lineHeight));
+                    }
+                }
+            }
+
+            layout.Draw(context, new Point(-_offset.X, y));
+        }
+    }
+
+    private TextLayout GetLayout(OutputLine line)
+    {
+        if (line.CachedLayout is { } cached &&
+            line.CachedFontVersion == _fontVersion &&
+            line.CachedMutationVersion == line.MutationVersion)
+        {
+            return cached;
+        }
+
+        var layout = BuildLayout(line);
+        line.CachedLayout = layout;
+        line.CachedFontVersion = _fontVersion;
+        line.CachedMutationVersion = line.MutationVersion;
+        return layout;
+    }
+
+    private TextLayout BuildLayout(OutputLine line)
+    {
+        var segments = line.Segments;
+        List<ValueSpan<TextRunProperties>>? overrides = null;
+        var position = 0;
+
+        foreach (var segment in segments)
+        {
+            if (segment.Style != default)
+            {
+                overrides ??= new List<ValueSpan<TextRunProperties>>(segments.Count);
+                overrides.Add(new ValueSpan<TextRunProperties>(
+                    position,
+                    segment.Text.Length,
+                    new GenericTextRunProperties(
+                        segment.Style.Bold ? _boldTypeface : _typeface,
+                        _fontSize,
+                        textDecorations: segment.Style.Underline ? TextDecorations.Underline : null,
+                        foregroundBrush: GetBrush(segment.Style.Foreground) ?? DefaultForeground,
+                        backgroundBrush: GetBrush(segment.Style.Background))));
+            }
+
+            position += segment.Text.Length;
+        }
+
+        return new TextLayout(
+            line.Text,
+            _typeface,
+            _fontSize,
+            DefaultForeground,
+            textStyleOverrides: overrides?.ToArray());
+    }
+
+    private static ImmutableSolidColorBrush? GetBrush(Color? color)
+    {
+        if (color is not { } value)
+        {
+            return null;
+        }
+
+        var key = value.ToUInt32();
+        if (!BrushCache.TryGetValue(key, out var brush))
+        {
+            brush = new ImmutableSolidColorBrush(value);
+            BrushCache[key] = brush;
+        }
+
+        return brush;
+    }
+
+    private void UpdateFontMetrics()
+    {
+        _typeface = new Typeface(_fontFamily);
+        _boldTypeface = new Typeface(_fontFamily, weight: FontWeight.Bold);
+
+        var probe = new TextLayout("0", _typeface, _fontSize, DefaultForeground);
+        _lineHeight = probe.Height;
+        _charWidth = probe.WidthIncludingTrailingWhitespace;
+    }
+
+    // ------------------------------------------------------------------
+    // Selection input
+    // ------------------------------------------------------------------
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        var (line, character) = HitTestPosition(e.GetPosition(this));
+        _anchorLine = line;
+        _anchorChar = character;
+        _caretLine = line;
+        _caretChar = character;
+        _isSelecting = true;
+        _hasSelection = false;
+        e.Pointer.Capture(this);
+        InvalidateVisual();
+
+        // Deliberately not handled: the event must keep bubbling so MainWindow can
+        // redirect keyboard focus to the command box. Pointer capture alone is enough
+        // to keep receiving the moves that drive the selection.
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (!_isSelecting)
+        {
+            return;
+        }
+
+        var (line, character) = HitTestPosition(e.GetPosition(this));
+        if (line != _caretLine || character != _caretChar)
+        {
+            _caretLine = line;
+            _caretChar = character;
+            _hasSelection = line != _anchorLine || character != _anchorChar;
+            InvalidateVisual();
+        }
+
+        e.Handled = true;
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        if (_isSelecting)
+        {
+            _isSelecting = false;
+            e.Pointer.Capture(null);
+        }
+    }
+
+    private (long Line, int Character) HitTestPosition(Point point)
+    {
+        var buffer = _buffer;
+        if (buffer is null)
+        {
+            return (0, 0);
+        }
+
+        var globalY = point.Y + _offset.Y;
+        var index = Math.Clamp((int)(globalY / _lineHeight), 0, buffer.Count - 1);
+        var line = buffer[index];
+        var layout = GetLayout(line);
+
+        var hit = layout.HitTestPoint(new Point(point.X + _offset.X, globalY - index * _lineHeight));
+        var character = Math.Clamp(
+            hit.TextPosition + (hit.IsTrailing ? 1 : 0),
+            0,
+            line.Length);
+
+        return (buffer.FirstGlobalIndex + index, character);
+    }
+
+    private (long StartLine, int StartChar, long EndLine, int EndChar) NormalizedSelection()
+    {
+        if (_anchorLine < _caretLine ||
+            (_anchorLine == _caretLine && _anchorChar <= _caretChar))
+        {
+            return (_anchorLine, _anchorChar, _caretLine, _caretChar);
+        }
+
+        return (_caretLine, _caretChar, _anchorLine, _anchorChar);
+    }
+
+    // ------------------------------------------------------------------
+    // Buffer callbacks & helpers
+    // ------------------------------------------------------------------
+
+    private void OnLinesTrimmed(int count)
+    {
+        if (!PinToBottom)
+        {
+            // Keep the visible content stable while lines vanish above it.
+            _offset = new Vector(_offset.X, Math.Max(0, _offset.Y - count * _lineHeight));
+        }
+    }
+
+    private Vector ClampOffset(Vector value)
+    {
+        var extent = Extent;
+        var maxX = Math.Max(0, extent.Width - _viewport.Width);
+        var maxY = Math.Max(0, extent.Height - _viewport.Height);
+        return new Vector(Math.Clamp(value.X, 0, maxX), Math.Clamp(value.Y, 0, maxY));
+    }
+
+    private double MaxOffsetY() => Math.Max(0, Extent.Height - _viewport.Height);
+}

@@ -1,17 +1,21 @@
-using System.Text;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Threading;
 
 namespace MudClient.App.Controls;
 
+/// <summary>
+/// MUD output window. Incoming text is parsed into a shared <see cref="OutputBuffer"/>
+/// (a ring of at most <see cref="MaximumLines"/> lines) and rendered by two virtualized
+/// <see cref="OutputPaneControl"/> panes: a scrollback pane and, while the user is scrolled
+/// up, a live tail pane pinned to the bottom. Appending is O(chunk) regardless of how much
+/// scrollback has accumulated, so multi-hour sessions stay responsive.
+/// </summary>
 public partial class MudOutputView : UserControl
 {
     public static readonly StyledProperty<FontFamily> OutputFontFamilyProperty =
@@ -34,24 +38,16 @@ public partial class MudOutputView : UserControl
         set => SetValue(OutputFontSizeProperty, value);
     }
 
-    private const int MaximumLines = 5_000;
-    private const int LiveTailMaxLines = 100;
+    private const int MaximumLines = 10_000;
 
     private readonly AnsiStreamParser _parser = new();
+    private readonly OutputBuffer _buffer = new(MaximumLines);
     private readonly ScrollViewer _scrollbackScroller;
-    private readonly StackPanel _scrollbackPanel;
     private readonly ScrollViewer _liveTailScroller;
-    private readonly StackPanel _liveTailPanel;
+    private readonly OutputPaneControl _scrollbackPane;
+    private readonly OutputPaneControl _liveTailPane;
     private readonly GridSplitter _splitter;
     private readonly Grid _grid;
-    private readonly List<string> _completedLineTexts = [];
-    private readonly StringBuilder _currentLineText = new();
-    private readonly List<int> _lineInlineCounts = [];
-    private SelectableTextBlock _scrollbackBlock = null!;
-    private SelectableTextBlock _liveTailBlock = null!;
-    private int _currentLineInlineCount;
-    private int _scrollbackLineOffset;
-    private int _liveTailLineOffset;
     private bool _isSplitMode;
 
     public MudOutputView()
@@ -59,22 +55,20 @@ public partial class MudOutputView : UserControl
         InitializeComponent();
         _scrollbackScroller = this.FindControl<ScrollViewer>("ScrollbackScroller")
             ?? throw new InvalidOperationException("ScrollbackScroller not found.");
-        _scrollbackPanel = this.FindControl<StackPanel>("ScrollbackPanel")
-            ?? throw new InvalidOperationException("ScrollbackPanel not found.");
         _liveTailScroller = this.FindControl<ScrollViewer>("LiveTailScroller")
             ?? throw new InvalidOperationException("LiveTailScroller not found.");
-        _liveTailPanel = this.FindControl<StackPanel>("LiveTailPanel")
-            ?? throw new InvalidOperationException("LiveTailPanel not found.");
         _splitter = this.FindControl<GridSplitter>("OutputSplitter")
             ?? throw new InvalidOperationException("OutputSplitter not found.");
         _grid = this.FindControl<Grid>("OutputGrid")
             ?? throw new InvalidOperationException("OutputGrid not found.");
 
-        _scrollbackBlock = CreatePaneBlock();
-        _scrollbackPanel.Children.Add(_scrollbackBlock);
+        _scrollbackPane = new OutputPaneControl { Buffer = _buffer, PinToBottom = true };
+        _scrollbackScroller.Content = _scrollbackPane;
 
-        _liveTailBlock = CreatePaneBlock();
-        _liveTailPanel.Children.Add(_liveTailBlock);
+        _liveTailPane = new OutputPaneControl { Buffer = _buffer, PinToBottom = true };
+        _liveTailScroller.Content = _liveTailPane;
+
+        ApplyFontToPanes();
 
         // Start in single-pane mode.
         _isSplitMode = false;
@@ -91,11 +85,11 @@ public partial class MudOutputView : UserControl
             switch (token)
             {
                 case AnsiTextToken textToken:
-                    AppendRun(textToken);
+                    _buffer.Append(textToken.Text, textToken.Style);
                     break;
 
                 case AnsiNewLineToken:
-                    StartNewLine();
+                    _buffer.CompleteLine();
                     break;
 
                 case AnsiCarriageReturnToken:
@@ -103,164 +97,42 @@ public partial class MudOutputView : UserControl
             }
         }
 
-        Dispatcher.UIThread.Post(
-            () =>
-            {
-                if (!_isSplitMode)
-                    _scrollbackScroller.Offset = new Vector(_scrollbackScroller.Offset.X, double.MaxValue);
-            },
-            DispatcherPriority.Background);
-
-        Dispatcher.UIThread.Post(
-            () => _liveTailScroller.Offset = new Vector(_liveTailScroller.Offset.X, double.MaxValue),
-            DispatcherPriority.Background);
+        // No timers, no dispatcher round-trips: the buffer already holds the new text and
+        // both panes repaint on the next frame. Under heavy load repaints coalesce per frame.
+        _scrollbackPane.NotifyContentChanged();
+        _liveTailPane.NotifyContentChanged();
     }
 
     public void Clear()
     {
         SetSplitMode(false);
-
-        _scrollbackPanel.Children.Clear();
-        _liveTailPanel.Children.Clear();
-        _completedLineTexts.Clear();
-        _currentLineText.Clear();
-        _lineInlineCounts.Clear();
-        _currentLineInlineCount = 0;
-        _scrollbackLineOffset = 0;
-        _liveTailLineOffset = 0;
-
-        _scrollbackBlock = CreatePaneBlock();
-        _scrollbackPanel.Children.Add(_scrollbackBlock);
-
-        _liveTailBlock = CreatePaneBlock();
-        _liveTailPanel.Children.Add(_liveTailBlock);
+        _buffer.Clear();
+        _scrollbackPane.ClearSelection();
+        _liveTailPane.ClearSelection();
+        _scrollbackPane.NotifyContentChanged();
+        _liveTailPane.NotifyContentChanged();
     }
-
-    private void AppendRun(AnsiTextToken token)
-    {
-        var scrollbackRun = CreateRun(token);
-        var liveTailRun = CreateRun(token);
-
-        _scrollbackBlock.Inlines?.Add(scrollbackRun);
-        _liveTailBlock.Inlines?.Add(liveTailRun);
-        _currentLineInlineCount++;
-        _currentLineText.Append(token.Text);
-    }
-
-    private static Run CreateRun(AnsiTextToken token)
-    {
-        var run = new Run
-        {
-            Text = token.Text,
-            FontWeight = token.Style.Bold ? FontWeight.Bold : FontWeight.Normal,
-        };
-
-        if (token.Style.Foreground is { } foreground)
-        {
-            run.Foreground = new SolidColorBrush(foreground);
-        }
-
-        if (token.Style.Background is { } background)
-        {
-            run.Background = new SolidColorBrush(background);
-        }
-
-        if (token.Style.Underline)
-        {
-            run.TextDecorations = TextDecorations.Underline;
-        }
-
-        return run;
-    }
-
-    private void StartNewLine()
-    {
-        _completedLineTexts.Add(_currentLineText.ToString());
-        _currentLineText.Clear();
-
-        if (_currentLineInlineCount == 0)
-        {
-            var placeholder = new Run { Text = "\u200B" };
-            _scrollbackBlock.Inlines?.Add(placeholder);
-            _liveTailBlock.Inlines?.Add(placeholder);
-            _currentLineInlineCount++;
-        }
-
-        _scrollbackBlock.Inlines?.Add(new LineBreak());
-        _liveTailBlock.Inlines?.Add(new LineBreak());
-        _currentLineInlineCount++;
-
-        _lineInlineCounts.Add(_currentLineInlineCount);
-        _currentLineInlineCount = 0;
-
-        TrimBlock(_scrollbackBlock, ref _scrollbackLineOffset, MaximumLines);
-        TrimBlock(_liveTailBlock, ref _liveTailLineOffset, LiveTailMaxLines);
-
-        TrimCompletedLineTexts();
-    }
-
-    private void TrimBlock(SelectableTextBlock block, ref int lineOffset, int maxLines)
-    {
-        int lineCount = _lineInlineCounts.Count - lineOffset;
-        while (lineCount > maxLines)
-        {
-            int count = _lineInlineCounts[lineOffset];
-            var inlines = block.Inlines;
-            for (int i = 0; i < count && inlines?.Count > 0; i++)
-            {
-                inlines.RemoveAt(0);
-            }
-            lineOffset++;
-            lineCount--;
-        }
-    }
-
-    private void TrimCompletedLineTexts()
-    {
-        int trimmed = Math.Min(_scrollbackLineOffset, _liveTailLineOffset);
-        if (trimmed > 0)
-        {
-            _completedLineTexts.RemoveRange(0, trimmed);
-            _lineInlineCounts.RemoveRange(0, trimmed);
-            _scrollbackLineOffset -= trimmed;
-            _liveTailLineOffset -= trimmed;
-        }
-    }
-
-    private SelectableTextBlock CreatePaneBlock() => new()
-    {
-        FontFamily = OutputFontFamily,
-        FontSize = OutputFontSize,
-        Foreground = new SolidColorBrush(Color.FromRgb(215, 221, 230)),
-        TextWrapping = TextWrapping.NoWrap,
-    };
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
 
         if ((change.Property == OutputFontFamilyProperty || change.Property == OutputFontSizeProperty)
-            && _scrollbackPanel is not null)
+            && _scrollbackPane is not null)
         {
-            ApplyFontToExistingLines();
+            ApplyFontToPanes();
         }
     }
 
-    private void ApplyFontToExistingLines()
+    private void ApplyFontToPanes()
     {
-        foreach (var block in new[] { _scrollbackBlock, _liveTailBlock })
-        {
-            block.FontFamily = OutputFontFamily;
-            block.FontSize = OutputFontSize;
-        }
+        _scrollbackPane.SetFont(OutputFontFamily, OutputFontSize);
+        _liveTailPane.SetFont(OutputFontFamily, OutputFontSize);
     }
 
     private async void CopySelection_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        var text = _scrollbackBlock.SelectedText;
-        if (string.IsNullOrEmpty(text))
-            text = _liveTailBlock.SelectedText;
-
+        var text = _scrollbackPane.GetSelectedText() ?? _liveTailPane.GetSelectedText();
         await CopyToClipboardAsync(text);
     }
 
@@ -271,8 +143,7 @@ public partial class MudOutputView : UserControl
 
     private async void CopyAll_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        var allLines = new List<string>(_completedLineTexts) { _currentLineText.ToString() };
-        await CopyToClipboardAsync(string.Join(Environment.NewLine, allLines));
+        await CopyToClipboardAsync(_buffer.GetAllText());
     }
 
     private async Task CopyToClipboardAsync(string? text)
@@ -318,6 +189,7 @@ public partial class MudOutputView : UserControl
             return;
 
         _isSplitMode = enabled;
+        _scrollbackPane.PinToBottom = !enabled;
 
         if (enabled)
         {
@@ -328,6 +200,7 @@ public partial class MudOutputView : UserControl
         {
             _grid.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
             _grid.RowDefinitions[2].Height = new GridLength(0);
+            _scrollbackPane.NotifyContentChanged();
         }
 
         _splitter.IsVisible = enabled;

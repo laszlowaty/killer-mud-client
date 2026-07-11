@@ -11,13 +11,12 @@
       </ContextMenu>
     </Border.ContextMenu>
     <Grid x:Name="OutputGrid" RowDefinitions="*,Auto,0">
-      <!-- Upper pane: scrollback buffer (manual scroll) -->
+      <!-- Upper pane: scrollback buffer (manual scroll). Content is an OutputPaneControl
+           created in code-behind; it virtualizes rendering via ILogicalScrollable. -->
       <ScrollViewer Grid.Row="0"
                     x:Name="ScrollbackScroller"
                     HorizontalScrollBarVisibility="Auto"
-                    VerticalScrollBarVisibility="Auto">
-        <StackPanel x:Name="ScrollbackPanel" Spacing="0" />
-      </ScrollViewer>
+                    VerticalScrollBarVisibility="Auto" />
 
       <!-- GridSplitter between panes -->
       <GridSplitter Grid.Row="1"
@@ -30,9 +29,7 @@
       <ScrollViewer Grid.Row="2"
                     x:Name="LiveTailScroller"
                     HorizontalScrollBarVisibility="Auto"
-                    VerticalScrollBarVisibility="Auto">
-        <StackPanel x:Name="LiveTailPanel" Spacing="0" />
-      </ScrollViewer>
+                    VerticalScrollBarVisibility="Auto" />
     </Grid>
   </Border>
 </UserControl>
