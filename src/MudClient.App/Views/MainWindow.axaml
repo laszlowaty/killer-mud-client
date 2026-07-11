@@ -106,65 +106,11 @@
           </StackPanel>
         </Grid>
 
-        <!-- Row B: vitals (left) + toasts (right, clipped so they never overlap) -->
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-
-          <StackPanel Grid.Column="0"
-                      Orientation="Horizontal"
-                      Spacing="14"
-                      VerticalAlignment="Center"
-                      DataContext="{Binding Vitals}">
-            <!-- Hit Points -->
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBlock Text="HP" FontSize="11" FontWeight="Bold"
-                         Foreground="{StaticResource MudBrushCrimsonBright}" VerticalAlignment="Center" />
-              <ProgressBar Minimum="0" Maximum="{Binding MaxHitPoints}"
-                           Value="{Binding HitPoints}" Width="90" Height="8"
-                           Foreground="{StaticResource MudBrushCrimson}"
-                           Background="{StaticResource MudBrushVoid}" />
-              <TextBlock FontSize="10" VerticalAlignment="Center"
-                         Foreground="{StaticResource MudBrushParchmentDim}">
-                <Run Text="{Binding HitPoints}" Foreground="{StaticResource MudBrushParchment}" />
-                <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
-                <Run Text="{Binding MaxHitPoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
-              </TextBlock>
-            </StackPanel>
-
-            <!-- Spell Points -->
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBlock Text="SP" FontSize="11" FontWeight="Bold"
-                         Foreground="{StaticResource MudBrushArcaneBlueBright}" VerticalAlignment="Center" />
-              <ProgressBar Minimum="0" Maximum="{Binding MaxSpellPoints}"
-                           Value="{Binding SpellPoints}" Width="90" Height="8"
-                           Foreground="{StaticResource MudBrushArcaneBlue}"
-                           Background="{StaticResource MudBrushVoid}" />
-              <TextBlock FontSize="10" VerticalAlignment="Center"
-                         Foreground="{StaticResource MudBrushParchmentDim}">
-                <Run Text="{Binding SpellPoints}" Foreground="{StaticResource MudBrushParchment}" />
-                <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
-                <Run Text="{Binding MaxSpellPoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
-              </TextBlock>
-            </StackPanel>
-
-            <!-- Endurance Points -->
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBlock Text="EP" FontSize="11" FontWeight="Bold"
-                         Foreground="{StaticResource MudBrushEmeraldBright}" VerticalAlignment="Center" />
-              <ProgressBar Minimum="0" Maximum="{Binding MaxEndurancePoints}"
-                           Value="{Binding EndurancePoints}" Width="90" Height="8"
-                           Foreground="{StaticResource MudBrushEmerald}"
-                           Background="{StaticResource MudBrushVoid}" />
-              <TextBlock FontSize="10" VerticalAlignment="Center"
-                         Foreground="{StaticResource MudBrushParchmentDim}">
-                <Run Text="{Binding EndurancePoints}" Foreground="{StaticResource MudBrushParchment}" />
-                <Run Text="/" Foreground="{StaticResource MudBrushParchmentFaint}" />
-                <Run Text="{Binding MaxEndurancePoints}" Foreground="{StaticResource MudBrushParchmentFaint}" />
-              </TextBlock>
-            </StackPanel>
-          </StackPanel>
+        <!-- Row B: toasts (clipped so they never overlap) -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
 
           <!-- Toasts: newest on the left; anything that doesn't fit is clipped, never overlapping -->
-          <Border Grid.Column="1" ClipToBounds="True">
+          <Border Grid.Column="0" ClipToBounds="True">
             <ItemsControl ItemsSource="{Binding Toasts}" HorizontalAlignment="Right">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -189,7 +135,7 @@
             </ItemsControl>
           </Border>
 
-          <Button Grid.Column="2" Classes="mud-small" Content="✕"
+          <Button Grid.Column="1" Classes="mud-small" Content="✕"
                   Command="{Binding ClearToastsCommand}"
                   ToolTip.Tip="Wyczyść powiadomienia"
                   VerticalAlignment="Center"

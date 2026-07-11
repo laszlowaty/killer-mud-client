@@ -5,10 +5,38 @@
              xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
-  <Grid RowDefinitions="Auto,*,Auto,Auto">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="48,*,48">
 
-    <!-- Log filter tabs (mock buttons via code-behind) -->
-    <Border Grid.Row="0" Classes="mud-bar" Padding="6,4">
+    <!-- HP vertical indicator (left) – spans full panel height -->
+    <Border Grid.Column="0" Grid.RowSpan="4"
+            Padding="2,8" Margin="2,0,0,0"
+            Background="{StaticResource MudBrushStone}" CornerRadius="3">
+      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="3">
+        <TextBlock Grid.Row="0" Text="HP" FontSize="9" FontWeight="Bold"
+                   Foreground="{StaticResource MudBrushCrimsonBright}"
+                   HorizontalAlignment="Center" />
+        <ProgressBar Grid.Row="1" Orientation="Vertical"
+                     Minimum="0"
+                     Maximum="{Binding Vitals.MaxHitPoints}"
+                     Value="{Binding Vitals.HitPoints}"
+                     VerticalAlignment="Stretch"
+                     HorizontalAlignment="Center" Width="14"
+                     Foreground="{StaticResource MudBrushCrimson}"
+                     Background="{StaticResource MudBrushVoid}" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Spacing="1">
+          <TextBlock Text="{Binding Vitals.HitPoints}" FontSize="9"
+                     Foreground="{StaticResource MudBrushParchment}" />
+          <TextBlock Text="/" FontSize="9"
+                     Foreground="{StaticResource MudBrushParchmentFaint}" />
+          <TextBlock Text="{Binding Vitals.MaxHitPoints}" FontSize="8"
+                     Foreground="{StaticResource MudBrushParchmentFaint}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Log filter tabs -->
+    <Border Grid.Column="1" Grid.Row="0" Classes="mud-bar" Padding="6,4">
       <StackPanel Orientation="Horizontal" Spacing="2"
                   x:Name="LogFilterPanel">
         <ToggleButton Classes="mud-chip" Content="Wszystko" IsChecked="True" Click="LogFilter_OnClick" Tag="all" />
@@ -18,13 +46,14 @@
       </StackPanel>
     </Border>
 
-    <!-- MUD output -->
-    <controls:MudOutputView Grid.Row="1" x:Name="MudOutput"
+    <!-- MUD output (center) -->
+    <controls:MudOutputView Grid.Column="1" Grid.Row="1"
+                            x:Name="MudOutput"
                             OutputFontFamily="{Binding OutputFontFamily}"
                             OutputFontSize="{Binding OutputFontSize}" />
 
     <!-- Quick command chips -->
-    <ScrollViewer Grid.Row="2"
+    <ScrollViewer Grid.Column="1" Grid.Row="2"
                   HorizontalScrollBarVisibility="Auto"
                   VerticalScrollBarVisibility="Disabled"
                   Height="36">
@@ -45,7 +74,7 @@
     </ScrollViewer>
 
     <!-- Command bar -->
-    <Border Grid.Row="3" Classes="mud-bar-bottom" Padding="8,6">
+    <Border Grid.Column="1" Grid.Row="3" Classes="mud-bar-bottom" Padding="8,6">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"
@@ -58,6 +87,34 @@
                 Padding="20,7"
                 Command="{Binding SendCommandCommand}"
                 Click="SendButton_OnClick" />
+      </Grid>
+    </Border>
+
+    <!-- MV vertical indicator (right) – spans full panel height -->
+    <Border Grid.Column="2" Grid.RowSpan="4"
+            Padding="2,8" Margin="0,0,2,0"
+            Background="{StaticResource MudBrushStone}" CornerRadius="3">
+      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="3">
+        <TextBlock Grid.Row="0" Text="MV" FontSize="9" FontWeight="Bold"
+                   Foreground="{StaticResource MudBrushEmeraldBright}"
+                   HorizontalAlignment="Center" />
+        <ProgressBar Grid.Row="1" Orientation="Vertical"
+                     Minimum="0"
+                     Maximum="{Binding Vitals.MaxEndurancePoints}"
+                     Value="{Binding Vitals.EndurancePoints}"
+                     VerticalAlignment="Stretch"
+                     HorizontalAlignment="Center" Width="14"
+                     Foreground="{StaticResource MudBrushEmerald}"
+                     Background="{StaticResource MudBrushVoid}" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Spacing="1">
+          <TextBlock Text="{Binding Vitals.EndurancePoints}" FontSize="9"
+                     Foreground="{StaticResource MudBrushParchment}" />
+          <TextBlock Text="/" FontSize="9"
+                     Foreground="{StaticResource MudBrushParchmentFaint}" />
+          <TextBlock Text="{Binding Vitals.MaxEndurancePoints}" FontSize="8"
+                     Foreground="{StaticResource MudBrushParchmentFaint}" />
+        </StackPanel>
       </Grid>
     </Border>
 
