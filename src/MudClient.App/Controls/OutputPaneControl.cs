@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Media.Imaging;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Rendering;
 using Avalonia.Utilities;
@@ -25,6 +26,9 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     private static readonly ImmutableSolidColorBrush SelectionBrush =
         new(Color.FromArgb(96, 51, 153, 255));
+
+    private static readonly ImmutableSolidColorBrush ImageBackgroundBrush =
+        new(Color.FromRgb(16, 19, 24));
 
     private static readonly Dictionary<uint, ImmutableSolidColorBrush> BrushCache = [];
 
@@ -168,6 +172,90 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
         var result = builder.ToString();
         return result.Length == 0 ? null : result;
+    }
+
+    /// <summary>
+    /// Renders only the selected terminal cells to a bitmap suitable for the system clipboard.
+    /// The same cached text layouts are used as on screen, preserving ANSI colours and styles.
+    /// </summary>
+    public RenderTargetBitmap? CreateSelectionBitmap()
+    {
+        var buffer = _buffer;
+        if (buffer is null || !_hasSelection)
+        {
+            return null;
+        }
+
+        var (startLine, startChar, endLine, endChar) = NormalizedSelection();
+        var firstAvailable = buffer.FirstGlobalIndex;
+        var lastAvailable = firstAvailable + buffer.Count - 1;
+        startLine = Math.Max(startLine, firstAvailable);
+        endLine = Math.Min(endLine, lastAvailable);
+
+        if (startLine > endLine)
+        {
+            return null;
+        }
+
+        const double padding = 8;
+        var rows = new List<(TextLayout Layout, double SourceX, double Width)>();
+        var maximumWidth = 0d;
+
+        for (var global = startLine; global <= endLine; global++)
+        {
+            var line = buffer[(int)(global - firstAvailable)];
+            var from = global == startLine ? Math.Min(startChar, line.Length) : 0;
+            var to = global == endLine ? Math.Min(endChar, line.Length) : line.Length;
+            var layout = GetLayout(line);
+            var range = GetSelectionBounds(layout, from, to);
+            rows.Add((layout, range.X, range.Width));
+            maximumWidth = Math.Max(maximumWidth, range.Width);
+        }
+
+        if (rows.Count == 0 || maximumWidth <= 0)
+        {
+            return null;
+        }
+
+        var pixelSize = new PixelSize(
+            Math.Max(1, (int)Math.Ceiling(maximumWidth + padding * 2)),
+            Math.Max(1, (int)Math.Ceiling(rows.Count * _lineHeight + padding * 2)));
+        var bitmap = new RenderTargetBitmap(pixelSize);
+
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            context.FillRectangle(ImageBackgroundBrush, new Rect(pixelSize.ToSize(1)));
+
+            for (var row = 0; row < rows.Count; row++)
+            {
+                var (layout, sourceX, width) = rows[row];
+                var destinationY = padding + row * _lineHeight;
+                using (context.PushClip(new Rect(padding, destinationY, width, _lineHeight)))
+                {
+                    layout.Draw(context, new Point(padding - sourceX, destinationY));
+                }
+            }
+        }
+
+        return bitmap;
+    }
+
+    private Rect GetSelectionBounds(TextLayout layout, int from, int to)
+    {
+        if (to <= from)
+        {
+            return new Rect(layout.WidthIncludingTrailingWhitespace, 0, _charWidth, _lineHeight);
+        }
+
+        var rectangles = layout.HitTestTextRange(from, to - from);
+        if (rectangles.Count() == 0)
+        {
+            return new Rect(0, 0, _charWidth, _lineHeight);
+        }
+
+        var left = rectangles.Min(rectangle => rectangle.X);
+        var right = rectangles.Max(rectangle => rectangle.Right);
+        return new Rect(left, 0, Math.Max(_charWidth, right - left), _lineHeight);
     }
 
     // ------------------------------------------------------------------

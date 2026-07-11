@@ -6,6 +6,7 @@
     <Border.ContextMenu>
       <ContextMenu>
         <MenuItem Header="Kopiuj zaznaczenie" Click="CopySelection_OnClick" />
+        <MenuItem Header="Kopiuj zaznaczenie jako obraz" Click="CopySelectionAsImage_OnClick" />
         <MenuItem Header="Kopiuj cały bufor" Click="CopyAll_OnClick" />
         <Separator />
         <MenuItem Header="Wyczyść ekran" Click="ClearOutput_OnClick" />

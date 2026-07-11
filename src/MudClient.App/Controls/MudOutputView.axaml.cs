@@ -136,6 +136,18 @@ public partial class MudOutputView : UserControl
         await CopyToClipboardAsync(text);
     }
 
+    private async void CopySelectionAsImage_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        var bitmap = _scrollbackPane.CreateSelectionBitmap()
+            ?? _liveTailPane.CreateSelectionBitmap();
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+
+        if (bitmap is not null && clipboard is not null)
+        {
+            await clipboard.SetBitmapAsync(bitmap);
+        }
+    }
+
     private void ClearOutput_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         Clear();
