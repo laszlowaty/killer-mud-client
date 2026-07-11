@@ -26,6 +26,12 @@
                   HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center" Padding="16,6" />
 
+          <Button Content="⚑ IDŹ"
+                  Command="{Binding GoToSelectedTargetCommand}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Padding="16,6"
+                  ToolTip.Tip="Idź do celu wybranego na mapie (tak samo jak komenda /idz)" />
+
           <!-- Temporary target picked by double-clicking the map -->
           <StackPanel Spacing="6" IsVisible="{Binding HasTemporaryTarget}">
             <TextBlock Text="{Binding TemporaryTargetDisplay}"

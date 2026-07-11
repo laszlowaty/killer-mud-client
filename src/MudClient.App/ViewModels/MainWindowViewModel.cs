@@ -172,6 +172,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 StartAutowalk(_temporaryTarget);
             }
         });
+        GoToSelectedTargetCommand = new RelayCommand(HandleGoToSelectedTarget);
 
         _characterState.VitalsChanged += OnCharacterVitalsChanged;
         _characterState.ConditionChanged += OnCharacterConditionChanged;
@@ -1026,6 +1027,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsAutowalking => _autowalkPath is not null;
 
     public RelayCommand GoToTemporaryTargetCommand { get; }
+    public RelayCommand GoToSelectedTargetCommand { get; }
 
     /// <summary>Target picked by double-clicking the map; not saved to the profile.</summary>
     public bool HasTemporaryTarget => _temporaryTarget is not null;
@@ -1055,10 +1057,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         if (IsAutowalking)
         {
-            // Don't clobber the active walk's painted route; the new target
-            // is armed and can be started with /idz or the panel button.
-            AddToast($"Nowy cel „{_temporaryTarget!.Name}” — /idz albo IDŹ DO CELU po zatrzymaniu.", "info");
-            return;
+            // Stop the active walk so the user can preview the new route,
+            // but keep the fresh temporary target (do NOT call StopAutowalk
+            // here — it would also clear _temporaryTarget).
+            _autowalkPath = null;
+            _autowalkStep = 0;
+            _autowalkTargetName = null;
+            OnPropertyChanged(nameof(IsAutowalking));
+            Map.RouteRooms = null;
+            AddToast($"Autowalk przerwany — nowy cel „{_temporaryTarget!.Name}”.", "info");
+            // Fall through to preview the new route below.
         }
 
         // Preview the route without walking.
@@ -1424,6 +1432,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
+    /// <summary>
+    /// Executes the bare /idz action: walks to the temporary map-picked target
+    /// or shows usage help when no target has been picked.
+    /// </summary>
+    private void HandleGoToSelectedTarget()
+    {
+        if (_temporaryTarget is { } target)
+        {
+            StartAutowalk(target);
+        }
+        else
+        {
+            AddToast("Użycie: /idz <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
+        }
+    }
+
     /// <summary>Handles chat-bar commands: /idz &lt;nazwa&gt; and /stop. Returns true when consumed.</summary>
     private bool TryHandleAutowalkCommand(string command)
     {
@@ -1442,16 +1466,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var argument = command.Length > prefix.Length ? command[prefix.Length..].Trim() : string.Empty;
         if (argument.Length == 0)
         {
-            // Bare /idz walks to the target picked by double-clicking the map.
-            if (_temporaryTarget is { } target)
-            {
-                StartAutowalk(target);
-            }
-            else
-            {
-                AddToast("Użycie: /idz <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
-            }
-
+            HandleGoToSelectedTarget();
             return true;
         }
 

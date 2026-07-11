@@ -2670,4 +2670,321 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.False(_vm.IsEditingTimer);
         Assert.DoesNotContain(timer, _vm.Timers);
     }
+
+    // ====================================================================
+    // Autowalk — OnMapRoomDoubleClicked
+    //
+    // The production handler sets a temporary target from the clicked room,
+    // clears the active autowalk (if any) without clearing the temp target,
+    // and then previews the new route.  In the test environment there is no
+    // loaded map (MapIndex is null) so the path preview falls through to a
+    // status-text message.
+    // ====================================================================
+
+    private static FieldInfo GetAutowalkPathField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_autowalkPath",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static FieldInfo GetTemporaryTargetField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_temporaryTarget",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    /// <summary>Creates a MapRoom with the given vnum for test double-click scenarios.</summary>
+    private static MapRoom CreateTestRoom(int id, string vnum, string? name = null)
+    {
+        var userData = vnum.Length > 0
+            ? new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement(vnum),
+            }
+            : null;
+
+        return new MapRoom
+        {
+            Id = id,
+            AreaId = 1,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            Name = name ?? $"Room {id}",
+            UserData = userData,
+        };
+    }
+
+    /// <summary>Creates a minimal dummy MapPath for setting up autowalk state.</summary>
+    private static MapPath CreateDummyPath()
+    {
+        var dummyRoom = new MapRoom
+        {
+            Id = 999,
+            AreaId = 1,
+            Coordinates = new MapCoordinates(0, 0, 0),
+        };
+        return new MapPath
+        {
+            From = dummyRoom,
+            To = dummyRoom,
+            Steps = Array.Empty<MapPathStep>(),
+            TotalCost = 0,
+        };
+    }
+
+    [Fact]
+    public void OnMapRoomDoubleClicked_NoVnum_ShowsErrorToast()
+    {
+        // Arrange: a room with no vnum
+        var room = CreateTestRoom(1, string.Empty);
+        var toastCount = _vm.Toasts.Count;
+
+        // Act
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        // Assert: error toast added, no temporary target set
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("nie ma vnum", _vm.Toasts[^1].Text);
+        Assert.False(_vm.HasTemporaryTarget);
+        Assert.False(_vm.IsAutowalking);
+    }
+
+    [Fact]
+    public void OnMapRoomDoubleClicked_WhenNotWalking_SetsTargetAndPreviews()
+    {
+        // Arrange
+        Assert.False(_vm.IsAutowalking);
+        var room = CreateTestRoom(100, "2002", "Test Room");
+        var toastCount = _vm.Toasts.Count;
+
+        // Act
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        // Assert: temporary target is set
+        Assert.True(_vm.HasTemporaryTarget);
+        Assert.Contains("Test Room", _vm.TemporaryTargetDisplay);
+        Assert.Contains("2002", _vm.TemporaryTargetDisplay);
+
+        // No map loaded → RouteRooms stays null, status shows no-preview message
+        Assert.Null(_vm.Map.RouteRooms);
+        Assert.Contains("Test Room", _vm.AutowalkStatusText);
+        Assert.Contains("brak podglądu", _vm.AutowalkStatusText);
+
+        // No new toast (path preview failure is indicated via status text, not toast)
+        Assert.Equal(toastCount, _vm.Toasts.Count);
+        Assert.False(_vm.IsAutowalking);
+    }
+
+    [Fact]
+    public void OnMapRoomDoubleClicked_WhenWalking_ClearsOldRouteAndSetsNewTarget()
+    {
+        // Arrange: set up walking state via reflection (simulate active autowalk)
+        var pathField = GetAutowalkPathField();
+        pathField.SetValue(_vm, CreateDummyPath());
+        _vm.Map.RouteRooms = [CreateTestRoom(1, "1000")];
+        Assert.True(_vm.IsAutowalking);
+        Assert.NotNull(_vm.Map.RouteRooms);
+
+        var toastCount = _vm.Toasts.Count;
+        var room = CreateTestRoom(200, "3003", "New Target Room");
+
+        // Act: double-click a new room
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        // Assert: autowalk is stopped
+        Assert.False(_vm.IsAutowalking);
+        Assert.Null(pathField.GetValue(_vm));
+
+        // Assert: temporary target is the NEW clicked room (not cleared)
+        Assert.True(_vm.HasTemporaryTarget);
+        Assert.Contains("3003", _vm.TemporaryTargetDisplay);
+        Assert.Contains("New Target Room", _vm.TemporaryTargetDisplay);
+
+        // Assert: old route is cleared from the map
+        Assert.Null(_vm.Map.RouteRooms);
+
+        // Assert: a toast confirms the walk was interrupted
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("Autowalk przerwany", _vm.Toasts[^1].Text);
+        Assert.Contains("New Target Room", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void OnMapRoomDoubleClicked_WhenWalking_KeepsNewTempTarget()
+    {
+        // Regression guard: the double-click handler must NOT call
+        // StopAutowalk (which clears _temporaryTarget).  Verify that
+        // the new temporary target survives after clearing the walk.
+        var pathField = GetAutowalkPathField();
+        pathField.SetValue(_vm, CreateDummyPath());
+        Assert.True(_vm.IsAutowalking);
+
+        var room = CreateTestRoom(300, "4004", "Keep Me");
+
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        // The new temporary target must still be set
+        Assert.True(_vm.HasTemporaryTarget);
+        var tempField = GetTemporaryTargetField();
+        var tempTarget = (AutowalkLocation?)tempField.GetValue(_vm);
+        Assert.NotNull(tempTarget);
+        Assert.Equal("4004", tempTarget!.Vnum);
+        Assert.Equal("Keep Me", tempTarget.Name);
+    }
+
+    // ====================================================================
+    // Autowalk — GoToSelectedTargetCommand (new UI IDŹ button)
+    //
+    // The GoToSelectedTargetCommand should behave exactly like the bare
+    // /idz command: if a temporary target is set, start walking to it;
+    // otherwise show usage help.
+    // ====================================================================
+
+    [Fact]
+    public void GoToSelectedTargetCommand_WithoutTarget_ShowsUsageHelp()
+    {
+        // Arrange: no temporary target
+        Assert.False(_vm.HasTemporaryTarget);
+        var toastCount = _vm.Toasts.Count;
+
+        // Act
+        _vm.GoToSelectedTargetCommand.Execute(null);
+
+        // Assert: a usage/info toast was added
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("/idz", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void GoToSelectedTargetCommand_WithTarget_AttemptsAutowalk()
+    {
+        // Arrange: set a temporary target via reflection
+        var tempField = GetTemporaryTargetField();
+        tempField.SetValue(_vm, new AutowalkLocation("Test Target", "5005"));
+        Assert.True(_vm.HasTemporaryTarget);
+        var toastCount = _vm.Toasts.Count;
+
+        // Act
+        _vm.GoToSelectedTargetCommand.Execute(null);
+
+        // Assert: StartAutowalk was called; with no map loaded it shows
+        // a "map not loaded" error toast.
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("Mapa nie jest załadowana", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void GoToSelectedTargetCommand_NoTarget_DoesNotCallStartAutowalk()
+    {
+        // Verify that without a target the command only adds the usage
+        // toast and does not attempt to autowalk (which would touch the
+        // pathfinder and potentially throw in tests).
+        var toastCount = _vm.Toasts.Count;
+
+        _vm.GoToSelectedTargetCommand.Execute(null);
+
+        // Only the usage toast was added (no "map not loaded" error etc.)
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("/idz", _vm.Toasts[^1].Text);
+        Assert.DoesNotContain("nie jest załadowana", _vm.Toasts[^1].Text);
+    }
+
+    // ====================================================================
+    // Autowalk — consistency between GoToSelectedTargetCommand and bare /idz
+    //
+    // The GoToSelectedTargetCommand and TryHandleAutowalkCommand("/idz")
+    // share the same HandleGoToSelectedTarget method, so their behaviour
+    // is structurally identical.  We verify that TryHandleAutowalkCommand
+    // with "/idz" (no argument) produces the same outcome as the command.
+    // ====================================================================
+
+    private bool InvokeTryHandleAutowalkCommand(string command)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("TryHandleAutowalkCommand",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return (bool)method!.Invoke(_vm, [command])!;
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_BareIdz_WithoutTarget_ShowsSameUsageAsCommand()
+    {
+        // Arrange: both paths start from the same state (no target)
+        Assert.False(_vm.HasTemporaryTarget);
+        _vm.Toasts.Clear();
+
+        // Act: invoke the bare /idz path
+        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        Assert.True(consumed);
+
+        var toastAfterBareIdz = Assert.Single(_vm.Toasts);
+        _vm.Toasts.Clear();
+
+        // Act: invoke the command path
+        _vm.GoToSelectedTargetCommand.Execute(null);
+
+        var toastAfterCommand = Assert.Single(_vm.Toasts);
+
+        // Assert: both produce the same usage message
+        Assert.Equal(toastAfterBareIdz.Text, toastAfterCommand.Text);
+        Assert.Contains("/idz", toastAfterCommand.Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_BareIdz_WithTarget_AttemptsWalk()
+    {
+        // Arrange: set a temp target
+        var tempField = GetTemporaryTargetField();
+        tempField.SetValue(_vm, new AutowalkLocation("Temp", "6006"));
+        _vm.Toasts.Clear();
+
+        // Act: invoke bare /idz
+        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        Assert.True(consumed);
+
+        // Without map → "Mapa nie jest załadowana" toast
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+    }
+
+    // ====================================================================
+    // Autowalk — StopAutowalkDuringDoubleClickRegression
+    //
+    // Verifies that StopAutowalk (which IS used by other paths like /stop
+    // or profile switch) correctly clears _temporaryTarget, while the
+    // double-click handler does NOT call StopAutowalk and therefore the
+    // temporary target survives.
+    // ====================================================================
+
+    [Fact]
+    public void StopAutowalk_ClearsTemporaryTarget()
+    {
+        // Arrange: set a temporary target and start walking
+        var tempField = GetTemporaryTargetField();
+        tempField.SetValue(_vm, new AutowalkLocation("WillBeCleared", "7007"));
+        var pathField = GetAutowalkPathField();
+        pathField.SetValue(_vm, CreateDummyPath());
+        Assert.True(_vm.HasTemporaryTarget);
+        Assert.True(_vm.IsAutowalking);
+
+        // Act: stop via the public command
+        _vm.StopAutowalkCommand.Execute(null);
+
+        // Assert: both autowalk and temporary target are cleared
+        Assert.False(_vm.IsAutowalking);
+        Assert.False(_vm.HasTemporaryTarget);
+        Assert.Null(tempField.GetValue(_vm));
+    }
+
+    // ====================================================================
+    // Autowalk — Vitals exposure and binding check (No test)
+    //
+    // The new UI button "⚑ IDŹ" added to AutowalkPanelView.axaml is bound
+    // to GoToSelectedTargetCommand.  XAML binding correctness is validated
+    // by the build (XAML compile step).  The ViewModel property existence
+    // is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
+    // ====================================================================
 }

@@ -1,24 +1,30 @@
-# Plan
+# Plan: poprawki autowalk
 
-## Goal
-Make the HP and MV side bars stretch across the full height of the terminal panel/window area, not only the MUD output row. They should stay pinned to the left and right sides while the terminal content remains in the center.
+## Kontekst
+- Autowalk jest obsługiwany głównie w `src/MudClient.App/ViewModels/MainWindowViewModel.cs`.
+- Podwójny klik mapy trafia do `OnMapRoomDoubleClicked`. Obecnie, gdy `IsAutowalking == true`, metoda tylko zapamiętuje nowy cel tymczasowy i zwraca bez czyszczenia aktywnej trasy ani wyznaczania podglądu nowej.
+- Panel UI autowalk jest w `src/MudClient.App/Views/Panels/AutowalkPanelView.axaml`; istnieje przycisk `IDŹ DO CELU` widoczny tylko dla celu tymczasowego, ale brakuje ogólnej opcji UI robiącej dokładnie to samo co komenda `/idz` bez argumentu.
 
-## Context
-- Avalonia UI lives under `src/MudClient.App`.
-- `src/MudClient.App/Views/Panels/TerminalPanelView.axaml` currently has a root grid with rows `Auto,*,Auto,Auto`.
-- The HP/MV bars are currently inside `Grid.Row="1"` beside `MudOutputView`, so they only span the output area and do not cover the filter tabs, quick command chips, and command bar height.
-- The previous change removed the top HP/SP/EP strip and added left HP / right MV indicators. SP should remain hidden from visible UI.
+## Implementacja produkcyjna dla agenta coder
+1. W `MainWindowViewModel` zmienić obsługę podwójnego kliknięcia mapy tak, aby wybranie nowego celu podczas aktywnego autowalk:
+   - przerwało/wyczyściło aktualny autowalk i zaznaczoną trasę,
+   - zachowało nowo wybrany cel tymczasowy,
+   - od razu wyznaczyło i namalowało podgląd nowej trasy z bieżącego `Map.CurrentVnum`, tak jak dziś dzieje się poza autowalk,
+   - nie usuwało celu tymczasowego przez przypadkowe użycie `StopAutowalk`, które obecnie czyści `_temporaryTarget`.
+2. Dodać publiczny `RelayCommand` (np. `GoCommand` / `GoToSelectedTargetCommand`) wykonujący semantycznie to samo co wpisanie `/idz` bez argumentu:
+   - jeśli istnieje `_temporaryTarget`, uruchamia `StartAutowalk(_temporaryTarget)`,
+   - jeśli go nie ma, pokazuje ten sam komunikat użycia co `/idz`, najlepiej przez współdzielenie logiki z `TryHandleAutowalkCommand("/idz")` lub małą metodę pomocniczą.
+3. Dodać do `AutowalkPanelView.axaml` widoczny przycisk UI opisany jako `IDŹ`/`Idź`, podpięty do nowego commandu i umieszczony w sekcji statusu/celu tak, aby użytkownik mógł kliknąć UI zamiast wpisywać `/idz`.
+   - Istniejący przycisk `IDŹ DO CELU` może pozostać, ale nie powinien być jedyną drogą; jeśli zostanie zastąpiony, zachować jasną etykietę i binding.
+4. Zachować istniejące zasady architektury: zmiany tylko w warstwie App/UI, bez zależności Core od UI, bez blokowania `.Wait()`/`.Result` i bez `Thread.Sleep`.
 
-## Implementation steps for coder
-1. Modify production UI code only. Do not write or update tests.
-2. Restructure `TerminalPanelView.axaml` so the root layout has side columns for the vitals bars and a center column for all terminal content.
-3. Put the HP bar in the left column and the MV bar in the right column so each spans the full root grid height of the terminal panel.
-4. Move/preserve the existing terminal content (filter tabs, `MudOutputView`, quick command chips, command bar) in the center column with its existing row structure and behavior.
-5. Ensure each bar visually stretches vertically: use appropriate `VerticalAlignment="Stretch"`, star-sized inner progress area, and avoid margins/padding that make the bar look detached from the panel height. Small internal padding is OK.
-6. Keep labels/bindings unchanged: HP uses `Vitals.HitPoints` / `Vitals.MaxHitPoints`; MV uses `Vitals.EndurancePoints` / `Vitals.MaxEndurancePoints`; no visible SP.
-7. Do not modify `MudClient.Core` or any networking/protocol code.
+## Testy/monitoring dla agenta tester
+1. Dodać lub zaktualizować testy jednostkowe `MudClient.App.Tests`, jeśli da się sensownie skonstruować `MainWindowViewModel`, dla scenariuszy:
+   - podwójny klik podczas aktywnego autowalk zastępuje starą trasę nowym celem i aktualizuje `Map.RouteRooms`, zamiast zostawiać starą trasę,
+   - nowy command UI `IDŹ` zachowuje się jak `/idz` bez argumentu (uruchamia marsz do celu tymczasowego albo pokazuje komunikat użycia bez celu).
+2. Uruchomić co najmniej `dotnet test MudClientStarter.sln` i zgłosić wynik.
 
-## Verification expectations
-- `dotnet build` succeeds.
-- Existing tests are run or known unrelated failures are documented.
-- Visual intent: HP and MV side bars occupy the full height of the terminal panel/window area, with terminal controls and output between them.
+## Kryteria akceptacji
+- Podczas zablokowanego/stojącego autowalk podwójny klik na mapie czyści starą drogę i pokazuje nową trasę do klikniętego pokoju.
+- UI ma opcję `IDŹ`, która zachowuje się jak `/idz`.
+- Projekt buduje się i testy przechodzą.
