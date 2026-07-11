@@ -32,7 +32,7 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 ### Mapa świata i autowalk
 
 - interaktywna mapa świata (17 obszarów, ~25 000 pokoi) renderowana własną kontrolką Avalonia, z biomowymi podkładami graficznymi, zoomem względem kursora i widokiem strategicznym przy dużym oddaleniu,
-- śledzenie pozycji postaci przez GMCP (`Room.Info`),
+- śledzenie pozycji postaci przez GMCP (`Room.Info`); każda zmiana lokacji ponownie włącza tryb śledzenia i centruje mapę na aktualnym pokoju,
 - pathfinding i automatyczne chodzenie po kliknięciu pokoju, z politykami odzyskiwania: odpoczynek/`refresh` przy niskim `mv` oraz obsługa zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).
 
 ### Panele postaci (GMCP)

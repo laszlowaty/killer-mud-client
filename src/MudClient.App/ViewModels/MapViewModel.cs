@@ -391,10 +391,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             SelectedRoom = room;
         }
 
-        if (FollowPlayer)
-        {
-            CenterOnCurrentRoomRequested?.Invoke();
-        }
+        FollowPlayer = true;
+        CenterOnCurrentRoomRequested?.Invoke();
     }
 
     public void CenterOnPlayer()

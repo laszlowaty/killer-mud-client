@@ -303,17 +303,20 @@ public sealed class MapViewModelTests
     }
 
     [Fact]
-    public void TryResolveCurrentRoom_WhenFollowPlayerIsFalse_KeepsItFalse()
+    public void TryResolveCurrentRoom_WhenFollowPlayerIsFalse_EnablesItAndRequestsCentering()
     {
         using var vm = CreateViewModel();
         var index = CreateSampleIndex();
         SetMapIndex(vm, index);
         SetLocationVnum(vm, "100");
+        var centerRequested = false;
+        vm.CenterOnCurrentRoomRequested += () => centerRequested = true;
 
         vm.FollowPlayer = false;
         InvokeTryResolveCurrentRoom(vm);
 
-        Assert.False(vm.FollowPlayer);  // untouched by internal resolution
+        Assert.True(vm.FollowPlayer);
+        Assert.True(centerRequested);
     }
 
     // ====================================================================
