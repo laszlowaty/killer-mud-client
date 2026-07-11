@@ -384,6 +384,7 @@ public sealed class ProfileTests : IDisposable
         Assert.NotNull(stored);
         var timer = Assert.Single(stored!.Timers);
         Assert.Equal(["zjedz chleb", "wypij wode"], timer.Commands);
+        Assert.Equal("zjedz chleb\nwypij wode", timer.CommandsText);
     }
 
     [Fact]
@@ -453,6 +454,45 @@ public sealed class ProfileTests : IDisposable
         var entry = Assert.Single(vm.Timers);
         Assert.Equal("Patrol", entry.Name);
         Assert.Equal(["look", "scan"], entry.GetCommands());
+        // Fallback from old-style Commands list populates CommandsText
+        Assert.NotEmpty(entry.CommandsText);
+        Assert.Contains("look", entry.CommandsText);
+        Assert.Contains("scan", entry.CommandsText);
+    }
+
+    [Fact]
+    public async Task Vm_SelectProfile_LoadsTimers_WithCommandsText()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Denethor",
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Name = "Watch",
+                    Seconds = 60,
+                    CommandsText = "look;north\nscan",
+                    Commands = ["look", "north", "scan"],
+                    IsEnabled = true,
+                },
+            ],
+        });
+
+        await using var vm = new MainWindowViewModel(service);
+        vm.SelectedProfileName = "Denethor";
+        vm.SelectProfileCommand.Execute(null);
+
+        var entry = Assert.Single(vm.Timers);
+        Assert.Equal("Watch", entry.Name);
+        Assert.Equal("look;north\nscan", entry.CommandsText);
+        // Splits using default separator (;) — look, north, scan
+        var cmds = entry.GetCommands(vm.CommandStackingSeparator);
+        Assert.Equal(3, cmds.Count);
+        Assert.Equal("look", cmds[0]);
+        Assert.Equal("north", cmds[1]);
+        Assert.Equal("scan", cmds[2]);
     }
 
     [Fact]

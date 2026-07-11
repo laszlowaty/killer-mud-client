@@ -1,30 +1,31 @@
-# Plan
+# Plan: command stacking
 
-## Problem
-- Po powrocie focusu do okna/terminala pierwsza wpisana litera czasem dopisuje się do istniejącej komendy zamiast zaznaczyć/nadpisać cały input.
-- Aktualna poprawka w `TerminalPanelView.RedirectTextInput` wybiera cały tekst przy przekierowaniu inputu, ale nie obsługuje przypadku, gdy Avalonia nadal uważa `CommandBox` za fokusowany po reaktywacji okna.
-- Testy `MudClient.App.Tests` mają 12 faili. Większość wygląda na stare testy po refaktorze: odwołują się przez reflection do pól/metod w `MainWindow`, które obecnie są w `TerminalPanelView`, oraz szukają kontrolek bezpośrednio w `MainWindow`, choć terminal siedzi w dockowanym panelu.
+## Goal
+Add command stacking: one text value may contain multiple commands separated by a configurable separator. The separator is stored in application settings and applies to commands typed by the user, alias replacements, trigger actions, and timer commands.
 
-## Implementation
-1. W `TerminalPanelView` dodać publiczne/metody pomocnicze umożliwiające:
-   - sprawdzenie, czy `CommandBox` ma focus,
-   - zaznaczenie całego inputu przed następnym wpisanym tekstem, jeśli focus wrócił z zewnątrz.
-2. W `MainWindow` śledzić reaktywację/focus okna:
-   - po `Deactivated` lub utracie focusu ustawić flagę, że następny tekst w terminalowym `CommandBox` ma wybrać cały input,
-   - po pierwszym `TextInput` z tą flagą, jeśli fokusowany jest terminalowy `CommandBox`, wykonać `SelectAll` i wyczyścić flagę,
-   - zachować istniejące zachowanie: jeśli focus nie jest w żadnym `TextBox`, przekierować input do terminala i tam zaznaczyć cały tekst przed wstawieniem znaku.
-3. Nie zmieniać zachowania innych pól tekstowych (`Host`, `Port`, nazwa profilu itd.) — zwykły typing w nich nie może być przechwytywany przez terminal.
-4. Upewnić się, że kliknięcie w nieinteraktywny obszar nadal wykonuje `FocusCommandBoxAndSelectAll`.
+## Constraints
+- Keep `MudClient.Core` UI-independent.
+- Do not use regex for Telnet parsing; this change should not touch Telnet parsing.
+- Preserve existing newline-based multi-command behavior for aliases/triggers/timers.
+- Avoid blocking async work; keep cancellation/finally patterns already present.
 
-## Tests
-1. Zaktualizować stare testy focus/click do obecnej architektury: `CommandBox`, `MudOutput` i helpery są w `TerminalPanelView`, nie w `MainWindow`.
-2. Dodać test/regresję dla scenariusza: po powrocie focusu/reaktywacji okna i przy fokusowanym `CommandBox`, pierwszy wpisany znak zastępuje zaznaczony cały input zamiast dopisywać na końcu.
-3. Sprawdzić osobny failure `EditRuleClickTests.ClickingEditRule_DoesNotThrow` i ustalić, czy to też test po refaktorze układu/dockingu; naprawić test jeśli jest nieaktualny, albo zgłosić produkcyjny problem jeśli klik edit faktycznie nie działa.
-4. Uruchomić:
-   - `dotnet build src\\MudClient.App\\MudClient.App.csproj --no-restore`
-   - `dotnet test tests\\MudClient.App.Tests\\MudClient.App.Tests.csproj --no-restore`
+## Implementation steps
+1. Add a reusable core splitter in `MudClient.Core.Automation` (for example `CommandStacker` or similar) that:
+   - Uses a default separator constant (suggested: `;`).
+   - Splits on `\n` and, when the configured separator is non-empty, on the separator too.
+   - Trims whitespace and trailing `\r` from each command and skips empty items.
+   - Treats null/empty separator as "stacking disabled except newlines".
+2. Update `AliasEngine` and `TriggerEngine` to accept/use a configurable separator for `ProcessCommands`/`Evaluate` while keeping old overloads or defaults so current callers/tests still compile.
+3. Update `TimerEntry.GetCommands` so timer text is split with the same configurable separator; keep a default/no-arg path for existing callers.
+4. Add `CommandStackingSeparator` to `AppSettings` with default `;`; normalize loaded settings in `AppSettingsService.Load` so null/whitespace becomes the default.
+5. Add `CommandStackingSeparator` property on `MainWindowViewModel` that persists via `SaveSettings()`, raises change notification, and supplies the value to:
+   - typed command sending in `SendCurrentCommandAsync` (split typed text before alias processing; run aliases per stacked command; keep one history entry for original input),
+   - trigger evaluation in `OnLineReceived`,
+   - timer validation, serialization, and timer execution (`GetCommands(separator)`).
+6. Update Settings UI (`SettingsPanelView.axaml`) with a small field for the separator and explanatory text that it is global and saved automatically.
+7. Keep autowalk slash commands working for single commands; stacked input may be handled by splitting first, with `/idz` or `/stop` consumed per segment and non-slash segments sent normally.
+8. Leave production behavior documented via XML comments or UI help text; update README only if this changes documented user behavior there.
 
-## Notes
-- Nie używać `Thread.Sleep`.
-- Nie zmieniać parserów/protokołów.
-- Jeśli testy wymagają produkcyjnych hooków pod testowalność, coder robi minimalne zmiany produkcyjne, a tester aktualizuje same testy.
+## Verification expected from tester
+- Add/update unit tests for the core splitter, alias, trigger, timer, settings persistence/defaults, and VM settings property where practical.
+- Run `dotnet test` from repo root.

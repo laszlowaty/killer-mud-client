@@ -199,4 +199,101 @@ public sealed class AliasEngineTests
 
         Assert.Equal(engine.Process("north"), engine.ProcessCommands("north").Single());
     }
+
+    // ====================================================================
+    // ProcessCommands – separator parameter (stacking)
+    // ====================================================================
+
+    [Fact]
+    public void ProcessCommands_WithSeparator_SplitsReplacement()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("multi", "^go$", "north;east;south"));
+
+        var result = engine.ProcessCommands("go", separator: ";");
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+    }
+
+    [Fact]
+    public void ProcessCommands_WithSeparator_AlsoSplitsOnNewlines()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("multi", "^go$", "north;east\nsouth;west"));
+
+        var result = engine.ProcessCommands("go", separator: ";");
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+        Assert.Equal("west", result[3]);
+    }
+
+    [Fact]
+    public void ProcessCommands_EmptySeparator_SplitsOnNewlinesOnly()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("test", "^x$", "north;east\nsouth"));
+
+        var result = engine.ProcessCommands("x", separator: "");
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void ProcessCommands_NullSeparator_SplitsOnNewlinesOnly()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("test", "^x$", "north;east\nsouth"));
+
+        var result = engine.ProcessCommands("x", separator: null);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void ProcessCommands_WithSeparator_Unmatched_ReturnsOriginal()
+    {
+        var engine = new AliasEngine();
+
+        var result = engine.ProcessCommands("unknown", separator: ";");
+
+        var command = Assert.Single(result);
+        Assert.Equal("unknown", command);
+    }
+
+    [Fact]
+    public void ProcessCommands_WithSeparator_WhitespaceSeparator_NewlinesOnly()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("test", "^x$", "north;east\nsouth"));
+
+        var result = engine.ProcessCommands("x", separator: "  ");
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void ProcessCommands_WithSeparator_BlankSegmentsSkipped()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("test", "^x$", "north;;east\n;south"));
+
+        var result = engine.ProcessCommands("x", separator: ";");
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+    }
 }

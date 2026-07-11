@@ -41,6 +41,18 @@ public sealed class AppSettingsService
                         settings.OutputFontFamily = AppSettings.DefaultOutputFontFamily;
                     }
 
+                    // null means the property is missing from an older/corrupt settings file — use default.
+                    if (settings.CommandStackingSeparator is null)
+                    {
+                        settings.CommandStackingSeparator = AppSettings.DefaultCommandStackingSeparator;
+                    }
+                    else
+                    {
+                        // Trim whitespace to be consistent with the UI setter in MainWindowViewModel,
+                        // but preserve an explicitly-saved empty string (disables command stacking).
+                        settings.CommandStackingSeparator = settings.CommandStackingSeparator.Trim();
+                    }
+
                     return settings;
                 }
             }

@@ -1,6 +1,8 @@
+using System.IO;
 using System.Reflection;
 using System.Text.Json;
 using MudClient.App.Models;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
@@ -11,11 +13,23 @@ namespace MudClient.App.Tests;
 
 public sealed class MainWindowViewModelTests : IAsyncDisposable
 {
-    private readonly MainWindowViewModel _vm = new();
+    private readonly string _tempDir;
+    private readonly MainWindowViewModel _vm;
+
+    public MainWindowViewModelTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), "KillerMudClient_VMTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempDir);
+        _vm = new MainWindowViewModel(settingsService: new AppSettingsService(_tempDir));
+    }
 
     public async ValueTask DisposeAsync()
     {
         await _vm.DisposeAsync();
+        if (Directory.Exists(_tempDir))
+        {
+            Directory.Delete(_tempDir, recursive: true);
+        }
     }
 
     /// <summary>
@@ -2987,4 +3001,93 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // by the build (XAML compile step).  The ViewModel property existence
     // is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
     // ====================================================================
+
+    // ====================================================================
+    // CommandStackingSeparator — default, setter, null/whitespace trimming
+    // ====================================================================
+
+    [Fact]
+    public void CommandStackingSeparator_DefaultIsSemicolon()
+    {
+        Assert.Equal(";", _vm.CommandStackingSeparator);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_UpdatesValue()
+    {
+        _vm.CommandStackingSeparator = "|";
+
+        Assert.Equal("|", _vm.CommandStackingSeparator);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_EmptyStringPreserved()
+    {
+        _vm.CommandStackingSeparator = "";
+
+        Assert.Equal("", _vm.CommandStackingSeparator);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_NullBecomesEmpty()
+    {
+        _vm.CommandStackingSeparator = null!;
+
+        Assert.Equal("", _vm.CommandStackingSeparator);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_WhitespaceTrimmed()
+    {
+        _vm.CommandStackingSeparator = "  ;  ";
+
+        Assert.Equal(";", _vm.CommandStackingSeparator);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_SameValue_DoesNotRaisePropertyChanged()
+    {
+        var changed = false;
+        _vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.CommandStackingSeparator))
+                changed = true;
+        };
+
+        // Set to same value
+        _vm.CommandStackingSeparator = ";";
+
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_DifferentValue_RaisesPropertyChanged()
+    {
+        var changed = false;
+        _vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.CommandStackingSeparator))
+                changed = true;
+        };
+
+        _vm.CommandStackingSeparator = "|";
+
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void CommandStackingSeparator_Setter_WhitespaceToSameTrimmedValue_DoesNotRaise()
+    {
+        // Setting to "  ;  " normalizes to ";", which is the same as current → no event
+        var changed = false;
+        _vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.CommandStackingSeparator))
+                changed = true;
+        };
+
+        _vm.CommandStackingSeparator = "  ;  ";
+
+        Assert.False(changed);
+    }
 }

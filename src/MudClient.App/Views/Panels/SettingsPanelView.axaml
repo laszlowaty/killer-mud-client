@@ -61,6 +61,23 @@
         </StackPanel>
       </Border>
 
+      <TextBlock Classes="mud-heading" Text="KOMENDY" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-faint" Text="Separator składania komend" />
+            <TextBox Text="{Binding CommandStackingSeparator}"
+                     MaxLength="10"
+                     Width="100"
+                     HorizontalAlignment="Left" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Globalny separator dla komend wpisywanych, aliasów, triggerów i timerów. Pusta wartość wyłącza składanie (tylko nowe linie). Zapisywane automatycznie." />
+          </StackPanel>
+
+        </StackPanel>
+      </Border>
+
     </StackPanel>
   </ScrollViewer>
 </UserControl>

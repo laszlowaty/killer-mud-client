@@ -184,4 +184,116 @@ public sealed class TriggerEngineTests
 
         Assert.Empty(result);
     }
+
+    // ====================================================================
+    // Evaluate with separator parameter (stacking)
+    // ====================================================================
+
+    [Fact]
+    public void Evaluate_WithSeparator_SplitsAction()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;east;south"));
+
+        var result = engine.Evaluate("trigger", separator: ";");
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+    }
+
+    [Fact]
+    public void Evaluate_WithSeparator_AlsoSplitsOnNewlines()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;east\nsouth;west"));
+
+        var result = engine.Evaluate("trigger", separator: ";");
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+        Assert.Equal("west", result[3]);
+    }
+
+    [Fact]
+    public void Evaluate_EmptySeparator_SplitsOnNewlinesOnly()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;east\nsouth"));
+
+        var result = engine.Evaluate("trigger", separator: "");
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void Evaluate_NullSeparator_SplitsOnNewlinesOnly()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;east\nsouth"));
+
+        var result = engine.Evaluate("trigger", separator: null);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void Evaluate_WithSeparator_WhitespaceSeparator_NewlinesOnly()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;east\nsouth"));
+
+        var result = engine.Evaluate("trigger", separator: "  ");
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("north;east", result[0]);
+        Assert.Equal("south", result[1]);
+    }
+
+    [Fact]
+    public void Evaluate_WithSeparator_BlankSegmentsSkipped()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "north;;east\n;south"));
+
+        var result = engine.Evaluate("trigger", separator: ";");
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+    }
+
+    [Fact]
+    public void Evaluate_WithSeparator_MultipleRules_EachUsesSeparator()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r1", "foo", "north;east"));
+        engine.Add(new TriggerRule("r2", "foo", "south;west"));
+
+        var result = engine.Evaluate("foo", separator: ";");
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal("north", result[0]);
+        Assert.Equal("east", result[1]);
+        Assert.Equal("south", result[2]);
+        Assert.Equal("west", result[3]);
+    }
+
+    [Fact]
+    public void Evaluate_WithSeparator_NoMatch_ReturnsEmpty()
+    {
+        var engine = new TriggerEngine();
+
+        var result = engine.Evaluate("anything", separator: ";");
+
+        Assert.Empty(result);
+    }
 }

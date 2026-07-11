@@ -87,10 +87,15 @@ public sealed class TimerEntry : ObservableObject
         }
     }
 
-    public IReadOnlyList<string> GetCommands() =>
-        CommandsText
-            .Split('\n')
-            .Select(line => line.Trim().TrimEnd('\r'))
-            .Where(line => line.Length > 0)
-            .ToList();
+    /// <summary>
+    /// Returns the timer's commands split on newlines only (no stacking separator).
+    /// </summary>
+    public IReadOnlyList<string> GetCommands() => GetCommands(separator: null);
+
+    /// <summary>
+    /// Returns the timer's commands split on newlines and, when
+    /// <paramref name="separator"/> is non-empty, also on that separator.
+    /// </summary>
+    public IReadOnlyList<string> GetCommands(string? separator) =>
+        MudClient.Core.Automation.CommandStacker.Split(CommandsText, separator);
 }

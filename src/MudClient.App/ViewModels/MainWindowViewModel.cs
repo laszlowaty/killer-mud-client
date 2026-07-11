@@ -469,6 +469,33 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public string OutputFontSizeText => $"{_settings.OutputFontSize:0} px";
 
+    /// <summary>
+    /// Separator character for command stacking (e.g. ";").  Commands typed
+    /// by the user, alias replacements, trigger actions, and timer commands
+    /// are split on newlines and on this separator.  Empty disables stacking
+    /// (only newlines remain).
+    /// </summary>
+    public string CommandStackingSeparator
+    {
+        get => _settings.CommandStackingSeparator;
+        set
+        {
+            var trimmed = value?.Trim() ?? string.Empty;
+            if (_settings.CommandStackingSeparator == trimmed)
+            {
+                return;
+            }
+
+            _settings.CommandStackingSeparator = trimmed;
+            OnPropertyChanged();
+            SaveSettings();
+
+            // Re-sync all running timers so their callback closures pick up the new
+            // separator; timer command splitting depends on the current separator.
+            SyncAllTimers();
+        }
+    }
+
     public RelayCommand ResetOutputFontCommand => new(() =>
     {
         OutputFontFamily = AppSettings.DefaultOutputFontFamily;
@@ -836,9 +863,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var hasCommands = NewTimerCommands
-            .Split('\n')
-            .Any(line => line.Trim().TrimEnd('\r').Length > 0);
+        var hasCommands = CommandStacker.Split(NewTimerCommands, CommandStackingSeparator).Count > 0;
         if (!hasCommands)
         {
             AddToast("Timer musi mieć przynajmniej jedną komendę.", "error");
@@ -963,7 +988,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var commands = entry.GetCommands();
+        var commands = entry.GetCommands(CommandStackingSeparator);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
             if (!IsConnected)
@@ -1696,7 +1721,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Minutes = timer.Minutes,
         Seconds = timer.Seconds,
         Milliseconds = timer.Milliseconds,
-        CommandsText = string.Join(Environment.NewLine, timer.Commands),
+        CommandsText = !string.IsNullOrEmpty(timer.CommandsText)
+            ? timer.CommandsText
+            : string.Join(Environment.NewLine, timer.Commands),
         IsEnabled = timer.IsEnabled,
         IsGlobal = isGlobal,
     };
@@ -1711,14 +1738,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         IsGlobal = r.IsGlobal,
     };
 
-    private static ProfileTimer ToProfileTimer(TimerEntry t) => new()
+    private ProfileTimer ToProfileTimer(TimerEntry t) => new()
     {
         Id = t.Id,
         Name = t.Name,
         Minutes = t.Minutes,
         Seconds = t.Seconds,
         Milliseconds = t.Milliseconds,
-        Commands = t.GetCommands().ToList(),
+        Commands = t.GetCommands(CommandStackingSeparator).ToList(),
+        CommandsText = t.CommandsText,
         IsEnabled = t.IsEnabled,
         IsGlobal = t.IsGlobal,
     };
@@ -1919,37 +1947,42 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         var sourceCommand = CommandText.Trim();
 
-        if (TryHandleAutowalkCommand(sourceCommand))
-        {
-            CommandHistory.Insert(0, sourceCommand);
-            while (CommandHistory.Count > CommandHistoryMaxSize)
-            {
-                CommandHistory.RemoveAt(CommandHistory.Count - 1);
-            }
+        // Split on the stacking separator first (also handles newlines).
+        // Alias processing runs per segment; autowalk commands are consumed
+        // per segment, and non-slash segments are forwarded normally.
+        var segments = CommandStacker.Split(sourceCommand, CommandStackingSeparator);
 
-            return;
-        }
-
-        var commands = _aliases.ProcessCommands(sourceCommand);
-
-        // Track history – record the original typed command.
+        // Track history – record the original typed command as one entry.
         CommandHistory.Insert(0, sourceCommand);
         while (CommandHistory.Count > CommandHistoryMaxSize)
         {
             CommandHistory.RemoveAt(CommandHistory.Count - 1);
         }
 
-        foreach (var command in commands)
+        foreach (var segment in segments)
         {
-            EmitSystem($"> {command}", 90);
-
-            try
+            if (TryHandleAutowalkCommand(segment))
             {
-                await _session.SendCommandAsync(command);
+                continue;
             }
-            catch (Exception exception)
+
+            // Alias processing happens per stacked segment so that an alias
+            // that replaces one segment can still produce multiple commands
+            // (via newlines in its replacement).
+            var commands = _aliases.ProcessCommands(segment, CommandStackingSeparator);
+
+            foreach (var command in commands)
             {
-                EmitSystem(exception.Message, 31);
+                EmitSystem($"> {command}", 90);
+
+                try
+                {
+                    await _session.SendCommandAsync(command);
+                }
+                catch (Exception exception)
+                {
+                    EmitSystem(exception.Message, 31);
+                }
             }
         }
     }
@@ -2137,7 +2170,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnLineReceived(string line)
     {
-        var commands = _triggers.Evaluate(line);
+        var commands = _triggers.Evaluate(line, CommandStackingSeparator);
         if (commands.Count == 0)
         {
             return;

@@ -61,6 +61,14 @@ public sealed class ProfileTimer
     /// <summary>Commands sent in this order on every tick.</summary>
     public List<string> Commands { get; set; } = [];
 
+    /// <summary>
+    /// Raw command text preserving the original user input (e.g. "look;exa").
+    /// When non-empty, <see cref="MakeTimerEntry"/> uses this instead of
+    /// joining <see cref="Commands"/> with newlines, so the user's chosen
+    /// separator characters are not lost across save/load cycles.
+    /// </summary>
+    public string CommandsText { get; set; } = string.Empty;
+
     public bool IsEnabled { get; set; }
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>

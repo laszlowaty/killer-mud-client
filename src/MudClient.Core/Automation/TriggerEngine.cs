@@ -10,7 +10,19 @@ public sealed class TriggerEngine
 
     public void Clear() => _rules.Clear();
 
-    public IReadOnlyList<string> Evaluate(string line)
+    /// <summary>
+    /// Evaluates all enabled trigger rules against <paramref name="line"/>.
+    /// Equivalent to <c>Evaluate(line, null)</c>.
+    /// </summary>
+    public IReadOnlyList<string> Evaluate(string line) =>
+        Evaluate(line, separator: null);
+
+    /// <summary>
+    /// Evaluates all enabled trigger rules against <paramref name="line"/>,
+    /// also splitting the command template on <paramref name="separator"/>
+    /// when it is non-empty (in addition to newlines).
+    /// </summary>
+    public IReadOnlyList<string> Evaluate(string line, string? separator)
     {
         var commands = new List<string>();
 
@@ -25,17 +37,10 @@ public sealed class TriggerEngine
             if (match.Success)
             {
                 var text = match.Result(rule.CommandTemplate);
-                commands.AddRange(SplitCommands(text));
+                commands.AddRange(CommandStacker.Split(text, separator));
             }
         }
 
         return commands;
     }
-
-    private static IReadOnlyList<string> SplitCommands(string text) =>
-        (text ?? string.Empty)
-            .Split('\n')
-            .Select(line => line.Trim().TrimEnd('\r'))
-            .Where(line => line.Length > 0)
-            .ToList();
 }

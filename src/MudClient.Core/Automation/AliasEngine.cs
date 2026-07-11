@@ -46,8 +46,17 @@ public sealed class AliasEngine
     /// <summary>
     /// Like <see cref="Process"/> but splits the replacement result into
     /// multiple commands (one per line).  Empty/whitespace lines are skipped.
+    /// Equivalent to <c>ProcessCommands(command, null)</c>.
     /// </summary>
-    public IReadOnlyList<string> ProcessCommands(string command)
+    public IReadOnlyList<string> ProcessCommands(string command) =>
+        ProcessCommands(command, separator: null);
+
+    /// <summary>
+    /// Like <see cref="ProcessCommands(string)"/> but also splits the
+    /// replacement result on <paramref name="separator"/> when it is
+    /// non-empty (in addition to newlines).
+    /// </summary>
+    public IReadOnlyList<string> ProcessCommands(string command, string? separator)
     {
         foreach (var rule in _rules)
         {
@@ -60,17 +69,10 @@ public sealed class AliasEngine
             if (match.Success)
             {
                 var text = match.Result(rule.Replacement);
-                return SplitCommands(text);
+                return CommandStacker.Split(text, separator);
             }
         }
 
         return new[] { command };
     }
-
-    private static IReadOnlyList<string> SplitCommands(string text) =>
-        (text ?? string.Empty)
-            .Split('\n')
-            .Select(line => line.Trim().TrimEnd('\r'))
-            .Where(line => line.Length > 0)
-            .ToList();
 }
