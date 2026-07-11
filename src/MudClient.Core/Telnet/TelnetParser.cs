@@ -22,12 +22,22 @@ public sealed class TelnetParser
     private byte _negotiationCommand;
     private byte _subnegotiationOption;
 
-    public IReadOnlyList<TelnetToken> Feed(ReadOnlySpan<byte> input)
+    public IReadOnlyList<TelnetToken> Feed(ReadOnlySpan<byte> input) => Feed(input, out _);
+
+    /// <summary>
+    /// Parses <paramref name="input"/> and reports how many bytes were consumed.
+    /// Parsing stops right after an MCCP2 compression-start subnegotiation
+    /// (IAC SB 86 IAC SE), because every byte after it belongs to a zlib stream
+    /// and must not be interpreted as Telnet until it is decompressed.
+    /// </summary>
+    public IReadOnlyList<TelnetToken> Feed(ReadOnlySpan<byte> input, out int consumed)
     {
         var tokens = new List<TelnetToken>();
+        consumed = 0;
 
-        foreach (var value in input)
+        for (var index = 0; index < input.Length; index++)
         {
+            var value = input[index];
             switch (_state)
             {
                 case ParserState.Data:
@@ -77,11 +87,19 @@ public sealed class TelnetParser
                     }
                     else if (value == TelnetConstants.Se)
                     {
+                        var option = _subnegotiationOption;
                         tokens.Add(new TelnetSubnegotiationToken(
-                            _subnegotiationOption,
+                            option,
                             [.. _subnegotiationBuffer]));
                         _subnegotiationBuffer.Clear();
                         _state = ParserState.Data;
+
+                        if (option == TelnetConstants.Mccp2)
+                        {
+                            consumed = index + 1;
+                            FlushData(tokens);
+                            return tokens;
+                        }
                     }
                     else
                     {
@@ -96,6 +114,7 @@ public sealed class TelnetParser
                 default:
                     throw new InvalidOperationException($"Unknown parser state: {_state}");
             }
+            consumed = index + 1;
         }
 
         FlushData(tokens);

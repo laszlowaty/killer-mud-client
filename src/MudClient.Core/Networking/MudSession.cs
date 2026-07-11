@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.IO.Compression;
 using System.Net.Sockets;
 using System.Text;
 using MudClient.Core.Gmcp;
@@ -22,6 +23,10 @@ public sealed class MudSession : IAsyncDisposable
 
     private TcpClient? _client;
     private NetworkStream? _stream;
+
+    // Incoming bytes are read from _readStream: the raw NetworkStream until MCCP2 starts,
+    // then a ZLibStream layered over it. Outgoing data always goes to the raw _stream.
+    private Stream? _readStream;
     private CancellationTokenSource? _sessionCancellation;
     private Task? _receiveTask;
     private bool _gmcpHandshakeSent;
@@ -61,6 +66,7 @@ public sealed class MudSession : IAsyncDisposable
 
             _client = client;
             _stream = client.GetStream();
+            _readStream = _stream;
             _sessionCancellation = new CancellationTokenSource();
             _gmcpHandshakeSent = false;
             _enabledLocalOptions.Clear();
@@ -77,6 +83,7 @@ public sealed class MudSession : IAsyncDisposable
             client.Dispose();
             _client = null;
             _stream = null;
+            _readStream = null;
             throw;
         }
     }
@@ -85,10 +92,16 @@ public sealed class MudSession : IAsyncDisposable
     {
         var cancellation = Interlocked.Exchange(ref _sessionCancellation, null);
         var receiveTask = Interlocked.Exchange(ref _receiveTask, null);
+        var readStream = Interlocked.Exchange(ref _readStream, null);
         var stream = Interlocked.Exchange(ref _stream, null);
         var client = Interlocked.Exchange(ref _client, null);
 
         cancellation?.Cancel();
+        if (!ReferenceEquals(readStream, stream))
+        {
+            readStream?.Dispose();
+        }
+
         stream?.Dispose();
         client?.Dispose();
 
@@ -140,25 +153,54 @@ public sealed class MudSession : IAsyncDisposable
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var stream = _stream;
-                if (stream is null)
+                var readStream = _readStream;
+                if (readStream is null)
                 {
                     break;
                 }
 
-                var bytesRead = await stream
+                var bytesRead = await readStream
                     .ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)
                     .ConfigureAwait(false);
 
                 if (bytesRead == 0)
                 {
+                    if (!ReferenceEquals(readStream, _stream) && _stream is not null)
+                    {
+                        // The server finished the zlib stream (MCCP2 allows ending compression
+                        // without closing the connection). Fall back to the raw stream.
+                        _readStream = _stream;
+                        readStream.Dispose();
+                        StatusChanged?.Invoke("MCCP: kompresja wyłączona przez serwer");
+                        continue;
+                    }
+
                     break;
                 }
 
-                var tokens = _parser.Feed(buffer.AsSpan(0, bytesRead));
-                foreach (var token in tokens)
+                var offset = 0;
+                while (offset < bytesRead)
                 {
-                    await HandleTokenAsync(token, cancellationToken).ConfigureAwait(false);
+                    var tokens = _parser.Feed(buffer.AsSpan(offset, bytesRead - offset), out var consumed);
+                    offset += consumed;
+
+                    var startCompression = false;
+                    foreach (var token in tokens)
+                    {
+                        if (token is TelnetSubnegotiationToken { Option: TelnetConstants.Mccp2 })
+                        {
+                            startCompression = true;
+                            continue;
+                        }
+
+                        await HandleTokenAsync(token, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (startCompression)
+                    {
+                        EnableCompression(buffer.AsSpan(offset, bytesRead - offset));
+                        offset = bytesRead;
+                    }
                 }
             }
         }
@@ -178,10 +220,34 @@ public sealed class MudSession : IAsyncDisposable
         {
             ArrayPool<byte>.Shared.Return(buffer);
 
-            Interlocked.Exchange(ref _stream, null)?.Dispose();
+            var readStream = Interlocked.Exchange(ref _readStream, null);
+            var rawStream = Interlocked.Exchange(ref _stream, null);
+            if (!ReferenceEquals(readStream, rawStream))
+            {
+                readStream?.Dispose();
+            }
+
+            rawStream?.Dispose();
             Interlocked.Exchange(ref _client, null)?.Dispose();
             StatusChanged?.Invoke("Połączenie zakończone");
         }
+    }
+
+    private void EnableCompression(ReadOnlySpan<byte> leftover)
+    {
+        var rawStream = _stream;
+        if (rawStream is null)
+        {
+            return;
+        }
+
+        // Bytes already read after IAC SB 86 IAC SE are the beginning of the zlib stream,
+        // so they must be fed to the decompressor before any further network reads.
+        _readStream = new ZLibStream(
+            new PrefixedReadStream(leftover.ToArray(), rawStream),
+            CompressionMode.Decompress);
+
+        StatusChanged?.Invoke("MCCP: kompresja włączona");
     }
 
     private async Task HandleTokenAsync(TelnetToken token, CancellationToken cancellationToken)
@@ -275,6 +341,7 @@ public sealed class MudSession : IAsyncDisposable
             TelnetConstants.Echo or
             TelnetConstants.SuppressGoAhead or
             TelnetConstants.EndOfRecord or
+            TelnetConstants.Mccp2 or
             TelnetConstants.Gmcp;
 
         if (!supported)

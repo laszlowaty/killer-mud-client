@@ -71,4 +71,45 @@ public sealed class TelnetParserTests
         Assert.Equal(TelnetConstants.Gmcp, subnegotiation.Option);
         Assert.Equal("Char"u8.ToArray(), subnegotiation.Data);
     }
+
+    [Fact]
+    public void StopsConsumingRightAfterMccp2CompressionStart()
+    {
+        var parser = new TelnetParser();
+
+        // "ab" IAC SB 86 IAC SE, then bytes that already belong to the zlib stream
+        // and must NOT be parsed as Telnet (0x78 0x9C is a typical zlib header).
+        byte[] input = [
+            (byte)'a',
+            (byte)'b',
+            TelnetConstants.Iac,
+            TelnetConstants.Sb,
+            TelnetConstants.Mccp2,
+            TelnetConstants.Iac,
+            TelnetConstants.Se,
+            0x78,
+            0x9C,
+            TelnetConstants.Iac,
+        ];
+
+        var tokens = parser.Feed(input, out var consumed);
+
+        Assert.Equal(7, consumed);
+        Assert.Equal(2, tokens.Count);
+        Assert.Equal("ab"u8.ToArray(), Assert.IsType<TelnetDataToken>(tokens[0]).Data);
+        var subnegotiation = Assert.IsType<TelnetSubnegotiationToken>(tokens[1]);
+        Assert.Equal(TelnetConstants.Mccp2, subnegotiation.Option);
+        Assert.Empty(subnegotiation.Data);
+    }
+
+    [Fact]
+    public void ConsumesWholeInputWhenNoCompressionStart()
+    {
+        var parser = new TelnetParser();
+
+        var tokens = parser.Feed("hello"u8, out var consumed);
+
+        Assert.Equal(5, consumed);
+        Assert.Single(tokens);
+    }
 }

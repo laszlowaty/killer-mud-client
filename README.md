@@ -7,6 +7,7 @@ Startowy, wieloplatformowy klient MUD napisany w C# i Avalonia.
 - połączenie TCP z MUD-em,
 - stanowa obsługa podstawowego protokołu Telnet,
 - negocjacja `GMCP`, `NAWS`, `TTYPE`, `EOR` i `SUPPRESS-GO-AHEAD`,
+- MCCP2 (kompresja zlib): dekompresja włączana dokładnie na granicy `IAC SB 86 IAC SE`; bajty odebrane po znaczniku w tym samym odczycie TCP trafiają do dekompresora, a zakończenie strumienia zlib przez serwer przywraca odczyt bez kompresji,
 - odbiór i podgląd komunikatów GMCP,
 - wysyłanie komend,
 - podstawowe kolory ANSI SGR: 16 kolorów, 256 kolorów, RGB, bold, underline i reset,
@@ -16,7 +17,6 @@ Startowy, wieloplatformowy klient MUD napisany w C# i Avalonia.
 
 ## Czego jeszcze nie ma
 
-- MCCP2 / kompresji zlib,
 - trwałego zapisu profili w SQLite,
 - edytorów aliasów, triggerów i timerów,
 - rozbudowanej historii komend,
@@ -25,6 +25,8 @@ Startowy, wieloplatformowy klient MUD napisany w C# i Avalonia.
 - TLS.
 
 Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje terminalowe komendy przesuwania kursora. To jest odpowiedni model dla typowego klienta MUD.
+
+Okno wyjścia MUD-a jest zwirtualizowane: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`). Dzięki temu koszt dopisania tekstu nie zależy od wielkości scrollbacka i wielogodzinne sesje (np. długi autowalk) nie spowalniają UI. Zaznaczanie i kopiowanie tekstu jest zaimplementowane w kontrolce (przeciąganie myszą + menu kontekstowe).
 
 ## Wymagania
 
@@ -112,10 +114,9 @@ Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum p
 ## Następne sensowne kroki
 
 1. Zapisać surowe sesje Telnet do pliku i dodać replay w testach.
-2. Dodać MCCP2 jako warstwę strumienia przed parserem Telnet.
-3. Dodać SQLite i profile połączeń.
-4. Zbudować edytory aliasów, triggerów i timerów.
-5. Dodać bufor wyjścia z wirtualizacją dla bardzo długich sesji.
+2. Dodać SQLite i profile połączeń.
+3. Zbudować edytory aliasów, triggerów i timerów.
+4. Dodać bufor wyjścia z wirtualizacją dla bardzo długich sesji.
 6. Zbudować magazyn stanu GMCP i panele HP oraz grupy.
 7. Dodać pathfinding i automatyczne chodzenie po mapie po kliknięciu pokoju.
 
