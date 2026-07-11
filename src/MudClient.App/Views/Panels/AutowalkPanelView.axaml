@@ -116,6 +116,45 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
+      <!-- Death marks -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBlock Classes="mud-heading" Text="MIEJSCA ŚMIERCI" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding Deaths.Count}" />
+        </Border>
+      </Grid>
+
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak zapisanych zgonów. Ostatnie 10 miejsc śmierci pojawi się tutaj automatycznie."
+                 IsVisible="{Binding !Deaths.Count}" />
+
+      <ItemsControl ItemsSource="{Binding Deaths}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:DeathMarkEntry">
+            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Display}" FontWeight="SemiBold"
+                             FontSize="12" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding When}" Classes="mud-faint"
+                             TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="mud-small"
+                        Content="⚑ IDŹ" Padding="8,2"
+                        ToolTip.Tip="Idź do miejsca śmierci"
+                        Click="GoToDeath_OnClick" />
+                <Button Grid.Column="2"
+                        Classes="mud-small mud-danger"
+                        Content="✕" Padding="6,2"
+                        ToolTip.Tip="Usuń wpis"
+                        Click="DeleteDeath_OnClick" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
     </StackPanel>
   </ScrollViewer>
 </UserControl>

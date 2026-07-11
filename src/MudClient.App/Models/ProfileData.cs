@@ -14,6 +14,9 @@ public sealed class ProfileData
     public List<ProfileTimer> Timers { get; set; } = [];
 
     public List<ProfileLocation> Locations { get; set; } = [];
+
+    /// <summary>Last 10 death locations, newest first.</summary>
+    public List<ProfileDeath> Deaths { get; set; } = [];
 }
 
 /// <summary>
@@ -40,6 +43,16 @@ public sealed class ProfileLocation
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
+}
+
+/// <summary>A death location stored per character (newest first, max 10).</summary>
+public sealed class ProfileDeath
+{
+    public string Vnum { get; set; } = string.Empty;
+
+    public string RoomName { get; set; } = string.Empty;
+
+    public string When { get; set; } = string.Empty;
 }
 
 /// <summary>

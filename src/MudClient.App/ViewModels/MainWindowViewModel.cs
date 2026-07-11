@@ -157,6 +157,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddCurrentLocationCommand = new RelayCommand(AddCurrentLocation);
         AddLocationCommand = new RelayCommand(AddLocation);
         DeleteLocationCommand = new RelayCommand<AutowalkLocation>(DeleteLocation);
+        DeleteDeathCommand = new RelayCommand<DeathMarkEntry>(DeleteDeath);
+        GoToDeathCommand = new RelayCommand<DeathMarkEntry>(GoToDeath);
         GoToLocationCommand = new RelayCommand<AutowalkLocation>(entry =>
         {
             if (entry is not null)
@@ -1508,6 +1510,89 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     // ========================================================================
+    // Death marks (last 10 death locations, hard-coded server-line trigger)
+    // ========================================================================
+
+    private const int MaxDeathMarks = 10;
+
+    // The server announces death with this exact line; depending on the
+    // negotiated charset it arrives with or without Polish diacritics.
+    // This trigger is intentionally hard-coded, not a user automation rule.
+    private static readonly string[] DeathPhrases =
+    [
+        "Nie żyjesz, co za pech!!!",
+        "Nie zyjesz, co za pech!!!",
+    ];
+
+    /// <summary>Last death locations, newest first. Persisted per profile.</summary>
+    public ObservableCollection<DeathMarkEntry> Deaths { get; } = [];
+
+    public RelayCommand<DeathMarkEntry> DeleteDeathCommand { get; }
+    public RelayCommand<DeathMarkEntry> GoToDeathCommand { get; }
+
+    private static bool IsDeathLine(string line)
+    {
+        foreach (var phrase in DeathPhrases)
+        {
+            if (line.Contains(phrase, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Records the current GMCP position as a death mark. Runs on the UI
+    /// thread (posted from the network receive loop).
+    /// </summary>
+    private void RecordDeath()
+    {
+        var vnum = Map.CurrentVnum;
+        if (string.IsNullOrWhiteSpace(vnum))
+        {
+            AddToast("Zginąłeś, ale pozycja jest nieznana (brak danych GMCP) — miejsce śmierci nie zostało zapisane.", "error");
+            return;
+        }
+
+        var roomName = Map.MapIndex?.FindFirstRoomByVnum(vnum)?.Name;
+        var entry = new DeathMarkEntry(vnum, roomName, DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+        Deaths.Insert(0, entry);
+        while (Deaths.Count > MaxDeathMarks)
+        {
+            Deaths.RemoveAt(Deaths.Count - 1);
+        }
+
+        SaveActiveProfile();
+        AddToast($"Zapisano miejsce śmierci: {entry.Display}.", "error");
+    }
+
+    private void DeleteDeath(DeathMarkEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        Deaths.Remove(entry);
+        SaveActiveProfile();
+    }
+
+    private void GoToDeath(DeathMarkEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        StartAutowalk(new AutowalkLocation(
+            string.IsNullOrWhiteSpace(entry.RoomName) ? $"miejsce śmierci (vnum {entry.Vnum})" : entry.RoomName!,
+            entry.Vnum,
+            entry.RoomName));
+    }
+
+    // ========================================================================
     // Profiles
     // ========================================================================
 
@@ -1636,6 +1721,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AutomationRules.Clear();
         Timers.Clear();
         Locations.Clear();
+        Deaths.Clear();
 
         // Globals first, then the profile's own entries.
         LoadGlobalEntries();
@@ -1660,6 +1746,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
             Locations.Add(new AutowalkLocation(location.Name, location.Vnum, room?.Name));
+        }
+
+        foreach (var death in profile.Deaths.Take(MaxDeathMarks))
+        {
+            var room = Map.MapIndex?.FindFirstRoomByVnum(death.Vnum);
+            Deaths.Add(new DeathMarkEntry(
+                death.Vnum,
+                string.IsNullOrWhiteSpace(death.RoomName) ? room?.Name : death.RoomName,
+                death.When));
         }
 
         ActiveProfileName = profile.Name;
@@ -1793,6 +1888,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
             Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList(),
+            Deaths = Deaths.Select(d => new ProfileDeath
+            {
+                Vnum = d.Vnum,
+                RoomName = d.RoomName ?? string.Empty,
+                When = d.When,
+            }).ToList(),
         };
 
         try
@@ -2170,6 +2271,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnLineReceived(string line)
     {
+        if (IsDeathLine(line))
+        {
+            // Capture the position on the UI thread — Map state is UI-bound.
+            Dispatcher.UIThread.Post(RecordDeath);
+        }
+
         var commands = _triggers.Evaluate(line, CommandStackingSeparator);
         if (commands.Count == 0)
         {

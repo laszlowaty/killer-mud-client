@@ -25,6 +25,26 @@ public sealed partial class AutowalkPanelView : UserControl
         }
     }
 
+    private void GoToDeath_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is DeathMarkEntry entry &&
+            _viewModel is not null)
+        {
+            _viewModel.GoToDeathCommand.Execute(entry);
+        }
+    }
+
+    private void DeleteDeath_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is DeathMarkEntry entry &&
+            _viewModel is not null)
+        {
+            _viewModel.DeleteDeathCommand.Execute(entry);
+        }
+    }
+
     private void DeleteLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is Button button &&
