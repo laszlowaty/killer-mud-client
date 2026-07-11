@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="MudClient.App.Controls.MudOutputView">
+             x:Class="MudClient.App.Controls.MudOutputView"
+             PointerPressed="Output_OnPointerPressed">
   <Border Classes="mud-inset" Padding="8">
     <Border.ContextMenu>
       <ContextMenu>
@@ -18,12 +19,23 @@
                     HorizontalScrollBarVisibility="Auto"
                     VerticalScrollBarVisibility="Auto" />
 
-      <!-- GridSplitter between panes -->
-      <GridSplitter Grid.Row="1"
-                    x:Name="OutputSplitter"
-                    Height="6"
-                    HorizontalAlignment="Stretch"
-                    Background="{StaticResource MudBrushStone}" />
+      <!-- Split bar. The button provides an explicit alternative to scrolling back
+           to the bottom; a middle click anywhere in this control does the same. -->
+      <Grid Grid.Row="1" x:Name="SplitBar" IsVisible="False">
+        <GridSplitter x:Name="OutputSplitter"
+                      Height="6"
+                      HorizontalAlignment="Stretch"
+                      Background="{StaticResource MudBrushStone}" />
+        <Button x:Name="CloseSplitButton"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Margin="0,0,8,0"
+                Padding="8,2"
+                FontSize="11"
+                Content="Zamknij podział"
+                ToolTip.Tip="Połącz widok (możesz też kliknąć rolką myszy)"
+                Click="CloseSplit_OnClick" />
+      </Grid>
 
       <!-- Lower pane: live tail (auto-scroll) -->
       <ScrollViewer Grid.Row="2"

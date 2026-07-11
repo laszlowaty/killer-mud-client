@@ -46,7 +46,7 @@ public partial class MudOutputView : UserControl
     private readonly ScrollViewer _liveTailScroller;
     private readonly OutputPaneControl _scrollbackPane;
     private readonly OutputPaneControl _liveTailPane;
-    private readonly GridSplitter _splitter;
+    private readonly Grid _splitBar;
     private readonly Grid _grid;
     private bool _isSplitMode;
 
@@ -57,8 +57,8 @@ public partial class MudOutputView : UserControl
             ?? throw new InvalidOperationException("ScrollbackScroller not found.");
         _liveTailScroller = this.FindControl<ScrollViewer>("LiveTailScroller")
             ?? throw new InvalidOperationException("LiveTailScroller not found.");
-        _splitter = this.FindControl<GridSplitter>("OutputSplitter")
-            ?? throw new InvalidOperationException("OutputSplitter not found.");
+        _splitBar = this.FindControl<Grid>("SplitBar")
+            ?? throw new InvalidOperationException("SplitBar not found.");
         _grid = this.FindControl<Grid>("OutputGrid")
             ?? throw new InvalidOperationException("OutputGrid not found.");
 
@@ -72,7 +72,7 @@ public partial class MudOutputView : UserControl
 
         // Start in single-pane mode.
         _isSplitMode = false;
-        _splitter.IsVisible = false;
+        _splitBar.IsVisible = false;
         _liveTailScroller.IsVisible = false;
 
         _scrollbackScroller.ScrollChanged += OnScrollbackScrollChanged;
@@ -141,6 +141,23 @@ public partial class MudOutputView : UserControl
         Clear();
     }
 
+    private void CloseSplit_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        SetSplitMode(false);
+    }
+
+    private void Output_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (!_isSplitMode
+            || !eventArgs.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+        {
+            return;
+        }
+
+        SetSplitMode(false);
+        eventArgs.Handled = true;
+    }
+
     private async void CopyAll_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         await CopyToClipboardAsync(_buffer.GetAllText());
@@ -203,7 +220,7 @@ public partial class MudOutputView : UserControl
             _scrollbackPane.NotifyContentChanged();
         }
 
-        _splitter.IsVisible = enabled;
+        _splitBar.IsVisible = enabled;
         _liveTailScroller.IsVisible = enabled;
     }
 
