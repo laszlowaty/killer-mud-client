@@ -543,15 +543,15 @@ public sealed class WorldMapControl : Control
         {
             var center = WorldToScreen(selected.Coordinates.X, selected.Coordinates.Y);
             var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
-            context.DrawRectangle(null, new Pen(Brushes.Gold, 2), rect.Inflate(2));
+            DrawInsideOutline(context, rect, Brushes.Gold, 2);
         }
 
         if (_currentRoom is { } current && current.AreaId == _areaId && current.Coordinates.Z == _z)
         {
             var center = WorldToScreen(current.Coordinates.X, current.Coordinates.Y);
             var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
-            context.DrawRectangle(null, new Pen(Brushes.LimeGreen, 3), rect.Inflate(4));
-            context.DrawRectangle(null, new Pen(Brushes.White, 1), rect.Inflate(1));
+            DrawInsideOutline(context, rect, Brushes.LimeGreen, 3);
+            DrawInsideOutline(context, rect, Brushes.White, 1, 3);
         }
     }
 
@@ -1041,14 +1041,35 @@ public sealed class WorldMapControl : Control
 
             if (_selectedRoom is not null && room.Id == _selectedRoom.Id)
             {
-                context.DrawRectangle(null, new Pen(Brushes.Gold, 2), rect.Inflate(2));
+                DrawInsideOutline(context, rect, Brushes.Gold, 2);
             }
 
             if (_currentRoom is not null && room.Id == _currentRoom.Id)
             {
-                context.DrawRectangle(null, new Pen(Brushes.LimeGreen, 3), rect.Inflate(4));
-                context.DrawRectangle(null, new Pen(Brushes.White, 1), rect.Inflate(1));
+                DrawInsideOutline(context, rect, Brushes.LimeGreen, 3);
+                DrawInsideOutline(context, rect, Brushes.White, 1, 3);
             }
         }
+    }
+
+    private static void DrawInsideOutline(
+        DrawingContext context,
+        Rect rect,
+        IBrush brush,
+        double thickness,
+        double inset = 0)
+    {
+        var strokeInset = inset + thickness / 2;
+        if (rect.Width <= strokeInset * 2 || rect.Height <= strokeInset * 2)
+        {
+            return;
+        }
+
+        var outline = new Rect(
+            rect.X + strokeInset,
+            rect.Y + strokeInset,
+            rect.Width - strokeInset * 2,
+            rect.Height - strokeInset * 2);
+        context.DrawRectangle(null, new Pen(brush, thickness), outline);
     }
 }
