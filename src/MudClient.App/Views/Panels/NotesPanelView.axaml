@@ -22,7 +22,7 @@
           <TextBox Text="{Binding NewNoteContent}" PlaceholderText="Treść…"
                    MinHeight="60" AcceptsReturn="True" TextWrapping="Wrap" />
           <CheckBox IsChecked="{Binding NewNoteIsGlobal}"
-                    Content="Globalna — wspólna dla wszystkich profili" />
+                    Content="Globalna — wspólna dla wszystkich kont" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <Button Grid.Column="0" Content="{Binding NoteFormButtonText}"
                     Command="{Binding AddNoteCommand}"
@@ -36,7 +36,7 @@
       </Expander>
 
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Brak notatek w tym profilu."
+                 Text="Brak notatek na tym koncie."
                  IsVisible="{Binding !Notes.Count}" />
       <ItemsControl ItemsSource="{Binding Notes}">
         <ItemsControl.ItemTemplate>
@@ -48,7 +48,7 @@
                   <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12"
                              VerticalAlignment="Center" />
                   <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                          ToolTip.Tip="Wspólna dla wszystkich profili">
+                          ToolTip.Tip="Wspólna dla wszystkich kont">
                     <TextBlock Text="GLOBALNA" />
                   </Border>
                 </StackPanel>

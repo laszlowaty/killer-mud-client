@@ -30,6 +30,36 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void PasswordProtector_RoundTripsAndNeverStoresPlainText()
+    {
+        var encrypted = PasswordProtector.Protect("sekret123");
+
+        Assert.NotEqual(string.Empty, encrypted);
+        Assert.DoesNotContain("sekret123", encrypted);
+        Assert.Equal("sekret123", PasswordProtector.Unprotect(encrypted));
+        Assert.Equal(string.Empty, PasswordProtector.Unprotect("nie-base64"));
+        Assert.Equal(string.Empty, PasswordProtector.Protect(""));
+    }
+
+    [Fact]
+    public void SaveAndLoad_RoundTripsEncryptedPassword()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Gandalf",
+            EncryptedPassword = PasswordProtector.Protect("mellon"),
+        });
+
+        var loaded = service.Load("Gandalf");
+
+        Assert.NotNull(loaded);
+        Assert.Equal("mellon", PasswordProtector.Unprotect(loaded.EncryptedPassword));
+        var json = File.ReadAllText(Path.Combine(_directory, "Gandalf.json"));
+        Assert.DoesNotContain("mellon", json);
+    }
+
+    [Fact]
     public void SaveAndLoad_RoundTripsProfileData()
     {
         var service = CreateService();

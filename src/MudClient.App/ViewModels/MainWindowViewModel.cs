@@ -135,6 +135,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _activeProfileName;
     private string? _selectedProfileName;
     private string _newProfileName = string.Empty;
+    private string _newProfilePassword = string.Empty;
+    private string _selectedProfilePassword = string.Empty;
+
+    /// <summary>Decrypted password of the active account, kept only in memory.</summary>
+    private string _activeProfilePassword = string.Empty;
 
     public MainWindowViewModel(ProfileService? profileService = null, AppSettingsService? settingsService = null)
     {
@@ -153,6 +158,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
         CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
+        DeleteProfileCommand = new RelayCommand<string>(DeleteProfile);
         AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
         ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
@@ -1734,6 +1740,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand SelectProfileCommand { get; }
     public RelayCommand CreateProfileCommand { get; }
     public RelayCommand SwitchProfileCommand { get; }
+    public RelayCommand<string> DeleteProfileCommand { get; }
 
     /// <summary>Name of the currently active profile, or null before one is chosen.</summary>
     public string? ActiveProfileName
@@ -1764,6 +1771,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>Password for the account being created in the picker.</summary>
+    public string NewProfilePassword
+    {
+        get => _newProfilePassword;
+        set => SetProperty(ref _newProfilePassword, value);
+    }
+
+    /// <summary>
+    /// Optional new password typed when selecting an existing account;
+    /// non-empty replaces the stored one, empty keeps it.
+    /// </summary>
+    public string SelectedProfilePassword
+    {
+        get => _selectedProfilePassword;
+        set => SetProperty(ref _selectedProfilePassword, value);
+    }
+
     public string NewProfileName
     {
         get => _newProfileName;
@@ -1785,6 +1809,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         var profile = _profiles.Load(name) ?? new ProfileData { Name = name };
+
+        // A password typed in the picker replaces the stored one.
+        var typedPassword = SelectedProfilePassword;
+        if (!string.IsNullOrEmpty(typedPassword))
+        {
+            profile.EncryptedPassword = PasswordProtector.Protect(typedPassword);
+            _profiles.Save(profile);
+            SelectedProfilePassword = string.Empty;
+        }
+
         ActivateProfile(profile);
     }
 
@@ -1807,6 +1841,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var profile = new ProfileData
         {
             Name = name,
+            EncryptedPassword = PasswordProtector.Protect(NewProfilePassword),
             Rules =
             [
                 new ProfileRule
@@ -1828,7 +1863,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         NewProfileName = string.Empty;
+        NewProfilePassword = string.Empty;
         ActivateProfile(profile);
+    }
+
+    private void DeleteProfile(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        try
+        {
+            _profiles.Delete(name);
+        }
+        catch (IOException exception)
+        {
+            AddToast($"Nie udało się usunąć konta: {exception.Message}", "error");
+            return;
+        }
+
+        AvailableProfiles.Remove(name);
+        if (SelectedProfileName == name)
+        {
+            SelectedProfileName = null;
+        }
+
+        AddToast($"Konto „{name}” usunięte.", "info");
     }
 
     private void SwitchProfile()
@@ -1842,11 +1904,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _timers.CancelAll();
         SelectedProfileName = ActiveProfileName;
         ActiveProfileName = null;
+        _activeProfilePassword = string.Empty;
     }
 
     private void ActivateProfile(ProfileData profile)
     {
-        StopAutowalk("Autowalk zatrzymany (zmiana profilu).");
+        StopAutowalk("Autowalk zatrzymany (zmiana konta).");
 
         Notes.Clear();
         AutomationRules.Clear();
@@ -1899,11 +1962,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         RefreshBuffIndicators();
 
+        _activeProfilePassword = PasswordProtector.Unprotect(profile.EncryptedPassword);
+
         ActiveProfileName = profile.Name;
         ApplyAutomation();
         _timers.CancelAll();
         SyncAllTimers();
-        AddToast($"Profil „{profile.Name}” aktywny.", "info");
+        AddToast($"Konto „{profile.Name}” aktywne.", "info");
         ProfileActivated?.Invoke(profile.Name);
     }
 
@@ -2037,6 +2102,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 When = d.When,
             }).ToList(),
             RequiredBuffs = RequiredBuffs.Select(b => b.Name).ToList(),
+            EncryptedPassword = PasswordProtector.Protect(_activeProfilePassword),
         };
 
         try
@@ -2045,7 +2111,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            AddToast($"Nie udało się zapisać profilu: {exception.Message}", "error");
+            AddToast($"Nie udało się zapisać konta: {exception.Message}", "error");
         }
     }
 
@@ -2159,6 +2225,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             await _session.ConnectAsync(Host.Trim(), Port);
             IsConnected = true;
+            await AutoLoginAsync();
         }
         catch (Exception exception)
         {
@@ -2170,6 +2237,26 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Sends the account name and stored password right after connecting,
+    /// so the MUD login prompt is answered automatically.
+    /// </summary>
+    private async Task AutoLoginAsync()
+    {
+        var name = ActiveProfileName;
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrEmpty(_activeProfilePassword))
+        {
+            return;
+        }
+
+        // Give the server a moment to show the login prompt before answering it.
+        await Task.Delay(500);
+        await _session.SendCommandAsync(name);
+        await Task.Delay(500);
+        await _session.SendCommandAsync(_activeProfilePassword);
+        EmitSystem($"Zalogowano automatycznie jako {name}.", 36);
     }
 
     private async Task DisconnectAsync()

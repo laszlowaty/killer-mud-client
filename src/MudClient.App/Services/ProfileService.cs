@@ -46,6 +46,16 @@ public sealed class ProfileService
 
     public bool Exists(string name) => File.Exists(GetPath(name));
 
+    /// <summary>Removes the account's file from disk. No-op when it doesn't exist.</summary>
+    public void Delete(string name)
+    {
+        var path = GetPath(name);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
     public ProfileData? Load(string name)
     {
         var path = GetPath(name);

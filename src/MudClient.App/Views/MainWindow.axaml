@@ -48,18 +48,18 @@
                     Padding="8,3"
                     VerticalAlignment="Center"
                     IsVisible="{Binding IsProfileSelected}">
-              <TextBlock Text="{Binding ActiveProfileName, StringFormat='Profil: {0}'}"
+              <TextBlock Text="{Binding ActiveProfileName, StringFormat='Konto: {0}'}"
                          FontSize="11"
                          MaxWidth="160"
                          TextTrimming="CharacterEllipsis"
                          Foreground="{StaticResource MudBrushGoldBright}" />
             </Border>
-            <Button Content="Zmień profil"
+            <Button Content="Zmień konto"
                     Command="{Binding SwitchProfileCommand}"
                     FontSize="11"
                     Padding="8,3"
                     VerticalAlignment="Center"
-                    ToolTip.Tip="Przełączanie profilu jest możliwe po rozłączeniu sesji." />
+                    ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
             <Button Content="{Binding HiddenPanels.Count, StringFormat='Panele ({0})'}"
                     FontSize="11"
                     Padding="8,3"
@@ -174,17 +174,19 @@
               BorderThickness="1"
               Padding="24">
         <StackPanel Spacing="14">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="⚔" FontSize="28" Foreground="{StaticResource MudBrushGoldBright}" />
-            <StackPanel>
-              <TextBlock Classes="mud-heading-lg" Text="WYBIERZ PROFIL" />
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <TextBlock Grid.Column="0" Text="⚔" FontSize="28" Foreground="{StaticResource MudBrushGoldBright}" />
+            <StackPanel Grid.Column="1">
+              <TextBlock Classes="mud-heading-lg" Text="WYBIERZ KONTO" />
               <TextBlock Classes="mud-muted"
-                         Text="Profil przechowuje notatki, aliasy, triggery i timery postaci." />
+                         TextWrapping="Wrap"
+                         Text="Konto przechowuje hasło, notatki, aliasy, triggery i timery postaci." />
             </StackPanel>
-          </StackPanel>
+          </Grid>
 
           <TextBlock Classes="mud-faint"
-                     Text="Dwuklik na profilu łączy od razu."
+                     TextWrapping="Wrap"
+                     Text="Dwuklik na koncie łączy od razu."
                      IsVisible="{Binding HasProfiles}" />
 
           <ListBox x:Name="ProfileListBox"
@@ -203,35 +205,62 @@
             </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <TextBlock Text="🛡"
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <TextBlock Grid.Column="0"
+                             Text="🛡"
                              FontSize="16"
                              VerticalAlignment="Center"
                              Foreground="{StaticResource MudBrushGoldBright}" />
-                  <TextBlock Text="{Binding}"
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding}"
                              FontSize="14"
+                             TextTrimming="CharacterEllipsis"
                              VerticalAlignment="Center" />
-                </StackPanel>
+                  <Button Grid.Column="2"
+                          Content="🗑"
+                          FontSize="12"
+                          Padding="6,2"
+                          VerticalAlignment="Center"
+                          Command="{Binding $parent[Window].DataContext.DeleteProfileCommand}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="Usuń konto (bezpowrotnie kasuje plik konta)" />
+                </Grid>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
 
           <TextBlock Classes="mud-faint"
-                     Text="Brak zapisanych profili — utwórz pierwszy poniżej."
+                     TextWrapping="Wrap"
+                     Text="Brak zapisanych kont — utwórz pierwsze poniżej."
                      IsVisible="{Binding !HasProfiles}" />
 
-          <Button Content="Wybierz profil"
+          <TextBox Text="{Binding SelectedProfilePassword}"
+                   PasswordChar="●"
+                   PlaceholderText="Zmień hasło wybranego konta (opcjonalnie)"
+                   IsVisible="{Binding HasProfiles}"
+                   ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
+
+          <Button Content="Wybierz konto"
                   Command="{Binding SelectProfileCommand}"
                   HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center"
-                  Padding="16,7" />
+                  Padding="16,7"
+                  IsVisible="{Binding HasProfiles}" />
 
           <Separator />
 
+          <TextBlock Classes="mud-faint"
+                     TextWrapping="Wrap"
+                     Text="Nowe konto — po połączeniu klient sam wyśle nazwę i hasło." />
+
+          <TextBox Text="{Binding NewProfileName}"
+                   PlaceholderText="Nazwa konta" />
+
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBox Grid.Column="0"
-                     Text="{Binding NewProfileName}"
-                     PlaceholderText="Nazwa nowego profilu" />
+                     Text="{Binding NewProfilePassword}"
+                     PasswordChar="●"
+                     PlaceholderText="Hasło (zapisywane zaszyfrowane)" />
             <Button Grid.Column="1"
                     Content="Utwórz"
                     Command="{Binding CreateProfileCommand}"

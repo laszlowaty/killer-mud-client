@@ -7,6 +7,9 @@ public sealed class ProfileData
 {
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Account password encrypted with DPAPI (base64); empty = no password stored.</summary>
+    public string EncryptedPassword { get; set; } = string.Empty;
+
     public List<ProfileNote> Notes { get; set; } = [];
 
     public List<ProfileRule> Rules { get; set; } = [];

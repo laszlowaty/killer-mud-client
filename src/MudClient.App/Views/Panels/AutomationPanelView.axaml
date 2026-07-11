@@ -42,7 +42,7 @@
           </StackPanel>
 
           <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
-                    Content="Globalny — wspólny dla wszystkich profili" />
+                    Content="Globalny — wspólny dla wszystkich kont" />
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <Button Grid.Column="0" Content="{Binding TimerFormButtonText}"
@@ -76,7 +76,7 @@
                       <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
                     </Border>
                     <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                            ToolTip.Tip="Wspólny dla wszystkich profili">
+                            ToolTip.Tip="Wspólny dla wszystkich kont">
                       <TextBlock Text="GLOBALNY" />
                     </Border>
                   </StackPanel>
@@ -162,7 +162,7 @@
           </StackPanel>
 
           <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
-                    Content="Globalna — wspólna dla wszystkich profili" />
+                    Content="Globalna — wspólna dla wszystkich kont" />
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <Button Grid.Column="0" Content="{Binding RuleFormButtonText}"
@@ -177,7 +177,7 @@
       </Expander>
 
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Brak reguł w tym profilu. Dodaj alias (skrót komendy) albo trigger (automatyczna reakcja na tekst z gry)."
+                 Text="Brak reguł na tym koncie. Dodaj alias (skrót komendy) albo trigger (automatyczna reakcja na tekst z gry)."
                  IsVisible="{Binding !AutomationRules.Count}" />
 
       <ItemsControl ItemsSource="{Binding AutomationRules}">
@@ -191,7 +191,7 @@
                     <TextBlock Text="{Binding Type}" />
                   </Border>
                   <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                          ToolTip.Tip="Wspólna dla wszystkich profili">
+                          ToolTip.Tip="Wspólna dla wszystkich kont">
                     <TextBlock Text="GLOBALNA" />
                   </Border>
                   <TextBlock Grid.Column="2" Text="{Binding Name}"

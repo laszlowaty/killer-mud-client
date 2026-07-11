@@ -8,7 +8,7 @@
 
       <TextBlock Classes="mud-heading" Text="USTAWIENIA SYSTEMOWE" />
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Wspólne dla wszystkich profili. Zapisywane automatycznie." />
+                 Text="Wspólne dla wszystkich kont. Zapisywane automatycznie." />
 
       <TextBlock Classes="mud-heading" Text="TEKST Z MUDA" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10">
