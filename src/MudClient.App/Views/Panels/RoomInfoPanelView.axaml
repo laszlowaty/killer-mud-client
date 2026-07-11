@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.RoomInfoPanelView"
+             x:DataType="vm:MapViewModel">
+  <ScrollViewer>
+    <Grid ColumnDefinitions="*,Auto" Margin="12">
+      <!-- Left: details -->
+      <StackPanel Grid.Column="0" Spacing="8">
+        <TextBlock Classes="mud-heading" Text="SZCZEGÓŁY POKOJU" />
+
+        <Border Background="{StaticResource MudBrushVoid}"
+                CornerRadius="3" Padding="8">
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Id:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Id}" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Nazwa:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                         Text="{Binding SelectedRoom.Name}"
+                         TextTrimming="CharacterEllipsis" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Vnum:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Vnum}" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Sektor:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Sector}" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Środowisko:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                         Text="{Binding SelectedRoom.Environment}"
+                         TextTrimming="CharacterEllipsis" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Classes="mud-muted" Text="Waga:" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Weight}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Right: square room image -->
+      <Border Grid.Column="1"
+              Background="{StaticResource MudBrushVoid}"
+              BorderBrush="{StaticResource MudBrushGoldDim}"
+              BorderThickness="1"
+              CornerRadius="4"
+              Padding="6"
+              Margin="12,0,0,0"
+              Width="170"
+              Height="170"
+              VerticalAlignment="Top">
+        <Image Source="{Binding SelectedRoomIcon}"
+               Stretch="Uniform"
+               VerticalAlignment="Center"
+               HorizontalAlignment="Center" />
+      </Border>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

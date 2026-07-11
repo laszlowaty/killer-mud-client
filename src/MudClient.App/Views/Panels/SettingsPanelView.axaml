@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.SettingsPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="8" Margin="12">
+
+      <TextBlock Classes="mud-heading" Text="USTAWIENIA SYSTEMOWE" />
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Wspólne dla wszystkich profili. Zapisywane automatycznie." />
+
+      <TextBlock Classes="mud-heading" Text="TEKST Z MUDA" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-faint" Text="Czcionka" />
+            <ComboBox ItemsSource="{Binding AvailableFonts}"
+                      SelectedItem="{Binding OutputFontFamily}"
+                      HorizontalAlignment="Stretch"
+                      MaxDropDownHeight="320">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="13" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-faint" Text="Rozmiar" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding OutputFontSizeText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinOutputFontSize}"
+                    Maximum="{Binding MaxOutputFontSize}"
+                    Value="{Binding OutputFontSize}"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
+
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-faint" Text="Podgląd" />
+            <Border Classes="mud-inset" Padding="10,8">
+              <TextBlock Text="Strażnik miasta wchodzi z północy.&#x0a;&gt; zabij straznika"
+                         FontFamily="{Binding OutputFontFamily}"
+                         FontSize="{Binding OutputFontSize}"
+                         Foreground="{StaticResource MudBrushParchment}"
+                         TextWrapping="Wrap" />
+            </Border>
+          </StackPanel>
+
+          <Button Content="Przywróć domyślne"
+                  Command="{Binding ResetOutputFontCommand}"
+                  Classes="mud-small"
+                  HorizontalAlignment="Right" />
+
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

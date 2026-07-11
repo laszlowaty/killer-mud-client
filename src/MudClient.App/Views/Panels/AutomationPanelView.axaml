@@ -1,0 +1,237 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.App.Views.Panels.AutomationPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="8" Margin="12">
+
+      <!-- ===== Timery ===== -->
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="mud-heading" Text="TIMERY" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding Timers.Count}" />
+        </Border>
+      </Grid>
+
+      <Expander Classes="mud-expander"
+                Header="{Binding TimerFormHeader}"
+                IsExpanded="{Binding IsTimerFormExpanded}">
+        <StackPanel Spacing="8" Margin="0,8,0,0">
+          <TextBox Text="{Binding NewTimerName}" PlaceholderText="Nazwa timera…" />
+
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint" Text="Interwał powtarzania" />
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+              <TextBox Grid.Column="0" Text="{Binding NewTimerMinutes}"
+                       PlaceholderText="0" InnerRightContent="min" />
+              <TextBox Grid.Column="1" Text="{Binding NewTimerSeconds}"
+                       PlaceholderText="0" InnerRightContent="s" />
+              <TextBox Grid.Column="2" Text="{Binding NewTimerMilliseconds}"
+                       PlaceholderText="0" InnerRightContent="ms" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint" Text="Komendy — jedna w linii, wysyłane w kolejności" />
+            <TextBox Text="{Binding NewTimerCommands}"
+                     PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
+                     FontFamily="Consolas,Courier New,monospace"
+                     MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
+                    Content="Globalny — wspólny dla wszystkich profili" />
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Grid.Column="0" Content="{Binding TimerFormButtonText}"
+                    Command="{Binding AddTimerCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="16,6" />
+            <Button Grid.Column="1" Content="Anuluj"
+                    Command="{Binding CancelTimerEditCommand}"
+                    IsVisible="{Binding IsEditingTimer}" Padding="16,6" />
+          </Grid>
+        </StackPanel>
+      </Expander>
+
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak timerów. Timer powtarza komendy w nieskończoność, dopóki go nie wyłączysz."
+                 IsVisible="{Binding !Timers.Count}" />
+
+      <ItemsControl ItemsSource="{Binding Timers}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:TimerEntry">
+            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+              <StackPanel Spacing="6">
+
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
+                              VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                               FontSize="12" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <Border Classes="mud-badge mud-badge-gold">
+                      <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
+                    </Border>
+                    <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                            ToolTip.Tip="Wspólny dla wszystkich profili">
+                      <TextBlock Text="GLOBALNY" />
+                    </Border>
+                  </StackPanel>
+
+                  <ToggleButton Grid.Column="1" Classes="mud-switch"
+                                IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                Content="{Binding StatusText}"
+                                Click="ToggleTimer_OnClick"
+                                ToolTip.Tip="Włącz / wyłącz timer" />
+
+                  <Button Grid.Column="2"
+                          Classes="mud-small"
+                          Content="✎" Padding="6,2"
+                          ToolTip.Tip="Edytuj timer"
+                          Click="EditTimer_OnClick" />
+
+                  <Button Grid.Column="3"
+                          Classes="mud-small mud-danger"
+                          Content="✕" Padding="6,2"
+                          ToolTip.Tip="Usuń timer"
+                          Click="DeleteTimer_OnClick" />
+                </Grid>
+
+                <Border Classes="mud-inset" Padding="8,5">
+                  <TextBlock Text="{Binding CommandsText}"
+                             FontFamily="Consolas,Courier New,monospace"
+                             FontSize="11"
+                             Foreground="{StaticResource MudBrushParchmentDim}"
+                             TextWrapping="Wrap" />
+                </Border>
+
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- ===== Aliasy i triggery ===== -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBlock Classes="mud-heading" Text="ALIASY I TRIGGERY" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding AutomationRules.Count}" />
+        </Border>
+      </Grid>
+
+      <Expander Classes="mud-expander"
+                Header="{Binding RuleFormHeader}"
+                IsExpanded="{Binding IsRuleFormExpanded}">
+        <StackPanel Spacing="8" Margin="0,8,0,0">
+
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint" Text="Typ reguły" />
+            <ComboBox ItemsSource="{Binding RuleTypes}"
+                      SelectedItem="{Binding NewRuleType}"
+                      HorizontalAlignment="Stretch" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Alias podmienia komendę, którą wpisujesz. Trigger reaguje na linię z serwera."
+                       IsVisible="{Binding NewRuleIsAlias}" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Trigger wysyła akcję, gdy linia z serwera pasuje do wzorca."
+                       IsVisible="{Binding !NewRuleIsAlias}" />
+          </StackPanel>
+
+          <TextBox Text="{Binding NewRuleName}" PlaceholderText="Nazwa reguły…" />
+
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint" Text="Wzorzec (regex .NET)" />
+            <TextBox Text="{Binding NewRulePattern}"
+                     PlaceholderText="np. ^zb (.+)$  albo  (\w+) upada na ziemie"
+                     FontFamily="Consolas,Courier New,monospace" />
+            <TextBlock Text="{Binding NewRulePatternError}"
+                       Foreground="{StaticResource MudBrushCrimsonBright}"
+                       FontSize="11" TextWrapping="Wrap"
+                       IsVisible="{Binding HasNewRulePatternError}" />
+          </StackPanel>
+
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint" Text="Akcja — jedna komenda w linii; możesz użyć grup: $1, $2…" />
+            <TextBox Text="{Binding NewRuleAction}"
+                     PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
+                     FontFamily="Consolas,Courier New,monospace"
+                     MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
+                    Content="Globalna — wspólna dla wszystkich profili" />
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Grid.Column="0" Content="{Binding RuleFormButtonText}"
+                    Command="{Binding AddRuleCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="16,6" />
+            <Button Grid.Column="1" Content="Anuluj"
+                    Command="{Binding CancelRuleEditCommand}"
+                    IsVisible="{Binding IsEditingRule}" Padding="16,6" />
+          </Grid>
+        </StackPanel>
+      </Expander>
+
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak reguł w tym profilu. Dodaj alias (skrót komendy) albo trigger (automatyczna reakcja na tekst z gry)."
+                 IsVisible="{Binding !AutomationRules.Count}" />
+
+      <ItemsControl ItemsSource="{Binding AutomationRules}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:AutomationRuleEntry">
+            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+              <StackPanel Spacing="4">
+
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+                  <Border Grid.Column="0" Classes="mud-badge mud-badge-gold">
+                    <TextBlock Text="{Binding Type}" />
+                  </Border>
+                  <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                          ToolTip.Tip="Wspólna dla wszystkich profili">
+                    <TextBlock Text="GLOBALNA" />
+                  </Border>
+                  <TextBlock Grid.Column="2" Text="{Binding Name}"
+                             FontWeight="SemiBold" FontSize="12"
+                             VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" />
+                  <ToggleButton Grid.Column="3" Classes="mud-switch"
+                                IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                Content="{Binding StatusText}"
+                                Click="ToggleRule_OnClick"
+                                ToolTip.Tip="Włącz / wyłącz regułę" />
+                  <Button Grid.Column="4"
+                          Classes="mud-small"
+                          Content="✎" Padding="6,2"
+                          ToolTip.Tip="Edytuj regułę"
+                          Click="EditRule_OnClick" />
+                  <Button Grid.Column="5"
+                          Classes="mud-small mud-danger"
+                          Content="✕" Padding="6,2"
+                          ToolTip.Tip="Usuń regułę"
+                          Click="DeleteRule_OnClick" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
+                             FontFamily="Consolas,Courier New,monospace"
+                             Text="{Binding Pattern}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
+                             FontFamily="Consolas,Courier New,monospace"
+                             Text="{Binding Action}" TextWrapping="Wrap" />
+                </Grid>
+
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

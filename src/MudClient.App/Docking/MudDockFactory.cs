@@ -1,0 +1,301 @@
+using System.Collections.ObjectModel;
+using System.Linq;
+using Dock.Model.Controls;
+using Dock.Model.Core;
+using Dock.Model.Mvvm;
+using Dock.Model.Mvvm.Controls;
+
+namespace MudClient.App.Docking;
+
+/// <summary>
+/// Builds the default dock layout (map / room info | terminal | six right-side panels)
+/// and tracks tools the user has closed so they can be restored from the "Panele" menu.
+/// </summary>
+public sealed class MudDockFactory : Factory
+{
+    private readonly object _mapContext;
+    private readonly object _mainContext;
+
+    public MudDockFactory(object mapContext, object mainContext)
+    {
+        _mapContext = mapContext;
+        _mainContext = mainContext;
+    }
+
+    public List<PanelTool> AllTools { get; } = new();
+
+    public ObservableCollection<PanelTool> HiddenTools { get; } = new();
+
+    private PanelTool NewTool(string id, string title, Type viewType, object context)
+    {
+        var tool = new PanelTool
+        {
+            Id = id,
+            Title = title,
+            ViewType = viewType,
+            Context = context,
+            CanClose = true,
+            CanFloat = true,
+            CanPin = true,
+        };
+        AllTools.Add(tool);
+        return tool;
+    }
+
+    public override IRootDock CreateLayout()
+    {
+        var mapTool = NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
+        var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mapContext);
+        var terminalTool = NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
+        var characterTool = NewTool("Character", "⚔ Postać", typeof(Views.Panels.CharacterPanelView), _mainContext);
+        var automationTool = NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
+        var autowalkTool = NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
+        var notesTool = NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
+        var gmcpTool = NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
+        var settingsTool = NewTool("Settings", "🛠 Ustawienia", typeof(Views.Panels.SettingsPanelView), _mainContext);
+
+        var leftDock = new ToolDock
+        {
+            Id = "LeftPane",
+            Proportion = 0.25,
+            ActiveDockable = mapTool,
+            VisibleDockables = CreateList<IDockable>(mapTool, roomInfoTool),
+            Alignment = Alignment.Left,
+        };
+
+        var centerDock = new ToolDock
+        {
+            Id = "CenterPane",
+            Proportion = 0.5,
+            ActiveDockable = terminalTool,
+            VisibleDockables = CreateList<IDockable>(terminalTool),
+            Alignment = Alignment.Left,
+        };
+
+        var rightDock = new ToolDock
+        {
+            Id = "RightPane",
+            Proportion = 0.25,
+            ActiveDockable = characterTool,
+            VisibleDockables = CreateList<IDockable>(
+                characterTool, automationTool, autowalkTool, notesTool, gmcpTool, settingsTool),
+            Alignment = Alignment.Right,
+        };
+
+        var mainLayout = new ProportionalDock
+        {
+            Id = "MainLayout",
+            Orientation = Orientation.Horizontal,
+            VisibleDockables = CreateList<IDockable>(
+                leftDock,
+                new ProportionalDockSplitter { Id = "Splitter1" },
+                centerDock,
+                new ProportionalDockSplitter { Id = "Splitter2" },
+                rightDock),
+        };
+
+        var rootDock = CreateRootDock();
+        rootDock.Id = "Root";
+        rootDock.VisibleDockables = CreateList<IDockable>(mainLayout);
+        rootDock.ActiveDockable = mainLayout;
+        rootDock.DefaultDockable = mainLayout;
+
+        return rootDock;
+    }
+
+    public override void OnDockableClosed(IDockable? dockable)
+    {
+        base.OnDockableClosed(dockable);
+
+        if (dockable is PanelTool tool && !HiddenTools.Contains(tool))
+        {
+            HiddenTools.Add(tool);
+        }
+    }
+
+    /// <summary>Re-adds a previously closed panel back to its original dock.</summary>
+    public void Restore(PanelTool tool)
+    {
+        HiddenTools.Remove(tool);
+
+        var owner = tool.OriginalOwner as IDock ?? tool.Owner as IDock;
+        if (owner is null)
+        {
+            return;
+        }
+
+        AddDockable(owner, tool);
+        SetActiveDockable(tool);
+        SetFocusedDockable(owner, tool);
+    }
+
+    /// <summary>Rebuilds a brand-new default layout (fresh tools, fresh tree) and initializes it.</summary>
+    public IRootDock ResetToDefault()
+    {
+        AllTools.Clear();
+        HiddenTools.Clear();
+
+        var root = CreateLayout();
+        InitLayout(root);
+        return root;
+    }
+
+    // ========================================================================
+    // Layout persistence (save/restore panel arrangement across app restarts)
+    // ========================================================================
+
+    public DockLayoutSnapshot Snapshot(IRootDock root)
+    {
+        var rootChild = root.VisibleDockables?.FirstOrDefault();
+        return new DockLayoutSnapshot
+        {
+            Root = rootChild is null ? null : BuildNode(rootChild),
+            HiddenToolIds = HiddenTools.Select(t => t.Id!).ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Rebuilds <paramref name="root"/>'s tree from <paramref name="snapshot"/>, reusing the
+    /// live <see cref="PanelTool"/> instances in <see cref="AllTools"/>. Returns false (leaving
+    /// <paramref name="root"/> untouched) if the snapshot doesn't reference exactly the current
+    /// set of known tools — e.g. after an app update added/removed a panel.
+    /// </summary>
+    public bool TryApplySnapshot(IRootDock root, DockLayoutSnapshot snapshot)
+    {
+        if (snapshot.Root is null)
+        {
+            return false;
+        }
+
+        var referenced = new HashSet<string>();
+        CollectPanelIds(snapshot.Root, referenced);
+        var hidden = new HashSet<string>(snapshot.HiddenToolIds);
+        var known = AllTools.Select(t => t.Id!).ToHashSet();
+
+        if (referenced.Overlaps(hidden) || !new HashSet<string>(referenced.Union(hidden)).SetEquals(known))
+        {
+            return false;
+        }
+
+        var toolsById = AllTools.ToDictionary(t => t.Id!);
+        if (BuildFromSnapshot(snapshot.Root, toolsById) is not { } built)
+        {
+            return false;
+        }
+
+        root.VisibleDockables = CreateList<IDockable>(built);
+        root.ActiveDockable = built;
+        root.DefaultDockable = built;
+        InitLayout(root);
+
+        HiddenTools.Clear();
+        foreach (var id in hidden)
+        {
+            if (toolsById.TryGetValue(id, out var tool))
+            {
+                HiddenTools.Add(tool);
+            }
+        }
+
+        return true;
+    }
+
+    private static void CollectPanelIds(DockNodeSnapshot node, HashSet<string> ids)
+    {
+        if (node.Kind == "Panel" && node.Id is not null)
+        {
+            ids.Add(node.Id);
+        }
+
+        foreach (var child in node.Children)
+        {
+            CollectPanelIds(child, ids);
+        }
+    }
+
+    private static DockNodeSnapshot BuildNode(IDockable dockable) => dockable switch
+    {
+        PanelTool tool => new DockNodeSnapshot { Kind = "Panel", Id = tool.Id },
+        ProportionalDockSplitter splitter => new DockNodeSnapshot { Kind = "Splitter", Id = splitter.Id },
+        ProportionalDock pd => new DockNodeSnapshot
+        {
+            Kind = "Proportional",
+            Id = pd.Id,
+            Proportion = pd.Proportion,
+            Orientation = pd.Orientation.ToString(),
+            Children = pd.VisibleDockables?.Select(BuildNode).ToList() ?? new(),
+        },
+        ToolDock td => new DockNodeSnapshot
+        {
+            Kind = "ToolDock",
+            Id = td.Id,
+            Proportion = td.Proportion,
+            ActiveDockableId = (td.ActiveDockable as IDockable)?.Id,
+            Children = td.VisibleDockables?.Select(BuildNode).ToList() ?? new(),
+        },
+        _ => new DockNodeSnapshot { Kind = "Unknown", Id = dockable.Id },
+    };
+
+    private IDockable? BuildFromSnapshot(DockNodeSnapshot node, Dictionary<string, PanelTool> toolsById)
+    {
+        switch (node.Kind)
+        {
+            case "Panel":
+                return node.Id is not null && toolsById.TryGetValue(node.Id, out var tool) ? tool : null;
+
+            case "Splitter":
+                return new ProportionalDockSplitter { Id = node.Id ?? Guid.NewGuid().ToString() };
+
+            case "Proportional":
+            {
+                var children = node.Children
+                    .Select(c => BuildFromSnapshot(c, toolsById))
+                    .Where(d => d is not null)
+                    .Cast<IDockable>()
+                    .ToList();
+                if (children.Count == 0)
+                {
+                    return null;
+                }
+
+                return new ProportionalDock
+                {
+                    Id = node.Id ?? "Proportional",
+                    Proportion = node.Proportion,
+                    Orientation = Enum.TryParse<Orientation>(node.Orientation, out var orientation)
+                        ? orientation
+                        : Orientation.Horizontal,
+                    VisibleDockables = CreateList<IDockable>(children.ToArray()),
+                };
+            }
+
+            case "ToolDock":
+            {
+                var children = node.Children
+                    .Select(c => BuildFromSnapshot(c, toolsById))
+                    .Where(d => d is not null)
+                    .Cast<IDockable>()
+                    .ToList();
+                if (children.Count == 0)
+                {
+                    return null;
+                }
+
+                var active = node.ActiveDockableId is not null
+                    ? children.FirstOrDefault(c => c.Id == node.ActiveDockableId) ?? children[0]
+                    : children[0];
+
+                return new ToolDock
+                {
+                    Id = node.Id ?? "ToolDock",
+                    Proportion = node.Proportion,
+                    ActiveDockable = active,
+                    VisibleDockables = CreateList<IDockable>(children.ToArray()),
+                };
+            }
+
+            default:
+                return null;
+        }
+    }
+}

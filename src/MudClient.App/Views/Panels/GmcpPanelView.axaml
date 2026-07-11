@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.GmcpPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <!-- Shared card for a single GMCP message (received and sent lists) -->
+    <DataTemplate x:Key="GmcpEntryTemplate" x:DataType="vm:GmcpEntryViewModel">
+      <Border Classes="mud-section" Padding="8,6" Margin="0,2">
+        <StackPanel Spacing="3">
+          <Grid ColumnDefinitions="*,Auto">
+            <SelectableTextBlock Grid.Column="0"
+                                 Text="{Binding Package}"
+                                 FontWeight="SemiBold"
+                                 FontSize="12"
+                                 Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                                 TextWrapping="NoWrap" />
+            <SelectableTextBlock Grid.Column="1"
+                                 Classes="mud-faint"
+                                 Text="{Binding ReceivedAt}"
+                                 FontSize="10" />
+          </Grid>
+          <SelectableTextBlock Text="{Binding Json}"
+                               Classes="mud-faint"
+                               FontFamily="Consolas,Courier New,monospace"
+                               FontSize="10"
+                               TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <TabControl Classes="mud-subtabs">
+
+    <TabItem Header="Odebrane">
+      <Grid RowDefinitions="Auto,*" Margin="8,4,8,8">
+        <TextBlock Classes="mud-faint" TextWrapping="Wrap" Margin="0,4"
+                   Text="Jeszcze nic nie odebrano — połącz się z serwerem."
+                   IsVisible="{Binding !GmcpMessages.Count}" />
+        <ScrollViewer Grid.Row="1"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding GmcpMessages}"
+                        ItemTemplate="{StaticResource GmcpEntryTemplate}" />
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="Wysłane">
+      <Grid RowDefinitions="Auto,*" Margin="8,4,8,8">
+        <TextBlock Classes="mud-faint" TextWrapping="Wrap" Margin="0,4"
+                   Text="Jeszcze nic nie wysłano."
+                   IsVisible="{Binding !SentGmcpMessages.Count}" />
+        <ScrollViewer Grid.Row="1"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding SentGmcpMessages}"
+                        ItemTemplate="{StaticResource GmcpEntryTemplate}" />
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+  </TabControl>
+</UserControl>

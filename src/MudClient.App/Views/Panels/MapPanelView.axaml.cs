@@ -1,14 +1,13 @@
 using Avalonia.Controls;
-using Avalonia.Input;
 using MudClient.App.ViewModels;
 
-namespace MudClient.App.Views;
+namespace MudClient.App.Views.Panels;
 
-public sealed partial class MapView : UserControl
+public sealed partial class MapPanelView : UserControl
 {
     private MapViewModel? _viewModel;
 
-    public MapView()
+    public MapPanelView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;

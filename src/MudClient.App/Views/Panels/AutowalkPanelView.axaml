@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.App.Views.Panels.AutowalkPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="8" Margin="12">
+
+      <!-- Status -->
+      <TextBlock Classes="mud-heading" Text="STATUS" />
+      <Border Classes="mud-section" Padding="10,8">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock Classes="mud-muted" Text="Pozycja:" />
+            <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                       Text="{Binding Map.CurrentRoomName}"
+                       TextTrimming="CharacterEllipsis" />
+          </Grid>
+          <TextBlock Text="{Binding AutowalkStatusText}"
+                     Classes="mud-faint" TextWrapping="Wrap" />
+          <Button Content="■ STOP"
+                  Classes="mud-danger"
+                  Command="{Binding StopAutowalkCommand}"
+                  IsVisible="{Binding IsAutowalking}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Padding="16,6" />
+
+          <!-- Temporary target picked by double-clicking the map -->
+          <StackPanel Spacing="6" IsVisible="{Binding HasTemporaryTarget}">
+            <TextBlock Text="{Binding TemporaryTargetDisplay}"
+                       TextWrapping="Wrap" FontSize="12"
+                       Foreground="{StaticResource MudBrushGoldBright}" />
+            <Button Content="⚑ IDŹ DO CELU"
+                    Command="{Binding GoToTemporaryTargetCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="16,6" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Add location -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBlock Classes="mud-heading" Text="LOKACJE" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding Locations.Count}" />
+        </Border>
+      </Grid>
+
+      <Expander Classes="mud-expander" Header="＋ Nowa lokacja" IsExpanded="False">
+        <StackPanel Spacing="8" Margin="0,8,0,0">
+          <TextBox Text="{Binding NewLocationName}"
+                   PlaceholderText="Nazwa lokacji, np. plac-arras…" />
+          <Button Content="⚑ Dodaj obecną pozycję"
+                  Command="{Binding AddCurrentLocationCommand}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Padding="16,6"
+                  ToolTip.Tip="Zapisuje pokój, w którym teraz stoisz" />
+          <StackPanel Spacing="2">
+            <TextBlock Classes="mud-faint"
+                       Text="…albo podaj numer pomieszczenia (vnum) innej lokacji:" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBox Grid.Column="0" Text="{Binding NewLocationVnum}"
+                       PlaceholderText="np. 12477" />
+              <Button Grid.Column="1" Content="Dodaj"
+                      Command="{Binding AddLocationCommand}" Padding="16,6" />
+            </Grid>
+          </StackPanel>
+          <CheckBox IsChecked="{Binding NewLocationIsGlobal}"
+                    Content="Globalna — wspólna dla wszystkich profili" />
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Do zapisanej lokacji dojdziesz przyciskiem IDŹ albo komendą /idz &lt;nazwa&gt;. Komenda /stop przerywa marsz." />
+        </StackPanel>
+      </Expander>
+
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak zapisanych lokacji. Dodaj obecną pozycję albo wpisz vnum docelowego pokoju."
+                 IsVisible="{Binding !Locations.Count}" />
+
+      <ItemsControl ItemsSource="{Binding Locations}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:AutowalkLocation">
+            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                               FontSize="12" TextTrimming="CharacterEllipsis" />
+                    <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                            ToolTip.Tip="Wspólna dla wszystkich profili">
+                      <TextBlock Text="GLOBALNA" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="{Binding Display}" Classes="mud-faint"
+                             TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="mud-small"
+                        Content="⚑ IDŹ" Padding="8,2"
+                        ToolTip.Tip="Idź do tej lokacji"
+                        Click="GoToLocation_OnClick" />
+                <Button Grid.Column="2"
+                        Classes="mud-small mud-danger"
+                        Content="✕" Padding="6,2"
+                        ToolTip.Tip="Usuń lokację"
+                        Click="DeleteLocation_OnClick" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

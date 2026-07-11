@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text;
 using System.Text.RegularExpressions;
+using Dock.Model.Controls;
+using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Automation;
@@ -57,6 +60,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
+
+    private readonly MudDockFactory _dockFactory;
+    private readonly DockLayoutService _dockLayoutService;
+    private IRootDock _layout = null!;
 
     private string _host = "killer-mud.pl";
     private int _port = 4004;
@@ -185,6 +192,27 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
 
+        _dockFactory = new MudDockFactory(Map, this);
+        _dockLayoutService = new DockLayoutService();
+        Layout = _dockFactory.CreateLayout();
+        _dockFactory.InitLayout(Layout);
+
+        var savedLayout = _dockLayoutService.Load();
+        if (savedLayout is not null)
+        {
+            _dockFactory.TryApplySnapshot(Layout, savedLayout);
+        }
+
+        _dockFactory.HiddenTools.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HiddenPanels));
+        RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
+        {
+            if (tool is not null)
+            {
+                _dockFactory.Restore(tool);
+            }
+        });
+        ResetUiCommand = new RelayCommand(ResetUi);
+
         PopulateMockData();
 
         foreach (var name in _profiles.ListProfileNames())
@@ -201,6 +229,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public MapViewModel Map { get; }
+
+    public IRootDock Layout
+    {
+        get => _layout;
+        private set => SetProperty(ref _layout, value);
+    }
+
+    public ObservableCollection<PanelTool> HiddenPanels => _dockFactory.HiddenTools;
+
+    public IRelayCommand<PanelTool> RestorePanelCommand { get; }
+
+    public IRelayCommand ResetUiCommand { get; }
+
+    private void ResetUi()
+    {
+        _dockLayoutService.Delete();
+        Layout = _dockFactory.ResetToDefault();
+        OnPropertyChanged(nameof(HiddenPanels));
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -2507,6 +2554,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         SaveActiveProfile();
+
+        try
+        {
+            _dockLayoutService.Save(_dockFactory.Snapshot(Layout));
+        }
+        catch (IOException)
+        {
+            // Best-effort; the previous layout file (if any) remains on disk.
+        }
 
         _characterState.VitalsChanged -= OnCharacterVitalsChanged;
         _characterState.ConditionChanged -= OnCharacterConditionChanged;

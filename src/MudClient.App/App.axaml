@@ -1,9 +1,19 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:docking="using:MudClient.App.Docking"
+             xmlns:panels="using:MudClient.App.Views.Panels"
+             xmlns:dockThemes="using:Dock.Avalonia.Themes.Fluent"
              x:Class="MudClient.App.App"
              RequestedThemeVariant="Dark">
   <Application.Styles>
     <FluentTheme />
+    <dockThemes:DockFluentTheme />
     <StyleInclude Source="avares://MudClient.App/Styles/Theme.axaml" />
+    <StyleInclude Source="avares://MudClient.App/Styles/Docking.axaml" />
   </Application.Styles>
+  <Application.DataTemplates>
+    <DataTemplate DataType="docking:PanelTool">
+      <panels:PanelToolView />
+    </DataTemplate>
+  </Application.DataTemplates>
 </Application>

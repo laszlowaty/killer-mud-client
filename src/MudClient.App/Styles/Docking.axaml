@@ -1,0 +1,45 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dock="using:Dock.Avalonia.Controls"
+        xmlns:psp="using:Dock.Controls.ProportionalStackPanel">
+  <!--
+    Light-touch theming so Dock.Avalonia's chrome (tab strips, tool headers,
+    splitters) blends with the fantasy palette instead of the default Fluent look.
+  -->
+  <Style Selector="dock|ToolChromeControl">
+    <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
+  </Style>
+
+  <Style Selector="dock|DocumentTabStripItem, dock|ToolTabStripItem">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+  </Style>
+
+  <Style Selector="dock|DocumentTabStripItem:selected, dock|ToolTabStripItem:selected">
+    <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+  </Style>
+
+  <Style Selector="psp|ProportionalStackPanelSplitter">
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+  </Style>
+
+  <!--
+    Styles/Buttons.axaml defines a global "Button" style (fantasy-themed padding/
+    background/border) that also matches the tiny close/pin/maximize/menu buttons
+    inside Dock's tool chrome, squeezing their icon glyphs down to nothing. Reset
+    those properties back to the chrome defaults so the icons are visible again.
+  -->
+  <Style Selector="dock|ToolChromeControl Button">
+    <Setter Property="Padding" Value="{DynamicResource DockChromeButtonPadding}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+  </Style>
+
+  <Style Selector="dock|ToolChromeControl Button:pointerover">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+  </Style>
+</Styles>
