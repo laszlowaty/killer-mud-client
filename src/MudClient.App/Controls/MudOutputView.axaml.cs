@@ -26,6 +26,9 @@ public partial class MudOutputView : UserControl
         AvaloniaProperty.Register<MudOutputView, double>(
             nameof(OutputFontSize), 14);
 
+    public static readonly StyledProperty<bool> WordWrapProperty =
+        AvaloniaProperty.Register<MudOutputView, bool>(nameof(WordWrap), true);
+
     public FontFamily OutputFontFamily
     {
         get => GetValue(OutputFontFamilyProperty);
@@ -36,6 +39,12 @@ public partial class MudOutputView : UserControl
     {
         get => GetValue(OutputFontSizeProperty);
         set => SetValue(OutputFontSizeProperty, value);
+    }
+
+    public bool WordWrap
+    {
+        get => GetValue(WordWrapProperty);
+        set => SetValue(WordWrapProperty, value);
     }
 
     private const int MaximumLines = 10_000;
@@ -69,6 +78,7 @@ public partial class MudOutputView : UserControl
         _liveTailScroller.Content = _liveTailPane;
 
         ApplyFontToPanes();
+        ApplyWordWrapToPanes();
 
         // Start in single-pane mode.
         _isSplitMode = false;
@@ -122,12 +132,27 @@ public partial class MudOutputView : UserControl
         {
             ApplyFontToPanes();
         }
+
+        else if (change.Property == WordWrapProperty && _scrollbackPane is not null)
+        {
+            ApplyWordWrapToPanes();
+        }
     }
 
     private void ApplyFontToPanes()
     {
         _scrollbackPane.SetFont(OutputFontFamily, OutputFontSize);
         _liveTailPane.SetFont(OutputFontFamily, OutputFontSize);
+    }
+
+    private void ApplyWordWrapToPanes()
+    {
+        _scrollbackPane.WordWrap = WordWrap;
+        _liveTailPane.WordWrap = WordWrap;
+        _scrollbackScroller.HorizontalScrollBarVisibility = WordWrap
+            ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+        _liveTailScroller.HorizontalScrollBarVisibility = WordWrap
+            ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
     }
 
     private async void CopySelection_OnClick(object? sender, RoutedEventArgs eventArgs)

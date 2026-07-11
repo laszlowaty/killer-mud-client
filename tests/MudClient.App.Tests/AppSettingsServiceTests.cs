@@ -37,6 +37,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(";", settings.CommandStackingSeparator);
         Assert.Equal("Consolas", settings.OutputFontFamily);
         Assert.Equal(14, settings.OutputFontSize);
+        Assert.True(settings.OutputWordWrap);
     }
 
     // ====================================================================
@@ -111,6 +112,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             CommandStackingSeparator = "|",
             OutputFontFamily = "Arial",
             OutputFontSize = 16,
+            OutputWordWrap = false,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
         };
@@ -121,6 +123,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("|", loaded.CommandStackingSeparator);
         Assert.Equal("Arial", loaded.OutputFontFamily);
         Assert.Equal(16, loaded.OutputFontSize);
+        Assert.False(loaded.OutputWordWrap);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
     }

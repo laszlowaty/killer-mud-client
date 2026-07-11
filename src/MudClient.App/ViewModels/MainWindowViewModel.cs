@@ -507,6 +507,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public string OutputFontSizeText => $"{_settings.OutputFontSize:0} px";
 
+    public bool OutputWordWrap
+    {
+        get => _settings.OutputWordWrap;
+        set
+        {
+            if (_settings.OutputWordWrap == value)
+            {
+                return;
+            }
+
+            _settings.OutputWordWrap = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     /// <summary>
     /// Separator character for command stacking (e.g. ";").  Commands typed
     /// by the user, alias replacements, trigger actions, and timer commands

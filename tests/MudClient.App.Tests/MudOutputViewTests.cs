@@ -1,5 +1,6 @@
 using System.Reflection;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using MudClient.App.Controls;
@@ -9,6 +10,22 @@ namespace MudClient.App.Tests;
 
 public sealed class MudOutputViewTests
 {
+    [AvaloniaFact]
+    public void WordWrap_DisablesHorizontalScrollbars()
+    {
+        var output = new MudOutputView { WordWrap = true };
+
+        Assert.Equal(
+            ScrollBarVisibility.Disabled,
+            output.FindControl<ScrollViewer>("ScrollbackScroller")!.HorizontalScrollBarVisibility);
+
+        output.WordWrap = false;
+
+        Assert.Equal(
+            ScrollBarVisibility.Auto,
+            output.FindControl<ScrollViewer>("ScrollbackScroller")!.HorizontalScrollBarVisibility);
+    }
+
     [AvaloniaFact]
     public void CloseSplitButton_ReturnsOutputToSinglePane()
     {

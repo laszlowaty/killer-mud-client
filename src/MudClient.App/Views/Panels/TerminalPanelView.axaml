@@ -50,7 +50,8 @@
     <controls:MudOutputView Grid.Column="1" Grid.Row="1"
                             x:Name="MudOutput"
                             OutputFontFamily="{Binding OutputFontFamily}"
-                            OutputFontSize="{Binding OutputFontSize}" />
+                            OutputFontSize="{Binding OutputFontSize}"
+                            WordWrap="{Binding OutputWordWrap}" />
 
     <!-- Quick command chips -->
     <ScrollViewer Grid.Column="1" Grid.Row="2"

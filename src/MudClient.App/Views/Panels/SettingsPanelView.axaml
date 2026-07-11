@@ -28,6 +28,9 @@
             </ComboBox>
           </StackPanel>
 
+          <CheckBox Content="Zawijaj długie linie w oknie terminala"
+                    IsChecked="{Binding OutputWordWrap}" />
+
           <StackPanel Spacing="3">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="mud-faint" Text="Rozmiar" />

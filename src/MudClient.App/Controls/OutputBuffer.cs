@@ -13,11 +13,6 @@ internal sealed class OutputLine
     private readonly List<OutputSegment> _segments = [];
     private string? _cachedText;
 
-    // Render cache owned by OutputPaneControl. Invalidated by version comparison so the
-    // hot append path never has to walk or notify views.
-    internal TextLayout? CachedLayout;
-    internal int CachedFontVersion = -1;
-    internal int CachedMutationVersion = -1;
     internal int MutationVersion;
 
     public IReadOnlyList<OutputSegment> Segments => _segments;

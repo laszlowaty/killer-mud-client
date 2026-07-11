@@ -8,6 +8,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Rendering;
 using Avalonia.Utilities;
+using System.Runtime.CompilerServices;
 
 namespace MudClient.App.Controls;
 
@@ -46,6 +47,15 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     private double _lineHeight = 16;
     private double _charWidth = 8;
     private int _fontVersion;
+    private bool _wordWrap;
+    private readonly ConditionalWeakTable<OutputLine, LayoutCache> _layoutCache = new();
+
+    private sealed class LayoutCache
+    {
+        public TextLayout? Layout;
+        public int FontVersion = -1;
+        public int MutationVersion = -1;
+    }
 
     private bool _isSelecting;
     private bool _hasSelection;
@@ -62,6 +72,23 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     /// <summary>When true the pane keeps itself scrolled to the bottom as content arrives.</summary>
     public bool PinToBottom { get; set; } = true;
+
+    public bool WordWrap
+    {
+        get => _wordWrap;
+        set
+        {
+            if (_wordWrap == value)
+            {
+                return;
+            }
+
+            _wordWrap = value;
+            _fontVersion++;
+            _offset = new Vector(0, _offset.Y);
+            NotifyContentChanged();
+        }
+    }
 
     public OutputBuffer? Buffer
     {
@@ -206,7 +233,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             var line = buffer[(int)(global - firstAvailable)];
             var from = global == startLine ? Math.Min(startChar, line.Length) : 0;
             var to = global == endLine ? Math.Min(endChar, line.Length) : line.Length;
-            var layout = GetLayout(line);
+            var layout = BuildLayout(line, wordWrap: false);
             var range = GetSelectionBounds(layout, from, to);
             rows.Add((layout, range.X, range.Width));
             maximumWidth = Math.Max(maximumWidth, range.Width);
@@ -273,8 +300,8 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             }
 
             return new Size(
-                buffer.MaxLineLength * _charWidth + ExtentWidthPadding,
-                buffer.Count * _lineHeight);
+                _wordWrap ? _viewport.Width : buffer.MaxLineLength * _charWidth + ExtentWidthPadding,
+                GetContentHeight(buffer));
         }
     }
 
@@ -346,6 +373,11 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         {
             _viewport = finalSize;
 
+            if (_wordWrap)
+            {
+                _fontVersion++;
+            }
+
             if (PinToBottom)
             {
                 _offset = new Vector(_offset.X, MaxOffsetY());
@@ -377,11 +409,24 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         }
 
         var count = buffer.Count;
-        var firstVisible = Math.Clamp((int)(_offset.Y / _lineHeight), 0, count - 1);
-        var y = firstVisible * _lineHeight - _offset.Y;
+        var firstVisible = 0;
+        var contentY = 0d;
+        while (firstVisible < count)
+        {
+            var height = GetLayout(buffer[firstVisible]).Height;
+            if (contentY + height > _offset.Y)
+            {
+                break;
+            }
+
+            contentY += height;
+            firstVisible++;
+        }
+
+        var y = contentY - _offset.Y;
         var (selStartLine, selStartChar, selEndLine, selEndChar) = NormalizedSelection();
 
-        for (var i = firstVisible; i < count && y < Bounds.Height; i++, y += _lineHeight)
+        for (var i = firstVisible; i < count && y < Bounds.Height; i++)
         {
             var line = buffer[i];
             var layout = GetLayout(line);
@@ -416,26 +461,28 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             }
 
             layout.Draw(context, new Point(-_offset.X, y));
+            y += layout.Height;
         }
     }
 
     private TextLayout GetLayout(OutputLine line)
     {
-        if (line.CachedLayout is { } cached &&
-            line.CachedFontVersion == _fontVersion &&
-            line.CachedMutationVersion == line.MutationVersion)
+        var cache = _layoutCache.GetOrCreateValue(line);
+        if (cache.Layout is { } cached &&
+            cache.FontVersion == _fontVersion &&
+            cache.MutationVersion == line.MutationVersion)
         {
             return cached;
         }
 
-        var layout = BuildLayout(line);
-        line.CachedLayout = layout;
-        line.CachedFontVersion = _fontVersion;
-        line.CachedMutationVersion = line.MutationVersion;
+        var layout = BuildLayout(line, _wordWrap);
+        cache.Layout = layout;
+        cache.FontVersion = _fontVersion;
+        cache.MutationVersion = line.MutationVersion;
         return layout;
     }
 
-    private TextLayout BuildLayout(OutputLine line)
+    private TextLayout BuildLayout(OutputLine line, bool wordWrap)
     {
         var segments = line.Segments;
         List<ValueSpan<TextRunProperties>>? overrides = null;
@@ -465,6 +512,8 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             _typeface,
             _fontSize,
             DefaultForeground,
+            textWrapping: wordWrap ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            maxWidth: wordWrap ? Math.Max(1, _viewport.Width) : double.PositiveInfinity,
             textStyleOverrides: overrides?.ToArray());
     }
 
@@ -564,11 +613,23 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         }
 
         var globalY = point.Y + _offset.Y;
-        var index = Math.Clamp((int)(globalY / _lineHeight), 0, buffer.Count - 1);
+        var index = 0;
+        var lineTop = 0d;
+        while (index < buffer.Count - 1)
+        {
+            var height = GetLayout(buffer[index]).Height;
+            if (lineTop + height > globalY)
+            {
+                break;
+            }
+
+            lineTop += height;
+            index++;
+        }
         var line = buffer[index];
         var layout = GetLayout(line);
 
-        var hit = layout.HitTestPoint(new Point(point.X + _offset.X, globalY - index * _lineHeight));
+        var hit = layout.HitTestPoint(new Point(point.X + _offset.X, globalY - lineTop));
         var character = Math.Clamp(
             hit.TextPosition + (hit.IsTrailing ? 1 : 0),
             0,
@@ -610,4 +671,20 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     }
 
     private double MaxOffsetY() => Math.Max(0, Extent.Height - _viewport.Height);
+
+    private double GetContentHeight(OutputBuffer buffer)
+    {
+        if (!_wordWrap)
+        {
+            return buffer.Count * _lineHeight;
+        }
+
+        var height = 0d;
+        for (var i = 0; i < buffer.Count; i++)
+        {
+            height += GetLayout(buffer[i]).Height;
+        }
+
+        return height;
+    }
 }

@@ -24,6 +24,7 @@ Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [kill
 - kolory ANSI SGR: 16 kolorów, 256 kolorów, RGB, bold, underline i reset,
 - filtry kanałów nad terminalem: Wszystko / Walka / Czaty / System,
 - szybkie przyciski komend pod terminalem,
+- opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
 - zwirtualizowany bufor wyjścia: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`) — koszt dopisania tekstu nie zależy od wielkości scrollbacka, więc wielogodzinne sesje nie spowalniają UI,
 - zaznaczanie i kopiowanie tekstu lub kolorowego fragmentu terminala jako obrazu do schowka systemowego (przeciąganie myszą + menu kontekstowe).
 

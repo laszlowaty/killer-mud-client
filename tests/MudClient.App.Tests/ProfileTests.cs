@@ -257,6 +257,17 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal(AppSettings.MinOutputFontSize, vm.OutputFontSize);
     }
 
+    [Fact]
+    public async Task Vm_ChangingOutputWordWrap_PersistsToSettings()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.OutputWordWrap = false;
+
+        Assert.False(settingsService.Load().OutputWordWrap);
+    }
+
     // ====================================================================
     // MainWindowViewModel profile flow
     // ====================================================================

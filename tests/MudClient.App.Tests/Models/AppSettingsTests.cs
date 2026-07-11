@@ -39,6 +39,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_OutputWordWrapIsEnabledByDefault()
+    {
+        Assert.True(new AppSettings().OutputWordWrap);
+    }
+
+    [Fact]
     public void Constructor_AutoAssistIsDisabledByDefault()
     {
         Assert.False(new AppSettings().AutoAssistEnabled);
