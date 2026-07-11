@@ -122,6 +122,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _autowalkStatusText = "Bezczynny.";
     private AutowalkLocation? _temporaryTarget;
 
+    // --- Required buffs ---
+    private string _newBuffName = string.Empty;
+
+    /// <summary>
+    /// Normalized names from the latest Char.Affects, used to mark
+    /// required buffs as active/missing. Updated on the UI thread.
+    /// </summary>
+    private readonly HashSet<string> _activeAffectNames = new(StringComparer.OrdinalIgnoreCase);
+
     // --- Profiles ---
     private string? _activeProfileName;
     private string? _selectedProfileName;
@@ -159,6 +168,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DeleteLocationCommand = new RelayCommand<AutowalkLocation>(DeleteLocation);
         DeleteDeathCommand = new RelayCommand<DeathMarkEntry>(DeleteDeath);
         GoToDeathCommand = new RelayCommand<DeathMarkEntry>(GoToDeath);
+        AddBuffCommand = new RelayCommand(AddBuff, () => !string.IsNullOrWhiteSpace(NewBuffName));
+        DeleteBuffCommand = new RelayCommand<BuffWatchEntry>(DeleteBuff);
+        RecastBuffsCommand = new AsyncRelayCommand(RecastMissingBuffsAsync);
         GoToLocationCommand = new RelayCommand<AutowalkLocation>(entry =>
         {
             if (entry is not null)
@@ -250,6 +262,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _dockLayoutService.Delete();
         Layout = _dockFactory.ResetToDefault();
         OnPropertyChanged(nameof(HiddenPanels));
+
+        // ResetToDefault recreates all tools with default titles.
+        UpdateBuffsToolTitle();
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -1593,6 +1608,122 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     // ========================================================================
+    // Required buffs (user-defined, matched against Char.Affects)
+    // ========================================================================
+
+    /// <summary>Buffs the user wants to keep active. Persisted per profile.</summary>
+    public ObservableCollection<BuffWatchEntry> RequiredBuffs { get; } = [];
+
+    public RelayCommand AddBuffCommand { get; }
+    public RelayCommand<BuffWatchEntry> DeleteBuffCommand { get; }
+    public AsyncRelayCommand RecastBuffsCommand { get; }
+
+    /// <summary>Header badge for the buffs section, e.g. "2/3" (active/required).</summary>
+    public string BuffsBadge => RequiredBuffs.Count == 0
+        ? "0"
+        : $"{RequiredBuffs.Count(b => b.IsActive)}/{RequiredBuffs.Count}";
+
+    /// <summary>True when at least one required buff is missing.</summary>
+    public bool BuffsAlert => RequiredBuffs.Any(b => !b.IsActive);
+
+    private void RefreshBuffIndicators()
+    {
+        OnPropertyChanged(nameof(BuffsBadge));
+        OnPropertyChanged(nameof(BuffsAlert));
+        UpdateBuffsToolTitle();
+    }
+
+    /// <summary>
+    /// Mirrors the buff state onto the dock tab title ("🛡 Buffy 2/3"), so the
+    /// missing-buff signal is visible even when another tab covers the panel.
+    /// </summary>
+    private void UpdateBuffsToolTitle()
+    {
+        var tool = _dockFactory.AllTools.FirstOrDefault(
+            t => string.Equals(t.Id, MudDockFactory.BuffsToolId, StringComparison.Ordinal));
+        if (tool is null)
+        {
+            return;
+        }
+
+        tool.Title = RequiredBuffs.Count == 0 ? "🛡 Buffy" : $"🛡 Buffy {BuffsBadge}";
+    }
+
+    public string NewBuffName
+    {
+        get => _newBuffName;
+        set
+        {
+            if (SetProperty(ref _newBuffName, value))
+            {
+                AddBuffCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    private void AddBuff()
+    {
+        var name = NewBuffName.Trim();
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        var normalized = BuffWatchEntry.NormalizeName(name);
+        if (RequiredBuffs.Any(b => string.Equals(
+                BuffWatchEntry.NormalizeName(b.Name), normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            AddToast($"Buff „{name}” jest już na liście.", "info");
+            return;
+        }
+
+        RequiredBuffs.Add(new BuffWatchEntry(name)
+        {
+            IsActive = _activeAffectNames.Contains(normalized),
+        });
+        NewBuffName = string.Empty;
+        RefreshBuffIndicators();
+        SaveActiveProfile();
+    }
+
+    private void DeleteBuff(BuffWatchEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        RequiredBuffs.Remove(entry);
+        RefreshBuffIndicators();
+        SaveActiveProfile();
+    }
+
+    /// <summary>
+    /// Sends "cast &quot;nazwa&quot; self" for every required buff missing from
+    /// the latest Char.Affects. Bound to the RECAST button and the /recast command.
+    /// </summary>
+    private async Task RecastMissingBuffsAsync()
+    {
+        if (!IsConnected)
+        {
+            AddToast("Nie połączono — nie można rzucić buffów.", "error");
+            return;
+        }
+
+        var missing = RequiredBuffs.Where(b => !b.IsActive).ToList();
+        if (missing.Count == 0)
+        {
+            AddToast("Wszystkie wymagane buffy są aktywne.", "info");
+            return;
+        }
+
+        foreach (var buff in missing)
+        {
+            await SendTriggeredCommandAsync($"cast \"{buff.Name}\" self");
+        }
+    }
+
+    // ========================================================================
     // Profiles
     // ========================================================================
 
@@ -1722,6 +1853,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Timers.Clear();
         Locations.Clear();
         Deaths.Clear();
+        RequiredBuffs.Clear();
 
         // Globals first, then the profile's own entries.
         LoadGlobalEntries();
@@ -1756,6 +1888,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 string.IsNullOrWhiteSpace(death.RoomName) ? room?.Name : death.RoomName,
                 death.When));
         }
+
+        foreach (var buffName in profile.RequiredBuffs)
+        {
+            RequiredBuffs.Add(new BuffWatchEntry(buffName)
+            {
+                IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buffName)),
+            });
+        }
+
+        RefreshBuffIndicators();
 
         ActiveProfileName = profile.Name;
         ApplyAutomation();
@@ -1894,6 +2036,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 RoomName = d.RoomName ?? string.Empty,
                 When = d.When,
             }).ToList(),
+            RequiredBuffs = RequiredBuffs.Select(b => b.Name).ToList(),
         };
 
         try
@@ -2064,6 +2207,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (TryHandleAutowalkCommand(segment))
             {
+                continue;
+            }
+
+            if (string.Equals(segment, "/recast", StringComparison.OrdinalIgnoreCase))
+            {
+                await RecastMissingBuffsAsync();
                 continue;
             }
 
@@ -2473,10 +2622,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             Effects.Clear();
+            _activeAffectNames.Clear();
             foreach (var affect in affects)
             {
                 Effects.Add(StatusEffect.FromCore(affect));
+                _activeAffectNames.Add(BuffWatchEntry.NormalizeName(affect.Name));
             }
+
+            foreach (var buff in RequiredBuffs)
+            {
+                buff.IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buff.Name));
+            }
+
+            RefreshBuffIndicators();
         });
     }
 
@@ -2518,6 +2676,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 MemSpells.Add(circle);
             }
+
         });
     }
 

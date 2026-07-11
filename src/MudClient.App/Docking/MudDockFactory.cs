@@ -22,6 +22,9 @@ public sealed class MudDockFactory : Factory
         _mainContext = mainContext;
     }
 
+    /// <summary>Id of the required-buffs tool; its tab title carries a live x/y badge.</summary>
+    public const string BuffsToolId = "Buffs";
+
     public List<PanelTool> AllTools { get; } = new();
 
     public ObservableCollection<PanelTool> HiddenTools { get; } = new();
@@ -47,7 +50,13 @@ public sealed class MudDockFactory : Factory
         var mapTool = NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
         var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mapContext);
         var terminalTool = NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
-        var characterTool = NewTool("Character", "⚔ Postać", typeof(Views.Panels.CharacterPanelView), _mainContext);
+        var infoTool = NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
+        var conditionTool = NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
+        var effectsTool = NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
+        var buffsTool = NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
+        var roomPeopleTool = NewTool("RoomPeople", "👁 Pokój", typeof(Views.Panels.RoomPeoplePanelView), _mainContext);
+        var groupTool = NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
+        var memSpellsTool = NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
         var automationTool = NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
         var autowalkTool = NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
         var notesTool = NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
@@ -72,14 +81,37 @@ public sealed class MudDockFactory : Factory
             Alignment = Alignment.Left,
         };
 
-        var rightDock = new ToolDock
+        // Character sections are individual tools so the user can drag any of
+        // them anywhere (tabs, splits, floating windows) like every other panel.
+        var rightTopDock = new ToolDock
+        {
+            Id = "RightTopPane",
+            Proportion = 0.5,
+            ActiveDockable = infoTool,
+            VisibleDockables = CreateList<IDockable>(
+                infoTool, conditionTool, effectsTool, buffsTool, roomPeopleTool, groupTool, memSpellsTool),
+            Alignment = Alignment.Right,
+        };
+
+        var rightBottomDock = new ToolDock
+        {
+            Id = "RightBottomPane",
+            Proportion = 0.5,
+            ActiveDockable = automationTool,
+            VisibleDockables = CreateList<IDockable>(
+                automationTool, autowalkTool, notesTool, gmcpTool, settingsTool),
+            Alignment = Alignment.Right,
+        };
+
+        var rightDock = new ProportionalDock
         {
             Id = "RightPane",
             Proportion = 0.25,
-            ActiveDockable = characterTool,
+            Orientation = Orientation.Vertical,
             VisibleDockables = CreateList<IDockable>(
-                characterTool, automationTool, autowalkTool, notesTool, gmcpTool, settingsTool),
-            Alignment = Alignment.Right,
+                rightTopDock,
+                new ProportionalDockSplitter { Id = "SplitterRight" },
+                rightBottomDock),
         };
 
         var mainLayout = new ProportionalDock

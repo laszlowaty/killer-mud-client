@@ -17,6 +17,9 @@ public sealed class ProfileData
 
     /// <summary>Last 10 death locations, newest first.</summary>
     public List<ProfileDeath> Deaths { get; set; } = [];
+
+    /// <summary>Buff names the character wants to keep active (see BuffWatchEntry).</summary>
+    public List<string> RequiredBuffs { get; set; } = [];
 }
 
 /// <summary>

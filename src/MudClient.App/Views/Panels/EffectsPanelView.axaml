@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.App.Views.Panels.EffectsPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <!-- Effects (live from Char.Affects GMCP) -->
+  <ScrollViewer>
+    <StackPanel Spacing="2" Margin="12">
+      <TextBlock Classes="mud-faint" Text="Brak aktywnych efektów."
+                 IsVisible="{Binding !Effects.Count}" />
+      <ItemsControl ItemsSource="{Binding Effects}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:StatusEffect">
+            <Grid>
+              <Border BorderBrush="{StaticResource MudBrushCrimson}"
+                      BorderThickness="1"
+                      CornerRadius="3"
+                      Padding="6,3"
+                      Margin="0,1"
+                      IsVisible="{Binding IsDebuff}">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      RowDefinitions="Auto,Auto">
+                  <TextBlock Grid.Column="0" Grid.Row="0"
+                             Text="{Binding Icon}" FontSize="12"
+                             Foreground="{StaticResource MudBrushCrimsonBright}"
+                             Margin="0,0,6,0" />
+                  <TextBlock Grid.Column="1" Grid.Row="0"
+                             Text="{Binding Name}" FontSize="12"
+                             Foreground="{StaticResource MudBrushCrimsonBright}"
+                             ToolTip.Tip="{Binding Description}" />
+                  <TextBlock Grid.Column="2" Grid.Row="0"
+                             Text="{Binding Duration}"
+                             FontSize="11"
+                             Classes="mud-faint"
+                             HorizontalAlignment="Right"
+                             Margin="6,0,0,0"
+                             IsVisible="{Binding HasDuration}" />
+                  <TextBlock Grid.Column="1" Grid.Row="1"
+                             Grid.ColumnSpan="2"
+                             Text="{Binding Description}"
+                             FontSize="10"
+                             Classes="mud-faint"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding HasDescription}" />
+                </Grid>
+              </Border>
+              <Border BorderBrush="{StaticResource MudBrushEmerald}"
+                      BorderThickness="1"
+                      CornerRadius="3"
+                      Padding="6,3"
+                      Margin="0,1"
+                      IsVisible="{Binding !IsDebuff}">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      RowDefinitions="Auto,Auto">
+                  <TextBlock Grid.Column="0" Grid.Row="0"
+                             Text="{Binding Icon}" FontSize="12"
+                             Foreground="{StaticResource MudBrushEmeraldBright}"
+                             Margin="0,0,6,0" />
+                  <TextBlock Grid.Column="1" Grid.Row="0"
+                             Text="{Binding Name}" FontSize="12"
+                             ToolTip.Tip="{Binding Description}" />
+                  <TextBlock Grid.Column="2" Grid.Row="0"
+                             Text="{Binding Duration}"
+                             FontSize="11"
+                             Classes="mud-faint"
+                             HorizontalAlignment="Right"
+                             Margin="6,0,0,0"
+                             IsVisible="{Binding HasDuration}" />
+                  <TextBlock Grid.Column="1" Grid.Row="1"
+                             Grid.ColumnSpan="2"
+                             Text="{Binding Description}"
+                             FontSize="10"
+                             Classes="mud-faint"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding HasDescription}" />
+                </Grid>
+              </Border>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

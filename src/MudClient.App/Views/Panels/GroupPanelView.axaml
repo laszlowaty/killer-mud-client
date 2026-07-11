@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.App.Views.Panels.GroupPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <!-- Group (live from Char.Group GMCP) -->
+  <ScrollViewer>
+    <StackPanel Spacing="2" Margin="12">
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak członków drużyny."
+                 IsVisible="{Binding !Group.Count}" />
+      <ItemsControl ItemsSource="{Binding Group}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:GroupMember">
+            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+              <StackPanel Spacing="2">
+                <!-- Row 1: leader marker + name + NPC marker -->
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding LeaderMarker}"
+                             Foreground="{StaticResource MudBrushGoldBright}"
+                             FontWeight="Bold" />
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="{Binding NpcDisplay}"
+                             FontSize="9"
+                             Foreground="{StaticResource MudBrushParchmentDim}" />
+                </StackPanel>
+                <!-- Row 2: HP + MV + MEM -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock FontSize="10"
+                             Foreground="{StaticResource MudBrushCrimson}"
+                             Text="{Binding HpDisplay}" />
+                  <TextBlock FontSize="10"
+                             Foreground="{StaticResource MudBrushEmerald}"
+                             Text="{Binding MvDisplay}" />
+                  <TextBlock FontSize="10"
+                             Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                             Text="{Binding MemDisplay}"
+                             IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <!-- Row 3: position + room -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock FontSize="10" Foreground="{StaticResource MudBrushParchmentDim}"
+                             ToolTip.Tip="Pozycja"
+                             Text="{Binding PositionDisplay}" />
+                  <TextBlock FontSize="10" Foreground="{StaticResource MudBrushParchmentFaint}"
+                             ToolTip.Tip="Pokój"
+                             Text="{Binding RoomDisplay}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

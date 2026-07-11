@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.CharacterInfoPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <!-- Character info (live from Char.Vitals GMCP) -->
+  <ScrollViewer>
+    <StackPanel Spacing="4" Margin="12" DataContext="{Binding Vitals}">
+      <Grid ColumnDefinitions="Auto,*">
+        <TextBlock Classes="mud-muted" Text="Imię:" />
+        <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                   Text="{Binding Name}" FontWeight="SemiBold"
+                   Foreground="{StaticResource MudBrushGoldBright}" />
+      </Grid>
+      <Grid ColumnDefinitions="Auto,*">
+        <TextBlock Classes="mud-muted" Text="Poziom:" />
+        <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                   Text="{Binding Level}" FontWeight="Bold" />
+      </Grid>
+      <Grid ColumnDefinitions="Auto,*">
+        <TextBlock Classes="mud-muted" Text="Płeć:" />
+        <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                   Text="{Binding SexDisplay}" />
+      </Grid>
+      <Grid ColumnDefinitions="Auto,*">
+        <TextBlock Classes="mud-muted" Text="Pozycja:" />
+        <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                   Text="{Binding PositionDisplay}"
+                   Foreground="{StaticResource MudBrushArcaneBlue}" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

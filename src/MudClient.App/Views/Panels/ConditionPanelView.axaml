@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.ConditionPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <!-- Conditions (live from Char.Condition GMCP) -->
+  <ScrollViewer>
+    <StackPanel Spacing="4" Margin="12">
+      <TextBlock Classes="mud-faint" Text="W pełni sił — brak dolegliwości."
+                 IsVisible="{Binding !Conditions.Count}" />
+      <ItemsControl ItemsSource="{Binding Conditions}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border Background="{StaticResource MudBrushStoneLight}"
+                    BorderBrush="{StaticResource MudBrushCrimson}"
+                    BorderThickness="1"
+                    CornerRadius="3" Padding="7,3" Margin="0,2,4,2">
+              <TextBlock Text="{Binding}" FontSize="11"
+                         Foreground="{StaticResource MudBrushCrimsonBright}" />
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
