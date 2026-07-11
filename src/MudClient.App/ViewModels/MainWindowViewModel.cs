@@ -110,6 +110,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private MapIndex? _pathfinderIndex;
     private MapPath? _autowalkPath;
     private int _autowalkStep;
+    private int _autowalkRecomputes;
     private string? _autowalkTargetName;
     private string _autowalkStatusText = "Bezczynny.";
     private AutowalkLocation? _temporaryTarget;
@@ -1173,6 +1174,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.CenterOnPlayer();
         _autowalkPath = path;
         _autowalkStep = 0;
+        _autowalkRecomputes = 0;
         _autowalkTargetName = entry.Name;
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
@@ -1213,6 +1215,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // entered by its name — the plain direction command does not work.
         var exit = FindGmcpExit(step.Command);
         var moveCommand = RemoveDiacritics(exit?.Name) ?? step.Command;
+        if (!string.Equals(moveCommand, step.Command, StringComparison.OrdinalIgnoreCase))
+        {
+            EmitSystem($"Autowalk: krok „{step.Command}” wysyłam jako „{moveCommand}”.", 90);
+        }
 
         _ = SendAutowalkCommandsAsync(TryGetOpenCommand(exit), moveCommand);
     }
@@ -1315,6 +1321,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 if (string.Equals(steps[i].ToRoom.Vnum, vnum, StringComparison.Ordinal))
                 {
+                    _autowalkRecomputes = 0;
                     _autowalkStep = i + 1;
                     if (_autowalkStep >= steps.Count)
                     {
@@ -1332,7 +1339,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             // Off the planned route — recompute from where we actually are.
+            // A recompute is expected occasionally (a failed or extra move), but a
+            // recompute on every step means the map disagrees with the server
+            // (e.g. duplicate vnums or a misdirected named exit) — without this
+            // guard the walk degenerates into an endless move/BFS loop that
+            // floods the server with commands and starves the UI thread.
             var targetName = _autowalkTargetName;
+            _autowalkRecomputes++;
+            EmitSystem(
+                $"Autowalk: pokój {vnum} poza trasą — przeliczam trasę ({_autowalkRecomputes}/5).", 33);
+            if (_autowalkRecomputes >= 5)
+            {
+                StopAutowalk(
+                    $"Autowalk przerwany: trasa do „{targetName}” schodzi z kursu przy każdym kroku (mapa niezgodna z serwerem?).",
+                    "error");
+                return;
+            }
+
             var path = GetPathfinder()?.FindPathByVnum(vnum, _autowalkPath.To.Vnum ?? string.Empty);
             if (path is null)
             {
