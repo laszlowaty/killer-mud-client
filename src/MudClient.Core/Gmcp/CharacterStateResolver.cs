@@ -40,6 +40,14 @@ public sealed record CharacterGroupUpdate(
     string? Leader,
     IReadOnlyList<CharacterGroupMember> Members);
 
+/// <summary>A single memorized spell slot from Char.MemSpell GMCP.</summary>
+public sealed record MemorizedSpell(
+    int Counter,
+    int Circle,
+    string Name,
+    bool Memed,
+    bool Meming);
+
 /// <summary>A single affect from Char.Affects GMCP.</summary>
 public sealed record CharacterAffect(
     string Name,
@@ -49,7 +57,7 @@ public sealed record CharacterAffect(
     string? ExtraValue);
 
 /// <summary>
-/// Translates Char.Vitals / Char.Condition / Room.People / Char.Group GMCP
+/// Translates Char.Vitals / Char.Condition / Room.People / Char.Group / Char.MemSpell GMCP
 /// messages into typed updates. Malformed or unknown messages are ignored.
 /// </summary>
 public sealed class CharacterStateResolver
@@ -64,6 +72,8 @@ public sealed class CharacterStateResolver
 
     public event Action<IReadOnlyList<CharacterAffect>>? AffectsChanged;
 
+    public event Action<IReadOnlyList<MemorizedSpell>>? MemSpellsChanged;
+
     public void Process(GmcpMessage message)
     {
         if (string.IsNullOrWhiteSpace(message.Json))
@@ -75,11 +85,12 @@ public sealed class CharacterStateResolver
         var isCondition = string.Equals(message.Package, "Char.Condition", StringComparison.OrdinalIgnoreCase);
         var isGroup = string.Equals(message.Package, "Char.Group", StringComparison.OrdinalIgnoreCase);
         var isAffects = string.Equals(message.Package, "Char.Affects", StringComparison.OrdinalIgnoreCase);
+        var isMemSpells = string.Equals(message.Package, "Char.MemSpell", StringComparison.OrdinalIgnoreCase);
         // Room.Info carries the same people array on this server; its object-shaped
         // variant (room metadata) is handled by GmcpLocationResolver instead.
         var isPeople = string.Equals(message.Package, "Room.People", StringComparison.OrdinalIgnoreCase)
                        || string.Equals(message.Package, "Room.Info", StringComparison.OrdinalIgnoreCase);
-        if (!isVitals && !isCondition && !isPeople && !isGroup && !isAffects)
+        if (!isVitals && !isCondition && !isPeople && !isGroup && !isAffects && !isMemSpells)
         {
             return;
         }
@@ -113,6 +124,16 @@ public sealed class CharacterStateResolver
                 if (root.ValueKind == JsonValueKind.Array)
                 {
                     AffectsChanged?.Invoke(ParseAffects(root));
+                }
+
+                return;
+            }
+
+            if (isMemSpells)
+            {
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    MemSpellsChanged?.Invoke(ParseMemSpells(root));
                 }
 
                 return;
@@ -188,6 +209,38 @@ public sealed class CharacterStateResolver
         }
 
         return people;
+    }
+
+    private static List<MemorizedSpell> ParseMemSpells(JsonElement array)
+    {
+        var spells = new List<MemorizedSpell>();
+        foreach (var element in array.EnumerateArray())
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var name = GetString(element, "name")?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                continue;
+            }
+
+            var memed = element.TryGetProperty("memed", out var memedProp)
+                        && memedProp.ValueKind == JsonValueKind.True;
+            var meming = element.TryGetProperty("meming", out var memingProp)
+                         && memingProp.ValueKind == JsonValueKind.True;
+
+            spells.Add(new MemorizedSpell(
+                Counter: GetInt(element, "counter") ?? 0,
+                Circle: GetInt(element, "circle") ?? 0,
+                Name: name,
+                Memed: memed,
+                Meming: meming));
+        }
+
+        return spells;
     }
 
     private static List<CharacterAffect> ParseAffects(JsonElement array)

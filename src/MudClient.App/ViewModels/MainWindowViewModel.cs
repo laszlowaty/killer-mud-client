@@ -170,6 +170,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.PeopleChanged += OnRoomPeopleChanged;
         _characterState.GroupChanged += OnGroupChanged;
         _characterState.AffectsChanged += OnCharacterAffectsChanged;
+        _characterState.MemSpellsChanged += OnMemSpellsChanged;
 
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
@@ -1756,6 +1757,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // --- Group members (mock) ---
     public ObservableCollection<GroupMember> Group { get; } = [];
 
+    public ObservableCollection<MemSpellCircle> MemSpells { get; } = [];
+
     // --- Automation rules (mock) ---
     public ObservableCollection<AutomationRuleEntry> AutomationRules { get; } = [];
 
@@ -2281,6 +2284,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
+    private void OnMemSpellsChanged(IReadOnlyList<MemorizedSpell> spells)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            MemSpells.Clear();
+            foreach (var circle in MemSpellCircle.FromCore(spells))
+            {
+                MemSpells.Add(circle);
+            }
+        });
+    }
+
     /// <summary>
     /// Resolves a raw room vnum to a display string.
     /// Uses the loaded map room name when available, falls back to "pokój {vnum}",
@@ -2474,6 +2489,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.ConditionChanged -= OnCharacterConditionChanged;
         _characterState.PeopleChanged -= OnRoomPeopleChanged;
         _characterState.GroupChanged -= OnGroupChanged;
+        _characterState.MemSpellsChanged -= OnMemSpellsChanged;
         _characterState.AffectsChanged -= OnCharacterAffectsChanged;
 
         _session.TextReceived -= OnTextReceived;

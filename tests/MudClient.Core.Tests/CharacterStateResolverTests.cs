@@ -48,6 +48,40 @@ public sealed class CharacterStateResolverTests
     }
 
     [Fact]
+    public void Process_CharMemSpell_RaisesMemSpellsChanged()
+    {
+        IReadOnlyList<MemorizedSpell>? spells = null;
+        _resolver.MemSpellsChanged += s => spells = s;
+
+        _resolver.Process(new GmcpMessage(
+            "Char.MemSpell",
+            """[ { "counter": 1, "circle": 1, "name": "armor", "memed": true, "meming": false }, { "counter": 2, "circle": 4, "name": "cure serious", "memed": false, "meming": true } ]"""));
+
+        Assert.NotNull(spells);
+        Assert.Equal(2, spells!.Count);
+        Assert.Equal(new MemorizedSpell(1, 1, "armor", Memed: true, Meming: false), spells[0]);
+        Assert.Equal(new MemorizedSpell(2, 4, "cure serious", Memed: false, Meming: true), spells[1]);
+    }
+
+    [Fact]
+    public void Process_CharMemSpell_IgnoresMalformedEntriesAndNonArray()
+    {
+        IReadOnlyList<MemorizedSpell>? spells = null;
+        _resolver.MemSpellsChanged += s => spells = s;
+
+        _resolver.Process(new GmcpMessage("Char.MemSpell", """{ "counter": 1 }"""));
+        Assert.Null(spells);
+
+        _resolver.Process(new GmcpMessage(
+            "Char.MemSpell",
+            """[ { "counter": 1, "circle": 1, "memed": true }, 42, { "counter": 2, "circle": 2, "name": "blur", "memed": true, "meming": false } ]"""));
+
+        Assert.NotNull(spells);
+        var spell = Assert.Single(spells!);
+        Assert.Equal("blur", spell.Name);
+    }
+
+    [Fact]
     public void Process_PositionPrefix_IsNormalizedCaseInsensitively()
     {
         CharacterConditionUpdate? update = null;

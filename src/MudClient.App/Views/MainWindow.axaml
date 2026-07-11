@@ -507,6 +507,36 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
+                <!-- Memorized spells (live from Char.MemSpell GMCP) -->
+                <TextBlock Classes="mud-heading" Text="MEM (ZAKLĘCIA)" Margin="0,6,0,0" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Brak zapamiętanych zaklęć."
+                           IsVisible="{Binding !MemSpells.Count}" />
+                <ItemsControl ItemsSource="{Binding MemSpells}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:MemSpellCircle">
+                      <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+                        <StackPanel Spacing="2">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{StaticResource MudBrushArcaneBlueBright}" />
+                            <TextBlock Grid.Column="1" Text="{Binding CountDisplay}"
+                                       FontSize="11" Classes="mud-faint" />
+                          </Grid>
+                          <TextBlock Text="{Binding MemedDisplay}"
+                                     FontSize="10" TextWrapping="Wrap"
+                                     IsVisible="{Binding HasMemed}" />
+                          <TextBlock Text="{Binding MemingDisplay}"
+                                     FontSize="10" TextWrapping="Wrap"
+                                     Foreground="{StaticResource MudBrushGoldBright}"
+                                     ToolTip.Tip="W trakcie zapamiętywania"
+                                     IsVisible="{Binding HasMeming}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
               </StackPanel>
             </ScrollViewer>
           </TabItem>
