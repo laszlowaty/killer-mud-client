@@ -38,6 +38,18 @@ public sealed class AppSettingsTests
         Assert.Equal(14, settings.OutputFontSize);
     }
 
+    [Fact]
+    public void Constructor_AutoAssistIsDisabledByDefault()
+    {
+        Assert.False(new AppSettings().AutoAssistEnabled);
+    }
+
+    [Fact]
+    public void Constructor_GroupOrdersAreDisabledByDefault()
+    {
+        Assert.False(new AppSettings().GroupOrdersEnabled);
+    }
+
     // ====================================================================
     // Property round-trip
     // ====================================================================

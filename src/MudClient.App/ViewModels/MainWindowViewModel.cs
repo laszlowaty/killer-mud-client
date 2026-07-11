@@ -25,6 +25,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly GmcpLocationResolver _locationResolver = new();
     private readonly RoomExitsResolver _roomExits = new();
     private readonly CharacterStateResolver _characterState = new();
+    private readonly AutoAssistPolicy _autoAssist = new();
     private readonly ProfileService _profiles;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
@@ -55,6 +56,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _acceptingTriggerTasks = true;
 
     private CharacterGroupUpdate? _latestGroupUpdate;
+    private IReadOnlyList<RoomPerson> _latestRoomPeople = [];
+    private string? _latestCharacterName;
+    private string? _latestCharacterPosition;
 
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
@@ -354,6 +358,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
                 else
                 {
+                    _autoAssist.Reset();
                     HeaderAreaText = "--- Rozłączono ---";
                 }
             }
@@ -526,6 +531,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             // Re-sync all running timers so their callback closures pick up the new
             // separator; timer command splitting depends on the current separator.
             SyncAllTimers();
+        }
+    }
+
+    public bool AutoAssistEnabled
+    {
+        get => _settings.AutoAssistEnabled;
+        set
+        {
+            if (_settings.AutoAssistEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoAssistEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+            TryAutoAssist();
+        }
+    }
+
+    public bool GroupOrdersEnabled
+    {
+        get => _settings.GroupOrdersEnabled;
+        set
+        {
+            if (_settings.GroupOrdersEnabled == value)
+            {
+                return;
+            }
+
+            _settings.GroupOrdersEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
         }
     }
 
@@ -1559,6 +1597,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// </summary>
     private void OnAutowalkLocationChanged(string vnum)
     {
+        TryAutoAssist();
+
         Dispatcher.UIThread.Post(() =>
         {
             if (_autowalkPath is null)
@@ -2670,12 +2710,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
         }
 
+        if (GroupOrdersEnabled
+            && GroupOrderPolicy.TryGetCommand(
+                line, _latestCharacterName, _latestGroupUpdate, out var orderedCommand))
+        {
+            QueueTriggeredCommands([orderedCommand]);
+        }
+
         var commands = _triggers.Evaluate(line, CommandStackingSeparator);
         if (commands.Count == 0)
         {
             return;
         }
 
+        QueueTriggeredCommands(commands);
+    }
+
+    private void TryAutoAssist()
+    {
+        if (_autoAssist.ShouldAssist(
+                AutoAssistEnabled && IsConnected,
+                Map.CurrentVnum,
+                _latestCharacterName,
+                string.Equals(_latestCharacterPosition, "fighting", StringComparison.OrdinalIgnoreCase),
+                _latestGroupUpdate,
+                _latestRoomPeople))
+        {
+            QueueTriggeredCommands(["as"]);
+        }
+    }
+
+    private void QueueTriggeredCommands(IReadOnlyList<string> commands)
+    {
         Task task;
         lock (_triggerTasksLock)
         {
@@ -2870,6 +2936,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         if (update.Mv is { } movement) _latestMovement = movement;
         if (update.MaxMv is { } maximumMovement) _latestMaximumMovement = maximumMovement;
+        if (update.Name is { } name) _latestCharacterName = name;
+        if (update.Position is { } position) _latestCharacterPosition = position;
+        TryAutoAssist();
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -2895,6 +2964,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnCharacterConditionChanged(CharacterConditionUpdate update)
     {
+        if (update.Position is { } position)
+        {
+            _latestCharacterPosition = position;
+        }
+
+        TryAutoAssist();
+
         Dispatcher.UIThread.Post(() =>
         {
             if (update.Position is { } position)
@@ -2936,12 +3012,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnRoomPeopleChanged(IReadOnlyList<RoomPerson> people)
     {
+        _latestRoomPeople = people.ToArray();
+        TryAutoAssist();
+
         Dispatcher.UIThread.Post(() =>
         {
             People.Clear();
             foreach (var person in people)
             {
-                var isSelf = string.Equals(person.Name, Vitals.Name, StringComparison.OrdinalIgnoreCase);
+                var isSelf = string.Equals(person.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase);
                 People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf));
             }
         });
@@ -2950,12 +3029,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnGroupChanged(CharacterGroupUpdate update)
     {
         _latestGroupUpdate = update;
+        TryAutoAssist();
         Dispatcher.UIThread.Post(() =>
         {
             Group.Clear();
             foreach (var member in update.Members)
             {
-                if (string.Equals(member.Name, Vitals.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
                     continue;
                 var roomDisplay = ResolveRoomDisplay(member.Room);
                 Group.Add(GroupMember.FromCore(member, roomDisplay));

@@ -111,6 +111,8 @@ public sealed class AppSettingsServiceTests : IDisposable
             CommandStackingSeparator = "|",
             OutputFontFamily = "Arial",
             OutputFontSize = 16,
+            AutoAssistEnabled = true,
+            GroupOrdersEnabled = true,
         };
 
         _service.Save(original);
@@ -119,6 +121,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("|", loaded.CommandStackingSeparator);
         Assert.Equal("Arial", loaded.OutputFontFamily);
         Assert.Equal(16, loaded.OutputFontSize);
+        Assert.True(loaded.AutoAssistEnabled);
+        Assert.True(loaded.GroupOrdersEnabled);
     }
 
     // ====================================================================

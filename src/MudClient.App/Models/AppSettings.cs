@@ -26,4 +26,10 @@ public sealed class AppSettings
     /// timer commands.
     /// </summary>
     public string CommandStackingSeparator { get; set; } = DefaultCommandStackingSeparator;
+
+    /// <summary>Automatically sends "as" when a group member fights in the current room.</summary>
+    public bool AutoAssistEnabled { get; set; }
+
+    /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
+    public bool GroupOrdersEnabled { get; set; }
 }

@@ -12,6 +12,8 @@ Startowy, wieloplatformowy klient MUD napisany w C# i Avalonia.
 - wysyłanie komend,
 - podstawowe kolory ANSI SGR: 16 kolorów, 256 kolorów, RGB, bold, underline i reset,
 - fundamenty aliasów, triggerów oraz timerów,
+- panel Autoassist: opcjonalne wysłanie `as`, gdy GMCP wskaże walczącego członka drużyny w bieżącym pokoju; komenda jest ponawiana, jeśli postać przestanie walczyć, a członek drużyny nadal walczy,
+- panel Ordery: opcjonalne wykonywanie komendy z komunikatu `Gracz rozkazuje ci 'komenda'.`, wyłącznie gdy nadawca jest członkiem aktualnej grupy GMCP,
 - testy parsera Telnet i mechanizmu aliasów,
 - gotowe zadania i debugowanie w VS Code.
 

@@ -58,6 +58,8 @@ public sealed class MudDockFactory : Factory
         var groupTool = NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
         var memSpellsTool = NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
         var automationTool = NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
+        var autoAssistTool = NewTool("AutoAssist", "⚔ Autoassist", typeof(Views.Panels.AutoAssistPanelView), _mainContext);
+        var groupOrdersTool = NewTool("GroupOrders", "📣 Ordery", typeof(Views.Panels.GroupOrdersPanelView), _mainContext);
         var autowalkTool = NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
         var notesTool = NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
         var gmcpTool = NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
@@ -99,7 +101,7 @@ public sealed class MudDockFactory : Factory
             Proportion = 0.5,
             ActiveDockable = automationTool,
             VisibleDockables = CreateList<IDockable>(
-                automationTool, autowalkTool, notesTool, gmcpTool, settingsTool),
+                automationTool, autoAssistTool, groupOrdersTool, autowalkTool, notesTool, gmcpTool, settingsTool),
             Alignment = Alignment.Right,
         };
 
