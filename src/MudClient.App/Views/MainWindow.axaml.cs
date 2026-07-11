@@ -21,6 +21,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         Opened += OnOpened;
+        Activated += OnWindowActivated;
         Dispatcher.UIThread.UnhandledException += OnDispatcherUnhandledException;
         DataContextChanged += (_, _) => _viewModel = DataContext as MainWindowViewModel;
 
@@ -58,6 +59,22 @@ public partial class MainWindow : Window
 
         _viewModel.ReportStartupError(eventArgs.Exception);
         eventArgs.Handled = true;
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs e)
+    {
+        // When the window becomes active while the command box still holds focus,
+        // mark the terminal so that the first keystroke replaces the existing
+        // command text instead of appending to it. If no TextBox or a non-terminal
+        // TextBox holds focus, do not set the mark — a stale flag would otherwise
+        // hijack the command box after the user typed elsewhere.
+        var terminal = TerminalPanelView.Current;
+        if (terminal is not null &&
+            FocusManager?.GetFocusedElement() is TextBox focusedBox &&
+            terminal.IsCommandBox(focusedBox))
+        {
+            terminal.MarkForSelectAllOnNextInput();
+        }
     }
 
     private void Close_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -98,12 +115,29 @@ public partial class MainWindow : Window
 
     private void OnPreviewTextInput(object? sender, TextInputEventArgs e)
     {
-        if (FocusManager?.GetFocusedElement() is TextBox)
+        var focused = FocusManager?.GetFocusedElement();
+        var terminal = TerminalPanelView.Current;
+
+        if (focused is TextBox focusedTextBox)
         {
+            // When the terminal's command box has focus and window focus just returned,
+            // select all text so the first typed character replaces existing input.
+            if (terminal is not null && terminal.IsCommandBox(focusedTextBox))
+            {
+                terminal.PrepareCommandBoxForFirstInput();
+            }
+            else if (terminal is not null)
+            {
+                // Text input arrived for a non-terminal TextBox (host/port/profile, etc.).
+                // Clear any pending select-all mark so it does not hijack the command box
+                // when the user later clicks into it and types.
+                terminal.ClearSelectAllOnNextInput();
+            }
+
             return;
         }
 
-        var terminal = TerminalPanelView.Current;
+        // No TextBox has focus – redirect printable characters to the terminal command box.
         if (terminal is null)
         {
             return;

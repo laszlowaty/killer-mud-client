@@ -8,6 +8,7 @@ using MudClient.App;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
+using MudClient.App.Views.Panels;
 using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(MudClient.App.Tests.TestAppBuilder))]
@@ -33,8 +34,15 @@ public sealed class EditRuleClickTests
         viewModel.AutomationRules.Add(new AutomationRuleEntry(
             "test", "trigger", "^abc$", "def", isEnabled: true));
 
-        // Show the automation tab and realize the templated list items.
-        viewModel.SelectedRightTab = 1;
+        // The Automation panel lives in a Dock layout whose ToolDock creates
+        // views lazily (only for the active tool).  To make the edit button
+        // findable without depending on Dock-internal types at compile time,
+        // temporarily add an AutomationPanelView directly to the window tree.
+        var automationPanel = new AutomationPanelView { DataContext = viewModel };
+        var rootGrid = Assert.IsAssignableFrom<Grid>(window.Content);
+        rootGrid.Children.Add(automationPanel);
+        Grid.SetRow(automationPanel, 2);
+
         window.UpdateLayout();
         Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         window.UpdateLayout();

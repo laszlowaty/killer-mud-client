@@ -23,6 +23,7 @@ public sealed partial class TerminalPanelView : UserControl
     private readonly TextBox _commandBox;
     private MainWindowViewModel? _viewModel;
     private int _historyIndex = -1;
+    private volatile bool _shouldSelectAllOnNextInput;
 
     public TerminalPanelView()
     {
@@ -42,8 +43,39 @@ public sealed partial class TerminalPanelView : UserControl
             "Przykładowy alias: [93ml[0m -> [93mlook[0m\n\n");
     }
 
+    /// <summary>Checks whether <paramref name="box"/> is this terminal's command box.</summary>
+    public bool IsCommandBox(TextBox? box) => ReferenceEquals(box, _commandBox);
+
+    /// <summary>
+    /// Marks that the next text input should select all text in the command box
+    /// (e.g., because window focus just returned from another application while
+    /// the command box still held focus).
+    /// </summary>
+    public void MarkForSelectAllOnNextInput() => _shouldSelectAllOnNextInput = true;
+
+    /// <summary>
+    /// Clears the select-all-on-next-input flag without performing any selection.
+    /// Called when text input arrives for a non-terminal TextBox (host/port/profile),
+    /// preventing a stale mark from hijacking the command box later.
+    /// </summary>
+    public void ClearSelectAllOnNextInput() => _shouldSelectAllOnNextInput = false;
+
+    /// <summary>
+    /// If previously marked, selects all text in the command box and clears the mark.
+    /// Called on the first keystroke after window reactivation when the command box
+    /// already has focus.
+    /// </summary>
+    public void PrepareCommandBoxForFirstInput()
+    {
+        if (!_shouldSelectAllOnNextInput)
+            return;
+
+        _shouldSelectAllOnNextInput = false;
+        _commandBox.SelectAll();
+    }
+
     public bool OwnsControl(Visual visual) =>
-        ReferenceEquals(visual, _commandBox) || visual.FindAncestorOfType<MudOutputView>(includeSelf: true) is { } mo && ReferenceEquals(mo, _mudOutput);
+        ReferenceEquals(visual, _commandBox);
 
     private void OnDataContextChanged(object? sender, EventArgs eventArgs)
     {
@@ -85,13 +117,15 @@ public sealed partial class TerminalPanelView : UserControl
     {
         _commandBox.Focus();
         _commandBox.SelectAll();
+        _shouldSelectAllOnNextInput = false;
     }
 
     /// <summary>Redirects raw typed text into the command box (called by the window).</summary>
     public void RedirectTextInput(TextInputEventArgs e)
     {
         _commandBox.Focus();
-        _commandBox.CaretIndex = _commandBox.Text?.Length ?? 0;
+        _commandBox.SelectAll();
+        _shouldSelectAllOnNextInput = false;
 
         var redirectArgs = new TextInputEventArgs { Text = e.Text };
         redirectArgs.RoutedEvent = InputElement.TextInputEvent;

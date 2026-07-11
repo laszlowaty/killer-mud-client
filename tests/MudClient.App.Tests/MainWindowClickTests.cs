@@ -6,59 +6,149 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
+using MudClient.App.Views.Panels;
 using Xunit;
 
 namespace MudClient.App.Tests;
 
 /// <summary>
-/// Focused tests for the click-to-focus-and-select-all behavior on
-/// MainWindow (coder change: click MUD output → redirect focus to
-/// command box + select all).
+/// Tests for click-to-focus, select-all, and focus-reactivation behavior.
+/// Production members live in <see cref="TerminalPanelView"/> (not MainWindow);
+/// the window delegates to <see cref="TerminalPanelView.Current"/>.
 /// </summary>
 public sealed class MainWindowClickTests
 {
     // ==================================================================
-    // Reflection helpers for private members on MainWindow
+    // Helpers
     // ==================================================================
 
-    private static FieldInfo GetCommandBoxField()
+    /// <summary>
+    /// Returns the live TerminalPanelView instance associated with the given
+    /// <paramref name="window"/>.  Uses the static <see cref="TerminalPanelView.Current"/>
+    /// reference when available, otherwise falls back to a visual-tree walk
+    /// with pumping.  (In the headless environment, the XAML template may not
+    /// be fully expanded synchronously during Show().)
+    /// </summary>
+    private static TerminalPanelView GetPanel(Window window)
     {
-        var field = typeof(MainWindow).GetField("_commandBox",
+        // Fast path: static reference already set and still attached.
+        var panel = TerminalPanelView.Current;
+        if (panel is not null &&
+            panel.IsAttachedToVisualTree())
+        {
+            return panel;
+        }
+
+        // Slow path: search the visual tree with pumping.  The TerminalPanelView
+        // is created during XAML loading, but in headless mode the layout system
+        // may need multiple cycles before the control is discoverable.
+        for (var i = 0; i < 15; i++)
+        {
+            panel = window.GetVisualDescendants()
+                .OfType<TerminalPanelView>()
+                .FirstOrDefault(p => p.IsAttachedToVisualTree());
+
+            if (panel is not null)
+                return panel;
+
+            // Pump both timer-tick (layout/animation) and dispatcher jobs
+            // to ensure the XAML template is fully expanded.
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        throw new InvalidOperationException(
+            "TerminalPanelView not found in the window's visual tree after pumping.");
+    }
+
+    /// <summary>Gets the private _commandBox field via reflection.</summary>
+    private static TextBox GetCommandBox(TerminalPanelView panel)
+    {
+        var field = typeof(TerminalPanelView).GetField("_commandBox",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
-        return field!;
+        return (TextBox)field!.GetValue(panel)!;
     }
 
-    private static FieldInfo GetHistoryIndexField()
+    /// <summary>Gets the private _historyIndex field via reflection.</summary>
+    private static int GetHistoryIndex(TerminalPanelView panel)
     {
-        var field = typeof(MainWindow).GetField("_historyIndex",
+        var field = typeof(TerminalPanelView).GetField("_historyIndex",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
-        return field!;
+        return (int)field!.GetValue(panel)!;
     }
 
-    private static MethodInfo GetFocusCommandBoxAndSelectAllMethod()
+    /// <summary>Sets the private _historyIndex field via reflection.</summary>
+    private static void SetHistoryIndex(TerminalPanelView panel, int value)
     {
-        var method = typeof(MainWindow).GetMethod("FocusCommandBoxAndSelectAll",
+        var field = typeof(TerminalPanelView).GetField("_historyIndex",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(method);
-        return method!;
+        Assert.NotNull(field);
+        field!.SetValue(panel, value);
     }
 
-    private static MethodInfo GetHandlePostSendMethod()
+    /// <summary>Invokes the private HandlePostSend method via reflection.</summary>
+    private static void InvokeHandlePostSend(TerminalPanelView panel)
     {
-        var method = typeof(MainWindow).GetMethod("HandlePostSend",
+        var method = typeof(TerminalPanelView).GetMethod("HandlePostSend",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
-        return method!;
+        method!.Invoke(panel, null);
+    }
+
+    /// <summary>Gets the private _mudOutput field via reflection.</summary>
+    private static MudOutputView GetMudOutput(TerminalPanelView panel)
+    {
+        var field = typeof(TerminalPanelView).GetField("_mudOutput",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return (MudOutputView)field!.GetValue(panel)!;
+    }
+
+    /// <summary>Gets the private _shouldSelectAllOnNextInput flag via reflection.</summary>
+    private static bool GetShouldSelectAllOnNextInput(TerminalPanelView panel)
+    {
+        var field = typeof(TerminalPanelView).GetField("_shouldSelectAllOnNextInput",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return (bool)field!.GetValue(panel)!;
+    }
+
+    /// <summary>Helper: fully lay out the window so Bounds and TranslatePoint work.</summary>
+    private static void EnsureLayout(Window window)
+    {
+        window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+    }
+
+    /// <summary>Invokes the private OnWindowActivated handler via reflection.</summary>
+    private static void InvokeOnWindowActivated(MainWindow window)
+    {
+        var method = typeof(MainWindow).GetMethod("OnWindowActivated",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(window, [null, EventArgs.Empty]);
+    }
+
+    /// <summary>Invokes the private OnPreviewTextInput handler via reflection.</summary>
+    private static void InvokeOnPreviewTextInput(MainWindow window, TextInputEventArgs args)
+    {
+        var method = typeof(MainWindow).GetMethod("OnPreviewTextInput",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(window, [null, args]);
     }
 
     // ==================================================================
-    // FocusCommandBoxAndSelectAll (the core helper)
+    // FocusCommandBoxAndSelectAll (public API on TerminalPanelView)
     // ==================================================================
 
     [AvaloniaFact]
@@ -69,11 +159,12 @@ public sealed class MainWindowClickTests
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = "hello world";
 
         // Act
-        GetFocusCommandBoxAndSelectAllMethod().Invoke(window, null);
+        panel.FocusCommandBoxAndSelectAll();
 
         // Assert
         Assert.True(commandBox.IsFocused);
@@ -89,11 +180,12 @@ public sealed class MainWindowClickTests
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = string.Empty;
 
         // Act
-        GetFocusCommandBoxAndSelectAllMethod().Invoke(window, null);
+        panel.FocusCommandBoxAndSelectAll();
 
         // Assert
         Assert.True(commandBox.IsFocused);
@@ -103,7 +195,7 @@ public sealed class MainWindowClickTests
     }
 
     // ==================================================================
-    // HandlePostSend (focus + select all + history index reset)
+    // HandlePostSend (private on TerminalPanelView, tested via reflection)
     // ==================================================================
 
     [AvaloniaFact]
@@ -114,21 +206,22 @@ public sealed class MainWindowClickTests
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = "look north";
 
         // Simulate being in the middle of history navigation.
-        GetHistoryIndexField().SetValue(window, 3);
-        Assert.Equal(3, GetHistoryIndexField().GetValue(window));
+        SetHistoryIndex(panel, 3);
+        Assert.Equal(3, GetHistoryIndex(panel));
 
         // Act
-        GetHandlePostSendMethod().Invoke(window, null);
+        InvokeHandlePostSend(panel);
 
         // Assert
         Assert.True(commandBox.IsFocused);
         Assert.Equal(0, commandBox.SelectionStart);
         Assert.Equal("look north".Length, commandBox.SelectionEnd);
-        Assert.Equal(-1, GetHistoryIndexField().GetValue(window));
+        Assert.Equal(-1, GetHistoryIndex(panel));
     }
 
     [AvaloniaFact]
@@ -139,56 +232,60 @@ public sealed class MainWindowClickTests
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = string.Empty;
-        GetHistoryIndexField().SetValue(window, 1);
+        SetHistoryIndex(panel, 1);
 
         // Act
-        GetHandlePostSendMethod().Invoke(window, null);
+        InvokeHandlePostSend(panel);
 
         // Assert
         Assert.True(commandBox.IsFocused);
-        Assert.Equal(-1, GetHistoryIndexField().GetValue(window));
+        Assert.Equal(-1, GetHistoryIndex(panel));
     }
 
     // ==================================================================
     // Window_OnPointerPressed — redirect to command box
     // ==================================================================
 
-    /// <summary>
-    /// Helper: fully lay out the window so Bounds and TranslatePoint work.
-    /// </summary>
-    private static void EnsureLayout(Window window)
-    {
-        window.UpdateLayout();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        window.UpdateLayout();
-    }
-
     [AvaloniaFact]
     public void PointerPressed_OnNonInteractiveArea_FocusesCommandBoxAndSelectsAll()
     {
         // Verifies the end-to-end behavior: a pointer press on a
-        // non-excluded area (here: the border behind the MudOutputView)
-        // redirects focus to the command box.
+        // non-excluded area redirects focus to the command box.
         //
-        // We use MouseDown at (0, 0) which lands on the window chrome
-        // (a non-excluded area) to avoid layout-coordinate fragility.
-        // The logic-based tests above already prove that MudOutputView
-        // children are not excluded via FindAncestorOfType<Button> etc.
+        // Headless MouseDown/MouseUp coordinate-based hit-testing is
+        // fragile with the DockControl and the profile overlay, so
+        // we raise PointerPressedEventArgs directly on the root grid
+        // (a non-excluded visual) to exercise the real handler.
         // Arrange
         var viewModel = new MainWindowViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = "select-all-test";
 
-        // Act: click at the top-left corner of the window (hits the
-        // window/parent area, not an excluded control).
-        window.MouseDown(new Point(1, 1), MouseButton.Left);
-        window.MouseUp(new Point(1, 1), MouseButton.Left);
+        // Act: construct a PointerPressed event whose source is the
+        // root Grid (a non-excluded visual).
+        var pointer = new Avalonia.Input.Pointer(
+            Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, isPrimary: true);
+        var props = new PointerPointProperties();
+        var rootGrid = (Control)window.Content!;
+        var args = new PointerPressedEventArgs(
+            rootGrid,
+            pointer,
+            window,
+            new Point(0, 0),
+            0UL,
+            props,
+            KeyModifiers.None,
+            clickCount: 1);
+
+        rootGrid.RaiseEvent(args);
 
         // Assert: the handler redirected focus and selected all text.
         Assert.True(commandBox.IsFocused,
@@ -200,17 +297,13 @@ public sealed class MainWindowClickTests
     [AvaloniaFact]
     public void PointerPressed_OnButton_FindAncestorOfType_ExcludesButton()
     {
-        // This test validates the exclusion logic directly rather than
-        // relying on coordinate-based hit-testing, which is fragile in
-        // headless mode without guaranteed layout.
+        // Validates exclusion logic directly: a Button ancestor causes
+        // the handler to return early.
         // Arrange
         var viewModel = new MainWindowViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
-
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
-        commandBox.Text = "do not select";
 
         // Pick a visible Button with non-empty bounds.
         var anyButton = window
@@ -221,17 +314,12 @@ public sealed class MainWindowClickTests
         Assert.True(anyButton.Bounds.Width > 0,
             "Chosen button must have non-zero width.");
 
-        // The Button's visual content (e.g. TextBlock or Border) would be
-        // the Source in a real pointer event.  Use the button itself since
-        // FindAncestorOfType<Button>(includeSelf: true) includes self.
-        var source = anyButton;
-
         // Act: simulate what Window_OnPointerPressed does — check
-        // FindAncestorOfType<Button> on this source.
-        var ancestorButton = source.FindAncestorOfType<Button>(includeSelf: true);
+        // FindAncestorOfType<Button> on the source.
+        var ancestorButton = anyButton.FindAncestorOfType<Button>(includeSelf: true);
 
-        // Assert: the source IS a Button (or inside one), so the exclusion
-        // check returns non-null and the handler would return early.
+        // Assert: the source IS a Button, so the exclusion check
+        // returns non-null and the handler would return early.
         Assert.NotNull(ancestorButton);
         Assert.Same(anyButton, ancestorButton);
     }
@@ -247,8 +335,8 @@ public sealed class MainWindowClickTests
         window.Show();
         EnsureLayout(window);
 
-        var mudOutput = window.FindControl<MudOutputView>("MudOutput");
-        Assert.NotNull(mudOutput);
+        var panel = GetPanel(window);
+        var mudOutput = GetMudOutput(panel);
 
         // The MudOutputView's first visual child at the top-left is likely
         // a Border (its outermost element in the XAML template).
@@ -269,20 +357,20 @@ public sealed class MainWindowClickTests
         window.Show();
         EnsureLayout(window);
 
-        var commandBox = (TextBox)GetCommandBoxField().GetValue(window)!;
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = "look";
 
-        // The Send button in XAML has no x:Name, so find it by its
-        // content text.
-        var sendButton = window
-            .GetLogicalDescendants()
+        // The Send button is inside TerminalPanelView (not directly in
+        // the window's logical tree due to DockControl nesting).  Search
+        // within the panel's visual descendants instead.
+        var sendButton = ((Visual)panel)
+            .GetVisualDescendants()
             .OfType<Button>()
             .FirstOrDefault(b => b.Content is string s && s.Contains("Wyślij"));
         Assert.NotNull(sendButton);
 
         // Act: raise the Click event as the UI would after mouse-up.
-        // The pointer-pressed handler will skip it (Button exclusion),
-        // but the Click event fires separately and calls
         // SendButton_OnClick → HandlePostSend().
         sendButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
@@ -290,62 +378,98 @@ public sealed class MainWindowClickTests
         Assert.True(commandBox.IsFocused);
         Assert.Equal(0, commandBox.SelectionStart);
         Assert.Equal("look".Length, commandBox.SelectionEnd);
-        Assert.Equal(-1, GetHistoryIndexField().GetValue(window));
+        Assert.Equal(-1, GetHistoryIndex(panel));
     }
 
     // ==================================================================
-    // SelectableTextBlock inside MudOutputView → redirect
+    // OwnsControl — MudOutput children are no longer "owned", so the
+    // window handler does not return early and redirect proceeds.
     // ==================================================================
 
     /// <summary>
-    /// End-to-end: clicking a SelectableTextBlock inside MudOutputView
-    /// goes through Window_OnPointerPressed and redirects focus to
-    /// the command box with all text selected.
-    /// Uses real MouseDown (headless hit-testing) — no reflection.
+    /// Verifies that <see cref="TerminalPanelView.OwnsControl"/> returns
+    /// <c>false</c> for a child of MudOutputView.  After the fix,
+    /// <c>OwnsControl</c> only returns <c>true</c> for the command box
+    /// itself, so the <c>Window_OnPointerPressed</c> handler will
+    /// <em>not</em> return early for MudOutput children — instead the
+    /// redirect to the command box proceeds.
     /// </summary>
     [AvaloniaFact]
-    public void PointerPressed_OnMudOutputSelectableTextBlock_RedirectsToCommandBox()
+    public void OwnsControl_ReturnsFalseForMudOutputChild()
     {
         // Arrange
         var viewModel = new MainWindowViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
-
-        var mudOutput = window.FindControl<MudOutputView>("MudOutput");
-        Assert.NotNull(mudOutput);
-        mudOutput.AppendText("clickable output line\n");
-
-        var commandBox = window.FindControl<TextBox>("CommandBox");
-        Assert.NotNull(commandBox);
-        commandBox.Text = "existing command";
-
         EnsureLayout(window);
 
-        // Find the output pane inside MudOutput with non-zero bounds.
-        var mudLine = mudOutput
+        var panel = GetPanel(window);
+        var mudOutput = GetMudOutput(panel);
+
+        // Any visual descendant of MudOutput should NOT be "owned".
+        var mudChild = mudOutput
             .GetVisualDescendants()
             .OfType<OutputPaneControl>()
-            .FirstOrDefault(s => s.Bounds.Width > 0 && s.Bounds.Height > 0);
-        Assert.NotNull(mudLine);
-        Assert.True(mudLine.Bounds.Width > 0,
-            "OutputPaneControl inside MudOutput must have non-zero width after layout.");
+            .FirstOrDefault();
+        Assert.NotNull(mudChild);
 
-        // Click near the pane's top-left corner (where the output text lives) instead of
-        // its center: the pane spans the whole output area, and the window's center is
-        // covered by the profile-selection overlay when no profile is active yet.
-        var relativePoint = new Point(10, 10);
-        var windowPoint = mudLine.TranslatePoint(relativePoint, window);
-        Assert.NotNull(windowPoint);
+        // Act
+        var isOwned = panel.OwnsControl(mudChild);
 
-        // Act: simulate a click at the SelectableTextBlock's center.
-        window.MouseDown(windowPoint.Value, MouseButton.Left);
-        window.MouseUp(windowPoint.Value, MouseButton.Left);
+        // Assert
+        Assert.False(isOwned,
+            "MudOutput children must NOT be recognised as owned; only the command box is owned.");
+    }
 
-        // Assert: command box receives focus and full text selection.
+    /// <summary>
+    /// End-to-end test: clicking a child of MudOutputView redirects focus
+    /// to the command box and selects all existing text.  This validates
+    /// the fix — MudOutput children are no longer excluded by
+    /// <c>OwnsControl</c> and fall through to the redirect logic.
+    /// </summary>
+    [AvaloniaFact]
+    public void PointerPressed_OnMudOutputChild_RedirectsFocusAndSelectsAll()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Text = "mud-output-click-redirect";
+
+        var mudOutput = GetMudOutput(panel);
+
+        // Grab a visual descendant inside MudOutputView (an OutputPaneControl).
+        var mudChild = mudOutput
+            .GetVisualDescendants()
+            .OfType<OutputPaneControl>()
+            .FirstOrDefault(c => c.Bounds.Width > 0 && c.Bounds.Height > 0);
+        Assert.NotNull(mudChild);
+
+        // Act: raise a PointerPressed event whose source is the MudOutput child.
+        var pointer = new Avalonia.Input.Pointer(
+            Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, isPrimary: true);
+        var props = new PointerPointProperties();
+        var args = new PointerPressedEventArgs(
+            mudChild,
+            pointer,
+            window,
+            new Point(0, 0),
+            0UL,
+            props,
+            KeyModifiers.None,
+            clickCount: 1);
+
+        mudChild.RaiseEvent(args);
+
+        // Assert: the handler redirected focus and selected all text.
         Assert.True(commandBox.IsFocused,
-            "CommandBox must be focused after clicking MUD output text.");
+            "CommandBox should be focused after pointer press on MudOutput child.");
         Assert.Equal(0, commandBox.SelectionStart);
-        Assert.Equal("existing command".Length, commandBox.SelectionEnd);
+        Assert.Equal("mud-output-click-redirect".Length, commandBox.SelectionEnd);
     }
 
     // ==================================================================
@@ -357,13 +481,6 @@ public sealed class MainWindowClickTests
     /// must NOT redirect focus to the command box. Verifies the fix for
     /// the reviewer's MEDIUM finding (regression of non-output
     /// selectable text areas).
-    ///
-    /// Uses RaiseEvent with a PointerPressedEventArgs constructed
-    /// directly on the non-output SelectableTextBlock, bypassing
-    /// headless hit-testing which does not reliably resolve
-    /// programmatically-added SelectableTextBlock instances.
-    /// The event bubbles up to Window_OnPointerPressed with Source
-    /// set to the non-output block — exercise the real handler logic.
     /// </summary>
     [AvaloniaFact]
     public void PointerPressed_OnNonOutputSelectableTextBlock_IsExcluded()
@@ -384,8 +501,8 @@ public sealed class MainWindowClickTests
         Grid.SetRow(nonOutputBlock, 2);
         rootGrid.Children.Add(nonOutputBlock);
 
-        var commandBox = window.FindControl<TextBox>("CommandBox");
-        Assert.NotNull(commandBox);
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
         commandBox.Text = "do not select";
 
         EnsureLayout(window);
@@ -419,7 +536,7 @@ public sealed class MainWindowClickTests
     // ==================================================================
 
     /// <summary>
-    /// A SelectableTextBlock inside MudOutputView correctly finds its
+    /// A control inside MudOutputView correctly finds its
     /// MudOutputView ancestor — this is the condition that enables the
     /// click-to-focus redirect for MUD output text.
     /// </summary>
@@ -432,8 +549,8 @@ public sealed class MainWindowClickTests
         window.Show();
         EnsureLayout(window);
 
-        var mudOutput = window.FindControl<MudOutputView>("MudOutput");
-        Assert.NotNull(mudOutput);
+        var panel = GetPanel(window);
+        var mudOutput = GetMudOutput(panel);
         mudOutput.AppendText("test line\n");
         EnsureLayout(window);
 
@@ -484,5 +601,299 @@ public sealed class MainWindowClickTests
         // MudOutputView ancestor — handler returns early (excluded).
         Assert.Same(nonOutputBlock, selectable);
         Assert.Null(mudOutputAncestor);
+    }
+
+    // ==================================================================
+    // Focus reactivation — PrepareCommandBoxForFirstInput / select-all mark
+    // ==================================================================
+
+    [AvaloniaFact]
+    public void PrepareCommandBoxForFirstInput_WithMark_SelectsAll()
+    {
+        // Arrange: command box has text, mark is set (as after window activation).
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Text = "existing command text";
+        commandBox.SelectionStart = 3;
+        commandBox.SelectionEnd = 10;
+
+        panel.MarkForSelectAllOnNextInput();
+
+        // Act
+        panel.PrepareCommandBoxForFirstInput();
+
+        // Assert: all text selected, mark cleared.
+        Assert.Equal(0, commandBox.SelectionStart);
+        Assert.Equal("existing command text".Length, commandBox.SelectionEnd);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    [AvaloniaFact]
+    public void PrepareCommandBoxForFirstInput_WithoutMark_DoesNotChangeSelection()
+    {
+        // Arrange: command box has text, mark is NOT set.
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Text = "existing command text";
+        commandBox.SelectionStart = 3;
+        commandBox.SelectionEnd = 10;
+
+        // Act — no MarkForSelectAllOnNextInput() was called.
+        panel.PrepareCommandBoxForFirstInput();
+
+        // Assert: selection unchanged.
+        Assert.Equal(3, commandBox.SelectionStart);
+        Assert.Equal(10, commandBox.SelectionEnd);
+    }
+
+    [AvaloniaFact]
+    public void PrepareCommandBoxForFirstInput_WithMarkAndEmptyText_SelectsNothing()
+    {
+        // Arrange: empty command box, mark is set.
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Text = string.Empty;
+
+        panel.MarkForSelectAllOnNextInput();
+
+        // Act
+        panel.PrepareCommandBoxForFirstInput();
+
+        // Assert: SelectAll on empty text gives start=0, end=0.
+        Assert.Equal(0, commandBox.SelectionStart);
+        Assert.Equal(0, commandBox.SelectionEnd);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    [AvaloniaFact]
+    public void MarkForSelectAllOnNextInput_SetsFlag()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+
+        // Act
+        panel.MarkForSelectAllOnNextInput();
+
+        // Assert
+        Assert.True(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    [AvaloniaFact]
+    public void FocusCommandBoxAndSelectAll_ClearsMark()
+    {
+        // The public FocusCommandBoxAndSelectAll should also clear the
+        // select-all-on-next-input flag.
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        panel.MarkForSelectAllOnNextInput();
+        Assert.True(GetShouldSelectAllOnNextInput(panel));
+
+        // Act
+        panel.FocusCommandBoxAndSelectAll();
+
+        // Assert: mark cleared.
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    // ==================================================================
+    // IsCommandBox — non-terminal TextBoxes are not affected
+    // ==================================================================
+
+    [AvaloniaFact]
+    public void IsCommandBox_ReturnsTrueForOwnCommandBox()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+
+        // Act / Assert
+        Assert.True(panel.IsCommandBox(commandBox));
+    }
+
+    [AvaloniaFact]
+    public void IsCommandBox_ReturnsFalseForOtherTextBox()
+    {
+        // Arrange: create a non-terminal TextBox (e.g. Host box).
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+
+        // Find the Host TextBox in the top bar (not the command box).
+        var hostBox = window
+            .GetVisualDescendants()
+            .OfType<TextBox>()
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+        Assert.NotNull(hostBox);
+
+        // Act / Assert: IsCommandBox returns false for it.
+        Assert.False(panel.IsCommandBox(hostBox));
+    }
+
+    // ==================================================================
+    // ClearSelectAllOnNextInput (public API on TerminalPanelView)
+    // ==================================================================
+
+    [AvaloniaFact]
+    public void ClearSelectAllOnNextInput_ClearsFlag()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        panel.MarkForSelectAllOnNextInput();
+        Assert.True(GetShouldSelectAllOnNextInput(panel));
+
+        // Act
+        panel.ClearSelectAllOnNextInput();
+
+        // Assert
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    [AvaloniaFact]
+    public void ClearSelectAllOnNextInput_WhenNotSet_StaysFalse()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+
+        // Act
+        panel.ClearSelectAllOnNextInput();
+
+        // Assert
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    // ==================================================================
+    // OnWindowActivated — only marks when command box is focused
+    // ==================================================================
+
+    [AvaloniaFact]
+    public void OnWindowActivated_WithCommandBoxFocused_SetsMark()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Focus();
+        Assert.True(commandBox.IsFocused);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+
+        // Act: simulate window activation while command box holds focus.
+        InvokeOnWindowActivated(window);
+
+        // Assert: mark is set so the first keystroke selects all.
+        Assert.True(GetShouldSelectAllOnNextInput(panel));
+    }
+
+    [AvaloniaFact]
+    public void OnWindowActivated_WithNonCommandBoxFocused_DoesNotSetMark()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+
+        // Find a non-terminal TextBox (e.g. Host box).
+        var hostBox = window
+            .GetVisualDescendants()
+            .OfType<TextBox>()
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+        Assert.NotNull(hostBox);
+        hostBox.Focus();
+        Assert.True(hostBox.IsFocused);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
+
+        // Act: simulate window activation while a non-terminal TextBox holds focus.
+        InvokeOnWindowActivated(window);
+
+        // Assert: mark must NOT be set — a stale flag would hijack the command box later.
+        Assert.False(GetShouldSelectAllOnNextInput(panel),
+            "Activation with non-terminal focus must not set the select-all mark.");
+    }
+
+    // ==================================================================
+    // OnPreviewTextInput — clears pending mark for non-terminal TextBox
+    // ==================================================================
+
+    [AvaloniaFact]
+    public void OnPreviewTextInput_WithNonTerminalTextBox_ClearsPendingMark()
+    {
+        // Arrange
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+
+        // Focus a non-terminal TextBox.
+        var hostBox = window
+            .GetVisualDescendants()
+            .OfType<TextBox>()
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+        Assert.NotNull(hostBox);
+        hostBox.Focus();
+        Assert.True(hostBox.IsFocused);
+
+        // Set a pending mark (as if a stale flag exists from a previous activation).
+        panel.MarkForSelectAllOnNextInput();
+        Assert.True(GetShouldSelectAllOnNextInput(panel));
+
+        var args = new TextInputEventArgs { Text = "h" };
+
+        // Act: simulate text input arriving in the non-terminal TextBox.
+        InvokeOnPreviewTextInput(window, args);
+
+        // Assert: the stale mark is cleared.
+        Assert.False(GetShouldSelectAllOnNextInput(panel),
+            "Text input in a non-terminal TextBox must clear any pending select-all mark.");
     }
 }
