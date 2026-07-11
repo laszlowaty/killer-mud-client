@@ -1,6 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "dotnet.defaultSolution": "MudClientStarter.sln",
+  "dotnet.defaultSolution": "KillerMudClient.sln",
   "files.exclude": {
     "**/bin": true,
     "**/obj": true

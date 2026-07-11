@@ -5,7 +5,7 @@
       "label": "build",
       "command": "dotnet",
       "type": "process",
-      "args": ["build", "${workspaceFolder}/MudClientStarter.sln"],
+      "args": ["build", "${workspaceFolder}/KillerMudClient.sln"],
       "problemMatcher": "$msCompile",
       "group": { "kind": "build", "isDefault": true }
     },
@@ -13,7 +13,7 @@
       "label": "test",
       "command": "dotnet",
       "type": "process",
-      "args": ["test", "${workspaceFolder}/MudClientStarter.sln", "--no-build"],
+      "args": ["test", "${workspaceFolder}/KillerMudClient.sln", "--no-build"],
       "problemMatcher": "$msCompile",
       "group": "test"
     },

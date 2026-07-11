@@ -31,6 +31,10 @@ public sealed class MudSession : IAsyncDisposable
     private Task? _receiveTask;
     private bool _gmcpHandshakeSent;
 
+    // Wersja klienta zgłaszana w GMCP Core.Hello; pochodzi z Directory.Build.props (nadpisywana przy publish przez /p:Version).
+    private static readonly string ClientVersion =
+        typeof(MudSession).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
     public event Action<string>? TextReceived;
 
     public event Action<string>? LineReceived;
@@ -362,7 +366,7 @@ public sealed class MudSession : IAsyncDisposable
             _gmcpHandshakeSent = true;
             await SendGmcpAsync(
                 "Core.Hello",
-                "{\"client\":\"MudClientStarter\",\"version\":\"0.1.0\"}",
+                $"{{\"client\":\"KillerMudClient\",\"version\":\"{ClientVersion}\"}}",
                 cancellationToken).ConfigureAwait(false);
             await SendGmcpAsync(
                 "Core.Supports.Set",

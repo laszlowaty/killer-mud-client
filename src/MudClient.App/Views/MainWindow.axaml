@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:Name="RootWindow"
         Icon="/Assets/killer.ico"
-        Title="KillerMUD Klient"
+        Title="KillerMudClient"
          Width="1400"
          Height="900"
          MinWidth="1024"
@@ -31,7 +31,7 @@
 
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
             <TextBlock Text="⚔" FontSize="20" Foreground="{StaticResource MudBrushGoldBright}" VerticalAlignment="Center" />
-            <TextBlock Classes="mud-heading-lg" Text="MudClient" VerticalAlignment="Center" />
+            <TextBlock Classes="mud-heading-lg" Text="KillerMudClient" VerticalAlignment="Center" />
             <Border Background="{StaticResource MudBrushSlate}"
                     CornerRadius="3"
                     Padding="8,3"
@@ -156,7 +156,7 @@
          ======================================================================== -->
     <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
-        <TextBlock Classes="mud-faint" Text="Telnet + ANSI + GMCP  •  MudClient Starter" />
+        <TextBlock Classes="mud-faint" Text="Telnet + ANSI + GMCP  •  KillerMudClient" />
         <TextBlock Classes="mud-faint" Text="{Binding Vitals.Name, StringFormat='Postać: {0}'}" />
         <TextBlock Classes="mud-faint" Text="{Binding StatusText}" />
       </Grid>

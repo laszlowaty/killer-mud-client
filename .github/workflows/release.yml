@@ -97,7 +97,7 @@ jobs:
           git push origin "$TAG"
 
       - name: Test
-        run: dotnet test MudClientStarter.sln --configuration Release
+        run: dotnet test KillerMudClient.sln --configuration Release
 
       - name: Publish all platforms
         run: |
