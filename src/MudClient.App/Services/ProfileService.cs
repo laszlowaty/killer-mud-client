@@ -15,6 +15,9 @@ public sealed class ProfileService
         WriteIndented = true,
     };
 
+    /// <summary>File (without extension) holding globally shared rules/timers/locations.</summary>
+    private const string GlobalFileName = "_global";
+
     private readonly string _directory;
 
     public ProfileService(string? directory = null)
@@ -36,6 +39,7 @@ public sealed class ProfileService
             .Select(Path.GetFileNameWithoutExtension)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
+            .Where(name => !string.Equals(name, GlobalFileName, StringComparison.OrdinalIgnoreCase))
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -74,6 +78,32 @@ public sealed class ProfileService
         File.WriteAllText(GetPath(profile.Name), json);
     }
 
+    public GlobalData LoadGlobal()
+    {
+        var path = Path.Combine(_directory, GlobalFileName + ".json");
+        if (!File.Exists(path))
+        {
+            return new GlobalData();
+        }
+
+        try
+        {
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<GlobalData>(json, SerializerOptions) ?? new GlobalData();
+        }
+        catch (Exception exception) when (exception is IOException or JsonException)
+        {
+            return new GlobalData();
+        }
+    }
+
+    public void SaveGlobal(GlobalData data)
+    {
+        Directory.CreateDirectory(_directory);
+        var json = JsonSerializer.Serialize(data, SerializerOptions);
+        File.WriteAllText(Path.Combine(_directory, GlobalFileName + ".json"), json);
+    }
+
     private string GetPath(string name) => Path.Combine(_directory, Sanitize(name) + ".json");
 
     /// <summary>
@@ -83,6 +113,11 @@ public sealed class ProfileService
     {
         var invalid = Path.GetInvalidFileNameChars();
         var chars = name.Trim().Select(c => invalid.Contains(c) ? '_' : c).ToArray();
-        return new string(chars);
+        var sanitized = new string(chars);
+
+        // A profile must never overwrite the shared global file.
+        return string.Equals(sanitized, GlobalFileName, StringComparison.OrdinalIgnoreCase)
+            ? sanitized + "_profil"
+            : sanitized;
     }
 }

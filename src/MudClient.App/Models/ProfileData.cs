@@ -16,12 +16,30 @@ public sealed class ProfileData
     public List<ProfileLocation> Locations { get; set; } = [];
 }
 
+/// <summary>
+/// Rules, timers and autowalk locations marked as global — shared by all
+/// profiles and stored in a single file next to the per-profile ones.
+/// </summary>
+public sealed class GlobalData
+{
+    public List<ProfileNote> Notes { get; set; } = [];
+
+    public List<ProfileRule> Rules { get; set; } = [];
+
+    public List<ProfileTimer> Timers { get; set; } = [];
+
+    public List<ProfileLocation> Locations { get; set; } = [];
+}
+
 /// <summary>A named autowalk target room stored per character.</summary>
 public sealed class ProfileLocation
 {
     public string Name { get; set; } = string.Empty;
 
     public string Vnum { get; set; } = string.Empty;
+
+    /// <summary>True when stored in the shared global file, not a profile.</summary>
+    public bool IsGlobal { get; set; }
 }
 
 /// <summary>
@@ -44,6 +62,9 @@ public sealed class ProfileTimer
     public List<string> Commands { get; set; } = [];
 
     public bool IsEnabled { get; set; }
+
+    /// <summary>True when stored in the shared global file, not a profile.</summary>
+    public bool IsGlobal { get; set; }
 }
 
 public sealed class ProfileNote
@@ -53,6 +74,9 @@ public sealed class ProfileNote
     public string Content { get; set; } = string.Empty;
 
     public string CreatedAt { get; set; } = string.Empty;
+
+    /// <summary>True when stored in the shared global file, not a profile.</summary>
+    public bool IsGlobal { get; set; }
 }
 
 public sealed class ProfileRule
@@ -67,4 +91,7 @@ public sealed class ProfileRule
     public string Action { get; set; } = string.Empty;
 
     public bool IsEnabled { get; set; } = true;
+
+    /// <summary>True when stored in the shared global file, not a profile.</summary>
+    public bool IsGlobal { get; set; }
 }

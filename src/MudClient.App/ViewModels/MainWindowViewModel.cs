@@ -73,6 +73,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private int _selectedLogTab;
     private string _newNoteTitle = string.Empty;
     private string _newNoteContent = string.Empty;
+    private bool _newNoteIsGlobal;
+    private NoteEntry? _editedNote;
+    private bool _isNoteFormExpanded;
 
     // --- App settings ---
     private readonly AppSettingsService _settingsService;
@@ -85,6 +88,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newRulePattern = string.Empty;
     private string _newRuleAction = string.Empty;
     private string? _newRulePatternError;
+    private bool _newRuleIsGlobal;
     private AutomationRuleEntry? _editedRule;
     private bool _isRuleFormExpanded;
 
@@ -94,12 +98,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newTimerSeconds = "0";
     private string _newTimerMilliseconds = "0";
     private string _newTimerCommands = string.Empty;
+    private bool _newTimerIsGlobal;
     private TimerEntry? _editedTimer;
     private bool _isTimerFormExpanded;
 
     // --- Autowalk ---
     private string _newLocationName = string.Empty;
     private string _newLocationVnum = string.Empty;
+    private bool _newLocationIsGlobal;
     private MapPathfinder? _pathfinder;
     private MapIndex? _pathfinderIndex;
     private MapPath? _autowalkPath;
@@ -183,6 +189,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             AvailableProfiles.Add(name);
         }
+
+        // Global entries are usable even before any profile is selected.
+        LoadGlobalEntries();
+        ApplyAutomation();
+        SyncAllTimers();
 
         AvailableProfiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProfiles));
     }
@@ -340,6 +351,26 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         get => _newNoteContent;
         set => SetProperty(ref _newNoteContent, value);
     }
+
+    /// <summary>True = the new note is shared by all profiles.</summary>
+    public bool NewNoteIsGlobal
+    {
+        get => _newNoteIsGlobal;
+        set => SetProperty(ref _newNoteIsGlobal, value);
+    }
+
+    public bool IsEditingNote => _editedNote is not null;
+
+    /// <summary>Backs the note form Expander (two-way); editing a note opens it.</summary>
+    public bool IsNoteFormExpanded
+    {
+        get => _isNoteFormExpanded;
+        set => SetProperty(ref _isNoteFormExpanded, value);
+    }
+
+    public string NoteFormButtonText => IsEditingNote ? "Zapisz zmiany" : "Dodaj notatkę";
+
+    public string NoteFormHeader => IsEditingNote ? "✎ Edytuj notatkę" : "＋ Nowa notatka";
 
     // ========================================================================
     // App settings (system-wide, not per profile)
@@ -527,6 +558,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>True = the new/edited rule is shared by all profiles.</summary>
+    public bool NewRuleIsGlobal
+    {
+        get => _newRuleIsGlobal;
+        set => SetProperty(ref _newRuleIsGlobal, value);
+    }
+
     /// <summary>Live regex validation message, or null when the pattern is valid.</summary>
     public string? NewRulePatternError
     {
@@ -579,11 +617,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             edited.Type = NewRuleType;
             edited.Pattern = NewRulePattern;
             edited.Action = NewRuleAction;
+            edited.IsGlobal = NewRuleIsGlobal;
         }
         else
         {
             AutomationRules.Add(new AutomationRuleEntry(
-                NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction, isEnabled: true));
+                NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction,
+                isEnabled: true, isGlobal: NewRuleIsGlobal));
         }
 
         ClearRuleForm();
@@ -603,6 +643,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewRuleType = entry.Type;
         NewRulePattern = entry.Pattern;
         NewRuleAction = entry.Action;
+        NewRuleIsGlobal = entry.IsGlobal;
         IsRuleFormExpanded = true;
         NotifyRuleEditModeChanged();
     }
@@ -615,6 +656,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewRuleName = string.Empty;
         NewRulePattern = string.Empty;
         NewRuleAction = string.Empty;
+        NewRuleIsGlobal = false;
         NotifyRuleEditModeChanged();
     }
 
@@ -716,6 +758,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => SetProperty(ref _newTimerCommands, value);
     }
 
+    /// <summary>True = the new/edited timer is shared by all profiles.</summary>
+    public bool NewTimerIsGlobal
+    {
+        get => _newTimerIsGlobal;
+        set => SetProperty(ref _newTimerIsGlobal, value);
+    }
+
     private void AddTimer()
     {
         var name = NewTimerName.Trim();
@@ -753,6 +802,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             edited.Seconds = seconds;
             edited.Milliseconds = milliseconds;
             edited.CommandsText = NewTimerCommands;
+            edited.IsGlobal = NewTimerIsGlobal;
             SyncTimer(edited);
         }
         else
@@ -764,6 +814,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Seconds = seconds,
                 Milliseconds = milliseconds,
                 CommandsText = NewTimerCommands,
+                IsGlobal = NewTimerIsGlobal,
             });
         }
 
@@ -784,6 +835,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewTimerSeconds = entry.Seconds.ToString();
         NewTimerMilliseconds = entry.Milliseconds.ToString();
         NewTimerCommands = entry.CommandsText;
+        NewTimerIsGlobal = entry.IsGlobal;
         IsTimerFormExpanded = true;
         NotifyTimerEditModeChanged();
     }
@@ -798,6 +850,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewTimerSeconds = "0";
         NewTimerMilliseconds = "0";
         NewTimerCommands = string.Empty;
+        NewTimerIsGlobal = false;
         NotifyTimerEditModeChanged();
     }
 
@@ -912,6 +965,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _newLocationVnum;
         set => SetProperty(ref _newLocationVnum, value);
+    }
+
+    /// <summary>True = the new location is shared by all profiles.</summary>
+    public bool NewLocationIsGlobal
+    {
+        get => _newLocationIsGlobal;
+        set => SetProperty(ref _newLocationIsGlobal, value);
     }
 
     public bool IsAutowalking => _autowalkPath is not null;
@@ -1061,9 +1121,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             AddToast($"Uwaga: vnum {vnum} nie istnieje w mapie.", "error");
         }
 
-        Locations.Add(new AutowalkLocation(name, vnum, room?.Name));
+        Locations.Add(new AutowalkLocation(name, vnum, room?.Name, NewLocationIsGlobal));
         NewLocationName = string.Empty;
         NewLocationVnum = string.Empty;
+        NewLocationIsGlobal = false;
         SaveActiveProfile();
         AddToast($"Dodano lokację „{name}”.", "info");
     }
@@ -1458,41 +1519,32 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void ActivateProfile(ProfileData profile)
     {
+        StopAutowalk("Autowalk zatrzymany (zmiana profilu).");
+
         Notes.Clear();
+        AutomationRules.Clear();
+        Timers.Clear();
+        Locations.Clear();
+
+        // Globals first, then the profile's own entries.
+        LoadGlobalEntries();
+
         foreach (var note in profile.Notes)
         {
-            Notes.Add(new NoteEntry
-            {
-                Title = note.Title,
-                Content = note.Content,
-                CreatedAt = note.CreatedAt,
-            });
+            Notes.Add(MakeNoteEntry(note, isGlobal: false));
         }
 
-        AutomationRules.Clear();
         foreach (var rule in profile.Rules)
         {
             AutomationRules.Add(new AutomationRuleEntry(
                 rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled));
         }
 
-        Timers.Clear();
         foreach (var timer in profile.Timers)
         {
-            Timers.Add(new TimerEntry
-            {
-                Id = string.IsNullOrWhiteSpace(timer.Id) ? Guid.NewGuid().ToString("N") : timer.Id,
-                Name = timer.Name,
-                Minutes = timer.Minutes,
-                Seconds = timer.Seconds,
-                Milliseconds = timer.Milliseconds,
-                CommandsText = string.Join(Environment.NewLine, timer.Commands),
-                IsEnabled = timer.IsEnabled,
-            });
+            Timers.Add(MakeTimerEntry(timer, isGlobal: false));
         }
 
-        StopAutowalk("Autowalk zatrzymany (zmiana profilu).");
-        Locations.Clear();
         foreach (var location in profile.Locations)
         {
             var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
@@ -1507,8 +1559,114 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ProfileActivated?.Invoke(profile.Name);
     }
 
+    /// <summary>Appends entries from the shared global store to the working collections.</summary>
+    private void LoadGlobalEntries()
+    {
+        var global = _profiles.LoadGlobal();
+
+        foreach (var note in global.Notes)
+        {
+            Notes.Add(MakeNoteEntry(note, isGlobal: true));
+        }
+
+        foreach (var rule in global.Rules)
+        {
+            AutomationRules.Add(new AutomationRuleEntry(
+                rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled, isGlobal: true));
+        }
+
+        foreach (var timer in global.Timers)
+        {
+            Timers.Add(MakeTimerEntry(timer, isGlobal: true));
+        }
+
+        foreach (var location in global.Locations)
+        {
+            var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
+            Locations.Add(new AutowalkLocation(location.Name, location.Vnum, room?.Name, isGlobal: true));
+        }
+    }
+
+    private static NoteEntry MakeNoteEntry(ProfileNote note, bool isGlobal) => new()
+    {
+        Title = note.Title,
+        Content = note.Content,
+        CreatedAt = note.CreatedAt,
+        IsGlobal = isGlobal,
+    };
+
+    private static ProfileNote ToProfileNote(NoteEntry n) => new()
+    {
+        Title = n.Title,
+        Content = n.Content,
+        CreatedAt = n.CreatedAt,
+        IsGlobal = n.IsGlobal,
+    };
+
+    private static TimerEntry MakeTimerEntry(ProfileTimer timer, bool isGlobal) => new()
+    {
+        Id = string.IsNullOrWhiteSpace(timer.Id) ? Guid.NewGuid().ToString("N") : timer.Id,
+        Name = timer.Name,
+        Minutes = timer.Minutes,
+        Seconds = timer.Seconds,
+        Milliseconds = timer.Milliseconds,
+        CommandsText = string.Join(Environment.NewLine, timer.Commands),
+        IsEnabled = timer.IsEnabled,
+        IsGlobal = isGlobal,
+    };
+
+    private static ProfileRule ToProfileRule(AutomationRuleEntry r) => new()
+    {
+        Name = r.Name,
+        Type = r.Type,
+        Pattern = r.Pattern,
+        Action = r.Action,
+        IsEnabled = r.IsEnabled,
+        IsGlobal = r.IsGlobal,
+    };
+
+    private static ProfileTimer ToProfileTimer(TimerEntry t) => new()
+    {
+        Id = t.Id,
+        Name = t.Name,
+        Minutes = t.Minutes,
+        Seconds = t.Seconds,
+        Milliseconds = t.Milliseconds,
+        Commands = t.GetCommands().ToList(),
+        IsEnabled = t.IsEnabled,
+        IsGlobal = t.IsGlobal,
+    };
+
+    private static ProfileLocation ToProfileLocation(AutowalkLocation l) => new()
+    {
+        Name = l.Name,
+        Vnum = l.Vnum,
+        IsGlobal = l.IsGlobal,
+    };
+
+    /// <summary>
+    /// Persists the working collections: global entries go to the shared
+    /// global file, the rest to the active profile (if any).
+    /// </summary>
     private void SaveActiveProfile()
     {
+        var global = new GlobalData
+        {
+            Notes = Notes.Where(n => n.IsGlobal).Select(ToProfileNote).ToList(),
+            Rules = AutomationRules.Where(r => r.IsGlobal).Select(ToProfileRule).ToList(),
+            Timers = Timers.Where(t => t.IsGlobal).Select(ToProfileTimer).ToList(),
+            Locations = Locations.Where(l => l.IsGlobal).Select(ToProfileLocation).ToList(),
+        };
+
+        try
+        {
+            _profiles.SaveGlobal(global);
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Nie udało się zapisać globalnych wpisów: {exception.Message}", "error");
+        }
+
         if (ActiveProfileName is null)
         {
             return;
@@ -1517,34 +1675,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var profile = new ProfileData
         {
             Name = ActiveProfileName,
-            Notes = Notes
-                .Select(n => new ProfileNote { Title = n.Title, Content = n.Content, CreatedAt = n.CreatedAt })
-                .ToList(),
-            Rules = AutomationRules
-                .Select(r => new ProfileRule
-                {
-                    Name = r.Name,
-                    Type = r.Type,
-                    Pattern = r.Pattern,
-                    Action = r.Action,
-                    IsEnabled = r.IsEnabled,
-                })
-                .ToList(),
-            Timers = Timers
-                .Select(t => new ProfileTimer
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Minutes = t.Minutes,
-                    Seconds = t.Seconds,
-                    Milliseconds = t.Milliseconds,
-                    Commands = t.GetCommands().ToList(),
-                    IsEnabled = t.IsEnabled,
-                })
-                .ToList(),
-            Locations = Locations
-                .Select(l => new ProfileLocation { Name = l.Name, Vnum = l.Vnum })
-                .ToList(),
+            Notes = Notes.Where(n => !n.IsGlobal).Select(ToProfileNote).ToList(),
+            Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
+            Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
+            Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList(),
         };
 
         try
@@ -1637,6 +1771,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public RelayCommand AddNoteCommand => new(AddNote);
     public RelayCommand<NoteEntry> DeleteNoteCommand => new(DeleteNote);
+    public RelayCommand<NoteEntry> EditNoteCommand => new(EditNote);
+    public RelayCommand CancelNoteEditCommand => new(CancelNoteEdit);
     public RelayCommand<string> CopyToCommandBarCommand => new(CopyToCommandBar);
     public RelayCommand ClearToastsCommand => new(ClearToasts);
 
@@ -1779,25 +1915,74 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        Notes.Insert(0, new NoteEntry
+        if (_editedNote is { } edited)
         {
-            Title = NewNoteTitle,
-            Content = NewNoteContent,
-            CreatedAt = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm"),
-        });
+            edited.Title = NewNoteTitle;
+            edited.Content = NewNoteContent;
+            edited.IsGlobal = NewNoteIsGlobal;
+        }
+        else
+        {
+            Notes.Insert(0, new NoteEntry
+            {
+                Title = NewNoteTitle,
+                Content = NewNoteContent,
+                CreatedAt = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm"),
+                IsGlobal = NewNoteIsGlobal,
+            });
+        }
 
+        ClearNoteForm();
+        SaveActiveProfile();
+    }
+
+    private void EditNote(NoteEntry? note)
+    {
+        if (note is null)
+        {
+            return;
+        }
+
+        _editedNote = note;
+        NewNoteTitle = note.Title;
+        NewNoteContent = note.Content;
+        NewNoteIsGlobal = note.IsGlobal;
+        IsNoteFormExpanded = true;
+        NotifyNoteEditModeChanged();
+    }
+
+    private void CancelNoteEdit() => ClearNoteForm();
+
+    private void ClearNoteForm()
+    {
+        _editedNote = null;
         NewNoteTitle = string.Empty;
         NewNoteContent = string.Empty;
-        SaveActiveProfile();
+        NewNoteIsGlobal = false;
+        NotifyNoteEditModeChanged();
+    }
+
+    private void NotifyNoteEditModeChanged()
+    {
+        OnPropertyChanged(nameof(IsEditingNote));
+        OnPropertyChanged(nameof(NoteFormButtonText));
+        OnPropertyChanged(nameof(NoteFormHeader));
     }
 
     private void DeleteNote(NoteEntry? note)
     {
-        if (note is not null)
+        if (note is null)
         {
-            Notes.Remove(note);
-            SaveActiveProfile();
+            return;
         }
+
+        if (ReferenceEquals(note, _editedNote))
+        {
+            ClearNoteForm();
+        }
+
+        Notes.Remove(note);
+        SaveActiveProfile();
     }
 
     private void CopyToCommandBar(string? text)

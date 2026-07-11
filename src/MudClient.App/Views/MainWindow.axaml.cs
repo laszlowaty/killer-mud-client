@@ -299,6 +299,16 @@ public partial class MainWindow : Window
         }
     }
 
+    private void EditNote_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is NoteEntry note &&
+            _viewModel is not null)
+        {
+            _viewModel.EditNoteCommand.Execute(note);
+        }
+    }
+
     private void ToggleRule_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is ToggleButton button &&

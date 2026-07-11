@@ -13,14 +13,16 @@ public sealed class AutomationRuleEntry : ObservableObject
     private string _pattern;
     private string _action;
     private bool _isEnabled;
+    private bool _isGlobal;
 
-    public AutomationRuleEntry(string name, string type, string pattern, string action, bool isEnabled)
+    public AutomationRuleEntry(string name, string type, string pattern, string action, bool isEnabled, bool isGlobal = false)
     {
         _name = name;
         _type = type;
         _pattern = pattern;
         _action = action;
         _isEnabled = isEnabled;
+        _isGlobal = isGlobal;
     }
 
     public string Name
@@ -61,4 +63,11 @@ public sealed class AutomationRuleEntry : ObservableObject
     }
 
     public string StatusText => IsEnabled ? "WŁĄCZONY" : "WYŁĄCZONY";
+
+    /// <summary>True = shared by all profiles (stored in the global file).</summary>
+    public bool IsGlobal
+    {
+        get => _isGlobal;
+        set => SetProperty(ref _isGlobal, value);
+    }
 }

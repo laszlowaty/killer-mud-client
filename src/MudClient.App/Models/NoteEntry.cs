@@ -15,4 +15,8 @@ public sealed partial class NoteEntry : ObservableObject
 
     [ObservableProperty]
     private string _createdAt = string.Empty;
+
+    /// <summary>True = shared by all profiles (stored in the global file).</summary>
+    [ObservableProperty]
+    private bool _isGlobal;
 }

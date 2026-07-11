@@ -14,6 +14,7 @@ public sealed class TimerEntry : ObservableObject
     private int _milliseconds;
     private string _commandsText = string.Empty;
     private bool _isEnabled;
+    private bool _isGlobal;
 
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
 
@@ -61,6 +62,13 @@ public sealed class TimerEntry : ObservableObject
     }
 
     public string StatusText => IsEnabled ? "WŁĄCZONY" : "WYŁĄCZONY";
+
+    /// <summary>True = shared by all profiles (stored in the global file).</summary>
+    public bool IsGlobal
+    {
+        get => _isGlobal;
+        set => SetProperty(ref _isGlobal, value);
+    }
 
     public TimeSpan Interval =>
         TimeSpan.FromMinutes(Minutes) +

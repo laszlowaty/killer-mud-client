@@ -552,6 +552,9 @@
                                MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
                     </StackPanel>
 
+                    <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
+                              Content="Globalny — wspólny dla wszystkich profili" />
+
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                       <Button Grid.Column="0" Content="{Binding TimerFormButtonText}"
                               Command="{Binding AddTimerCommand}"
@@ -582,6 +585,10 @@
                                          TextTrimming="CharacterEllipsis" />
                               <Border Classes="mud-badge mud-badge-gold">
                                 <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
+                              </Border>
+                              <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                                      ToolTip.Tip="Wspólny dla wszystkich profili">
+                                <TextBlock Text="GLOBALNY" />
                               </Border>
                             </StackPanel>
 
@@ -665,6 +672,9 @@
                                MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
                     </StackPanel>
 
+                    <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
+                              Content="Globalna — wspólna dla wszystkich profili" />
+
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                       <Button Grid.Column="0" Content="{Binding RuleFormButtonText}"
                               Command="{Binding AddRuleCommand}"
@@ -687,25 +697,29 @@
                       <Border Classes="mud-section" Padding="10,8" Margin="0,2">
                         <StackPanel Spacing="4">
 
-                          <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+                          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
                             <Border Grid.Column="0" Classes="mud-badge mud-badge-gold">
                               <TextBlock Text="{Binding Type}" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="{Binding Name}"
+                            <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                                    ToolTip.Tip="Wspólna dla wszystkich profili">
+                              <TextBlock Text="GLOBALNA" />
+                            </Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Name}"
                                        FontWeight="SemiBold" FontSize="12"
                                        VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
-                            <ToggleButton Grid.Column="2" Classes="mud-switch"
+                            <ToggleButton Grid.Column="3" Classes="mud-switch"
                                           IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                           Content="{Binding StatusText}"
                                           Click="ToggleRule_OnClick"
                                           ToolTip.Tip="Włącz / wyłącz regułę" />
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="4"
                                     Classes="mud-small"
                                     Content="✎" Padding="6,2"
                                     ToolTip.Tip="Edytuj regułę"
                                     Click="EditRule_OnClick" />
-                            <Button Grid.Column="4"
+                            <Button Grid.Column="5"
                                     Classes="mud-small mud-danger"
                                     Content="✕" Padding="6,2"
                                     ToolTip.Tip="Usuń regułę"
@@ -799,6 +813,8 @@
                                 Command="{Binding AddLocationCommand}" Padding="16,6" />
                       </Grid>
                     </StackPanel>
+                    <CheckBox IsChecked="{Binding NewLocationIsGlobal}"
+                              Content="Globalna — wspólna dla wszystkich profili" />
                     <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                                Text="Do zapisanej lokacji dojdziesz przyciskiem IDŹ albo komendą /idz &lt;nazwa&gt;. Komenda /stop przerywa marsz." />
                   </StackPanel>
@@ -814,8 +830,14 @@
                       <Border Classes="mud-section" Padding="10,8" Margin="0,2">
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                           <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                       FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                         FontSize="12" TextTrimming="CharacterEllipsis" />
+                              <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                                      ToolTip.Tip="Wspólna dla wszystkich profili">
+                                <TextBlock Text="GLOBALNA" />
+                              </Border>
+                            </StackPanel>
                             <TextBlock Text="{Binding Display}" Classes="mud-faint"
                                        TextTrimming="CharacterEllipsis" />
                           </StackPanel>
@@ -853,14 +875,24 @@
                   </Border>
                 </Grid>
 
-                <Expander Classes="mud-expander" Header="＋ Nowa notatka" IsExpanded="False">
+                <Expander Classes="mud-expander"
+                          Header="{Binding NoteFormHeader}"
+                          IsExpanded="{Binding IsNoteFormExpanded}">
                   <StackPanel Spacing="8" Margin="0,8,0,0">
                     <TextBox Text="{Binding NewNoteTitle}" PlaceholderText="Tytuł…" />
                     <TextBox Text="{Binding NewNoteContent}" PlaceholderText="Treść…"
                              MinHeight="60" AcceptsReturn="True" TextWrapping="Wrap" />
-                    <Button Content="Dodaj notatkę" Command="{Binding AddNoteCommand}"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Center" Padding="16,6" />
+                    <CheckBox IsChecked="{Binding NewNoteIsGlobal}"
+                              Content="Globalna — wspólna dla wszystkich profili" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                      <Button Grid.Column="0" Content="{Binding NoteFormButtonText}"
+                              Command="{Binding AddNoteCommand}"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Center" Padding="16,6" />
+                      <Button Grid.Column="1" Content="Anuluj"
+                              Command="{Binding CancelNoteEditCommand}"
+                              IsVisible="{Binding IsEditingNote}" Padding="16,6" />
+                    </Grid>
                   </StackPanel>
                 </Expander>
 
@@ -871,20 +903,33 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:NoteEntry">
                       <Border Classes="mud-section" Padding="8" Margin="0,2">
-                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
-                          <TextBlock Grid.Row="0" Grid.Column="0"
-                                     Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" />
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                          <StackPanel Grid.Row="0" Grid.Column="0"
+                                      Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                                    ToolTip.Tip="Wspólna dla wszystkich profili">
+                              <TextBlock Text="GLOBALNA" />
+                            </Border>
+                          </StackPanel>
                           <Button Grid.Row="0" Grid.Column="1"
+                                  Classes="mud-small"
+                                  Content="✎" Padding="6,2"
+                                  ToolTip.Tip="Edytuj notatkę"
+                                  Click="EditNote_OnClick" />
+                          <Button Grid.Row="0" Grid.Column="2"
                                   Classes="mud-small mud-danger"
                                   Content="✕" Padding="6,2"
+                                  ToolTip.Tip="Usuń notatkę"
                                   Click="DeleteNote_OnClick" />
 
-                          <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                          <TextBlock Grid.Row="1" Grid.ColumnSpan="3"
                                      Classes="mud-muted" FontSize="11"
                                      TextWrapping="Wrap"
                                      Text="{Binding Content}" />
 
-                          <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                          <TextBlock Grid.Row="2" Grid.ColumnSpan="3"
                                      Classes="mud-faint"
                                      Text="{Binding CreatedAt}" Margin="0,2,0,0" />
                         </Grid>

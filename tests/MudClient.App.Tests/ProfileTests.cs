@@ -58,6 +58,52 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void LoadGlobal_MissingFile_ReturnsEmptyData()
+    {
+        var global = CreateService().LoadGlobal();
+
+        Assert.Empty(global.Rules);
+        Assert.Empty(global.Timers);
+        Assert.Empty(global.Locations);
+    }
+
+    [Fact]
+    public void SaveGlobal_RoundTripsAndIsExcludedFromProfileList()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Gandalf" });
+        service.SaveGlobal(new GlobalData
+        {
+            Notes = [new ProfileNote { Title = "N", Content = "treść", CreatedAt = "2026-07-11 10:00", IsGlobal = true }],
+            Rules = [new ProfileRule { Name = "R", Type = "trigger", Pattern = "x", Action = "y", IsGlobal = true }],
+            Timers = [new ProfileTimer { Name = "T", Seconds = 5, Commands = ["look"], IsGlobal = true }],
+            Locations = [new ProfileLocation { Name = "plac", Vnum = "123", IsGlobal = true }],
+        });
+
+        var global = service.LoadGlobal();
+        Assert.Equal("N", Assert.Single(global.Notes).Title);
+        Assert.Equal("R", Assert.Single(global.Rules).Name);
+        Assert.Equal("T", Assert.Single(global.Timers).Name);
+        Assert.Equal("123", Assert.Single(global.Locations).Vnum);
+
+        Assert.Equal(["Gandalf"], service.ListProfileNames());
+    }
+
+    [Fact]
+    public void Save_ProfileNamedLikeGlobalFile_DoesNotOverwriteGlobalData()
+    {
+        var service = CreateService();
+        service.SaveGlobal(new GlobalData
+        {
+            Rules = [new ProfileRule { Name = "R", IsGlobal = true }],
+        });
+
+        service.Save(new ProfileData { Name = "_global" });
+
+        Assert.Single(service.LoadGlobal().Rules);
+    }
+
+    [Fact]
     public void ListProfileNames_ReturnsSavedProfilesSorted()
     {
         var service = CreateService();
