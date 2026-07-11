@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Kanał wydania'
+        required: true
+        type: choice
+        default: beta
+        options:
+          - beta
+          - release
+      bump:
+        description: 'Podbicie wersji w Directory.Build.props'
+        required: true
+        type: choice
+        default: patch
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Bump version
+        id: version
+        run: |
+          set -euo pipefail
+          CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
+          echo "Current version: $CURRENT"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+            none)  ;;
+          esac
+          VERSION="$MAJOR.$MINOR.$PATCH"
+
+          if [ "${{ inputs.channel }}" = "beta" ]; then
+            # kolejny numer bety dla tej wersji: v1.2.3-beta.N
+            N=1
+            while git rev-parse -q --verify "refs/tags/v$VERSION-beta.$N" >/dev/null; do
+              N=$((N+1))
+            done
+            FULL_VERSION="$VERSION-beta.$N"
+            PRERELEASE=true
+          else
+            if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+              echo "::error::Tag v$VERSION już istnieje — wybierz podbicie wersji."
+              exit 1
+            fi
+            FULL_VERSION="$VERSION"
+            PRERELEASE=false
+          fi
+
+          TAG="v$FULL_VERSION"
+          echo "version=$VERSION"           >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"                   >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE"     >> "$GITHUB_OUTPUT"
+          echo "New version: $FULL_VERSION (tag $TAG)"
+
+          if [ "$VERSION" != "$CURRENT" ]; then
+            sed -i "s|<Version>$CURRENT</Version>|<Version>$VERSION</Version>|" Directory.Build.props
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add Directory.Build.props
+            git commit -m "chore: bump version to $VERSION"
+            git push origin main
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "KillerMudClient $FULL_VERSION"
+          git push origin "$TAG"
+
+      - name: Test
+        run: dotnet test MudClientStarter.sln --configuration Release
+
+      - name: Publish all platforms
+        run: |
+          set -euo pipefail
+          FULL_VERSION="${{ steps.version.outputs.full_version }}"
+          PROJECT="src/MudClient.App/MudClient.App.csproj"
+          mkdir -p artifacts
+
+          publish_rid() {
+            local RID="$1"
+            local OUT="publish/$RID"
+            local NAME="KillerMudClient-$FULL_VERSION"
+            dotnet publish "$PROJECT" \
+              --configuration Release \
+              --runtime "$RID" \
+              --self-contained true \
+              --output "$OUT" \
+              -p:PublishSingleFile=true \
+              -p:IncludeNativeLibrariesForSelfExtract=true \
+              -p:IncludeAllContentForSelfExtract=true \
+              -p:DebugType=None \
+              -p:DebugSymbols=false \
+              -p:Version="$FULL_VERSION"
+            if [ -f "$OUT/MudClient.App.exe" ]; then
+              mv "$OUT/MudClient.App.exe" "$OUT/$NAME.exe"
+              (cd "$OUT" && zip -r "$GITHUB_WORKSPACE/artifacts/KillerMudClient-$FULL_VERSION-$RID.zip" .)
+            else
+              mv "$OUT/MudClient.App" "$OUT/$NAME"
+              chmod +x "$OUT/$NAME"
+              tar -czf "artifacts/KillerMudClient-$FULL_VERSION-$RID.tar.gz" -C "$OUT" .
+            fi
+          }
+
+          publish_rid win-x64
+          publish_rid linux-x64
+          publish_rid osx-arm64
+          publish_rid osx-x64
+
+          ls -la artifacts
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          FULL_VERSION="${{ steps.version.outputs.full_version }}"
+          FLAGS=""
+          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
+            FLAGS="--prerelease"
+          fi
+          gh release create "$TAG" \
+            --title "KillerMudClient $FULL_VERSION" \
+            --generate-notes \
+            $FLAGS \
+            artifacts/*

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KillerMudClient — klient MUD dla killer-mud.pl</title>
+  <meta name="description" content="Nowoczesny, wieloplatformowy klient MUD (Windows, Linux, macOS) z mapą, automatami, buffami i pełnym wsparciem GMCP/MCCP.">
+  <link rel="icon" href="assets/killer.ico">
+  <style>
+    :root {
+      --bg: #14161d;
+      --bg-panel: #1c1f29;
+      --bg-panel-2: #22263275;
+      --border: #333a4d;
+      --gold: #d9b970;
+      --gold-bright: #f0d492;
+      --accent: #b45de0;
+      --green: #5fbf77;
+      --text: #d6d9e0;
+      --text-dim: #8b91a3;
+      --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+    a { color: var(--gold); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    header {
+      padding: 64px 0 32px;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% -10%, #b45de022, transparent),
+        radial-gradient(ellipse 60% 40% at 50% 0%, #d9b97014, transparent);
+    }
+    .logo { width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 8px 40px #00000080; }
+    h1 {
+      margin-top: 20px;
+      font-size: 2.6rem;
+      color: var(--gold-bright);
+      letter-spacing: 1px;
+    }
+    h1 .kill { color: var(--accent); }
+    .tagline { color: var(--text-dim); font-size: 1.15rem; max-width: 640px; margin: 12px auto 0; }
+
+    .badges { margin-top: 18px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--mono); font-size: .8rem;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 999px; padding: 4px 14px; color: var(--text-dim);
+    }
+    .badge b { color: var(--green); font-weight: 600; }
+
+    .downloads { margin: 32px 0 8px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 26px; border-radius: 10px; text-decoration: none;
+      font-weight: 600; font-size: 1rem; border: 1px solid transparent;
+      transition: transform .1s ease, box-shadow .1s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--gold); color: #1a1408; box-shadow: 0 4px 24px #d9b97040; }
+    .btn-secondary { background: var(--bg-panel); color: var(--text); border-color: var(--border); }
+    .version-note { text-align: center; color: var(--text-dim); font-size: .85rem; font-family: var(--mono); }
+
+    .shot { margin: 48px auto 0; }
+    .shot img {
+      width: 100%; border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 80px #000000a0;
+    }
+
+    section { padding: 56px 0 8px; }
+    h2 {
+      color: var(--gold); font-size: 1.5rem; letter-spacing: 2px;
+      text-transform: uppercase; text-align: center; margin-bottom: 32px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 22px;
+    }
+    .card h3 { color: var(--gold-bright); font-size: 1.05rem; margin-bottom: 8px; }
+    .card p { color: var(--text-dim); font-size: .95rem; }
+    .card .icon { font-size: 1.4rem; margin-right: 8px; }
+
+    .platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .platform {
+      background: var(--bg-panel-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .platform h3 { color: var(--text); margin-bottom: 10px; }
+    .platform a { display: block; font-family: var(--mono); font-size: .85rem; margin-top: 6px; word-break: break-all; }
+    .platform .hint { color: var(--text-dim); font-size: .78rem; margin-top: 10px; }
+
+    code, pre {
+      font-family: var(--mono); font-size: .85rem;
+      background: #0e1016; border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    code { padding: 1px 6px; }
+    pre { padding: 14px 18px; overflow-x: auto; margin-top: 10px; }
+
+    footer {
+      margin-top: 72px; padding: 28px 0; border-top: 1px solid var(--border);
+      text-align: center; color: var(--text-dim); font-size: .88rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <img class="logo" src="assets/killer.png" alt="KillerMudClient logo">
+    <h1><span class="kill">Killer</span>MudClient</h1>
+    <p class="tagline">Nowoczesny, wieloplatformowy klient MUD stworzony z myślą o <b>killer-mud.pl</b> — z mapą świata, automatami i pełnym wsparciem GMCP.</p>
+    <div class="badges">
+      <span class="badge">Windows · Linux · macOS</span>
+      <span class="badge">C# / Avalonia</span>
+      <span class="badge"><b>open source</b> · MIT</span>
+    </div>
+    <div class="downloads">
+      <a class="btn btn-primary" id="btn-download" href="https://github.com/laszlowaty/killer-mud-client/releases/latest">⬇ Pobierz najnowszą wersję</a>
+      <a class="btn btn-secondary" href="https://github.com/laszlowaty/killer-mud-client">GitHub</a>
+      <a class="btn btn-secondary" href="https://github.com/laszlowaty/killer-mud-client/releases">Wszystkie wydania (w tym beta)</a>
+    </div>
+    <p class="version-note" id="version-note"></p>
+  </div>
+  <div class="wrap shot">
+    <img src="assets/screenshot.png" alt="Zrzut ekranu klienta: terminal, mapa świata, panele buffów i automatów">
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Możliwości</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="icon">🗺️</span>Mapa świata</h3>
+        <p>Interaktywna mapa z 17 obszarami i prawie 25&nbsp;tysiącami pokoi, śledzeniem pozycji przez GMCP, biomowymi podkładami graficznymi i autowalkiem z odzyskiwaniem trasy.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">⚙️</span>Aliasy, triggery, timery</h3>
+        <p>Panel Automaty: własne aliasy i triggery z wzorcami, timery powtarzające komendy oraz szybkie przyciski komend pod terminalem.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">✨</span>Pilnowanie buffów</h3>
+        <p>Panel wymaganych buffów pokazuje, czego brakuje, a komenda <code>/recast</code> jednym ruchem rzuca wszystkie brakujące czary.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">⚔️</span>Autoassist i ordery</h3>
+        <p>Automatyczne wsparcie walczącego członka drużyny oraz opcjonalne wykonywanie rozkazów lidera grupy — z politykami bezpieczeństwa opartymi o dane GMCP.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🖥️</span>Wydajny terminal</h3>
+        <p>Zwirtualizowany bufor do 10&nbsp;000 linii — wielogodzinne sesje nie spowalniają UI. Kolory ANSI (16/256/RGB), filtry kanałów: walka, czaty, system.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🔌</span>Pełny stos protokołów</h3>
+        <p>Telnet, GMCP, MCCP2 (kompresja zlib), NAWS, TTYPE, EOR. Konta z hasłem szyfrowanym DPAPI i autologowaniem. Dokowalne, konfigurowalne panele UI.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Pobieranie</h2>
+    <div class="platforms">
+      <div class="platform">
+        <h3>🪟 Windows</h3>
+        <div id="dl-win-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">win-x64 (zip)</a></div>
+        <p class="hint">Rozpakuj i uruchom <code>KillerMudClient-*.exe</code>. Jedna binarka, bez instalacji.</p>
+      </div>
+      <div class="platform">
+        <h3>🐧 Linux</h3>
+        <div id="dl-linux-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">linux-x64 (tar.gz)</a></div>
+        <p class="hint">Rozpakuj, nadaj prawa: <code>chmod +x KillerMudClient-*</code></p>
+      </div>
+      <div class="platform">
+        <h3>🍎 macOS</h3>
+        <div id="dl-osx-arm64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">osx-arm64 (Apple Silicon)</a></div>
+        <div id="dl-osx-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">osx-x64 (Intel)</a></div>
+        <p class="hint">Binarka nie jest podpisana — po rozpakowaniu:</p>
+        <pre>chmod +x KillerMudClient-*
+xattr -dr com.apple.quarantine .</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    KillerMudClient · projekt open source na licencji MIT ·
+    <a href="https://github.com/laszlowaty/killer-mud-client">github.com/laszlowaty/killer-mud-client</a>
+  </div>
+</footer>
+
+<script>
+  // Uzupełnia linki pobierania na podstawie najnowszego wydania z API GitHuba.
+  (async () => {
+    try {
+      const res = await fetch('https://api.github.com/repos/laszlowaty/killer-mud-client/releases/latest');
+      if (!res.ok) return;
+      const rel = await res.json();
+      document.getElementById('version-note').textContent =
+        'Najnowsza wersja: ' + rel.tag_name + ' (' + new Date(rel.published_at).toLocaleDateString('pl-PL') + ')';
+      document.getElementById('btn-download').textContent = '⬇ Pobierz ' + rel.tag_name;
+      for (const rid of ['win-x64', 'linux-x64', 'osx-arm64', 'osx-x64']) {
+        const asset = rel.assets.find(a => a.name.includes(rid));
+        if (asset) {
+          const el = document.getElementById('dl-' + rid);
+          el.innerHTML = '<a href="' + asset.browser_download_url + '">' + asset.name + '</a>';
+        }
+      }
+    } catch (e) { /* linki statyczne zostają */ }
+  })();
+</script>
+
+</body>
+</html>

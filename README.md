@@ -1,6 +1,20 @@
 # MudClientStarter
 
+[![CI](https://github.com/laszlowaty/killer-mud-client/actions/workflows/ci.yml/badge.svg)](https://github.com/laszlowaty/killer-mud-client/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/laszlowaty/killer-mud-client?include_prereleases&label=release)](https://github.com/laszlowaty/killer-mud-client/releases)
+[![Strona projektu](https://img.shields.io/badge/www-killer--mud--client-d9b970)](https://laszlowaty.github.io/killer-mud-client/)
+
 Startowy, wieloplatformowy klient MUD napisany w C# i Avalonia.
+
+**Strona projektu i pobieranie:** https://laszlowaty.github.io/killer-mud-client/
+
+## Wydania
+
+Wydania buduje GitHub Actions (workflow **Release**, uruchamiany ręcznie z zakładki Actions):
+
+- wybierasz kanał (`beta` → pre-release z sufiksem `-beta.N`, `release` → pełne wydanie),
+- wybierasz podbicie wersji (`patch` / `minor` / `major` / `none`) — workflow aktualizuje `Directory.Build.props`, commituje i taguje,
+- budowane są paczki `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64` i publikowane jako GitHub Release.
 
 ## Co już działa
 
