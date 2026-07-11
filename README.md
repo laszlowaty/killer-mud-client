@@ -69,6 +69,10 @@ chmod +x run.sh
 ./run.sh
 ```
 
+## Publikacja
+
+Skrypty `publish.bat` oraz `publish-mac.bat` przyjmują wariant `beta` albo `release`. Przed uruchomieniem `dotnet publish` usuwają cały katalog docelowy wybranego wariantu i tworzą go ponownie, dzięki czemu paczka nie zawiera plików pozostałych po starszej wersji. Sąsiedni wariant i pozostałe platformy nie są czyszczone.
+
 ## Gdzie wpisać adres MUD-a
 
 Po uruchomieniu aplikacji wpisz host i port na górnym pasku, następnie kliknij **Połącz**.
@@ -118,6 +122,12 @@ dotnet run --project tools/MudClient.MapBackdropGenerator -- src/MudClient.App/A
 ### Wykrywanie aktualnego pokoju z GMCP
 
 Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum pod ścieżkami `vnum`, `num`, `room.vnum`, `room.num`, `location.vnum`, `location.num` (w tej kolejności). Aby dopasować inny serwer MUD, który wysyła lokalizację pod innym pakietem lub inną ścieżką, zmień `gmcpLocation.packages` i `gmcpLocation.vnumPaths` w `map-settings.json` — nie wymaga to zmian w kodzie.
+
+### Odzyskiwanie ruchu i zamknięte bramy w autowalku
+
+Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka 30 sekund i wznawia trasę. Zatrzymanie autowalku anuluje oczekiwanie.
+
+Jeżeli próba otwarcia bramy kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
 
 ## Następne sensowne kroki
 

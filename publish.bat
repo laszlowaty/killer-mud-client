@@ -43,6 +43,22 @@ echo Output  : %OUTDIR%
 echo App     : %APP_NAME%.exe
 echo.
 
+rem ---- Czysty katalog wyjsciowy zapobiega pozostawieniu plikow starego release ----
+if exist "%OUTDIR%" (
+    echo Cleaning: %OUTDIR%
+    rmdir /s /q "%OUTDIR%"
+    if exist "%OUTDIR%" (
+        echo ERROR: Could not clean output directory: %OUTDIR%
+        exit /b 1
+    )
+)
+
+mkdir "%OUTDIR%"
+if errorlevel 1 (
+    echo ERROR: Could not create output directory: %OUTDIR%
+    exit /b 1
+)
+
 dotnet publish "%PROJECT%" ^
     --configuration Release ^
     --runtime win-x64 ^

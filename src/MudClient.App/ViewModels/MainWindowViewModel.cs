@@ -121,6 +121,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _autowalkTargetName;
     private string _autowalkStatusText = "Bezczynny.";
     private AutowalkLocation? _temporaryTarget;
+    private CancellationTokenSource _autowalkCts = new();
+    private int? _latestMovement;
+    private int? _latestMaximumMovement;
+    private IReadOnlyList<MemorizedSpell> _latestMemorizedSpells = [];
+    private bool _autowalkRecoveringMovement;
+    private int? _autowalkOpeningStep;
+    private bool _autowalkWaitingForGate;
+    private bool _autowalkGateCommandsSent;
+    private bool _autowalkGateIsOpen;
 
     // --- Required buffs ---
     private string _newBuffName = string.Empty;
@@ -211,6 +220,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
+        _roomExits.ExitsChanged += OnRoomExitsChanged;
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
 
         _dockFactory = new MudDockFactory(Map, this);
@@ -1108,9 +1118,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             // Stop the active walk so the user can preview the new route,
             // but keep the fresh temporary target (do NOT call StopAutowalk
             // here — it would also clear _temporaryTarget).
+            _autowalkCts.Cancel();
             _autowalkPath = null;
             _autowalkStep = 0;
             _autowalkTargetName = null;
+            ResetAutowalkTransientState();
             OnPropertyChanged(nameof(IsAutowalking));
             Map.RouteRooms = null;
             AddToast($"Autowalk przerwany — nowy cel „{_temporaryTarget!.Name}”.", "info");
@@ -1275,6 +1287,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         Map.CenterOnPlayer();
+        ReplaceAutowalkCancellation();
+        ResetAutowalkTransientState();
         _autowalkPath = path;
         _autowalkStep = 0;
         _autowalkRecomputes = 0;
@@ -1289,9 +1303,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void StopAutowalk(string message, string toastType = "info")
     {
         var wasWalking = _autowalkPath is not null;
+        _autowalkCts.Cancel();
         _autowalkPath = null;
         _autowalkStep = 0;
         _autowalkTargetName = null;
+        ResetAutowalkTransientState();
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = "Bezczynny.";
         Map.RouteRooms = null;
@@ -1303,11 +1319,45 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    private void SendAutowalkStep()
+    private void ReplaceAutowalkCancellation()
+    {
+        var previous = _autowalkCts;
+        _autowalkCts = new CancellationTokenSource();
+        previous.Cancel();
+        previous.Dispose();
+    }
+
+    private void ResetAutowalkTransientState()
+    {
+        _autowalkRecoveringMovement = false;
+        _autowalkOpeningStep = null;
+        _autowalkWaitingForGate = false;
+        _autowalkGateCommandsSent = false;
+        _autowalkGateIsOpen = false;
+    }
+
+    private void SendAutowalkStep(bool skipMovementCheck = false)
     {
         if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count)
         {
             return;
+        }
+
+        if (_autowalkWaitingForGate || _autowalkRecoveringMovement)
+        {
+            return;
+        }
+
+        if (!skipMovementCheck)
+        {
+            var action = AutowalkRecoveryPolicy.GetLowMovementAction(
+                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells);
+            if (action != LowMovementAction.None)
+            {
+                _autowalkRecoveringMovement = true;
+                _ = RecoverMovementAndContinueAsync(action, _autowalkCts.Token);
+                return;
+            }
         }
 
         var step = _autowalkPath.Steps[_autowalkStep];
@@ -1323,17 +1373,75 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             EmitSystem($"Autowalk: krok „{step.Command}” wysyłam jako „{moveCommand}”.", 90);
         }
 
-        _ = SendAutowalkCommandsAsync(TryGetOpenCommand(exit), moveCommand);
+        var openCommand = TryGetOpenCommand(exit);
+        _autowalkOpeningStep = openCommand is null ? null : _autowalkStep;
+        _ = SendAutowalkCommandsAsync(openCommand, moveCommand, _autowalkCts.Token);
     }
 
-    private async Task SendAutowalkCommandsAsync(string? openCommand, string moveCommand)
+    private async Task RecoverMovementAndContinueAsync(
+        LowMovementAction action,
+        CancellationToken cancellationToken)
     {
-        if (openCommand is not null)
+        try
         {
-            await SendTriggeredCommandAsync(openCommand);
-        }
+            if (action == LowMovementAction.CastRefresh)
+            {
+                Dispatcher.UIThread.Post(() =>
+                    AutowalkStatusText = "Mało ruchu — rzucam refresh.");
+                await SendTriggeredCommandAsync("cast 'refresh' self", cancellationToken);
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() =>
+                    AutowalkStatusText = "Mało ruchu — odpoczywam 30 sekund.");
+                await SendTriggeredCommandAsync("rest", cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
 
-        await SendTriggeredCommandAsync(moveCommand);
+                // The character is still resting — stand up before walking on.
+                await SendTriggeredCommandAsync("stand", cancellationToken);
+
+                if (AutowalkRecoveryPolicy.HasMemorizedSpell(_latestMemorizedSpells, "float"))
+                {
+                    await SendTriggeredCommandAsync("cast 'float' self", cancellationToken);
+                }
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (cancellationToken.IsCancellationRequested || _autowalkPath is null)
+                {
+                    return;
+                }
+
+                _autowalkRecoveringMovement = false;
+                SendAutowalkStep(skipMovementCheck: true);
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Stopping autowalk also stops its pending recovery delay and sends.
+        }
+    }
+
+    private async Task SendAutowalkCommandsAsync(
+        string? openCommand,
+        string moveCommand,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (openCommand is not null)
+            {
+                await SendTriggeredCommandAsync(openCommand, cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            await SendTriggeredCommandAsync(moveCommand, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The user stopped or replaced this autowalk.
+        }
     }
 
     /// <summary>
@@ -1358,10 +1466,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// custom-named exits, by the exit name itself.
     /// </summary>
     private RoomExitInfo? FindGmcpExit(string stepCommand)
+        => FindGmcpExit(stepCommand, _roomExits.CurrentExits);
+
+    private static RoomExitInfo? FindGmcpExit(
+        string stepCommand,
+        IReadOnlyList<RoomExitInfo> exits)
     {
         var canonical = CanonicalDirection(stepCommand);
 
-        foreach (var exit in _roomExits.CurrentExits)
+        foreach (var exit in exits)
         {
             if (string.Equals(CanonicalDirection(exit.Dir), canonical, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(exit.Name, stepCommand, StringComparison.OrdinalIgnoreCase))
@@ -1371,6 +1484,40 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         return null;
+    }
+
+    private void OnRoomExitsChanged(IReadOnlyList<RoomExitInfo> exits)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_autowalkWaitingForGate || _autowalkPath is null ||
+                _autowalkStep >= _autowalkPath.Steps.Count)
+            {
+                return;
+            }
+
+            var exit = FindGmcpExit(_autowalkPath.Steps[_autowalkStep].Command, exits);
+            if (exit is null || exit.IsClosed)
+            {
+                return;
+            }
+
+            _autowalkGateIsOpen = true;
+            TryContinueThroughOpenedGate();
+        });
+    }
+
+    private void TryContinueThroughOpenedGate()
+    {
+        if (!_autowalkWaitingForGate || !_autowalkGateCommandsSent || !_autowalkGateIsOpen)
+        {
+            return;
+        }
+
+        _autowalkWaitingForGate = false;
+        _autowalkOpeningStep = null;
+        EmitSystem("Autowalk: przejście otwarte w GMCP — idę dalej.", 90);
+        SendAutowalkStep();
     }
 
     /// <summary>Strips diacritics so autowalk commands are plain ASCII (e.g. "wyjście" → "wyjscie").</summary>
@@ -1418,6 +1565,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 return;
             }
+
+            _autowalkOpeningStep = null;
+            _autowalkWaitingForGate = false;
+            _autowalkGateCommandsSent = false;
+            _autowalkGateIsOpen = false;
 
             var steps = _autowalkPath.Steps;
             for (var i = _autowalkStep; i < steps.Count; i++)
@@ -2513,6 +2665,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Dispatcher.UIThread.Post(RecordDeath);
         }
 
+        if (AutowalkRecoveryPolicy.IsLockedGateMessage(line))
+        {
+            Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
+        }
+
         var commands = _triggers.Evaluate(line, CommandStackingSeparator);
         if (commands.Count == 0)
         {
@@ -2549,6 +2706,49 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // tracking list once it completes, preventing unbounded growth
         // of _triggerTasks during normal operation.
         _ = RemoveWhenCompleted(task);
+    }
+
+    private void HandleLockedAutowalkGate()
+    {
+        if (_autowalkPath is null || _autowalkWaitingForGate ||
+            _autowalkOpeningStep != _autowalkStep)
+        {
+            return;
+        }
+
+        _autowalkWaitingForGate = true;
+        _autowalkOpeningStep = null;
+        _autowalkGateCommandsSent = false;
+        _autowalkGateIsOpen = false;
+        AutowalkStatusText = "Brama zamknięta — próbuję ją uruchomić i czekam na GMCP.";
+        _ = SendGateCommandsAsync(_autowalkCts.Token);
+    }
+
+    private async Task SendGateCommandsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            foreach (var command in new[] { "zapukaj", "pull", "uderz" })
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await SendTriggeredCommandAsync(command, cancellationToken);
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (cancellationToken.IsCancellationRequested || !_autowalkWaitingForGate)
+                {
+                    return;
+                }
+
+                _autowalkGateCommandsSent = true;
+                TryContinueThroughOpenedGate();
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The autowalk was stopped while the gate sequence was being sent.
+        }
     }
 
     /// <summary>
@@ -2624,13 +2824,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    private async Task SendTriggeredCommandAsync(string command)
+    private async Task SendTriggeredCommandAsync(
+        string command,
+        CancellationToken cancellationToken = default)
     {
         Dispatcher.UIThread.Post(() => EmitSystem($"> {command}", 90));
 
         try
         {
-            await _session.SendCommandAsync(command);
+            await _session.SendCommandAsync(command, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception exception)
         {
@@ -2662,6 +2868,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnCharacterVitalsChanged(CharacterVitalsUpdate update)
     {
+        if (update.Mv is { } movement) _latestMovement = movement;
+        if (update.MaxMv is { } maximumMovement) _latestMaximumMovement = maximumMovement;
+
         Dispatcher.UIThread.Post(() =>
         {
             if (update.Hp is { } hp) Vitals.HitPoints = hp;
@@ -2756,6 +2965,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnMemSpellsChanged(IReadOnlyList<MemorizedSpell> spells)
     {
+        _latestMemorizedSpells = spells.ToArray();
+
         Dispatcher.UIThread.Post(() =>
         {
             MemSpells.Clear();
@@ -2981,7 +3192,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         Map.PropertyChanged -= OnMapPropertyChanged;
         _locationResolver.LocationChanged -= OnAutowalkLocationChanged;
+        _roomExits.ExitsChanged -= OnRoomExitsChanged;
         Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
+
+        _autowalkCts.Cancel();
 
         // Phase 1 — stop accepting new trigger tasks atomically.
         // OnLineReceived holds the same lock when it checks the flag,
@@ -3064,5 +3278,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.Dispose();
         _triggerSendLock.Dispose();
         _triggerCts.Dispose();
+        _autowalkCts.Dispose();
     }
 }

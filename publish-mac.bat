@@ -44,8 +44,44 @@ echo  MudClient.App  %VERSION%  ^(%FLAVOR%^)
 echo  macOS cross-compile (Apple Silicon + Intel)
 echo ============================================================
 
-call :publish osx-arm64 "Apple Silicon" || goto :error
-call :publish osx-x64 "Intel" || goto :error
+for %%R in (osx-arm64 osx-x64) do (
+    set "RID=%%R"
+    set "ARCH=!RID:osx-=!"
+    set "OUTDIR=publish\mac-!ARCH!\%FLAVOR%"
+
+    echo.
+    echo === macOS ^(!ARCH!, !RID!^) ===
+
+    rem ---- Czysty katalog wyjsciowy zapobiega pozostawieniu plikow starego release ----
+    if exist "!OUTDIR!" (
+        echo Cleaning: !OUTDIR!
+        rmdir /s /q "!OUTDIR!"
+        if exist "!OUTDIR!" (
+            echo ERROR: Nie mozna wyczyscic katalogu: !OUTDIR!
+            exit /b 1
+        )
+    )
+
+    mkdir "!OUTDIR!"
+    if errorlevel 1 (
+        echo ERROR: Nie mozna utworzyc katalogu: !OUTDIR!
+        exit /b 1
+    )
+
+    dotnet publish "%PROJECT%" -c Release -r "!RID!" --self-contained true ^
+        -p:PublishSingleFile=true ^
+        -p:IncludeNativeLibrariesForSelfExtract=true ^
+        -o "!OUTDIR!" ^
+        -p:Version=%VERSION%
+    if errorlevel 1 (
+        echo ERROR: Publikacja !RID! nie powiodla sie.
+        exit /b 1
+    )
+
+    if exist "!OUTDIR!\%APP_NAME%" del "!OUTDIR!\%APP_NAME%"
+    ren "!OUTDIR!\MudClient.App" "%APP_NAME%"
+    if errorlevel 1 exit /b 1
+)
 
 echo.
 echo ============================================================
@@ -58,30 +94,3 @@ echo    chmod +x %APP_NAME%
 echo    xattr -dr com.apple.quarantine .
 echo ============================================================
 exit /b 0
-
-:publish
-setlocal
-set RID=%~1
-set ARCH=%RID:osx-=%
-set BASE_OUTDIR=publish\mac-%ARCH%
-set OUTDIR=%BASE_OUTDIR%\%FLAVOR%
-
-echo.
-echo === macOS (%~2, %RID%) ===
-dotnet publish %PROJECT% -c Release -r %RID% --self-contained true ^
-    -p:PublishSingleFile=true ^
-    -p:IncludeNativeLibrariesForSelfExtract=true ^
-    -o %OUTDIR% ^
-    -p:Version=%VERSION%
-if errorlevel 1 (endlocal & exit /b 1)
-
-if exist "%OUTDIR%\%APP_NAME%" del "%OUTDIR%\%APP_NAME%"
-ren "%OUTDIR%\MudClient.App" "%APP_NAME%"
-if errorlevel 1 (endlocal & exit /b 1)
-endlocal
-exit /b 0
-
-:error
-echo.
-echo Publikacja nie powiodla sie.
-exit /b 1
