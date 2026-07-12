@@ -169,7 +169,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _disconnectCommand = new AsyncRelayCommand(DisconnectAsync, CanDisconnect);
         _sendCommandCommand = new AsyncRelayCommand(SendCurrentCommandAsync, CanSendCommand);
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
-        QuickCommandExecuteCommand = new RelayCommand<string>(ExecuteQuickCommand);
         ExaminePersonCommand = new RelayCommand<string>(ExecuteExaminePerson);
         KillPersonCommand = new RelayCommand<string>(ExecuteKillPerson);
         SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
@@ -2491,9 +2490,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private const int CommandHistoryMaxSize = 100;
     public ObservableCollection<string> CommandHistory { get; } = [];
 
-    // --- Quick commands (chips) ---
-    public ObservableCollection<QuickCommand> QuickCommands { get; } = [];
-    public IRelayCommand<string> QuickCommandExecuteCommand { get; }
     public IRelayCommand<string> ExaminePersonCommand { get; }
     public IRelayCommand<string> KillPersonCommand { get; }
 
@@ -2667,28 +2663,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // ========================================================================
     // New command implementations
     // ========================================================================
-
-    private void ExecuteQuickCommand(string? command)
-    {
-        if (string.IsNullOrWhiteSpace(command))
-        {
-            return;
-        }
-
-        if (IsConnected)
-        {
-            CommandText = command;
-            if (CanSendCommand())
-            {
-                _ = SendCurrentCommandAsync();
-            }
-        }
-        else
-        {
-            // When not connected, just set the text for convenience.
-            CommandText = command;
-        }
-    }
 
     private void ExecuteExaminePerson(string? name)
     {
@@ -3343,26 +3317,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void PopulateMockData()
     {
-        // Quick commands
-        foreach (var cmd in new[]
-        {
-            new QuickCommand("spojrzyj", "look"),
-            new QuickCommand("ekwipunek", "inventory"),
-            new QuickCommand("statystyki", "score"),
-            new QuickCommand("sprzęt", "equipment"),
-            new QuickCommand("kto", "who"),
-            new QuickCommand("północ", "north"),
-            new QuickCommand("południe", "south"),
-            new QuickCommand("wschód", "east"),
-            new QuickCommand("zachód", "west"),
-            new QuickCommand("góra", "up"),
-            new QuickCommand("dół", "down"),
-            new QuickCommand("pomoc", "help"),
-        })
-        {
-            QuickCommands.Add(cmd);
-        }
-
         // Log filter tabs
         foreach (var filter in Models.LogFilters.Defaults)
         {

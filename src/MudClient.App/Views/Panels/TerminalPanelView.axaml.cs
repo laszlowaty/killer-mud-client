@@ -5,7 +5,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
-using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views.Panels;
@@ -204,16 +203,6 @@ public sealed partial class TerminalPanelView : UserControl
         }
 
         _commandBox.CaretIndex = _commandBox.Text?.Length ?? 0;
-    }
-
-    private void QuickCommandChip_OnClick(object? sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is Button button &&
-            button.DataContext is QuickCommand qc &&
-            _viewModel is not null)
-        {
-            _viewModel.QuickCommandExecuteCommand.Execute(qc.Command);
-        }
     }
 
     private void LogFilter_OnClick(object? sender, RoutedEventArgs eventArgs)

@@ -50,13 +50,6 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
 
     [Fact]
-    public void Constructor_PopulatesMockQuickCommands()
-    {
-        Assert.NotEmpty(_vm.QuickCommands);
-        Assert.Contains(_vm.QuickCommands, q => q.Label == "spojrzyj" && q.Command == "look");
-    }
-
-    [Fact]
     public void Constructor_PopulatesMockLogFilters()
     {
         Assert.NotEmpty(_vm.LogFilters);
@@ -609,38 +602,6 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         _vm.ClearToastsCommand.Execute(null);
 
         Assert.Empty(_vm.Toasts);
-    }
-
-    // ====================================================================
-    // QuickCommandExecute
-    // ====================================================================
-
-    [Fact]
-    public void ExecuteQuickCommand_WhenDisconnected_SetsCommandText()
-    {
-        Assert.False(_vm.IsConnected);
-
-        _vm.QuickCommandExecuteCommand.Execute("look");
-
-        Assert.Equal("look", _vm.CommandText);
-    }
-
-    [Fact]
-    public void ExecuteQuickCommand_WithNull_DoesNothing()
-    {
-        _vm.CommandText = "original";
-        _vm.QuickCommandExecuteCommand.Execute(null);
-
-        Assert.Equal("original", _vm.CommandText);
-    }
-
-    [Fact]
-    public void ExecuteQuickCommand_WithWhitespace_DoesNothing()
-    {
-        _vm.CommandText = "original";
-        _vm.QuickCommandExecuteCommand.Execute("   ");
-
-        Assert.Equal("original", _vm.CommandText);
     }
 
     // ====================================================================
