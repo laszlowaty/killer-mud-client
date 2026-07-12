@@ -861,12 +861,16 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Arrange
         SetIsConnected(true);
         _vm.CommandText = string.Empty;
+        var output = new List<string>();
+        _vm.OutputReceived += output.Add;
 
         // Act
         await _vm.SendCommandCommand.ExecuteAsync(null);
 
-        // Assert: empty string is preserved
+        // Assert: empty string is preserved and reaches the sending pipeline.
+        // MudSession then serializes it as a bare CRLF line.
         Assert.Equal(string.Empty, _vm.CommandText);
+        Assert.Contains(output, line => line.Contains("> \u001b[0m\n", StringComparison.Ordinal));
     }
 
     [Fact]

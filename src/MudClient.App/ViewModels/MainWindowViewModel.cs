@@ -2615,7 +2615,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // Split on the stacking separator first (also handles newlines).
         // Alias processing runs per segment; autowalk commands are consumed
         // per segment, and non-slash segments are forwarded normally.
-        var segments = CommandStacker.Split(sourceCommand, CommandStackingSeparator);
+        // An empty command is meaningful to a MUD: it sends a bare line ending.
+        // CommandStacker intentionally discards empty items for aliases and timers,
+        // so preserve only the explicitly empty command entered by the user here.
+        IReadOnlyList<string> segments = sourceCommand.Length == 0
+            ? [string.Empty]
+            : CommandStacker.Split(sourceCommand, CommandStackingSeparator);
 
         // Track history – record the original typed command as one entry.
         CommandHistory.Insert(0, sourceCommand);
