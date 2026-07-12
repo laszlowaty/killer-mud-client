@@ -32,6 +32,15 @@ public sealed class MudDockFactory : Factory
 
     public ObservableCollection<PanelTool> HiddenTools { get; } = new();
 
+    /// <summary>
+    /// Supplies the desired expanded size (in DIPs) for a freshly pinned edge tab's preview:
+    /// half the dock area's width for <see cref="Alignment.Left"/>/<see cref="Alignment.Right"/>,
+    /// half its height for <see cref="Alignment.Top"/>/<see cref="Alignment.Bottom"/>. Wired from
+    /// the view, which knows the live control bounds; left null in headless tests, where the
+    /// preview keeps Dock's content-sized default.
+    /// </summary>
+    public Func<Alignment, double>? PinnedPreviewSizeProvider { get; set; }
+
     private PanelTool NewTool(string id, string title, Type viewType, object context)
     {
         var tool = new PanelTool
@@ -76,7 +85,37 @@ public sealed class MudDockFactory : Factory
         SetActiveDockable(tool);
         PinDockable(tool);
         owner.Alignment = saved;
+
+        ApplyDefaultPinnedSize(tool, edge);
     }
+
+    /// <summary>
+    /// Gives a newly pinned tab a preview that opens at half the dock area — half the width for
+    /// a side (Left/Right) tab, half the height for a top/bottom tab. Dock reads the expanded
+    /// size from the tool's <c>PinnedBounds</c>; <see cref="PinDockable"/> seeds those bounds with
+    /// the collapsed pane's own (much smaller) size, so this must run <em>after</em> pinning and
+    /// overwrite it. Both axes are stored (only the edge's axis is applied to the preview) so Dock
+    /// treats the size as explicit and won't reset it to the content's desired size on later passes.
+    /// </summary>
+    private void ApplyDefaultPinnedSize(PanelTool tool, Alignment edge)
+    {
+        if (PinnedPreviewSizeProvider is not { } provider)
+        {
+            return;
+        }
+
+        var size = provider(edge);
+        if (!IsValidSize(size))
+        {
+            return;
+        }
+
+        // Off-axis dimension is irrelevant to the preview but must stay valid so Dock keeps the
+        // on-axis size fixed; reuse the same value rather than leaving it NaN.
+        tool.SetPinnedBounds(0, 0, size, size);
+    }
+
+    private static bool IsValidSize(double size) => !double.IsNaN(size) && !double.IsInfinity(size) && size > 0;
 
     /// <summary>
     /// Dropping a panel on the main window's outer edge (Dock's "global docking") normally

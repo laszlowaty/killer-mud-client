@@ -80,6 +80,37 @@ public sealed class PinnedTabUiTests
             $"Pinned tab has zero size: {tab.Bounds}.");
     }
 
+    [AvaloniaTheory]
+    [InlineData(Alignment.Left)]
+    [InlineData(Alignment.Right)]
+    [InlineData(Alignment.Top)]
+    [InlineData(Alignment.Bottom)]
+    public void PinnedTool_Preview_OpensAtHalfDockArea(Alignment edge)
+    {
+        var viewModel = new MainWindowViewModel();
+        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
+        window.Show();
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        Pump(window);
+
+        var dockControl = window.GetVisualDescendants().OfType<DockControl>().First();
+        Assert.True(dockControl.Bounds is { Width: > 0, Height: > 0 });
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        var gmcp = factory.AllTools.First(t => t.Id == "Gmcp");
+        factory.PinToolToEdge(gmcp, edge);
+        Pump(window);
+
+        gmcp.GetPinnedBounds(out _, out _, out var width, out var height);
+        var horizontal = edge is Alignment.Left or Alignment.Right;
+        var expected = (horizontal ? dockControl.Bounds.Width : dockControl.Bounds.Height) / 2.0;
+        var actual = horizontal ? width : height;
+        Assert.True(Math.Abs(actual - expected) <= 1.0,
+            $"Pinned preview size for {edge} should be half the dock area (~{expected:F1}) but was {actual:F1}.");
+    }
+
     // Mirrors a real user profile: several tools pinned to different edges, restored via
     // TryApplySnapshot on startup. Every pinned tab must actually render.
     [AvaloniaFact]

@@ -287,6 +287,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
 
+    /// <summary>
+    /// Lets the view supply the live dock-area size so newly pinned edge tabs open at half the
+    /// screen (width for side tabs, height for top/bottom tabs). The factory itself is UI-agnostic.
+    /// </summary>
+    public void ConfigurePinnedPreviewSize(Func<Dock.Model.Core.Alignment, double> provider) =>
+        _dockFactory.PinnedPreviewSizeProvider = provider;
+
     /// <summary>Called after every dock drag ends: panels the drag pipeline lost (dropped over
     /// non-dock chrome like the top bar) are moved to <see cref="HiddenPanels"/> for restore.</summary>
     public void ReclaimLostPanels() => _dockFactory.ReclaimLostTools(Layout);

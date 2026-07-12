@@ -15,6 +15,7 @@ namespace MudClient.App.Views;
 public partial class MainWindow : Window
 {
     private MainWindowViewModel? _viewModel;
+    private Dock.Avalonia.Controls.DockControl? _mainDock;
 
     public MainWindow()
     {
@@ -23,12 +24,19 @@ public partial class MainWindow : Window
         Opened += OnOpened;
         Activated += OnWindowActivated;
         Dispatcher.UIThread.UnhandledException += OnDispatcherUnhandledException;
-        DataContextChanged += (_, _) => _viewModel = DataContext as MainWindowViewModel;
+        DataContextChanged += (_, _) =>
+        {
+            _viewModel = DataContext as MainWindowViewModel;
+            // Pinned edge tabs open at half the dock area (width for side tabs, height for
+            // top/bottom tabs); the view supplies the live size the UI-agnostic factory can't see.
+            _viewModel?.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
+        };
 
         // Safety net: when a dock drag ends (drop or cancel, anywhere in the window),
         // reclaim any panel the drag pipeline dropped on the floor so it reappears in
         // the "Panele" restore menu instead of vanishing.
         var mainDock = this.FindControl<Dock.Avalonia.Controls.DockControl>("MainDock");
+        _mainDock = mainDock;
         if (mainDock is not null)
         {
             mainDock.PropertyChanged += (_, args) =>
@@ -97,6 +105,25 @@ public partial class MainWindow : Window
     private void Close_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         Close();
+    }
+
+    /// <summary>
+    /// Half the live dock area for the given edge: half its width for a side (Left/Right) tab,
+    /// half its height for a top/bottom tab. Falls back to the window client size before the dock
+    /// has been laid out.
+    /// </summary>
+    private double GetPinnedPreviewSize(Dock.Model.Core.Alignment edge)
+    {
+        var width = _mainDock?.Bounds.Width ?? 0;
+        var height = _mainDock?.Bounds.Height ?? 0;
+        if (width <= 0 || height <= 0)
+        {
+            width = ClientSize.Width;
+            height = ClientSize.Height;
+        }
+
+        var horizontal = edge is Dock.Model.Core.Alignment.Left or Dock.Model.Core.Alignment.Right;
+        return (horizontal ? width : height) / 2.0;
     }
 
     private void Window_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
