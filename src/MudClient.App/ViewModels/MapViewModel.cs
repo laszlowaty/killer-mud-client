@@ -35,6 +35,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private IReadOnlyList<MapRoom>? _routeRooms;
     private string? _currentSectorName;
     private bool _followPlayer = true;
+    private bool _isSimpleMap;
 
     public MapViewModel(string appBaseDirectory, GmcpLocationResolver locationResolver)
     {
@@ -50,7 +51,6 @@ public sealed class MapViewModel : ObservableObject, IDisposable
 
         ReloadCommand = new AsyncRelayCommand(InitializeAsync);
         CenterCommand = new RelayCommand(RequestCenterOnCurrentRoom);
-        ResetZoomCommand = new RelayCommand(RequestResetZoom);
     }
 
     public event Action? CenterOnCurrentRoomRequested;
@@ -60,8 +60,6 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     /// <summary>Raised by the view when the user double-clicks a room on the map.</summary>
     public event Action<MapRoom>? RoomDoubleClicked;
 
-    public event Action? ResetZoomRequested;
-
     public ObservableCollection<MapArea> Areas { get; } = [];
 
     public ObservableCollection<double> ZLevels { get; } = [];
@@ -69,8 +67,6 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ReloadCommand { get; }
 
     public IRelayCommand CenterCommand { get; }
-
-    public IRelayCommand ResetZoomCommand { get; }
 
     public MapIndex? MapIndex
     {
@@ -193,6 +189,12 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     {
         get => _followPlayer;
         set => SetProperty(ref _followPlayer, value);
+    }
+
+    public bool IsSimpleMap
+    {
+        get => _isSimpleMap;
+        set => SetProperty(ref _isSimpleMap, value);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -431,11 +433,6 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     }
 
     private void RequestCenterOnCurrentRoom() => CenterOnPlayer();
-
-    private void RequestResetZoom()
-    {
-        ResetZoomRequested?.Invoke();
-    }
 
     public void Dispose()
     {

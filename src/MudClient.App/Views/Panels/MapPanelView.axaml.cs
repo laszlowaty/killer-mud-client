@@ -23,7 +23,6 @@ public sealed partial class MapPanelView : UserControl
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _viewModel.CenterOnCurrentRoomRequested -= OnCenterRequested;
             _viewModel.CenterOnRoomRequested -= OnCenterOnRoomRequested;
-            _viewModel.ResetZoomRequested -= OnResetZoomRequested;
         }
 
         _viewModel = DataContext as MapViewModel;
@@ -36,7 +35,6 @@ public sealed partial class MapPanelView : UserControl
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.CenterOnCurrentRoomRequested += OnCenterRequested;
         _viewModel.CenterOnRoomRequested += OnCenterOnRoomRequested;
-        _viewModel.ResetZoomRequested += OnResetZoomRequested;
 
         SyncControlFromViewModel();
     }
@@ -62,6 +60,7 @@ public sealed partial class MapPanelView : UserControl
         MapControl.CurrentRoom = _viewModel.CurrentRoom;
         MapControl.SelectedRoom = _viewModel.SelectedRoom;
         MapControl.Route = _viewModel.RouteRooms;
+        MapControl.IsSimpleMap = _viewModel.IsSimpleMap;
     }
 
     private void OnRoomDoubleClicked(MudClient.Core.Map.MapRoom room)
@@ -98,8 +97,4 @@ public sealed partial class MapPanelView : UserControl
         MapControl.CenterOnRoom(room);
     }
 
-    private void OnResetZoomRequested()
-    {
-        MapControl.ResetZoom();
-    }
 }

@@ -35,51 +35,29 @@
                     MinWidth="70" />
         </StackPanel>
 
-        <!-- Follow toggle -->
-        <ToggleButton Content="Śledź"
-                      IsChecked="{Binding FollowPlayer}"
-                      Padding="8,4"
-                      VerticalAlignment="Center"
-                      Margin="0,0,8,4" />
-
-        <!-- Toolbar buttons -->
-        <StackPanel Orientation="Horizontal" Spacing="4"
-                    VerticalAlignment="Center"
-                    Margin="0,0,8,4">
-          <Button Content="Wycentruj"
-                  Command="{Binding CenterCommand}"
-                  Padding="10,5" />
-          <Button Content="Reset zoom"
-                  Command="{Binding ResetZoomCommand}"
-                  Padding="10,5" />
-        </StackPanel>
-
-        <!-- Current room info -->
-        <Border Background="{StaticResource MudBrushStone}"
-                CornerRadius="3" Padding="6,3"
+        <Button Content="Mapa ▾"
+                Padding="10,5"
                 VerticalAlignment="Center"
                 Margin="0,0,8,4">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Classes="mud-faint" Text="VNUM:" />
-            <TextBlock Classes="mud-status-info" Text="{Binding CurrentVnum}" />
-          </StackPanel>
-        </Border>
-
-        <Border Background="{StaticResource MudBrushStone}"
-                CornerRadius="3" Padding="6,3"
-                VerticalAlignment="Center"
-                Margin="0,0,8,4">
-          <TextBlock Text="{Binding CurrentRoomName}"
-                     MaxWidth="150"
-                     TextTrimming="CharacterEllipsis" />
-        </Border>
-
-        <Border Background="{StaticResource MudBrushStone}"
-                CornerRadius="3" Padding="6,3"
-                VerticalAlignment="Center"
-                Margin="0,0,8,4">
-          <TextBlock Classes="mud-muted" Text="{Binding CurrentSectorName}" />
-        </Border>
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedLeft">
+              <StackPanel Spacing="4" MinWidth="190">
+                <Button Content="Wycentruj i śledź"
+                        Command="{Binding CenterCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Padding="10,6" />
+                <Border Height="1"
+                        Background="{StaticResource MudBrushSlate}"
+                        Margin="0,4" />
+                <ToggleSwitch Content="Prosta mapa"
+                              IsChecked="{Binding IsSimpleMap}"
+                              HorizontalAlignment="Stretch"
+                              Padding="6,4" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
 
       </WrapPanel>
     </Border>

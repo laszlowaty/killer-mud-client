@@ -153,6 +153,21 @@ public sealed class MapViewModelTests
         Assert.Contains(nameof(MapViewModel.FollowPlayer), changedProperties);
     }
 
+    [Fact]
+    public void IsSimpleMap_DefaultsToFalseAndRaisesPropertyChangedWhenEnabled()
+    {
+        using var vm = CreateViewModel();
+        var changedProperties = new List<string?>();
+        vm.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+
+        Assert.False(vm.IsSimpleMap);
+
+        vm.IsSimpleMap = true;
+
+        Assert.True(vm.IsSimpleMap);
+        Assert.Contains(nameof(MapViewModel.IsSimpleMap), changedProperties);
+    }
+
     // ====================================================================
     // Public setters disable FollowPlayer
     // ====================================================================

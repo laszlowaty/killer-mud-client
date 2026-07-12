@@ -23,10 +23,21 @@ public sealed class WorldMapControl : Control
 
     private const double PanKeyStep = 40;
     private const double OverviewZoomThreshold = 0.45;
+    private const double SimpleMapSpacingScale = 1.25;
     private const double TerrainCoastOpacity = 0.12;
     private const double TerrainFieldOpacity = 0.20;
 
     private static readonly Pen ExitPen = new(Brushes.Silver, 2.5);
+    private static readonly IBrush SimpleCanvasBrush = new LinearGradientBrush
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+        GradientStops =
+        [
+            new GradientStop(Color.FromRgb(7, 10, 14), 0),
+            new GradientStop(Color.FromRgb(13, 18, 23), 1),
+        ],
+    };
 
     private static readonly Pen RoutePen = new(Brushes.Orange, 3.5) { LineCap = PenLineCap.Round };
     private static readonly Pen RouteTargetPen = new(Brushes.Orange, 3);
@@ -49,6 +60,7 @@ public sealed class WorldMapControl : Control
     private MapRoom? _currentRoom;
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _route;
+    private bool _isSimpleMap;
 
     private double _cameraX;
     private double _cameraY;
@@ -167,6 +179,19 @@ public sealed class WorldMapControl : Control
         }
     }
 
+    public bool IsSimpleMap
+    {
+        get => _isSimpleMap;
+        set
+        {
+            if (_isSimpleMap != value)
+            {
+                _isSimpleMap = value;
+                RequestInvalidateVisual();
+            }
+        }
+    }
+
     public int AreaId
     {
         get => _areaId;
@@ -254,12 +279,15 @@ public sealed class WorldMapControl : Control
         }
     }
 
+    private double GetWorldScale() =>
+        _settings.PixelsPerCoordinateUnit * _zoom * (_isSimpleMap ? SimpleMapSpacingScale : 1);
+
     public Point WorldToScreen(double worldX, double worldY)
     {
         var bounds = Bounds;
         var centerX = bounds.Width / 2;
         var centerY = bounds.Height / 2;
-        var scale = _settings.PixelsPerCoordinateUnit * _zoom;
+        var scale = GetWorldScale();
 
         var screenX = centerX + (worldX - _cameraX) * scale;
         var screenY = centerY - (worldY - _cameraY) * scale;
@@ -271,7 +299,7 @@ public sealed class WorldMapControl : Control
         var bounds = Bounds;
         var centerX = bounds.Width / 2;
         var centerY = bounds.Height / 2;
-        var scale = _settings.PixelsPerCoordinateUnit * _zoom;
+        var scale = GetWorldScale();
 
         var worldX = _cameraX + (screenPoint.X - centerX) / scale;
         var worldY = _cameraY - (screenPoint.Y - centerY) / scale;
@@ -357,7 +385,7 @@ public sealed class WorldMapControl : Control
             return;
         }
 
-        var scale = _settings.PixelsPerCoordinateUnit * _zoom;
+        var scale = GetWorldScale();
         _cameraX = _dragStartCameraX - deltaX / scale;
         _cameraY = _dragStartCameraY + deltaY / scale;
 
@@ -396,7 +424,7 @@ public sealed class WorldMapControl : Control
     {
         base.OnKeyDown(e);
 
-        var scale = _settings.PixelsPerCoordinateUnit * _zoom;
+        var scale = GetWorldScale();
         var step = PanKeyStep / scale;
 
         switch (e.Key)
@@ -508,7 +536,7 @@ public sealed class WorldMapControl : Control
         }
 
         var bounds = GetVisibleWorldBounds();
-        var margin = _settings.RoomSize / Math.Max(_settings.PixelsPerCoordinateUnit * _zoom, 0.001) * 2;
+        var margin = _settings.RoomSize / Math.Max(GetWorldScale(), 0.001) * 2;
 
         var rooms = _mapIndex.GetRoomsInBounds(
             _areaId,
@@ -551,8 +579,8 @@ public sealed class WorldMapControl : Control
         base.Render(context);
 
         var bounds = Bounds;
-        context.FillRectangle(GetCanvasBrush(), bounds);
-        var hasWorldBackdrop = DrawWorldBackground(context, bounds);
+        context.FillRectangle(_isSimpleMap ? SimpleCanvasBrush : GetCanvasBrush(), bounds);
+        var hasWorldBackdrop = !_isSimpleMap && DrawWorldBackground(context, bounds);
 
         if (_mapIndex is null)
         {
@@ -571,7 +599,7 @@ public sealed class WorldMapControl : Control
         var roomsWithOffsets = GetVisibleRooms().ToList();
         var roomLookup = roomsWithOffsets.ToDictionary(r => r.Room.Id, r => r.Offset);
 
-        if (_textureCache?.HasLocationBackdrops(_areaId, _z) != true)
+        if (!_isSimpleMap && _textureCache?.HasLocationBackdrops(_areaId, _z) != true)
         {
             DrawTerrain(context, roomsWithOffsets, roomLookup);
         }
@@ -580,7 +608,10 @@ public sealed class WorldMapControl : Control
         DrawRooms(context, roomsWithOffsets);
         DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
-        DrawCompass(context);
+        if (!_isSimpleMap)
+        {
+            DrawCompass(context);
+        }
     }
 
     private void DrawOverviewSelectionAndCurrent(DrawingContext context)
@@ -1033,6 +1064,9 @@ public sealed class WorldMapControl : Control
         }
 
         var drawn = new HashSet<(int, int)>();
+        var exitPen = _isSimpleMap
+            ? new Pen(Brushes.Silver, Math.Clamp(_zoom, 0.45, 1.15))
+            : ExitPen;
 
         foreach (var (room, offset) in rooms)
         {
@@ -1061,7 +1095,7 @@ public sealed class WorldMapControl : Control
                     target.Coordinates.X + targetOffset.X * 0.6,
                     target.Coordinates.Y + targetOffset.Y * 0.6);
 
-                context.DrawLine(ExitPen, from, to);
+                context.DrawLine(exitPen, from, to);
 
                 if (exit.HasDoor)
                 {
@@ -1082,8 +1116,10 @@ public sealed class WorldMapControl : Control
             var center = WorldToScreen(room.Coordinates.X + offset.X * 0.6, room.Coordinates.Y + offset.Y * 0.6);
             var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
 
-            var texture = _roomImages?.GetMapIcon(room.Vnum)
-                ?? (room.Sector is not null ? _textureCache?.GetTexture(room.Sector) : null);
+            var texture = _isSimpleMap
+                ? null
+                : _roomImages?.GetMapIcon(room.Vnum)
+                    ?? (room.Sector is not null ? _textureCache?.GetTexture(room.Sector) : null);
 
             if (texture is not null)
             {
@@ -1091,7 +1127,9 @@ public sealed class WorldMapControl : Control
             }
             else
             {
-                context.FillRectangle(Brushes.SlateGray, rect);
+                context.FillRectangle(
+                    _isSimpleMap ? TerrainStyle.For(room.Sector, roomName: null).Brush : Brushes.SlateGray,
+                    rect);
             }
 
             context.DrawRectangle(null, new Pen(Brushes.Black, 1), rect);
