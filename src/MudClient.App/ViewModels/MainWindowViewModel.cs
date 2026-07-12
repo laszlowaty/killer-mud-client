@@ -67,7 +67,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private readonly MudDockFactory _dockFactory;
     private readonly DockLayoutService _dockLayoutService;
+    private readonly LayoutPresetService _layoutPresetService;
+    private readonly List<LayoutPreset> _layoutPresets;
     private IRootDock _layout = null!;
+    private string _newLayoutName = string.Empty;
 
     private string _host = "killer-mud.pl";
     private int _port = 4004;
@@ -246,7 +249,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 _dockFactory.Restore(tool);
             }
         });
-        ResetUiCommand = new RelayCommand(ResetUi);
+
+        _layoutPresetService = new LayoutPresetService();
+        _layoutPresets = _layoutPresetService.Load();
+        RefreshAvailableLayouts();
+        ApplyLayoutCommand = new RelayCommand<string>(ApplyLayout);
+        SaveLayoutCommand = new RelayCommand(SaveLayout);
+        DeleteLayoutCommand = new RelayCommand<string>(DeleteLayout);
 
         PopulateMockData();
 
@@ -275,16 +284,111 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
 
-    public IRelayCommand ResetUiCommand { get; }
+    /// <summary>Layout entries offered in the "Układ" menu: built-in DEFAULT first, then saved presets.</summary>
+    public ObservableCollection<LayoutMenuItem> AvailableLayouts { get; } = new();
 
-    private void ResetUi()
+    public IRelayCommand<string> ApplyLayoutCommand { get; }
+
+    public IRelayCommand SaveLayoutCommand { get; }
+
+    public IRelayCommand<string> DeleteLayoutCommand { get; }
+
+    /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
+    public string NewLayoutName
     {
-        _dockLayoutService.Delete();
-        Layout = _dockFactory.ResetToDefault();
+        get => _newLayoutName;
+        set => SetProperty(ref _newLayoutName, value);
+    }
+
+    private void RefreshAvailableLayouts()
+    {
+        AvailableLayouts.Clear();
+        AvailableLayouts.Add(new LayoutMenuItem { Name = LayoutPresetService.DefaultName, CanDelete = false });
+        foreach (var preset in _layoutPresets)
+        {
+            AvailableLayouts.Add(new LayoutMenuItem { Name = preset.Name, CanDelete = true });
+        }
+    }
+
+    /// <summary>Restores the built-in default layout or a named preset.</summary>
+    private void ApplyLayout(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        // The default is always regenerated fresh so newly-added panels are included.
+        var fresh = _dockFactory.ResetToDefault();
+
+        if (!string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
+        {
+            var preset = _layoutPresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal));
+            if (preset is null)
+            {
+                return;
+            }
+
+            if (!_dockFactory.TryApplySnapshot(fresh, preset.Snapshot))
+            {
+                // Snapshot no longer matches the current set of panels (e.g. after an update).
+                AddToast($"Układ „{name}” jest nieaktualny — wczytano DEFAULT.", "warning");
+            }
+        }
+
+        Layout = fresh;
         OnPropertyChanged(nameof(HiddenPanels));
 
-        // ResetToDefault recreates all tools with default titles.
+        // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
         UpdateBuffsToolTitle();
+    }
+
+    private void SaveLayout()
+    {
+        var name = NewLayoutName.Trim();
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        if (string.Equals(name, LayoutPresetService.DefaultName, StringComparison.OrdinalIgnoreCase))
+        {
+            AddToast("Nazwa „DEFAULT” jest zarezerwowana.", "warning");
+            return;
+        }
+
+        var snapshot = _dockFactory.Snapshot(Layout);
+        var existing = _layoutPresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal));
+        if (existing is not null)
+        {
+            existing.Snapshot = snapshot;
+        }
+        else
+        {
+            _layoutPresets.Add(new LayoutPreset { Name = name, Snapshot = snapshot });
+        }
+
+        _layoutPresetService.Save(_layoutPresets);
+        RefreshAvailableLayouts();
+        NewLayoutName = string.Empty;
+        AddToast($"Zapisano układ „{name}”.", "info");
+    }
+
+    private void DeleteLayout(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)
+            || string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var removed = _layoutPresets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.Ordinal));
+        if (removed > 0)
+        {
+            _layoutPresetService.Save(_layoutPresets);
+            RefreshAvailableLayouts();
+            AddToast($"Usunięto układ „{name}”.", "info");
+        }
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

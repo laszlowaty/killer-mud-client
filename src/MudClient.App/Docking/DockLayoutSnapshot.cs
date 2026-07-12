@@ -6,6 +6,19 @@ public sealed class DockLayoutSnapshot
     public DockNodeSnapshot? Root { get; set; }
 
     public List<string> HiddenToolIds { get; set; } = new();
+
+    /// <summary>Tools the user has auto-hidden (pinned to an edge). These live outside the
+    /// visible tree in the root's pinned collections, so they are tracked separately.</summary>
+    public List<PinnedToolSnapshot> PinnedTools { get; set; } = new();
+}
+
+/// <summary>An auto-hidden (pinned) tool and the tool dock it should snap back to.</summary>
+public sealed class PinnedToolSnapshot
+{
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>Id of the ToolDock the tool was pinned from; its alignment picks the pin edge.</summary>
+    public string? OwnerId { get; set; }
 }
 
 public sealed class DockNodeSnapshot

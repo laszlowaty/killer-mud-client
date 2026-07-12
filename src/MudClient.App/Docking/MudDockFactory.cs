@@ -289,7 +289,26 @@ public sealed class MudDockFactory : Factory
         {
             Root = rootChild is null ? null : BuildNode(rootChild),
             HiddenToolIds = HiddenTools.Select(t => t.Id!).ToList(),
+            PinnedTools = PinnedTools(root),
         };
+    }
+
+    private static List<PinnedToolSnapshot> PinnedTools(IRootDock root)
+    {
+        var edges = new[]
+        {
+            root.LeftPinnedDockables,
+            root.RightPinnedDockables,
+            root.TopPinnedDockables,
+            root.BottomPinnedDockables,
+        };
+
+        return edges
+            .Where(list => list is not null)
+            .SelectMany(list => list!)
+            .OfType<PanelTool>()
+            .Select(tool => new PinnedToolSnapshot { Id = tool.Id!, OwnerId = (tool.Owner as IDock)?.Id })
+            .ToList();
     }
 
     /// <summary>
@@ -308,9 +327,13 @@ public sealed class MudDockFactory : Factory
         var referenced = new HashSet<string>();
         CollectPanelIds(snapshot.Root, referenced);
         var hidden = new HashSet<string>(snapshot.HiddenToolIds);
+        var pinned = new HashSet<string>(snapshot.PinnedTools.Select(p => p.Id));
         var known = AllTools.Select(t => t.Id!).ToHashSet();
 
-        if (referenced.Overlaps(hidden) || !new HashSet<string>(referenced.Union(hidden)).SetEquals(known))
+        // Every known tool must appear exactly once across the visible tree, the hidden
+        // list, and the pinned list — otherwise the snapshot predates a panel change.
+        if (referenced.Overlaps(hidden) || referenced.Overlaps(pinned) || hidden.Overlaps(pinned)
+            || !new HashSet<string>(referenced.Union(hidden).Union(pinned)).SetEquals(known))
         {
             return false;
         }
@@ -335,7 +358,54 @@ public sealed class MudDockFactory : Factory
             }
         }
 
+        RestorePinnedTools(root, snapshot.PinnedTools, toolsById);
+
         return true;
+    }
+
+    /// <summary>
+    /// Re-hides tools the user had auto-hidden: docks each into its recorded owner (so it picks
+    /// up that dock's edge alignment), then pins it via the factory so Dock rebuilds the pinned bar.
+    /// </summary>
+    private void RestorePinnedTools(
+        IRootDock root, List<PinnedToolSnapshot> pinnedTools, Dictionary<string, PanelTool> toolsById)
+    {
+        foreach (var pin in pinnedTools)
+        {
+            if (!toolsById.TryGetValue(pin.Id, out var tool))
+            {
+                continue;
+            }
+
+            var owner = (pin.OwnerId is not null ? FindDockById(root, pin.OwnerId) : null)
+                ?? FindFirstToolDock(root);
+            if (owner is null)
+            {
+                continue;
+            }
+
+            AddDockable(owner, tool);
+            SetActiveDockable(tool);
+            PinDockable(tool);
+        }
+    }
+
+    private static IDock? FindDockById(IDock dock, string id)
+    {
+        if (string.Equals(dock.Id, id, StringComparison.Ordinal))
+        {
+            return dock;
+        }
+
+        foreach (var child in dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
+        {
+            if (child is IDock nested && FindDockById(nested, id) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static void CollectPanelIds(DockNodeSnapshot node, HashSet<string> ids)
