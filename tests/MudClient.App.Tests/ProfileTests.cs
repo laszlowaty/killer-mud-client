@@ -11,6 +11,8 @@ public sealed class ProfileTests : IDisposable
 
     private ProfileService CreateService() => new(_directory);
 
+    private AppSettingsService CreateSettingsService() => new(_directory);
+
     public void Dispose()
     {
         if (Directory.Exists(_directory))
@@ -275,7 +277,7 @@ public sealed class ProfileTests : IDisposable
     [Fact]
     public async Task Vm_StartsWithoutActiveProfile()
     {
-        await using var vm = new MainWindowViewModel(CreateService());
+        await using var vm = new MainWindowViewModel(CreateService(), CreateSettingsService());
 
         Assert.False(vm.IsProfileSelected);
         Assert.Null(vm.ActiveProfileName);
@@ -285,7 +287,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_CreateProfile_ActivatesAndPersistsIt()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
 
         vm.NewProfileName = "Legolas";
         vm.CreateProfileCommand.Execute(null);
@@ -307,7 +309,7 @@ public sealed class ProfileTests : IDisposable
             Rules = [new ProfileRule { Name = "Skrót k", Type = "alias", Pattern = "^k$", Action = "kill", IsEnabled = true }],
         });
 
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.SelectedProfileName = "Gimli";
         vm.SelectProfileCommand.Execute(null);
 
@@ -321,7 +323,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_AddNote_PersistsToActiveProfile()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Frodo";
         vm.CreateProfileCommand.Execute(null);
 
@@ -338,7 +340,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_SwitchProfile_WhenDisconnected_SavesAndShowsPicker()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Sam";
         vm.CreateProfileCommand.Execute(null);
         Assert.True(vm.SwitchProfileCommand.CanExecute(null));
@@ -354,7 +356,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_AddRule_PersistsToActiveProfile()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Arwena";
         vm.CreateProfileCommand.Execute(null);
 
@@ -378,7 +380,7 @@ public sealed class ProfileTests : IDisposable
     [Fact]
     public async Task Vm_AddRule_InvalidRegex_IsBlockedWithError()
     {
-        await using var vm = new MainWindowViewModel(CreateService());
+        await using var vm = new MainWindowViewModel(CreateService(), CreateSettingsService());
         vm.NewProfileName = "Elrond";
         vm.CreateProfileCommand.Execute(null);
 
@@ -394,7 +396,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_ToggleAndDeleteRule_PersistToActiveProfile()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Galadriela";
         vm.CreateProfileCommand.Execute(null);
 
@@ -417,7 +419,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_AddTimer_PersistsToActiveProfile()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Merry";
         vm.CreateProfileCommand.Execute(null);
 
@@ -444,7 +446,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_AddTimer_RejectsZeroInterval()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Boromir";
         vm.CreateProfileCommand.Execute(null);
 
@@ -462,7 +464,7 @@ public sealed class ProfileTests : IDisposable
     public async Task Vm_ToggleTimer_FlipsEnabledAndPersists()
     {
         var service = CreateService();
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Eowina";
         vm.CreateProfileCommand.Execute(null);
 
@@ -500,7 +502,7 @@ public sealed class ProfileTests : IDisposable
             ],
         });
 
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.SelectedProfileName = "Faramir";
         vm.SelectProfileCommand.Execute(null);
 
@@ -533,7 +535,7 @@ public sealed class ProfileTests : IDisposable
             ],
         });
 
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.SelectedProfileName = "Denethor";
         vm.SelectProfileCommand.Execute(null);
 
@@ -558,7 +560,7 @@ public sealed class ProfileTests : IDisposable
             Notes = [new ProfileNote { Title = "Smaug", Content = "", CreatedAt = "x" }],
         });
 
-        await using var vm = new MainWindowViewModel(service);
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
         vm.NewProfileName = "Pippin";
         vm.CreateProfileCommand.Execute(null);
         vm.NewNoteTitle = "Notatka Pippina";
