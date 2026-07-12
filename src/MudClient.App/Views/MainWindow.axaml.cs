@@ -25,6 +25,23 @@ public partial class MainWindow : Window
         Dispatcher.UIThread.UnhandledException += OnDispatcherUnhandledException;
         DataContextChanged += (_, _) => _viewModel = DataContext as MainWindowViewModel;
 
+        // Safety net: when a dock drag ends (drop or cancel, anywhere in the window),
+        // reclaim any panel the drag pipeline dropped on the floor so it reappears in
+        // the "Panele" restore menu instead of vanishing.
+        var mainDock = this.FindControl<Dock.Avalonia.Controls.DockControl>("MainDock");
+        if (mainDock is not null)
+        {
+            mainDock.PropertyChanged += (_, args) =>
+            {
+                if (args.Property == Dock.Avalonia.Controls.DockControl.IsDraggingDockProperty
+                    && args.NewValue is false)
+                {
+                    // Let the drag pipeline finish its bookkeeping first.
+                    Dispatcher.UIThread.Post(() => _viewModel?.ReclaimLostPanels(), DispatcherPriority.Background);
+                }
+            };
+        }
+
         // Intercept text input in the tunneling phase so we can redirect
         // printable characters to the command box when focus is outside
         // any text-editing control.

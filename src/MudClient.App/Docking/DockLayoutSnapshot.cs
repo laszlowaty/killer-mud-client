@@ -17,8 +17,12 @@ public sealed class PinnedToolSnapshot
 {
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>Id of the ToolDock the tool was pinned from; its alignment picks the pin edge.</summary>
+    /// <summary>Id of the ToolDock the tool snaps back to when un-hidden.</summary>
     public string? OwnerId { get; set; }
+
+    /// <summary>Screen edge the tab sits on ("Left"/"Right"/"Top"/"Bottom"). Null in snapshots
+    /// saved before per-edge tabs existed — those fall back to the owner dock's alignment.</summary>
+    public string? Edge { get; set; }
 }
 
 public sealed class DockNodeSnapshot

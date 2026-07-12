@@ -44,11 +44,104 @@ public sealed class MudDockFactory : Factory
             // Floating panel windows are disabled: Dock 12 corrupts the layout when
             // a floated window loses activation (panels vanish from the tree).
             CanFloat = false,
+            // CanPin must stay true — Dock's PinDockable is a no-op otherwise, and both the
+            // edge drag & drop below and the "Schowaj z…" tab menu pin programmatically.
+            // The chrome's own pin button is hidden in Styles/Docking.axaml.
             CanPin = true,
+            // "Dock as tabbed document" misbehaves in Dock 12 (panels get lost) — disabled,
+            // which also drops its entry from the tab context menu.
+            CanDockAsDocument = false,
         };
+        tool.PinToEdge = edge => PinToolToEdge(tool, edge);
         AllTools.Add(tool);
         return tool;
     }
+
+    /// <summary>
+    /// Auto-hides <paramref name="tool"/> as a collapsed tab on the chosen screen
+    /// <paramref name="edge"/>. Dock 12 derives the pin edge from the owner ToolDock's
+    /// <see cref="Alignment"/>, so we flip that alignment for the duration of the pin, then
+    /// restore it (the tool now lives in the root's pinned collection for the edge and is no
+    /// longer governed by the owner alignment). The edge is persisted in layout snapshots.
+    /// </summary>
+    public void PinToolToEdge(PanelTool tool, Alignment edge)
+    {
+        if (tool.Owner is not ToolDock owner)
+        {
+            return;
+        }
+
+        var saved = owner.Alignment;
+        owner.Alignment = edge;
+        SetActiveDockable(tool);
+        PinDockable(tool);
+        owner.Alignment = saved;
+    }
+
+    /// <summary>
+    /// Dropping a panel on the main window's outer edge (Dock's "global docking") normally
+    /// splits the whole layout, which users found broken and useless. Instead, turn an edge
+    /// drop into a pinned tab on that edge — drag a panel to the window border and it becomes
+    /// a collapsed side tab. Inner splits (targets deeper in the tree) keep default behavior.
+    /// </summary>
+    public override void SplitToDock(IDock dock, IDockable dockable, DockOperation operation)
+    {
+        // Global drops target the outermost dock thanks to GlobalDockingPreset.GlobalFirst
+        // (set in App.Initialize) — inner splits arrive with deeper targets.
+        var isOuterTarget = dock is IRootDock || dock.Owner is IRootDock;
+        if (isOuterTarget && ToPinEdge(operation) is { } edge && ExtractPanels(dockable) is { Count: > 0 } panels)
+        {
+            foreach (var panel in panels)
+            {
+                PinPanelToEdge(panel, edge);
+            }
+
+            return;
+        }
+
+        base.SplitToDock(dock, dockable, operation);
+    }
+
+    /// <summary>
+    /// The panels carried by an edge drop. Dock's DockService wraps the dragged tool in a
+    /// fresh, detached ToolDock before calling <see cref="SplitToDock"/>, so unwrap both a
+    /// bare <see cref="PanelTool"/> and any dock of them.
+    /// </summary>
+    private static List<PanelTool> ExtractPanels(IDockable dockable) => DescendantTools(dockable).ToList();
+
+    /// <summary>
+    /// Pins <paramref name="panel"/> to <paramref name="edge"/> even when it currently sits in
+    /// a detached wrapper dock (the DockService one): the panel is first docked into a live
+    /// tool dock so Dock can find its root, then collapsed into the edge tab.
+    /// </summary>
+    private void PinPanelToEdge(PanelTool panel, Alignment edge)
+    {
+        if (_root is null)
+        {
+            return;
+        }
+
+        if (LiveOrNull(panel.Owner as IDock) is null)
+        {
+            if (FindFirstToolDock(_root) is not { } live)
+            {
+                return;
+            }
+
+            AddDockable(live, panel);
+        }
+
+        PinToolToEdge(panel, edge);
+    }
+
+    private static Alignment? ToPinEdge(DockOperation operation) => operation switch
+    {
+        DockOperation.Left => Alignment.Left,
+        DockOperation.Right => Alignment.Right,
+        DockOperation.Top => Alignment.Top,
+        DockOperation.Bottom => Alignment.Bottom,
+        _ => null,
+    };
 
     public override IRootDock CreateLayout()
     {
@@ -155,6 +248,39 @@ public sealed class MudDockFactory : Factory
         }
     }
 
+    /// <summary>
+    /// Safety net run after every drag: any tool that is no longer reachable — not in the
+    /// visible tree, not pinned to an edge, not already in <see cref="HiddenTools"/> — is
+    /// moved to <see cref="HiddenTools"/> so it shows up in the "Panele" restore menu.
+    /// Dock 12's drag pipeline can drop a tool on the floor when a drag ends over
+    /// non-dock chrome (e.g. the top bar); this guarantees nothing is ever lost silently.
+    /// </summary>
+    public void ReclaimLostTools(IRootDock root)
+    {
+        var reachable = new HashSet<PanelTool>(DescendantTools(root));
+        foreach (var list in new[]
+        {
+            root.LeftPinnedDockables,
+            root.RightPinnedDockables,
+            root.TopPinnedDockables,
+            root.BottomPinnedDockables,
+        })
+        {
+            foreach (var pinned in (list ?? Enumerable.Empty<IDockable>()).OfType<PanelTool>())
+            {
+                reachable.Add(pinned);
+            }
+        }
+
+        foreach (var tool in AllTools)
+        {
+            if (!reachable.Contains(tool) && !HiddenTools.Contains(tool))
+            {
+                HiddenTools.Add(tool);
+            }
+        }
+    }
+
     public override bool OnDockableClosing(IDockable? dockable)
     {
         foreach (var tool in DescendantTools(dockable))
@@ -173,24 +299,45 @@ public sealed class MudDockFactory : Factory
         return base.OnDockableClosing(dockable);
     }
 
-    /// <summary>Re-adds a previously closed panel back to its original dock.</summary>
+    /// <summary>
+    /// Re-adds a previously closed panel to a live dock. Prefers the panel's original group
+    /// (its current owner, or the recorded owner reattached via its parent chain); if none of
+    /// those are reachable it falls back to any visible tool dock so the panel <em>always</em>
+    /// reappears. The old code could bail out here and leave the panel silently hidden — that
+    /// was the intermittent "restore doesn't work".
+    /// </summary>
     public void Restore(PanelTool tool)
     {
-        var owner = tool.Owner as IDock
-            ?? (_lastOwners.TryGetValue(tool, out var lastOwner) ? lastOwner : null)
-            ?? tool.OriginalOwner as IDock;
-        if (owner is null)
+        if (_root is null)
         {
             return;
         }
 
-        if (!EnsureAttached(owner))
+        // Closing the chrome of an expanded auto-hide preview does not fully clear Dock
+        // 12's pinned/preview state. If we AddDockable immediately, the model changes but
+        // the presenter keeps treating the tool as a closed side tab and renders nothing.
+        // Unpin first; this also puts the tool back in its original ToolDock when Dock still
+        // has enough ownership information to do so.
+        if (IsPinned(_root, tool))
         {
-            owner = _lastOwners.TryGetValue(tool, out var fallbackOwner) ? fallbackOwner : null;
-            if (owner is null || !EnsureAttached(owner))
+            UnpinDockable(tool);
+            if (ContainsDockable(_root, tool) && tool.Owner is ToolDock restoredOwner)
             {
+                SetActiveDockable(tool);
+                SetFocusedDockable(restoredOwner, tool);
+                HiddenTools.Remove(tool);
                 return;
             }
+        }
+
+        var owner =
+            LiveToolDockOrNull(tool.Owner as IDock)
+            ?? (_lastOwners.TryGetValue(tool, out var lastOwner) ? Reattach(lastOwner) as ToolDock : null)
+            ?? LiveToolDockOrNull(tool.OriginalOwner as IDock)
+            ?? FindFirstToolDock(_root);
+        if (owner is null)
+        {
+            return;
         }
 
         AddDockable(owner, tool);
@@ -198,6 +345,82 @@ public sealed class MudDockFactory : Factory
         SetFocusedDockable(owner, tool);
         HiddenTools.Remove(tool);
     }
+
+    /// <summary>
+    /// Restores a panel selected from the "Panele" menu as a top-edge auto-hide tab.
+    /// This deliberately ignores the previous owner: Dock 12 can leave that owner detached
+    /// after closing an expanded pinned preview, making parent-based restoration unreliable.
+    /// </summary>
+    public void RestoreToTopEdge(PanelTool tool)
+    {
+        if (_root is null)
+        {
+            return;
+        }
+
+        if (IsPinned(_root, tool))
+        {
+            UnpinDockable(tool);
+        }
+
+        // UnpinDockable does not always remove a closed preview wrapper in Dock 12.
+        // Remove every stale pinned entry carrying this tool before pinning it anew.
+        foreach (var pinned in new[]
+        {
+            _root.LeftPinnedDockables,
+            _root.RightPinnedDockables,
+            _root.TopPinnedDockables,
+            _root.BottomPinnedDockables,
+        })
+        {
+            foreach (var entry in (pinned ?? Enumerable.Empty<IDockable>())
+                         .Where(entry => ReferenceEquals(entry, tool) || DescendantTools(entry).Contains(tool))
+                         .ToList())
+            {
+                pinned!.Remove(entry);
+            }
+        }
+
+        var stagingDock = FindFirstToolDock(_root);
+        if (stagingDock is null)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(tool.Owner, stagingDock)
+            || stagingDock.VisibleDockables?.Contains(tool) != true)
+        {
+            AddDockable(stagingDock, tool);
+        }
+
+        PinToolToEdge(tool, Alignment.Top);
+        HiddenTools.Remove(tool);
+    }
+
+    private static bool IsPinned(IRootDock root, PanelTool tool) =>
+        new[]
+        {
+            root.LeftPinnedDockables,
+            root.RightPinnedDockables,
+            root.TopPinnedDockables,
+            root.BottomPinnedDockables,
+        }.Any(list => list?.Any(item => ReferenceEquals(item, tool) || DescendantTools(item).Contains(tool)) == true);
+
+    /// <summary>Returns <paramref name="dock"/> if it is currently attached to the live tree, else null.</summary>
+    private IDock? LiveOrNull(IDock? dock) =>
+        dock is not null && _root is not null && (ReferenceEquals(dock, _root) || ContainsDockable(_root, dock))
+            ? dock
+            : null;
+
+    // A pinned tool is owned by the root. Adding it directly back to that root produces a
+    // formally reachable child that Dock's tool presenter cannot display; restored panels
+    // must always land in an actual ToolDock.
+    private ToolDock? LiveToolDockOrNull(IDock? dock) => LiveOrNull(dock) as ToolDock;
+
+    /// <summary>Brings a recorded owner back into the tree via its parent chain; returns it if it
+    /// ends up attached, otherwise null so <see cref="Restore"/> can fall back to a live dock.</summary>
+    private IDock? Reattach(IDock? dock) =>
+        dock is not null && EnsureAttached(dock) ? dock : null;
 
     /// <summary>Rebuilds a brand-new default layout (fresh tools, fresh tree) and initializes it.</summary>
     public IRootDock ResetToDefault()
@@ -232,18 +455,8 @@ public sealed class MudDockFactory : Factory
             return true;
         }
 
-        // Dock can remove an empty ToolDock without raising a separate close event.
-        // In that case restore the panel as a tab in any still-visible tool group.
-        var fallback = FindFirstToolDock(_root);
-        if (fallback is null || ReferenceEquals(fallback, dock))
-        {
-            return false;
-        }
-
-        _lastOwners.Where(pair => ReferenceEquals(pair.Value, dock))
-            .Select(pair => pair.Key)
-            .ToList()
-            .ForEach(tool => _lastOwners[tool] = fallback);
+        // Dock can remove an empty ToolDock without a separate close event, leaving no
+        // reachable parent. Restore() handles that by falling back to a live tool dock.
         return false;
     }
 
@@ -295,17 +508,20 @@ public sealed class MudDockFactory : Factory
     {
         var edges = new[]
         {
-            root.LeftPinnedDockables,
-            root.RightPinnedDockables,
-            root.TopPinnedDockables,
-            root.BottomPinnedDockables,
+            (Alignment.Left, root.LeftPinnedDockables),
+            (Alignment.Right, root.RightPinnedDockables),
+            (Alignment.Top, root.TopPinnedDockables),
+            (Alignment.Bottom, root.BottomPinnedDockables),
         };
 
         return edges
-            .Where(list => list is not null)
-            .SelectMany(list => list!)
-            .OfType<PanelTool>()
-            .Select(tool => new PinnedToolSnapshot { Id = tool.Id!, OwnerId = (tool.Owner as IDock)?.Id })
+            .Where(e => e.Item2 is not null)
+            .SelectMany(e => e.Item2!.OfType<PanelTool>().Select(tool => new PinnedToolSnapshot
+            {
+                Id = tool.Id!,
+                OwnerId = (tool.Owner as IDock)?.Id,
+                Edge = e.Item1.ToString(),
+            }))
             .ToList();
     }
 
@@ -383,8 +599,18 @@ public sealed class MudDockFactory : Factory
             }
 
             AddDockable(owner, tool);
-            SetActiveDockable(tool);
-            PinDockable(tool);
+
+            // Honor the edge the tab was on. Older snapshots have no Edge; fall back to
+            // the owner dock's alignment, matching the pre-per-edge behavior.
+            if (Enum.TryParse<Alignment>(pin.Edge, out var edge))
+            {
+                PinToolToEdge(tool, edge);
+            }
+            else
+            {
+                SetActiveDockable(tool);
+                PinDockable(tool);
+            }
         }
     }
 

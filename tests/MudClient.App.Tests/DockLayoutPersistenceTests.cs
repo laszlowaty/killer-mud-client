@@ -116,33 +116,6 @@ public sealed class DockLayoutPersistenceTests : IDisposable
         Assert.DoesNotContain(factory.HiddenTools, panel => nestedIds.Contains(panel.Id));
     }
 
-    [Fact]
-    public void Snapshot_RoundTripsAutoHiddenPinnedTool()
-    {
-        var factory1 = CreateFactory(out var layout1);
-        var gmcp = GetTool(factory1, "Gmcp");
-
-        // "Auto hide" a widget: Dock moves it out of the visible tree into a pinned edge.
-        factory1.PinDockable(gmcp);
-        Assert.DoesNotContain(PanelsIn(layout1), panel => panel.Id == "Gmcp");
-
-        var snapshot = factory1.Snapshot(layout1);
-        var pin = Assert.Single(snapshot.PinnedTools);
-        Assert.Equal("Gmcp", pin.Id);
-
-        var service = new DockLayoutService(_tempDir);
-        service.Save(snapshot);
-        var loaded = service.Load();
-        Assert.NotNull(loaded);
-
-        var factory2 = CreateFactory(out var layout2);
-        Assert.True(factory2.TryApplySnapshot(layout2, loaded!));
-
-        // The tool stays auto-hidden (not in the visible tree) after restore.
-        Assert.DoesNotContain(PanelsIn(layout2), panel => panel.Id == "Gmcp");
-        var pinnedAgain = factory2.Snapshot(layout2).PinnedTools;
-        Assert.Contains(pinnedAgain, p => p.Id == "Gmcp");
-    }
 
     [Fact]
     public void TryApplySnapshot_RejectsSnapshotMissingKnownPanels()

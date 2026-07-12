@@ -1,18 +1,60 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:dock="using:Dock.Avalonia.Controls"
-        xmlns:psp="using:Dock.Controls.ProportionalStackPanel">
+        xmlns:psp="using:Dock.Controls.ProportionalStackPanel"
+        xmlns:docking="using:MudClient.App.Docking">
   <!--
     Light-touch theming so Dock.Avalonia's chrome (tab strips, tool headers,
     splitters) blends with the fantasy palette instead of the default Fluent look.
   -->
+  <Styles.Resources>
+    <!--
+      Hides the chrome's built-in pin/auto-hide button. Its single click pins to the owner
+      dock's edge, which conflicts with edge tabs driven by drag & drop / the "Schowaj z…"
+      menu. CanPin must stay true (PinDockable no-ops otherwise), so we blank the button:
+      empty template + zero size + no hit-testing.
+    -->
+    <ControlTheme x:Key="MudHiddenPinButton" TargetType="Button">
+      <Setter Property="IsVisible" Value="False" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Width" Value="0" />
+      <Setter Property="Height" Value="0" />
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Panel />
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </Styles.Resources>
+
   <Style Selector="dock|ToolChromeControl">
     <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="PinButtonTheme" Value="{StaticResource MudHiddenPinButton}" />
   </Style>
 
   <Style Selector="dock|DocumentTabStripItem, dock|ToolTabStripItem">
     <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+  </Style>
+
+  <!--
+    Right-click a tool tab to collapse it into a side tab on a chosen screen edge —
+    same result as dragging the panel onto that window edge. Replacing the ContextMenu
+    also suppresses Dock's built-in menu (Auto Hide / Float / …), whose entries misbehave
+    in Dock 12. The menu items inherit the tab's DataContext, which is the PanelTool.
+  -->
+  <Style Selector="dock|ToolTabStripItem">
+    <Setter Property="ContextMenu">
+      <ContextMenu x:DataType="docking:PanelTool">
+        <MenuItem Header="Schowaj z lewej" Command="{Binding PinLeftCommand}" />
+        <MenuItem Header="Schowaj z prawej" Command="{Binding PinRightCommand}" />
+        <MenuItem Header="Schowaj u góry" Command="{Binding PinTopCommand}" />
+        <MenuItem Header="Schowaj u dołu" Command="{Binding PinBottomCommand}" />
+      </ContextMenu>
+    </Setter>
   </Style>
 
   <Style Selector="dock|DocumentTabStripItem:selected, dock|ToolTabStripItem:selected">

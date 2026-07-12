@@ -186,7 +186,7 @@
      <!-- ========================================================================
          Row 1: Main content – 25* (left), 50* (terminal), 25* (right)
          ======================================================================== -->
-    <dock:DockControl Grid.Row="1" Layout="{Binding Layout}" Margin="8" />
+    <dock:DockControl x:Name="MainDock" Grid.Row="1" Layout="{Binding Layout}" Margin="8" />
 
     <!-- ========================================================================
          Row 2: Footer bar

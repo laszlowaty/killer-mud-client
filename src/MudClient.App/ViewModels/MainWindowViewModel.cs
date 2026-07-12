@@ -246,7 +246,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (tool is not null)
             {
-                _dockFactory.Restore(tool);
+                _dockFactory.RestoreToTopEdge(tool);
             }
         });
 
@@ -283,6 +283,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PanelTool> HiddenPanels => _dockFactory.HiddenTools;
 
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
+
+    /// <summary>Called after every dock drag ends: panels the drag pipeline lost (dropped over
+    /// non-dock chrome like the top bar) are moved to <see cref="HiddenPanels"/> for restore.</summary>
+    public void ReclaimLostPanels() => _dockFactory.ReclaimLostTools(Layout);
 
     /// <summary>Layout entries offered in the "Układ" menu: built-in DEFAULT first, then saved presets.</summary>
     public ObservableCollection<LayoutMenuItem> AvailableLayouts { get; } = new();
