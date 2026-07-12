@@ -1,0 +1,24 @@
+[
+  {
+    "areaId": 1,
+    "z": 0,
+    "minX": -833,
+    "minY": -584,
+    "maxX": 466,
+    "maxY": 173,
+    "opacity": 0.68,
+    "edgeFade": 0.025,
+    "fileName": "old-continent-overview.png"
+  },
+  {
+    "areaId": 1,
+    "z": 0,
+    "minX": -29,
+    "minY": -23.5,
+    "maxX": 29,
+    "maxY": 23.5,
+    "opacity": 0.72,
+    "edgeFade": 0.12,
+    "fileName": "arras-6000-6199.png"
+  }
+]

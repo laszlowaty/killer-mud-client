@@ -147,6 +147,7 @@ Zakładka **Mapa** obok **Gra** pokazuje mapę świata renderowaną własną kon
 - Świat: `src/MudClient.App/Assets/Map/world-map.json`
 - Grafiki sektorów: `src/MudClient.App/Assets/Map/Sectors/*.png`
 - Neutralne tło atlasowe dla obszarów bez pokojów: `src/MudClient.App/Assets/Map/Sectors/world-background.png`
+- Klimatyczne tła kontynentów i konkretnych lokacji są osadzane warstwowo we współrzędnych świata przez `src/MudClient.App/Assets/Map/Locations/manifest.json`; szczegółowe ilustracje miast mogą leżeć nad atlasem kontynentu, a pokoje, wyjścia i trasy pozostają rysowane nad nimi.
 - Prekomponowane tła biomów i warstwy pokojów: `src/MudClient.App/Assets/Map/Backdrops/`
 - Opcjonalny manifest nazw sektorów: `src/MudClient.App/Assets/Map/Sectors/sectors.json`
 - Konfiguracja mapy: `src/MudClient.App/Assets/Map/map-settings.json`
