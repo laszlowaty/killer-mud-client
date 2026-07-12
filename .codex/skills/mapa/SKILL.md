@@ -30,20 +30,14 @@ Popraw obraz lokacji na podstawie najnowszego kompletnego eksportu kalibratora.
 7. Sprawdź rezultat wizualnie. W razie naruszenia nieoznaczonych obszarów wykonaj jedną ukierunkowaną iterację.
 8. Przeskaluj wynik dokładnie do pierwotnych wymiarów `targetImage` i nadpisz ten plik. Nie zmieniaj manifestu, chyba że eksport lub użytkownik jawnie żąda zmiany całej warstwy.
 9. Zbuduj `MudClient.App` do katalogu tymczasowego, jeśli uruchomiony klient blokuje normalny output.
-10. Jeśli było to pierwsze generowanie (`isBlankCanvas: true`), po udanym buildzie oznacz płótno jako zainicjalizowane:
-
-    ```powershell
-    powershell -NoProfile -ExecutionPolicy Bypass -File "<repo>\.codex\skills\mapa\scripts\mark-canvas-generated.ps1" -CalibrationJson "<calibrationJson>"
-    ```
-
-11. Dopiero po udanym nadpisaniu obrazu, kontroli wizualnej i buildzie usuń wykorzystane eksporty PNG/JSON aktualnej krainy:
+10. Dopiero po udanym nadpisaniu obrazu, kontroli wizualnej i buildzie usuń wykorzystane eksporty PNG/JSON oraz plik `.calibration.json` aktualnej krainy:
 
     ```powershell
     powershell -NoProfile -ExecutionPolicy Bypass -File "<repo>\.codex\skills\mapa\scripts\clear-calibration-exports.ps1" -Name "<exportName>" -RepoRoot "<repo>"
     ```
 
-    Nie usuwaj pliku `.calibration.json`: przechowuje roboczy stan kalibratora. Jeśli edycja lub build nie powiedzie się, pozostaw eksporty do ponownej próby.
-12. Podaj ścieżkę zmienionego obrazu, krótką listę zastosowanych markerów oraz liczbę usuniętych plików eksportu.
+    Jeśli edycja lub build nie powiedzie się, pozostaw wszystkie pliki do ponownej próby.
+11. Podaj ścieżkę zmienionego obrazu, krótką listę zastosowanych markerów oraz liczbę usuniętych plików roboczych.
 
 ## Zasady interpretacji
 

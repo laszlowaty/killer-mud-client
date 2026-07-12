@@ -7,7 +7,7 @@
     "maxX": 466,
     "maxY": 173,
     "opacity": 0.68,
-    "edgeFade": 0.025,
+    "edgeFade": 0,
     "fileName": "old-continent-overview.png"
   },
   {
@@ -17,30 +17,41 @@
     "minY": -26,
     "maxX": -417,
     "maxY": 10,
-    "opacity": 0.90,
-    "edgeFade": 0.10,
+    "opacity": 0.9,
+    "edgeFade": 0.1,
     "fileName": "dwarven-fortress-31-131.png"
   },
   {
     "areaId": 1,
     "z": 0,
-    "minX": 40,
-    "minY": -380,
-    "maxX": 90,
-    "maxY": -327,
-    "opacity": 0.90,
-    "edgeFade": 0.10,
+    "minX": 37.4,
+    "minY": -383.3,
+    "maxX": 87.4,
+    "maxY": -330.3,
+    "opacity": 1,
+    "edgeFade": 0.13611111111111113,
     "fileName": "carrallak-233-599.png"
   },
   {
     "areaId": 1,
     "z": 0,
-    "minX": -29,
-    "minY": -23.5,
-    "maxX": 29,
-    "maxY": 23.5,
-    "opacity": 0.90,
-    "edgeFade": 0.12,
+    "minX": -27.945,
+    "minY": -25.057,
+    "maxX": 30.055,
+    "maxY": 21.943,
+    "opacity": 1,
+    "edgeFade": 0.17694444444444443,
     "fileName": "arras-6000-6199.png"
+  },
+  {
+    "areaId": 1,
+    "z": 0,
+    "minX": -169.903,
+    "minY": -322.195,
+    "maxX": -155.903,
+    "maxY": -304.195,
+    "opacity": 1,
+    "edgeFade": 0.09127450980392157,
+    "fileName": "zajazd-gardesa.png"
   }
 ]

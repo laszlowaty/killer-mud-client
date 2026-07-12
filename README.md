@@ -161,6 +161,16 @@ Backdropy są deterministycznie generowane z sektorów, nazw, współrzędnych i
 dotnet run --project tools/MudClient.MapBackdropGenerator -- src/MudClient.App/Assets/Map/world-map.json src/MudClient.App/Assets/Map/Backdrops
 ```
 
+### Lokalny kalibrator ilustracji mapy
+
+Projekt `tools/MudClient.MapImageCalibrator` jest osobnym narzędziem autora i nie należy do solution ani paczki wydawanej graczom. Uruchom go z katalogu repozytorium:
+
+```powershell
+dotnet run --project tools/MudClient.MapImageCalibrator
+```
+
+Kalibrator pozwala wybrać pojedynczą warstwę miasta, zaznaczać prostokątem lub lassem grupy roomów i przesuwać ich roboczą siatkę, korygować pojedyncze roomy oraz umieszczać na ilustracji numerowane markery z opisami. Z dowolnego zaznaczenia na jednej mapie i poziomie Z można też utworzyć nazwaną warstwę z czarnym płótnem 1200×800, a następnie przygotować na niej siatkę i wskazówki do pierwszego wygenerowania grafiki. Eksport tworzy screenshot i plik JSON stanowiące instrukcję do późniejszej edycji grafiki; `world-map.json` nie jest modyfikowany. Narzędzie pozwala też opcjonalnie przesunąć całą ilustrację i zapisać manifest. Prawy przycisk myszy przesuwa widok, kółko zmienia zoom, a przycisk **Pomoc** otwiera pełną instrukcję pracy.
+
 ### Wykrywanie aktualnego pokoju z GMCP
 
 Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum pod ścieżkami `vnum`, `num`, `room.vnum`, `room.num`, `location.vnum`, `location.num` (w tej kolejności). Aby dopasować inny serwer MUD, który wysyła lokalizację pod innym pakietem lub inną ścieżką, zmień `gmcpLocation.packages` i `gmcpLocation.vnumPaths` w `map-settings.json` — nie wymaga to zmian w kodzie.

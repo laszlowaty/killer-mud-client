@@ -9,20 +9,13 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoPath = [System.IO.Path]::GetFullPath($RepoRoot)
+$locationsPath = [System.IO.Path]::GetFullPath((Join-Path $repoPath 'src\MudClient.App\Assets\Map\Locations'))
 $exportsPath = [System.IO.Path]::GetFullPath((Join-Path $repoPath 'src\MudClient.App\Assets\Map\Locations\CalibrationExports'))
 $expectedPrefix = $repoPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
 
-if (-not $exportsPath.StartsWith($expectedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw "Katalog eksportow znajduje sie poza repozytorium: $exportsPath"
-}
-
-if (-not (Test-Path -LiteralPath $exportsPath -PathType Container)) {
-    [pscustomobject]@{
-        name = $Name
-        exportsDirectory = $exportsPath
-        deleted = @()
-    } | ConvertTo-Json -Depth 3
-    exit 0
+if (-not $locationsPath.StartsWith($expectedPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+    -not $exportsPath.StartsWith($expectedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Katalog map znajduje sie poza repozytorium.'
 }
 
 $safeName = [System.IO.Path]::GetFileName($Name.Trim())
@@ -30,7 +23,8 @@ if ([string]::IsNullOrWhiteSpace($safeName) -or $safeName -ne $Name.Trim()) {
     throw 'Nazwa krainy nie moze zawierac elementow sciezki.'
 }
 
-$deleted = @(
+$deleted = [System.Collections.Generic.List[string]]::new()
+if (Test-Path -LiteralPath $exportsPath -PathType Container) {
     Get-ChildItem -LiteralPath $exportsPath -File |
         Where-Object {
             ($_.Extension -ieq '.json' -or $_.Extension -ieq '.png') -and
@@ -44,12 +38,23 @@ $deleted = @(
             }
 
             Remove-Item -LiteralPath $resolvedFile -Force
-            $_.Name
+            $deleted.Add($_.Name)
         }
-)
+}
+
+$calibrationPath = [System.IO.Path]::GetFullPath((Join-Path $locationsPath "$safeName.calibration.json"))
+$locationsPrefix = $locationsPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $calibrationPath.StartsWith($locationsPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Plik kalibracji znajduje sie poza katalogiem map: $calibrationPath"
+}
+
+if (Test-Path -LiteralPath $calibrationPath -PathType Leaf) {
+    Remove-Item -LiteralPath $calibrationPath -Force
+    $deleted.Add([System.IO.Path]::GetFileName($calibrationPath))
+}
 
 [pscustomobject]@{
     name = $safeName
     exportsDirectory = $exportsPath
-    deleted = $deleted
+    deleted = @($deleted)
 } | ConvertTo-Json -Depth 3
