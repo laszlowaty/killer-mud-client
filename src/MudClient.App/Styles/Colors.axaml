@@ -67,6 +67,21 @@
         <GradientStop Color="{StaticResource MudColorSlate}" Offset="1" />
       </LinearGradientBrush>
 
+      <LinearGradientBrush x:Key="MudBrushButtonGradientPressed" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="{StaticResource MudColorStone}" Offset="0" />
+        <GradientStop Color="{StaticResource MudColorGoldDim}" Offset="1" />
+      </LinearGradientBrush>
+
+      <LinearGradientBrush x:Key="MudBrushDangerButtonGradient" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#4A292D" Offset="0" />
+        <GradientStop Color="#2B2025" Offset="1" />
+      </LinearGradientBrush>
+
+      <LinearGradientBrush x:Key="MudBrushDangerButtonGradientHover" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#6A3438" Offset="0" />
+        <GradientStop Color="#382329" Offset="1" />
+      </LinearGradientBrush>
+
     </ResourceDictionary>
   </Styles.Resources>
 

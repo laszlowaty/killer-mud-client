@@ -84,4 +84,42 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
   </Style>
+
+  <!--
+    PanelToolView also lives below ToolChromeControl, so restore the application button
+    chrome inside widget content after the narrow Dock chrome override above.
+  -->
+  <Style Selector="UserControl.mud-widget-content Button">
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="Background" Value="{StaticResource MudBrushButtonGradient}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button:pointerover">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button.mud-small">
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button.mud-chip">
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button.mud-chip:pointerover">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button.mud-danger">
+    <Setter Property="Background" Value="{StaticResource MudBrushDangerButtonGradient}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimson}" />
+  </Style>
+  <Style Selector="UserControl.mud-widget-content Button.mud-danger:pointerover">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimsonBright}" />
+  </Style>
 </Styles>

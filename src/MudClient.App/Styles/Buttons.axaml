@@ -18,13 +18,29 @@
   <Style Selector="Button:pointerover">
     <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />
   </Style>
+  <Style Selector="Button:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource MudBrushButtonGradientPressed}" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource MudColorGoldBright}" />
+  </Style>
+  <Style Selector="Button:focus-visible">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldBright}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
   <Style Selector="Button:disabled /template/ ContentPresenter">
     <Setter Property="Opacity" Value="0.5" />
   </Style>
 
   <Style Selector="Button.mud-danger">
+    <Setter Property="Background" Value="{StaticResource MudBrushDangerButtonGradient}" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
     <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimson}" />
+  </Style>
+  <Style Selector="Button.mud-danger:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource MudBrushDangerButtonGradientHover}" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource MudColorCrimsonBright}" />
+  </Style>
+  <Style Selector="Button.mud-danger:pointerover">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimsonBright}" />
   </Style>
 
   <Style Selector="Button.mud-small">
