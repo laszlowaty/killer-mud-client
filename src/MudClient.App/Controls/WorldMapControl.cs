@@ -23,6 +23,8 @@ public sealed class WorldMapControl : Control
 
     private const double PanKeyStep = 40;
     private const double OverviewZoomThreshold = 0.45;
+    private const double TerrainCoastOpacity = 0.12;
+    private const double TerrainFieldOpacity = 0.20;
 
     private static readonly Pen ExitPen = new(Brushes.Silver, 2.5);
 
@@ -765,7 +767,7 @@ public sealed class WorldMapControl : Control
 
         if (!isOverview)
         {
-            using (context.PushOpacity(0.82))
+            using (context.PushOpacity(TerrainCoastOpacity))
             {
                 var coastBrush = new SolidColorBrush(Color.FromRgb(20, 24, 21));
                 var coastPen = new Pen(coastBrush, fieldWidth + 8) { LineCap = PenLineCap.Round };
@@ -792,7 +794,7 @@ public sealed class WorldMapControl : Control
 
         drawn.Clear();
         var terrainPens = new Dictionary<TerrainStyle, Pen>();
-        using (context.PushOpacity(0.9))
+        using (context.PushOpacity(TerrainFieldOpacity))
         {
             foreach (var (room, _) in rooms)
             {
