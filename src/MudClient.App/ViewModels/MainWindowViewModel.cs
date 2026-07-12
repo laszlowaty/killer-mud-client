@@ -224,6 +224,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.GmcpSent += OnGmcpSent;
         _session.StatusChanged += OnStatusChanged;
         _session.ConnectionError += OnConnectionError;
+        _session.ConnectionClosed += OnConnectionClosed;
 
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
         Map.PropertyChanged += OnMapPropertyChanged;
@@ -3306,8 +3307,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             StatusText = status;
-            IsConnected = _session.IsConnected;
         });
+    }
+
+    private void OnConnectionClosed()
+    {
+        Dispatcher.UIThread.Post(() => IsConnected = false);
     }
 
     private void OnConnectionError(Exception exception)
@@ -3416,6 +3421,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.GmcpSent -= OnGmcpSent;
         _session.StatusChanged -= OnStatusChanged;
         _session.ConnectionError -= OnConnectionError;
+        _session.ConnectionClosed -= OnConnectionClosed;
 
         Map.PropertyChanged -= OnMapPropertyChanged;
         _locationResolver.LocationChanged -= OnAutowalkLocationChanged;

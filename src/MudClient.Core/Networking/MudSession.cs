@@ -47,6 +47,12 @@ public sealed class MudSession : IAsyncDisposable
 
     public event Action<Exception>? ConnectionError;
 
+    /// <summary>
+    /// Raised after the transport has been fully cleaned up, regardless of whether
+    /// the peer closed the connection or the client disconnected explicitly.
+    /// </summary>
+    public event Action? ConnectionClosed;
+
     public bool IsConnected => _stream is not null;
 
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
@@ -234,6 +240,7 @@ public sealed class MudSession : IAsyncDisposable
             rawStream?.Dispose();
             Interlocked.Exchange(ref _client, null)?.Dispose();
             StatusChanged?.Invoke("Połączenie zakończone");
+            ConnectionClosed?.Invoke();
         }
     }
 
