@@ -55,6 +55,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
 
     public event Action? CenterOnCurrentRoomRequested;
 
+    public event Action<MapRoom>? CenterOnRoomRequested;
+
     /// <summary>Raised by the view when the user double-clicks a room on the map.</summary>
     public event Action<MapRoom>? RoomDoubleClicked;
 
@@ -133,6 +135,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             {
                 FollowPlayer = false;
                 RefreshZLevels();
+                FocusFirstRoom(value);
             }
         }
     }
@@ -337,6 +340,19 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private void SetSelectedZInternal(double z)
     {
         SetProperty(ref _selectedZ, z, nameof(SelectedZ));
+    }
+
+    private void FocusFirstRoom(MapArea area)
+    {
+        var room = area.Rooms.FirstOrDefault();
+        if (room is null)
+        {
+            return;
+        }
+
+        SetSelectedZInternal(room.Coordinates.Z);
+        SelectedRoom = room;
+        CenterOnRoomRequested?.Invoke(room);
     }
 
     private void OnLocationChanged(string vnum)

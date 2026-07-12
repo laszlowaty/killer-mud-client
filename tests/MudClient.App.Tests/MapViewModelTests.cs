@@ -169,6 +169,32 @@ public sealed class MapViewModelTests
     }
 
     [Fact]
+    public void SelectedArea_Setter_FocusesFirstRoomInArea()
+    {
+        using var vm = CreateViewModel();
+        var firstRoom = new MapRoom
+        {
+            Id = 10,
+            AreaId = 99,
+            Coordinates = new MapCoordinates(25, 30, 4),
+        };
+        var area = new MapArea
+        {
+            Id = 99,
+            Name = "Test",
+            Rooms = [firstRoom],
+        };
+        MapRoom? centeredRoom = null;
+        vm.CenterOnRoomRequested += room => centeredRoom = room;
+
+        vm.SelectedArea = area;
+
+        Assert.Same(firstRoom, vm.SelectedRoom);
+        Assert.Equal(firstRoom.Coordinates.Z, vm.SelectedZ);
+        Assert.Same(firstRoom, centeredRoom);
+    }
+
+    [Fact]
     public void SelectedArea_Setter_SettingNullDoesNotChangeFollowPlayer()
     {
         using var vm = CreateViewModel();
