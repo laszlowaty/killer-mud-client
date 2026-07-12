@@ -21,6 +21,7 @@ namespace MudClient.App.Tests;
 /// Production members live in <see cref="TerminalPanelView"/> (not MainWindow);
 /// the window delegates to <see cref="TerminalPanelView.Current"/>.
 /// </summary>
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class MainWindowClickTests
 {
     // ==================================================================
@@ -36,10 +37,14 @@ public sealed class MainWindowClickTests
     /// </summary>
     private static TerminalPanelView GetPanel(Window window)
     {
-        // Fast path: static reference already set and still attached.
+        // Fast path: static reference already set and belongs to THIS window. Tests never
+        // close their windows, so a prior test's panel stays attached and TerminalPanelView.Current
+        // may still point at it (its new panel attaches asynchronously in headless). Trusting a
+        // stale Current leaks that panel's select-all flag into this test — verify the root first.
         var panel = TerminalPanelView.Current;
         if (panel is not null &&
-            panel.IsAttachedToVisualTree())
+            panel.IsAttachedToVisualTree() &&
+            ReferenceEquals(panel.FindAncestorOfType<Window>(), window))
         {
             return panel;
         }

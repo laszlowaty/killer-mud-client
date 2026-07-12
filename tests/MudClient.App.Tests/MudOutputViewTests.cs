@@ -8,6 +8,7 @@ using Xunit;
 
 namespace MudClient.App.Tests;
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class MudOutputViewTests
 {
     [AvaloniaFact]

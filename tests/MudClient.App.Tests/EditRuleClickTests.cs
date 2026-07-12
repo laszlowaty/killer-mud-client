@@ -22,6 +22,7 @@ public static class TestAppBuilder
         .UseHeadless(new AvaloniaHeadlessPlatformOptions());
 }
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class EditRuleClickTests
 {
     [AvaloniaFact]

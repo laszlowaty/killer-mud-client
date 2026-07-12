@@ -9,6 +9,7 @@ using MudClient.App.Views.Panels;
 
 namespace MudClient.App.Tests;
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class WidgetFontUiTests
 {
     [AvaloniaFact]

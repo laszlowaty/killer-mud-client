@@ -2350,10 +2350,12 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // Act
         method.Invoke(_vm, ["update-tail"]);
 
-        // Assert: the tail is now a different (incomplete) task
+        // Assert: the tail is now a different task. We do NOT assert it is still running —
+        // as TriggerQueueTail_TwoMatches_TailsAreDistinct documents, the batch task can fault
+        // and complete almost immediately (SendTriggeredCommandAsync's Dispatcher.UIThread.Post
+        // throws when no platform is pumping), so IsCompleted is a race, not a contract.
         var newTail = (Task)tailField.GetValue(_vm)!;
         Assert.NotSame(originalTail, newTail);
-        Assert.False(newTail.IsCompleted);
     }
 
     [Fact]

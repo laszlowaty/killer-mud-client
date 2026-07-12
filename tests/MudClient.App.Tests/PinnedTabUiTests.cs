@@ -17,17 +17,62 @@ namespace MudClient.App.Tests;
 /// Headless UI checks that a tool pinned to a window edge actually renders as a
 /// visible side tab (ToolPinItemControl) in the main window's visual tree.
 /// </summary>
-public sealed class PinnedTabUiTests
+[Collection(AvaloniaUiCollection.Name)]
+public sealed class PinnedTabUiTests : IDisposable
 {
-    private static void Pump(Window window)
+    private readonly List<Window> _windows = new();
+
+    // All UI test classes share one headless session, and windows left open accumulate in it —
+    // enough lingering pinned strips occasionally perturb a restored tab's render. xUnit makes a
+    // fresh test-class instance per test and disposes it afterwards, so closing this test's windows
+    // here keeps each test's session state clean.
+    public void Dispose()
     {
-        for (var i = 0; i < 10; i++)
+        foreach (var window in _windows)
+        {
+            window.Close();
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private MainWindow ShowWindow(MainWindowViewModel viewModel)
+    {
+        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
+        _windows.Add(window);
+        window.Show();
+        return window;
+    }
+
+    private static void Pump(Window window, int iterations = 10)
+    {
+        for (var i = 0; i < iterations; i++)
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();
         }
     }
+
+    /// <summary>
+    /// Pumps layout/render until <paramref name="condition"/> holds or the cap is reached. A fixed
+    /// pump count is a race under CPU contention — the pinned tab strip may need more render ticks
+    /// to settle — so tests that assert on rendered visual bounds wait for the expected state.
+    /// </summary>
+    private static void PumpUntil(Window window, Func<bool> condition, int maxIterations = 150)
+    {
+        for (var i = 0; i < maxIterations && !condition(); i++)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    private static List<ToolPinItemControl> RenderedPinItems(Window window) =>
+        window.GetVisualDescendants().OfType<ToolPinItemControl>()
+            .Where(p => p.IsEffectivelyVisible && p.Bounds is { Width: > 0, Height: > 0 })
+            .ToList();
 
     [AvaloniaTheory]
     [InlineData(Alignment.Left)]
@@ -37,8 +82,7 @@ public sealed class PinnedTabUiTests
     public void PinnedTool_ShowsSideTabInUi(Alignment edge)
     {
         var viewModel = new MainWindowViewModel();
-        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
-        window.Show();
+        var window = ShowWindow(viewModel);
         Pump(window);
 
         // Sanity: the dock UI is up.
@@ -54,7 +98,7 @@ public sealed class PinnedTabUiTests
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         var gmcp = factory.AllTools.First(t => t.Id == "Gmcp");
         factory.PinToolToEdge(gmcp, edge);
-        Pump(window);
+        PumpUntil(window, () => RenderedPinItems(window).Count > 0);
 
         var pinnedList = edge switch
         {
@@ -88,14 +132,14 @@ public sealed class PinnedTabUiTests
     public void PinnedTool_Preview_OpensAtHalfDockArea(Alignment edge)
     {
         var viewModel = new MainWindowViewModel();
-        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
-        window.Show();
+        var window = ShowWindow(viewModel);
         Pump(window);
 
         viewModel.ApplyLayoutCommand.Execute("DEFAULT");
         Pump(window);
 
         var dockControl = window.GetVisualDescendants().OfType<DockControl>().First();
+        PumpUntil(window, () => dockControl.Bounds is { Width: > 0, Height: > 0 });
         Assert.True(dockControl.Bounds is { Width: > 0, Height: > 0 });
 
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
@@ -117,8 +161,7 @@ public sealed class PinnedTabUiTests
     public void RestoredSnapshotWithPinsOnAllEdges_RendersAllTabs()
     {
         var viewModel = new MainWindowViewModel();
-        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
-        window.Show();
+        var window = ShowWindow(viewModel);
         Pump(window);
 
         viewModel.ApplyLayoutCommand.Execute("DEFAULT");
@@ -137,7 +180,7 @@ public sealed class PinnedTabUiTests
         Pump(window);
         var factory2 = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         Assert.True(factory2.TryApplySnapshot(viewModel.Layout, snapshot));
-        Pump(window);
+        PumpUntil(window, () => RenderedPinItems(window).Count >= 4);
 
         var pinItems = window.GetVisualDescendants().OfType<ToolPinItemControl>().ToList();
         Assert.True(pinItems.Count == 4,
@@ -152,8 +195,7 @@ public sealed class PinnedTabUiTests
     public void ClosedPinnedTool_RestoredFromPanelsMenu_RendersTopEdgeTab()
     {
         var viewModel = new MainWindowViewModel();
-        var window = new MainWindow { DataContext = viewModel, Width = 1400, Height = 900 };
-        window.Show();
+        var window = ShowWindow(viewModel);
         Pump(window);
         viewModel.ApplyLayoutCommand.Execute("DEFAULT");
         Pump(window);
@@ -166,7 +208,8 @@ public sealed class PinnedTabUiTests
         factory.CloseDockable(gmcp);
         Pump(window);
         viewModel.RestorePanelCommand.Execute(gmcp);
-        Pump(window);
+        PumpUntil(window, () => RenderedPinItems(window)
+            .Any(control => ReferenceEquals(control.DataContext, gmcp)));
 
         Assert.Contains(
             viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
