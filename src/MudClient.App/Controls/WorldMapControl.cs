@@ -571,7 +571,11 @@ public sealed class WorldMapControl : Control
         var roomsWithOffsets = GetVisibleRooms().ToList();
         var roomLookup = roomsWithOffsets.ToDictionary(r => r.Room.Id, r => r.Offset);
 
-        DrawTerrain(context, roomsWithOffsets, roomLookup);
+        if (_textureCache?.HasLocationBackdrops(_areaId, _z) != true)
+        {
+            DrawTerrain(context, roomsWithOffsets, roomLookup);
+        }
+
         DrawExits(context, roomsWithOffsets, roomLookup);
         DrawRooms(context, roomsWithOffsets);
         DrawRoute(context, roomLookup);
@@ -610,7 +614,8 @@ public sealed class WorldMapControl : Control
             return false;
         }
 
-        if (_textureCache?.GetBackgroundTexture() is { } texture)
+        var hasLocationBackdrop = _textureCache?.HasLocationBackdrops(_areaId, _z) == true;
+        if (!hasLocationBackdrop && _textureCache?.GetBackgroundTexture() is { } texture)
         {
             var sourceWidth = texture.PixelSize.Width;
             var sourceHeight = texture.PixelSize.Height;
@@ -651,9 +656,12 @@ public sealed class WorldMapControl : Control
         var topLeft = WorldToScreen(minX, maxY);
         var bottomRight = WorldToScreen(maxX, minY);
         var destination = new Rect(topLeft, bottomRight);
-        using (context.PushOpacity(_zoom < OverviewZoomThreshold ? 0.74 : 0.5))
+        if (!hasLocationBackdrop)
         {
-            context.DrawImage(backdrop.Terrain, sourceRect, destination);
+            using (context.PushOpacity(_zoom < OverviewZoomThreshold ? 0.74 : 0.5))
+            {
+                context.DrawImage(backdrop.Terrain, sourceRect, destination);
+            }
         }
 
         DrawLocationBackdrops(context, visible);

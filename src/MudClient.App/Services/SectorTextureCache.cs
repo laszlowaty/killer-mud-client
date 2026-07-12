@@ -133,6 +133,14 @@ public sealed class SectorTextureCache : IDisposable
         }
     }
 
+    public bool HasLocationBackdrops(int areaId, double z)
+    {
+        lock (_lock)
+        {
+            return _locationBackdropManifest.ContainsKey((areaId, z));
+        }
+    }
+
     private Bitmap? GetDefaultTexture()
     {
         const string defaultKey = "_default";
