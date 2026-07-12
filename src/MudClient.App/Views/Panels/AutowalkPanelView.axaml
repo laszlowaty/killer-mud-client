@@ -35,7 +35,7 @@
           <!-- Temporary target picked by double-clicking the map -->
           <StackPanel Spacing="6" IsVisible="{Binding HasTemporaryTarget}">
             <TextBlock Text="{Binding TemporaryTargetDisplay}"
-                       TextWrapping="Wrap" FontSize="12"
+                       TextWrapping="Wrap"
                        Foreground="{StaticResource MudBrushGoldBright}" />
             <Button Content="⚑ IDŹ DO CELU"
                     Command="{Binding GoToTemporaryTargetCommand}"
@@ -90,8 +90,8 @@
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
                   <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                               FontSize="12" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis" />
                     <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
                             ToolTip.Tip="Wspólna dla wszystkich kont">
                       <TextBlock Text="GLOBALNA" />
@@ -134,8 +134,8 @@
             <Border Classes="mud-section" Padding="10,8" Margin="0,2">
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding Display}" FontWeight="SemiBold"
-                             FontSize="12" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Display}"
+                             TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding When}" Classes="mud-faint"
                              TextTrimming="CharacterEllipsis" />
                 </StackPanel>

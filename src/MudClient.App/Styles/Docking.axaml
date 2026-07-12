@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:dock="using:Dock.Avalonia.Controls"
         xmlns:psp="using:Dock.Controls.ProportionalStackPanel"
-        xmlns:docking="using:MudClient.App.Docking">
+        xmlns:docking="using:MudClient.App.Docking"
+        xmlns:panels="using:MudClient.App.Views.Panels">
   <!--
     Light-touch theming so Dock.Avalonia's chrome (tab strips, tool headers,
     splitters) blends with the fantasy palette instead of the default Fluent look.
@@ -85,6 +86,20 @@
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
   </Style>
 
+  <!-- Names of docked widgets use the same typography as their contents. -->
+  <Style Selector="dock|ToolTabStripItem">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+
+  <!-- The title of an auto-hidden widget is rendered by a separate edge-tab control. -->
+  <Style Selector="dock|ToolPinItemControl">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+
   <!--
     PanelToolView also lives below ToolChromeControl, so restore the application button
     chrome inside widget content after the narrow Dock chrome override above.
@@ -96,6 +111,56 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
+  </Style>
+
+  <!-- Widget typography must be applied to the text-producing controls themselves.
+       Setting it only on PanelToolView is insufficient: application styles for headings,
+       inputs and buttons otherwise override the inherited value. The terminal deliberately
+       does not receive mud-configurable-widget. -->
+  <Style Selector="panels|PanelToolView.mud-configurable-widget TextBlock">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget SelectableTextBlock">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget TextBox">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget Button">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget ToggleButton">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget ComboBox">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget CheckBox">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget Expander">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+  </Style>
+  <Style Selector="panels|PanelToolView.mud-configurable-widget TabItem">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
   </Style>
   <Style Selector="UserControl.mud-widget-content Button:pointerover">
     <Setter Property="BorderBrush" Value="{StaticResource MudBrushGold}" />

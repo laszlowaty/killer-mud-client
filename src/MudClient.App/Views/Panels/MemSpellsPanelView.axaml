@@ -16,16 +16,16 @@
             <Border Classes="mud-section" Padding="6,4" Margin="0,1">
               <StackPanel Spacing="2">
                 <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="12"
+                  <TextBlock Text="{Binding Header}"
                              Foreground="{StaticResource MudBrushArcaneBlueBright}" />
                   <TextBlock Grid.Column="1" Text="{Binding CountDisplay}"
-                             FontSize="11" Classes="mud-faint" />
+                             Classes="mud-faint" />
                 </Grid>
                 <TextBlock Text="{Binding MemedDisplay}"
-                           FontSize="10" TextWrapping="Wrap"
+                           TextWrapping="Wrap"
                            IsVisible="{Binding HasMemed}" />
                 <TextBlock Text="{Binding MemingDisplay}"
-                           FontSize="10" TextWrapping="Wrap"
+                           TextWrapping="Wrap"
                            Foreground="{StaticResource MudBrushGoldBright}"
                            ToolTip.Tip="W trakcie zapamiętywania"
                            IsVisible="{Binding HasMeming}" />

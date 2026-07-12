@@ -20,7 +20,7 @@
                     BorderBrush="{StaticResource MudBrushCrimson}"
                     BorderThickness="1"
                     CornerRadius="3" Padding="7,3" Margin="0,2,4,2">
-              <TextBlock Text="{Binding}" FontSize="11"
+              <TextBlock Text="{Binding}"
                          Foreground="{StaticResource MudBrushCrimsonBright}" />
             </Border>
           </DataTemplate>

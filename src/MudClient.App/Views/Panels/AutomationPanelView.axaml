@@ -37,7 +37,6 @@
             <TextBlock Classes="mud-faint" Text="Komendy — jedna w linii, wysyłane w kolejności" />
             <TextBox Text="{Binding NewTimerCommands}"
                      PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
-                     FontFamily="Consolas,Courier New,monospace"
                      MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
           </StackPanel>
 
@@ -69,8 +68,8 @@
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                   <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
                               VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                               FontSize="12" VerticalAlignment="Center"
+                    <TextBlock Text="{Binding Name}"
+                               VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                     <Border Classes="mud-badge mud-badge-gold">
                       <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
@@ -102,8 +101,6 @@
 
                 <Border Classes="mud-inset" Padding="8,5">
                   <TextBlock Text="{Binding CommandsText}"
-                             FontFamily="Consolas,Courier New,monospace"
-                             FontSize="11"
                              Foreground="{StaticResource MudBrushParchmentDim}"
                              TextWrapping="Wrap" />
                 </Border>
@@ -146,10 +143,10 @@
             <TextBlock Classes="mud-faint" Text="Wzorzec (regex .NET)" />
             <TextBox Text="{Binding NewRulePattern}"
                      PlaceholderText="np. ^zb (.+)$  albo  (\w+) upada na ziemie"
-                     FontFamily="Consolas,Courier New,monospace" />
+                     />
             <TextBlock Text="{Binding NewRulePatternError}"
                        Foreground="{StaticResource MudBrushCrimsonBright}"
-                       FontSize="11" TextWrapping="Wrap"
+                       TextWrapping="Wrap"
                        IsVisible="{Binding HasNewRulePatternError}" />
           </StackPanel>
 
@@ -157,7 +154,6 @@
             <TextBlock Classes="mud-faint" Text="Akcja — jedna komenda w linii; możesz użyć grup: $1, $2…" />
             <TextBox Text="{Binding NewRuleAction}"
                      PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
-                     FontFamily="Consolas,Courier New,monospace"
                      MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
           </StackPanel>
 
@@ -195,7 +191,6 @@
                     <TextBlock Text="GLOBALNA" />
                   </Border>
                   <TextBlock Grid.Column="2" Text="{Binding Name}"
-                             FontWeight="SemiBold" FontSize="12"
                              VerticalAlignment="Center"
                              TextTrimming="CharacterEllipsis" />
                   <ToggleButton Grid.Column="3" Classes="mud-switch"
@@ -218,11 +213,9 @@
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
                   <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
                   <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
-                             FontFamily="Consolas,Courier New,monospace"
                              Text="{Binding Pattern}" TextTrimming="CharacterEllipsis" />
                   <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
                   <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
-                             FontFamily="Consolas,Courier New,monospace"
                              Text="{Binding Action}" TextWrapping="Wrap" />
                 </Grid>
 

@@ -10,6 +10,17 @@ namespace MudClient.App.Controls;
 
 public sealed class WorldMapControl : Control
 {
+    public static readonly StyledProperty<FontFamily> WidgetFontFamilyProperty =
+        AvaloniaProperty.Register<WorldMapControl, FontFamily>(
+            nameof(WidgetFontFamily), new FontFamily("Inter"));
+
+    public static readonly StyledProperty<double> WidgetFontSizeProperty =
+        AvaloniaProperty.Register<WorldMapControl, double>(nameof(WidgetFontSize), 13);
+
+    public static readonly StyledProperty<FontWeight> WidgetFontWeightProperty =
+        AvaloniaProperty.Register<WorldMapControl, FontWeight>(
+            nameof(WidgetFontWeight), FontWeight.Normal);
+
     private const double PanKeyStep = 40;
     private const double OverviewZoomThreshold = 0.45;
 
@@ -57,6 +68,36 @@ public sealed class WorldMapControl : Control
     public event Action<MapRoom>? RoomDoubleClicked;
 
     public event Action? ManualNavigationOccurred;
+
+    public FontFamily WidgetFontFamily
+    {
+        get => GetValue(WidgetFontFamilyProperty);
+        set => SetValue(WidgetFontFamilyProperty, value);
+    }
+
+    public double WidgetFontSize
+    {
+        get => GetValue(WidgetFontSizeProperty);
+        set => SetValue(WidgetFontSizeProperty, value);
+    }
+
+    public FontWeight WidgetFontWeight
+    {
+        get => GetValue(WidgetFontWeightProperty);
+        set => SetValue(WidgetFontWeightProperty, value);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WidgetFontFamilyProperty || change.Property == WidgetFontSizeProperty
+            || change.Property == WidgetFontWeightProperty)
+        {
+            _collisionBadges.Clear();
+            RequestInvalidateVisual();
+        }
+    }
 
     public MapIndex? MapIndex
     {
@@ -883,8 +924,8 @@ public sealed class WorldMapControl : Control
             message,
             System.Globalization.CultureInfo.CurrentUICulture,
             FlowDirection.LeftToRight,
-            Typeface.Default,
-            16,
+            new Typeface(WidgetFontFamily, weight: WidgetFontWeight),
+            WidgetFontSize,
             Brushes.LightGray);
 
         var origin = new Point((Bounds.Width - text.Width) / 2, (Bounds.Height - text.Height) / 2);
@@ -975,8 +1016,8 @@ public sealed class WorldMapControl : Control
                         group.Rooms.Count.ToString(),
                         System.Globalization.CultureInfo.CurrentUICulture,
                         FlowDirection.LeftToRight,
-                        Typeface.Default,
-                        11,
+                        new Typeface(WidgetFontFamily, weight: WidgetFontWeight),
+                        WidgetFontSize,
                         Brushes.White);
                     _collisionBadges[group.Rooms.Count] = badgeText;
                 }

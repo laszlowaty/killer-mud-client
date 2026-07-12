@@ -37,6 +37,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(";", settings.CommandStackingSeparator);
         Assert.Equal("Consolas", settings.OutputFontFamily);
         Assert.Equal(14, settings.OutputFontSize);
+        Assert.Equal(AppSettings.DefaultWidgetFontFamily, settings.WidgetFontFamily);
+        Assert.Equal(AppSettings.DefaultWidgetFontSize, settings.WidgetFontSize);
         Assert.True(settings.OutputWordWrap);
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
     }
@@ -123,6 +125,10 @@ public sealed class AppSettingsServiceTests : IDisposable
             CommandStackingSeparator = "|",
             OutputFontFamily = "Arial",
             OutputFontSize = 16,
+            OutputFontBold = true,
+            WidgetFontFamily = "Verdana",
+            WidgetFontSize = 15,
+            WidgetFontBold = true,
             OutputWordWrap = false,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
@@ -135,6 +141,10 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("|", loaded.CommandStackingSeparator);
         Assert.Equal("Arial", loaded.OutputFontFamily);
         Assert.Equal(16, loaded.OutputFontSize);
+        Assert.True(loaded.OutputFontBold);
+        Assert.Equal("Verdana", loaded.WidgetFontFamily);
+        Assert.Equal(15, loaded.WidgetFontSize);
+        Assert.True(loaded.WidgetFontBold);
         Assert.False(loaded.OutputWordWrap);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
@@ -155,6 +165,17 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(";", settings.CommandStackingSeparator);
         Assert.Equal("Consolas", settings.OutputFontFamily);
         Assert.Equal(14, settings.OutputFontSize);
+    }
+
+    [Fact]
+    public void Load_InvalidWidgetFont_NormalizesToDefaultsAndRange()
+    {
+        SaveRaw(new AppSettings { WidgetFontFamily = "  ", WidgetFontSize = 100 });
+
+        var settings = _service.Load();
+
+        Assert.Equal(AppSettings.DefaultWidgetFontFamily, settings.WidgetFontFamily);
+        Assert.Equal(AppSettings.MaxWidgetFontSize, settings.WidgetFontSize);
     }
 
     // ====================================================================

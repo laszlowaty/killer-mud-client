@@ -42,6 +42,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     private FontFamily _fontFamily = new("Consolas");
     private double _fontSize = 14;
+    private FontWeight _fontWeight = FontWeight.Normal;
     private Typeface _typeface;
     private Typeface _boldTypeface;
     private double _lineHeight = 16;
@@ -112,10 +113,11 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         }
     }
 
-    public void SetFont(FontFamily fontFamily, double fontSize)
+    public void SetFont(FontFamily fontFamily, double fontSize, FontWeight fontWeight)
     {
         _fontFamily = fontFamily;
         _fontSize = fontSize;
+        _fontWeight = fontWeight;
         _fontVersion++;
         UpdateFontMetrics();
         NotifyContentChanged();
@@ -536,7 +538,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     private void UpdateFontMetrics()
     {
-        _typeface = new Typeface(_fontFamily);
+        _typeface = new Typeface(_fontFamily, weight: _fontWeight);
         _boldTypeface = new Typeface(_fontFamily, weight: FontWeight.Bold);
 
         var probe = new TextLayout("0", _typeface, _fontSize, DefaultForeground);

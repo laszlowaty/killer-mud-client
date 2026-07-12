@@ -26,6 +26,10 @@ public partial class MudOutputView : UserControl
         AvaloniaProperty.Register<MudOutputView, double>(
             nameof(OutputFontSize), 14);
 
+    public static readonly StyledProperty<FontWeight> OutputFontWeightProperty =
+        AvaloniaProperty.Register<MudOutputView, FontWeight>(
+            nameof(OutputFontWeight), FontWeight.Normal);
+
     public static readonly StyledProperty<bool> WordWrapProperty =
         AvaloniaProperty.Register<MudOutputView, bool>(nameof(WordWrap), true);
 
@@ -43,6 +47,12 @@ public partial class MudOutputView : UserControl
     {
         get => GetValue(OutputFontSizeProperty);
         set => SetValue(OutputFontSizeProperty, value);
+    }
+
+    public FontWeight OutputFontWeight
+    {
+        get => GetValue(OutputFontWeightProperty);
+        set => SetValue(OutputFontWeightProperty, value);
     }
 
     public bool WordWrap
@@ -137,7 +147,8 @@ public partial class MudOutputView : UserControl
     {
         base.OnPropertyChanged(change);
 
-        if ((change.Property == OutputFontFamilyProperty || change.Property == OutputFontSizeProperty)
+        if ((change.Property == OutputFontFamilyProperty || change.Property == OutputFontSizeProperty
+             || change.Property == OutputFontWeightProperty)
             && _scrollbackPane is not null)
         {
             ApplyFontToPanes();
@@ -155,8 +166,8 @@ public partial class MudOutputView : UserControl
 
     private void ApplyFontToPanes()
     {
-        _scrollbackPane.SetFont(OutputFontFamily, OutputFontSize);
-        _liveTailPane.SetFont(OutputFontFamily, OutputFontSize);
+        _scrollbackPane.SetFont(OutputFontFamily, OutputFontSize, OutputFontWeight);
+        _liveTailPane.SetFont(OutputFontFamily, OutputFontSize, OutputFontWeight);
     }
 
     private void ApplyWordWrapToPanes()

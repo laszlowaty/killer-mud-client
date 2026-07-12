@@ -48,8 +48,9 @@
     <!-- MUD output (center) -->
     <controls:MudOutputView Grid.Column="1" Grid.Row="1"
                             x:Name="MudOutput"
-                            OutputFontFamily="{Binding OutputFontFamily}"
+                            OutputFontFamily="{Binding OutputFontFamilyValue}"
                             OutputFontSize="{Binding OutputFontSize}"
+                            OutputFontWeight="{Binding OutputFontWeight}"
                             TelnetColorScheme="{Binding TelnetColorScheme}"
                             WordWrap="{Binding OutputWordWrap}" />
 

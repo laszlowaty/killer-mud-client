@@ -21,6 +21,13 @@ Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [kill
 
 ### Terminal
 
+Czcionkę i rozmiar tekstu terminala można ustawić niezależnie od wspólnej czcionki
+pozostałych dokowanych widgetów. Oba ustawienia są globalne i zapisywane automatycznie.
+Terminal i widgety mają również niezależne opcje pogrubienia tekstu.
+Do aplikacji dołączono również czcionkę OpenDyslexic. Jest dostępna w obu listach bez
+instalowania jej w systemie operacyjnym. Pliki fontu są rozpowszechniane na licencji
+SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexic/OFL.txt`.
+
 - kolory ANSI SGR: 16 kolorów z wybieralnymi schematami (ciepły, colorblind w skali szarości i mocno nasycony jaskrawy), 256 kolorów, RGB, bold, underline i reset,
 - filtry kanałów nad terminalem: Wszystko / Walka / Czaty / System,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,

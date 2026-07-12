@@ -42,6 +42,13 @@ public sealed class AppSettingsService
                         settings.OutputFontFamily = AppSettings.DefaultOutputFontFamily;
                     }
 
+                    settings.WidgetFontSize = Math.Clamp(
+                        settings.WidgetFontSize, AppSettings.MinWidgetFontSize, AppSettings.MaxWidgetFontSize);
+                    if (string.IsNullOrWhiteSpace(settings.WidgetFontFamily))
+                    {
+                        settings.WidgetFontFamily = AppSettings.DefaultWidgetFontFamily;
+                    }
+
                     if (!AnsiColorPalette.IsKnown(settings.TelnetColorScheme))
                     {
                         settings.TelnetColorScheme = AppSettings.DefaultTelnetColorScheme;

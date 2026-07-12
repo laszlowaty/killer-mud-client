@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:services="using:MudClient.App.Services"
              x:Class="MudClient.App.Views.Panels.SettingsPanelView"
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
@@ -22,7 +23,9 @@
                       MaxDropDownHeight="320">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="x:String">
-                  <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="13" />
+                  <TextBlock Text="{Binding}"
+                             FontFamily="{Binding Converter={x:Static services:AppFontFamilyConverter.Instance}}"
+                             FontSize="13" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
@@ -30,6 +33,9 @@
 
           <CheckBox Content="Zawijaj długie linie w oknie terminala"
                     IsChecked="{Binding OutputWordWrap}" />
+
+          <CheckBox Content="Pogrubiona"
+                    IsChecked="{Binding OutputFontBold}" />
 
           <StackPanel Spacing="3">
             <TextBlock Classes="mud-faint" Text="Schemat kolorów Telnet/ANSI" />
@@ -58,8 +64,9 @@
             <TextBlock Classes="mud-faint" Text="Podgląd" />
             <Border Classes="mud-inset" Padding="10,8">
               <TextBlock Text="Strażnik miasta wchodzi z północy.&#x0a;&gt; zabij straznika"
-                         FontFamily="{Binding OutputFontFamily}"
+                         FontFamily="{Binding OutputFontFamilyValue}"
                          FontSize="{Binding OutputFontSize}"
+                         FontWeight="{Binding OutputFontWeight}"
                          Foreground="{StaticResource MudBrushParchment}"
                          TextWrapping="Wrap" />
             </Border>
@@ -70,6 +77,52 @@
                   Classes="mud-small"
                   HorizontalAlignment="Right" />
 
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="WIDGETY" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Wspólna czcionka wszystkich paneli poza terminalem." />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-faint" Text="Czcionka" />
+            <ComboBox ItemsSource="{Binding AvailableFonts}"
+                      SelectedItem="{Binding WidgetFontFamily}"
+                      HorizontalAlignment="Stretch"
+                      MaxDropDownHeight="320">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}"
+                             FontFamily="{Binding Converter={x:Static services:AppFontFamilyConverter.Instance}}"
+                             FontSize="13" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-faint" Text="Rozmiar" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding WidgetFontSizeText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinWidgetFontSize}"
+                    Maximum="{Binding MaxWidgetFontSize}"
+                    Value="{Binding WidgetFontSize}"
+                    TickFrequency="1" IsSnapToTickEnabled="True" />
+          </StackPanel>
+          <CheckBox Content="Pogrubiona"
+                    IsChecked="{Binding WidgetFontBold}" />
+          <Border Classes="mud-inset" Padding="10,8">
+            <TextBlock Text="Podgląd tekstu w widżetach"
+                       FontFamily="{Binding WidgetFontFamilyValue}"
+                       FontSize="{Binding WidgetFontSize}"
+                       FontWeight="{Binding WidgetFontWeight}" />
+          </Border>
+          <Button Content="Przywróć domyślne"
+                  Command="{Binding ResetWidgetFontCommand}"
+                  Classes="mud-small" HorizontalAlignment="Right" />
         </StackPanel>
       </Border>
 

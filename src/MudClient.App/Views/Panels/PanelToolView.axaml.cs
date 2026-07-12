@@ -25,10 +25,14 @@ public partial class PanelToolView : UserControl
 
         if (DataContext is not PanelTool tool)
         {
+            Classes.Set("mud-configurable-widget", false);
             _builtViewType = null;
             host.Content = null;
             return;
         }
+
+        Classes.Set("mud-configurable-widget",
+            !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal));
 
         if (host.Content is Control existing && _builtViewType == tool.ViewType)
         {

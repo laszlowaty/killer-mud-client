@@ -9,13 +9,13 @@
       <Grid ColumnDefinitions="Auto,*">
         <TextBlock Classes="mud-muted" Text="Imię:" />
         <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                   Text="{Binding Name}" FontWeight="SemiBold"
+                   Text="{Binding Name}"
                    Foreground="{StaticResource MudBrushGoldBright}" />
       </Grid>
       <Grid ColumnDefinitions="Auto,*">
         <TextBlock Classes="mud-muted" Text="Poziom:" />
         <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                   Text="{Binding Level}" FontWeight="Bold" />
+                   Text="{Binding Level}" />
       </Grid>
       <Grid ColumnDefinitions="Auto,*">
         <TextBlock Classes="mud-muted" Text="Płeć:" />

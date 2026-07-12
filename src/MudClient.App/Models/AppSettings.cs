@@ -9,6 +9,10 @@ public sealed class AppSettings
     public const double DefaultOutputFontSize = 14;
     public const double MinOutputFontSize = 9;
     public const double MaxOutputFontSize = 28;
+    public const string DefaultWidgetFontFamily = "Inter";
+    public const double DefaultWidgetFontSize = 13;
+    public const double MinWidgetFontSize = 9;
+    public const double MaxWidgetFontSize = 24;
     public const string DefaultTelnetColorScheme = "Ciepłe";
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
@@ -18,6 +22,15 @@ public sealed class AppSettings
     public string OutputFontFamily { get; set; } = DefaultOutputFontFamily;
 
     public double OutputFontSize { get; set; } = DefaultOutputFontSize;
+
+    public bool OutputFontBold { get; set; }
+
+    /// <summary>Font shared by all dockable widgets except the terminal.</summary>
+    public string WidgetFontFamily { get; set; } = DefaultWidgetFontFamily;
+
+    public double WidgetFontSize { get; set; } = DefaultWidgetFontSize;
+
+    public bool WidgetFontBold { get; set; }
 
     /// <summary>Wraps long MUD output lines to the terminal width.</summary>
     public bool OutputWordWrap { get; set; } = true;

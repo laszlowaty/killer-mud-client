@@ -72,6 +72,9 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="docking:PanelTool">
                         <Button Content="{Binding Title}"
+                                FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                                FontSize="{DynamicResource WidgetFontSizeResource}"
+                                FontWeight="{DynamicResource WidgetFontWeightResource}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Left"
                                 Padding="10,6" Margin="0,1"

@@ -8,8 +8,7 @@
   <ScrollViewer>
     <StackPanel Spacing="4" Margin="12">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)"
-                 FontSize="12" />
+        <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)" />
         <Button Grid.Column="1" Content="Dodaj" Classes="mud-small" Margin="4,0,0,0"
                 VerticalAlignment="Stretch"
                 Command="{Binding AddBuffCommand}" />
@@ -28,13 +27,13 @@
                       Padding="6,3" Margin="0,1"
                       IsVisible="{Binding IsActive}">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <TextBlock Text="[+]" FontSize="12"
+                  <TextBlock Text="[+]"
                              Foreground="{StaticResource MudBrushEmeraldBright}"
                              Margin="0,0,6,0" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                  <TextBlock Grid.Column="1" Text="{Binding Name}"
                              VerticalAlignment="Center" />
                   <Button Grid.Column="2" Content="✕" Classes="mud-small"
-                          Padding="6,1" FontSize="11"
+                          Padding="6,1"
                           Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
                           CommandParameter="{Binding}" />
                 </Grid>
@@ -46,17 +45,17 @@
                       Padding="6,3" Margin="0,1"
                       IsVisible="{Binding !IsActive}">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                  <TextBlock Text="[!]" FontSize="12"
+                  <TextBlock Text="[!]"
                              Foreground="{StaticResource MudBrushCrimsonBright}"
                              Margin="0,0,6,0" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                  <TextBlock Grid.Column="1" Text="{Binding Name}"
                              Foreground="{StaticResource MudBrushCrimsonBright}"
                              VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="2" Text="brak" FontSize="10"
+                  <TextBlock Grid.Column="2" Text="brak"
                              Classes="mud-faint" Margin="0,0,6,0"
                              VerticalAlignment="Center" />
                   <Button Grid.Column="3" Content="✕" Classes="mud-small"
-                          Padding="6,1" FontSize="11"
+                          Padding="6,1"
                           Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
                           CommandParameter="{Binding}" />
                 </Grid>
@@ -69,7 +68,7 @@
       <Button Content="RECAST BRAKUJĄCYCH" Classes="mud-small"
               HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
               Command="{Binding RecastBuffsCommand}" />
-      <TextBlock Classes="mud-faint" FontSize="10" TextWrapping="Wrap"
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Komenda /recast wysyła cast &quot;nazwa&quot; self dla każdego brakującego buffa." />
     </StackPanel>
   </ScrollViewer>

@@ -241,10 +241,12 @@ public sealed class ProfileTests : IDisposable
 
         vm.OutputFontFamily = "Courier New";
         vm.OutputFontSize = 20;
+        vm.OutputFontBold = true;
 
         var stored = settingsService.Load();
         Assert.Equal("Courier New", stored.OutputFontFamily);
         Assert.Equal(20, stored.OutputFontSize);
+        Assert.True(stored.OutputFontBold);
     }
 
     [Fact]
@@ -257,6 +259,22 @@ public sealed class ProfileTests : IDisposable
 
         vm.OutputFontSize = 1;
         Assert.Equal(AppSettings.MinOutputFontSize, vm.OutputFontSize);
+    }
+
+    [Fact]
+    public async Task Vm_ChangingWidgetFont_PersistsAndClamps()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.WidgetFontFamily = "Verdana";
+        vm.WidgetFontSize = 100;
+        vm.WidgetFontBold = true;
+
+        var stored = settingsService.Load();
+        Assert.Equal("Verdana", stored.WidgetFontFamily);
+        Assert.Equal(AppSettings.MaxWidgetFontSize, stored.WidgetFontSize);
+        Assert.True(stored.WidgetFontBold);
     }
 
     [Fact]

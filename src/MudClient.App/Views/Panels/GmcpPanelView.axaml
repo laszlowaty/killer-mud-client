@@ -11,19 +11,15 @@
           <Grid ColumnDefinitions="*,Auto">
             <SelectableTextBlock Grid.Column="0"
                                  Text="{Binding Package}"
-                                 FontWeight="SemiBold"
-                                 FontSize="12"
                                  Foreground="{StaticResource MudBrushArcaneBlueBright}"
                                  TextWrapping="NoWrap" />
             <SelectableTextBlock Grid.Column="1"
                                  Classes="mud-faint"
                                  Text="{Binding ReceivedAt}"
-                                 FontSize="10" />
+                                 />
           </Grid>
           <SelectableTextBlock Text="{Binding Json}"
                                Classes="mud-faint"
-                               FontFamily="Consolas,Courier New,monospace"
-                               FontSize="10"
                                TextWrapping="Wrap" />
         </StackPanel>
       </Border>

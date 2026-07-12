@@ -45,7 +45,7 @@
               <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <StackPanel Grid.Row="0" Grid.Column="0"
                             Orientation="Horizontal" Spacing="6">
-                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12"
+                  <TextBlock Text="{Binding Title}"
                              VerticalAlignment="Center" />
                   <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
                           ToolTip.Tip="Wspólna dla wszystkich kont">
@@ -64,7 +64,7 @@
                         Click="DeleteNote_OnClick" />
 
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="3"
-                           Classes="mud-muted" FontSize="11"
+                           Classes="mud-muted"
                            TextWrapping="Wrap"
                            Text="{Binding Content}" />
 

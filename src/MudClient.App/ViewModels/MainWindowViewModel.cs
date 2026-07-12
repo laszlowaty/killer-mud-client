@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using Avalonia.Threading;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text;
@@ -163,6 +164,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
+        ApplyWidgetFontResources();
         PopulateAvailableFonts();
         _settingsLoaded = true;
         _connectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
@@ -578,6 +580,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public double MinOutputFontSize => AppSettings.MinOutputFontSize;
     public double MaxOutputFontSize => AppSettings.MaxOutputFontSize;
+    public double MinWidgetFontSize => AppSettings.MinWidgetFontSize;
+    public double MaxWidgetFontSize => AppSettings.MaxWidgetFontSize;
 
     /// <summary>Font family name for MUD output in the main screen.</summary>
     public string OutputFontFamily
@@ -592,6 +596,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             _settings.OutputFontFamily = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(OutputFontFamilyValue));
             SaveSettings();
         }
     }
@@ -616,6 +621,90 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string OutputFontSizeText => $"{_settings.OutputFontSize:0} px";
+
+    public FontFamily OutputFontFamilyValue => AppFonts.Resolve(_settings.OutputFontFamily);
+
+    public bool OutputFontBold
+    {
+        get => _settings.OutputFontBold;
+        set
+        {
+            if (_settings.OutputFontBold == value)
+            {
+                return;
+            }
+
+            _settings.OutputFontBold = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(OutputFontWeight));
+            SaveSettings();
+        }
+    }
+
+    public FontWeight OutputFontWeight => OutputFontBold ? FontWeight.Bold : FontWeight.Normal;
+
+    /// <summary>Font family shared by all dockable widgets except the terminal.</summary>
+    public string WidgetFontFamily
+    {
+        get => _settings.WidgetFontFamily;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || _settings.WidgetFontFamily == value)
+            {
+                return;
+            }
+
+            _settings.WidgetFontFamily = value;
+            ApplyWidgetFontResources();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(WidgetFontFamilyValue));
+            SaveSettings();
+        }
+    }
+
+    public double WidgetFontSize
+    {
+        get => _settings.WidgetFontSize;
+        set
+        {
+            var clamped = Math.Clamp(
+                Math.Round(value), AppSettings.MinWidgetFontSize, AppSettings.MaxWidgetFontSize);
+            if (Math.Abs(_settings.WidgetFontSize - clamped) < 0.1)
+            {
+                return;
+            }
+
+            _settings.WidgetFontSize = clamped;
+            ApplyWidgetFontResources();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(WidgetFontSizeText));
+            SaveSettings();
+        }
+    }
+
+    public string WidgetFontSizeText => $"{_settings.WidgetFontSize:0} px";
+
+    public FontFamily WidgetFontFamilyValue => AppFonts.Resolve(_settings.WidgetFontFamily);
+
+    public bool WidgetFontBold
+    {
+        get => _settings.WidgetFontBold;
+        set
+        {
+            if (_settings.WidgetFontBold == value)
+            {
+                return;
+            }
+
+            _settings.WidgetFontBold = value;
+            ApplyWidgetFontResources();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(WidgetFontWeight));
+            SaveSettings();
+        }
+    }
+
+    public FontWeight WidgetFontWeight => WidgetFontBold ? FontWeight.Bold : FontWeight.Normal;
 
     public bool OutputWordWrap
     {
@@ -713,7 +802,27 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         OutputFontFamily = AppSettings.DefaultOutputFontFamily;
         OutputFontSize = AppSettings.DefaultOutputFontSize;
+        OutputFontBold = false;
     });
+
+    public RelayCommand ResetWidgetFontCommand => new(() =>
+    {
+        WidgetFontFamily = AppSettings.DefaultWidgetFontFamily;
+        WidgetFontSize = AppSettings.DefaultWidgetFontSize;
+        WidgetFontBold = false;
+    });
+
+    private void ApplyWidgetFontResources()
+    {
+        if (Avalonia.Application.Current is not { } application)
+        {
+            return;
+        }
+
+        application.Resources["WidgetFontFamilyResource"] = WidgetFontFamilyValue;
+        application.Resources["WidgetFontSizeResource"] = _settings.WidgetFontSize;
+        application.Resources["WidgetFontWeightResource"] = WidgetFontWeight;
+    }
 
     private void SaveSettings()
     {
@@ -761,6 +870,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (!fonts.Contains(_settings.OutputFontFamily))
         {
             fonts.Insert(0, _settings.OutputFontFamily);
+        }
+
+        if (!fonts.Contains(_settings.WidgetFontFamily))
+        {
+            fonts.Insert(0, _settings.WidgetFontFamily);
+        }
+
+        if (!fonts.Contains(AppFonts.OpenDyslexicName, StringComparer.OrdinalIgnoreCase))
+        {
+            fonts.Add(AppFonts.OpenDyslexicName);
+            fonts.Sort(StringComparer.OrdinalIgnoreCase);
         }
 
         foreach (var font in fonts)

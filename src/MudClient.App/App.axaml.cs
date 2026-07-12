@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Dock.Settings;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
@@ -17,6 +18,12 @@ public partial class App : Application
         DockSettings.GlobalDockingPreset = DockGlobalDockingPreset.GlobalFirst;
 
         AvaloniaXamlLoader.Load(this);
+
+        // Kept in application resources so dock chrome, popups and widget contents all
+        // observe the same live values, even though they do not share a visual ancestor.
+        Resources["WidgetFontFamilyResource"] = new FontFamily("Inter");
+        Resources["WidgetFontSizeResource"] = 13d;
+        Resources["WidgetFontWeightResource"] = FontWeight.Normal;
     }
 
     public override void OnFrameworkInitializationCompleted()
