@@ -8,32 +8,10 @@
   <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- ========================================================================
-          Header bar: area / Z selector + toolbar (responsive WrapPanel)
+          Header bar
           ======================================================================== -->
     <Border Grid.Row="0" Classes="mud-bar" Padding="10,6">
       <WrapPanel>
-
-        <!-- Area selector group -->
-        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,8,4">
-          <TextBlock Classes="mud-heading" Text="OBSZAR" VerticalAlignment="Center" />
-          <ComboBox ItemsSource="{Binding Areas}"
-                    SelectedItem="{Binding SelectedArea}"
-                    MinWidth="150">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="map:MapArea">
-                <TextBlock Text="{Binding Name}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </StackPanel>
-
-        <!-- Z level selector group -->
-        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,8,4">
-          <TextBlock Classes="mud-heading" Text="POZIOM Z" VerticalAlignment="Center" />
-          <ComboBox ItemsSource="{Binding ZLevels}"
-                    SelectedItem="{Binding SelectedZ}"
-                    MinWidth="70" />
-        </StackPanel>
 
         <Button Content="Mapa ▾"
                 Padding="10,5"
@@ -41,7 +19,24 @@
                 Margin="0,0,8,4">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedLeft">
-              <StackPanel Spacing="4" MinWidth="190">
+              <StackPanel Spacing="6" MinWidth="230">
+                <TextBlock Classes="mud-heading" Text="OBSZAR" />
+                <ComboBox ItemsSource="{Binding Areas}"
+                          SelectedItem="{Binding SelectedArea}"
+                          HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="map:MapArea">
+                      <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Classes="mud-heading" Text="POZIOM Z" Margin="0,4,0,0" />
+                <ComboBox ItemsSource="{Binding ZLevels}"
+                          SelectedItem="{Binding SelectedZ}"
+                          HorizontalAlignment="Stretch" />
+                <Border Height="1"
+                        Background="{StaticResource MudBrushSlate}"
+                        Margin="0,4" />
                 <Button Content="Wycentruj i śledź"
                         Command="{Binding CenterCommand}"
                         HorizontalAlignment="Stretch"
