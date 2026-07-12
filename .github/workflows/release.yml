@@ -235,7 +235,24 @@ jobs:
             PRE=$(jq -r ".[$i].prerelease" releases.json)
 
             jq -r ".[$i].body // \"\"" releases.json > body.md
-            BODY_HTML=$(pandoc -f gfm -t html body.md 2>/dev/null || cat body.md)
+
+            # Upiększanie auto-notatek GitHuba do formy przyjaznej użytkownikowi:
+            #  - usuń "by @autor" i "in #PR/URL" z każdego punktu
+            #  - zetnij prefiksy conventional-commits (feat:, fix:, ...)
+            #  - przetłumacz nagłówek i zamień "Full Changelog" na dyskretny link
+            #  - wytnij sekcję "New Contributors"
+            sed -E \
+              -e 's/ by @[A-Za-z0-9_-]+( in [^[:space:]]+)?$//' \
+              -e 's/^\* (feat|fix|chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?: /* /I' \
+              -e 's/^#+ What.s Changed/## Co nowego/' \
+              -e 's#\*\*Full Changelog\*\*: (https?://[^[:space:]]+)#_[Pełny changelog na GitHubie](\1)_#' \
+              -e '/^#+ New Contributors/d' \
+              -e '/made their first contribution/d' \
+              body.md > body.clean.md
+            if ! grep -q '[^[:space:]]' body.clean.md; then
+              echo '_Brak szczegółowego opisu zmian._' > body.clean.md
+            fi
+            BODY_HTML=$(pandoc -f gfm -t html body.clean.md 2>/dev/null || cat body.clean.md)
 
             BADGE=""
             if [ "$PRE" = "true" ]; then BADGE='<span class="pre">beta</span>'; fi
