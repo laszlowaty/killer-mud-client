@@ -6,6 +6,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace MudClient.App.Controls;
 
@@ -79,6 +80,11 @@ public partial class MudOutputView : UserControl
     private readonly Grid _grid;
     private bool _isSplitMode;
 
+    // Applying a font change invalidates every cached line layout, so dragging the size
+    // slider (which fires a change per pixel) would otherwise re-lay-out the panes dozens
+    // of times a second. Coalesce rapid changes into a single apply once the value settles.
+    private readonly DispatcherTimer _fontApplyTimer;
+
     public MudOutputView()
     {
         InitializeComponent();
@@ -96,6 +102,9 @@ public partial class MudOutputView : UserControl
 
         _liveTailPane = new OutputPaneControl { Buffer = _buffer, PinToBottom = true };
         _liveTailScroller.Content = _liveTailPane;
+
+        _fontApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _fontApplyTimer.Tick += OnFontApplyTimerTick;
 
         ApplyFontToPanes();
         ApplyWordWrapToPanes();
@@ -151,7 +160,9 @@ public partial class MudOutputView : UserControl
              || change.Property == OutputFontWeightProperty)
             && _scrollbackPane is not null)
         {
-            ApplyFontToPanes();
+            // Debounce: restart the timer so a burst of changes (slider drag) applies once.
+            _fontApplyTimer.Stop();
+            _fontApplyTimer.Start();
         }
 
         else if (change.Property == WordWrapProperty && _scrollbackPane is not null)
@@ -162,6 +173,12 @@ public partial class MudOutputView : UserControl
         {
             _parser.SetColorScheme(TelnetColorScheme);
         }
+    }
+
+    private void OnFontApplyTimerTick(object? sender, EventArgs e)
+    {
+        _fontApplyTimer.Stop();
+        ApplyFontToPanes();
     }
 
     private void ApplyFontToPanes()

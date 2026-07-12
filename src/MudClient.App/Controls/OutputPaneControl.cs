@@ -684,9 +684,38 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         var height = 0d;
         for (var i = 0; i < buffer.Count; i++)
         {
-            height += GetLayout(buffer[i]).Height;
+            height += EstimateLineHeight(buffer[i]);
         }
 
         return height;
+    }
+
+    /// <summary>
+    /// Height of a wrapped line without forcing a full <see cref="TextLayout"/> build.
+    /// Uses the real layout height when one is already cached and current; otherwise
+    /// approximates from character count and viewport width. This keeps
+    /// <see cref="GetContentHeight"/> at O(lines) simple arithmetic even when every cached
+    /// layout has just been invalidated (e.g. a font or size change), instead of re-laying
+    /// out the whole scrollback synchronously on the UI thread. Off-screen estimates are
+    /// replaced by exact heights as lines scroll into view and get laid out for real.
+    /// </summary>
+    private double EstimateLineHeight(OutputLine line)
+    {
+        if (_layoutCache.TryGetValue(line, out var cache)
+            && cache.Layout is { } cached
+            && cache.FontVersion == _fontVersion
+            && cache.MutationVersion == line.MutationVersion)
+        {
+            return cached.Height;
+        }
+
+        if (_viewport.Width <= 0 || _charWidth <= 0)
+        {
+            return _lineHeight;
+        }
+
+        var charsPerRow = Math.Max(1, (int)(_viewport.Width / _charWidth));
+        var rows = Math.Max(1, (int)Math.Ceiling((double)line.Length / charsPerRow));
+        return rows * _lineHeight;
     }
 }
