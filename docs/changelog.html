@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista zmian — KillerMudClient</title>
+  <meta name="description" content="Historia wydań klienta KillerMudClient — nowe funkcje i poprawki w kolejnych wersjach.">
+  <link rel="icon" href="assets/killer.ico">
+  <style>
+    :root {
+      --bg: #14161d; --bg-panel: #1c1f29; --border: #333a4d;
+      --gold: #d9b970; --gold-bright: #f0d492; --accent: #b45de0;
+      --green: #5fbf77; --text: #d6d9e0; --text-dim: #8b91a3;
+      --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif; line-height: 1.6; }
+    a { color: var(--gold); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 56px 0 24px; text-align: center;
+      background: radial-gradient(ellipse 70% 50% at 50% -10%, #b45de022, transparent); }
+    .logo { width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 40px #00000080; }
+    h1 { margin-top: 16px; font-size: 2rem; color: var(--gold-bright); letter-spacing: 1px; }
+    h1 .kill { color: var(--accent); }
+    .back { display: inline-block; margin-top: 12px; font-size: .9rem; }
+    main { padding: 32px 0 8px; }
+    .release { background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 22px 26px; margin-bottom: 20px; }
+    .release > h2 { color: var(--gold-bright); font-size: 1.3rem; display: flex;
+      align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+    .release .date { color: var(--text-dim); font-size: .85rem; font-family: var(--mono); font-weight: 400; }
+    .release .pre { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px;
+      background: #b45de022; color: var(--accent); border: 1px solid var(--accent);
+      border-radius: 999px; padding: 1px 10px; font-weight: 600; }
+    .notes { margin-top: 12px; }
+    .notes h1, .notes h2, .notes h3 { color: var(--gold); font-size: 1.05rem;
+      margin: 16px 0 6px; letter-spacing: .5px; }
+    .notes ul, .notes ol { margin: 6px 0 6px 22px; }
+    .notes li { color: var(--text); margin: 2px 0; }
+    .notes p { color: var(--text-dim); margin: 6px 0; }
+    .notes code { font-family: var(--mono); font-size: .85rem; background: #0e1016;
+      border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+    footer { margin-top: 48px; padding: 28px 0; border-top: 1px solid var(--border);
+      text-align: center; color: var(--text-dim); font-size: .88rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <img class="logo" src="assets/killer.png" alt="KillerMudClient logo">
+    <h1><span class="kill">Killer</span>MudClient — lista zmian</h1>
+    <div><a class="back" href="index.html">← powrót na stronę główną</a></div>
+  </div>
+</header>
+<main class="wrap">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.1">KillerMudClient 0.2.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-12</span></h2>
+    <div class="notes">**Full Changelog**: https://github.com/laszlowaty/killer-mud-client/compare/v0.2.1...v0.2.1-beta.1</div>
+  </article>
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1">KillerMudClient 0.2.1</a> <span class="date">2026-07-12</span></h2>
+    <div class="notes">**Full Changelog**: https://github.com/laszlowaty/killer-mud-client/compare/v0.2.0...v0.2.1</div>
+  </article>
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.0">KillerMudClient 0.2.0</a> <span class="date">2026-07-11</span></h2>
+    <div class="notes">**Full Changelog**: https://github.com/laszlowaty/killer-mud-client/compare/v0.1.2...v0.2.0</div>
+  </article>
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.2">KillerMudClient 0.1.2</a> <span class="date">2026-07-11</span></h2>
+    <div class="notes">**Full Changelog**: https://github.com/laszlowaty/killer-mud-client/compare/v0.1.1-beta.1...v0.1.2</div>
+  </article>
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.1-beta.1">KillerMudClient 0.1.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-11</span></h2>
+    <div class="notes">**Full Changelog**: https://github.com/laszlowaty/killer-mud-client/commits/v0.1.1-beta.1</div>
+  </article>
+</main>
+<footer>
+  <div class="wrap">
+    KillerMudClient · <a href="https://github.com/laszlowaty/killer-mud-client">github.com/laszlowaty/killer-mud-client</a>
+  </div>
+</footer>
+</body>
+</html>
