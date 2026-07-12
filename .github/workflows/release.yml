@@ -266,3 +266,13 @@ jobs:
             git commit -m "docs: aktualizacja listy zmian dla $TAG"
             git push origin main
           fi
+
+  # Wdraża GitHub Pages w tym samym przebiegu — commit changelogu jest pushowany
+  # tokenem bota, który NIE wyzwala workflow pages.yml przez trigger push.
+  deploy-pages:
+    needs: release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
