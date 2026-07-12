@@ -136,7 +136,8 @@ public sealed class DockRestoreTests
         Assert.Contains(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Notes");
     }
 
-    // An inner split (target deeper in the tree) keeps the default split behavior.
+    // An inner split (target deeper in the tree, not touching that edge) keeps default split
+    // behavior. CenterPane is the middle child, so it hugs neither the left nor right edge.
     [Fact]
     public void InnerSplit_StillSplits()
     {
@@ -146,6 +147,35 @@ public sealed class DockRestoreTests
         factory.SplitToDock(center, GetTool(factory, "Notes"), DockOperation.Left);
 
         Assert.True(Visible(layout, "Notes"));
+        Assert.Empty(layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>());
+    }
+
+    // Near-miss: Dock 12 resolves a drop aimed at the window edge as a LOCAL split of the pane
+    // hugging that edge (the more tabs there, the more often). That edge-most inner target must
+    // pin, not split — RightTopPane sits flush against the right edge, so a rightward split pins.
+    [Fact]
+    public void EdgeMostInnerSplit_TowardOwnEdge_Pins()
+    {
+        var factory = CreateFactory(out var layout);
+        var rightPane = Assert.IsAssignableFrom<IDock>(FindIn(layout, "RightTopPane"));
+
+        factory.SplitToDock(rightPane, GetTool(factory, "Map"), DockOperation.Right);
+
+        Assert.False(Visible(layout, "Map"));
+        Assert.Contains(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+    }
+
+    // Same edge-most pane, but the split points AWAY from its window edge: a genuine inner split
+    // that must NOT be hijacked into a pin.
+    [Fact]
+    public void EdgeMostInnerSplit_TowardOppositeEdge_StillSplits()
+    {
+        var factory = CreateFactory(out var layout);
+        var rightPane = Assert.IsAssignableFrom<IDock>(FindIn(layout, "RightTopPane"));
+
+        factory.SplitToDock(rightPane, GetTool(factory, "Map"), DockOperation.Left);
+
+        Assert.True(Visible(layout, "Map"));
         Assert.Empty(layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>());
     }
 

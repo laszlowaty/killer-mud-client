@@ -82,24 +82,82 @@ public sealed class MudDockFactory : Factory
     /// Dropping a panel on the main window's outer edge (Dock's "global docking") normally
     /// splits the whole layout, which users found broken and useless. Instead, turn an edge
     /// drop into a pinned tab on that edge — drag a panel to the window border and it becomes
-    /// a collapsed side tab. Inner splits (targets deeper in the tree) keep default behavior.
+    /// a collapsed side tab.
     /// </summary>
+    /// <remarks>
+    /// Dock 12 only routes a drop through global docking (→ outermost target) when the pointer
+    /// lands on the small, fixed-size global edge selector at release time; otherwise it falls
+    /// back to a <em>local</em> split of the ToolDock under the cursor. The edge-most panes are
+    /// the last thing between the cursor and the window border, so the more tabs pile up there
+    /// the more often an intended edge-pin was resolved as a split instead — the reported bug.
+    /// We close that gap: a directional split whose target dock actually sits against that window
+    /// edge (<see cref="IsAgainstWindowEdge"/>) is treated as an edge-pin too, not just the
+    /// outermost/global target. Genuine inner splits (targets not touching the edge) are untouched.
+    /// </remarks>
     public override void SplitToDock(IDock dock, IDockable dockable, DockOperation operation)
     {
-        // Global drops target the outermost dock thanks to GlobalDockingPreset.GlobalFirst
-        // (set in App.Initialize) — inner splits arrive with deeper targets.
-        var isOuterTarget = dock is IRootDock || dock.Owner is IRootDock;
-        if (isOuterTarget && ToPinEdge(operation) is { } edge && ExtractPanels(dockable) is { Count: > 0 } panels)
+        if (ToPinEdge(operation) is { } edge && ExtractPanels(dockable) is { Count: > 0 } panels)
         {
-            foreach (var panel in panels)
+            // Global drops target the outermost dock thanks to GlobalDockingPreset.GlobalFirst
+            // (set in App.Initialize); near-miss local splits arrive with a deeper target that
+            // may still be the pane hugging this window edge.
+            var isOuterTarget = dock is IRootDock || dock.Owner is IRootDock;
+            if (isOuterTarget || IsAgainstWindowEdge(dock, edge))
             {
-                PinPanelToEdge(panel, edge);
-            }
+                foreach (var panel in panels)
+                {
+                    PinPanelToEdge(panel, edge);
+                }
 
-            return;
+                return;
+            }
         }
 
         base.SplitToDock(dock, dockable, operation);
+    }
+
+    /// <summary>
+    /// True when <paramref name="dock"/> sits flush against the window's <paramref name="edge"/>
+    /// in the live layout tree. Every ProportionalDock ancestor that splits <em>along</em> the
+    /// edge's axis must be entered through its first (Left/Top) or last (Right/Bottom) non-splitter
+    /// child; ancestors that split along the other axis span the full edge and add no constraint.
+    /// </summary>
+    private bool IsAgainstWindowEdge(IDock dock, Alignment edge)
+    {
+        if (LiveOrNull(dock) is null)
+        {
+            return false;
+        }
+
+        var edgeAxisIsHorizontal = edge is Alignment.Left or Alignment.Right;
+        var wantFirstChild = edge is Alignment.Left or Alignment.Top;
+
+        IDockable current = dock;
+        for (var owner = dock.Owner as IDock; owner is not null; current = owner, owner = owner.Owner as IDock)
+        {
+            if (owner is not ProportionalDock proportional)
+            {
+                // Root and tool-dock wrappers impose no positional constraint.
+                continue;
+            }
+
+            if ((proportional.Orientation == Orientation.Horizontal) != edgeAxisIsHorizontal)
+            {
+                // Splits along the other axis — this ancestor spans the whole edge.
+                continue;
+            }
+
+            var siblings = (proportional.VisibleDockables ?? Enumerable.Empty<IDockable>())
+                .Where(child => child is not ProportionalDockSplitter)
+                .ToList();
+            var edgeSibling = wantFirstChild ? siblings.FirstOrDefault() : siblings.LastOrDefault();
+            if (!ReferenceEquals(edgeSibling, current))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
