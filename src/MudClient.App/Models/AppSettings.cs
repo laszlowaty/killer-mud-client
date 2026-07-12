@@ -9,6 +9,7 @@ public sealed class AppSettings
     public const double DefaultOutputFontSize = 14;
     public const double MinOutputFontSize = 9;
     public const double MaxOutputFontSize = 28;
+    public const string DefaultTelnetColorScheme = "Ciepłe";
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
@@ -20,6 +21,9 @@ public sealed class AppSettings
 
     /// <summary>Wraps long MUD output lines to the terminal width.</summary>
     public bool OutputWordWrap { get; set; } = true;
+
+    /// <summary>Palette used for the standard 16 ANSI colors (including indices 0-15).</summary>
+    public string TelnetColorScheme { get; set; } = DefaultTelnetColorScheme;
 
     /// <summary>
     /// Separator character used for command stacking (e.g. ";").

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Dock.Model.Controls;
 using MudClient.App.Docking;
+using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Automation;
@@ -573,6 +574,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // ========================================================================
 
     public ObservableCollection<string> AvailableFonts { get; } = [];
+    public IReadOnlyList<string> AvailableTelnetColorSchemes => AnsiColorPalette.Names;
 
     public double MinOutputFontSize => AppSettings.MinOutputFontSize;
     public double MaxOutputFontSize => AppSettings.MaxOutputFontSize;
@@ -626,6 +628,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.OutputWordWrap = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public string TelnetColorScheme
+    {
+        get => _settings.TelnetColorScheme;
+        set
+        {
+            if (!AnsiColorPalette.IsKnown(value) || _settings.TelnetColorScheme == value)
+            {
+                return;
+            }
+
+            _settings.TelnetColorScheme = value;
             OnPropertyChanged();
             SaveSettings();
         }

@@ -51,6 +51,7 @@
                             x:Name="MudOutput"
                             OutputFontFamily="{Binding OutputFontFamily}"
                             OutputFontSize="{Binding OutputFontSize}"
+                            TelnetColorScheme="{Binding TelnetColorScheme}"
                             WordWrap="{Binding OutputWordWrap}" />
 
     <!-- Quick command chips -->

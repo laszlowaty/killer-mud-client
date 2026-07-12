@@ -32,6 +32,15 @@
                     IsChecked="{Binding OutputWordWrap}" />
 
           <StackPanel Spacing="3">
+            <TextBlock Classes="mud-faint" Text="Schemat kolorów Telnet/ANSI" />
+            <ComboBox ItemsSource="{Binding AvailableTelnetColorSchemes}"
+                      SelectedItem="{Binding TelnetColorScheme}"
+                      HorizontalAlignment="Stretch" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Zmienia standardowe 16 kolorów. Kolory RGB wysłane przez MUD pozostają bez zmian." />
+          </StackPanel>
+
+          <StackPanel Spacing="3">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="mud-faint" Text="Rozmiar" />
               <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">

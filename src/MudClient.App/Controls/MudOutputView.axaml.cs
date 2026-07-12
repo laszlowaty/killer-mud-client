@@ -29,6 +29,10 @@ public partial class MudOutputView : UserControl
     public static readonly StyledProperty<bool> WordWrapProperty =
         AvaloniaProperty.Register<MudOutputView, bool>(nameof(WordWrap), true);
 
+    public static readonly StyledProperty<string> TelnetColorSchemeProperty =
+        AvaloniaProperty.Register<MudOutputView, string>(
+            nameof(TelnetColorScheme), AnsiColorPalette.Warm);
+
     public FontFamily OutputFontFamily
     {
         get => GetValue(OutputFontFamilyProperty);
@@ -45,6 +49,12 @@ public partial class MudOutputView : UserControl
     {
         get => GetValue(WordWrapProperty);
         set => SetValue(WordWrapProperty, value);
+    }
+
+    public string TelnetColorScheme
+    {
+        get => GetValue(TelnetColorSchemeProperty);
+        set => SetValue(TelnetColorSchemeProperty, value);
     }
 
     private const int MaximumLines = 10_000;
@@ -136,6 +146,10 @@ public partial class MudOutputView : UserControl
         else if (change.Property == WordWrapProperty && _scrollbackPane is not null)
         {
             ApplyWordWrapToPanes();
+        }
+        else if (change.Property == TelnetColorSchemeProperty)
+        {
+            _parser.SetColorScheme(TelnetColorScheme);
         }
     }
 

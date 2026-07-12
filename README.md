@@ -21,7 +21,7 @@ Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [kill
 
 ### Terminal
 
-- kolory ANSI SGR: 16 kolorów, 256 kolorów, RGB, bold, underline i reset,
+- kolory ANSI SGR: 16 kolorów z wybieralnymi schematami (ciepły, colorblind w skali szarości i mocno nasycony jaskrawy), 256 kolorów, RGB, bold, underline i reset,
 - filtry kanałów nad terminalem: Wszystko / Walka / Czaty / System,
 - szybkie przyciski komend pod terminalem,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,

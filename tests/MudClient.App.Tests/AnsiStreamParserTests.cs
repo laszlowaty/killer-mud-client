@@ -34,6 +34,81 @@ public sealed class AnsiStreamParserTests
         Assert.Equal(Color.FromRgb(13, 188, 121), text.Style.Foreground);
     }
 
+    [Theory]
+    [InlineData(AnsiColorPalette.Colorblind, 136, 136, 136)]
+    [InlineData(AnsiColorPalette.Vivid, 0, 255, 68)]
+    public void NamedSchemeChangesStandardAnsiColors(
+        string scheme, byte red, byte green, byte blue)
+    {
+        var parser = new AnsiStreamParser(scheme);
+
+        var token = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[32mx")));
+
+        Assert.Equal(Color.FromRgb(red, green, blue), token.Style.Foreground);
+    }
+
+    [Fact]
+    public void NamedSchemeAlsoChangesFirstSixteenColorsIn256Mode()
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Colorblind);
+
+        var token = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[38;5;1mx")));
+
+        Assert.Equal(Color.FromRgb(128, 128, 128), token.Style.Foreground);
+    }
+
+    [Theory]
+    [InlineData(AnsiColorPalette.Warm)]
+    [InlineData(AnsiColorPalette.Colorblind)]
+    [InlineData(AnsiColorPalette.Vivid)]
+    public void EverySchemeKeepsAnsiBlackReadableOnBlackBackground(string scheme)
+    {
+        var parser = new AnsiStreamParser(scheme);
+
+        var normalBlack = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[30mx"))).Style.Foreground;
+        var brightBlack = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[90mx"))).Style.Foreground;
+
+        Assert.NotEqual(Colors.Black, normalBlack);
+        Assert.NotEqual(Colors.Black, brightBlack);
+    }
+
+    [Fact]
+    public void ColorblindSchemeContainsOnlyGrayscaleColors()
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Colorblind);
+
+        for (var code = 30; code <= 37; code++)
+        {
+            var color = Assert.IsType<AnsiTextToken>(
+                Assert.Single(parser.Feed($"{Esc}[{code}mx"))).Style.Foreground!.Value;
+            Assert.Equal(color.R, color.G);
+            Assert.Equal(color.G, color.B);
+        }
+
+        for (var code = 90; code <= 97; code++)
+        {
+            var color = Assert.IsType<AnsiTextToken>(
+                Assert.Single(parser.Feed($"{Esc}[{code}mx"))).Style.Foreground!.Value;
+            Assert.Equal(color.R, color.G);
+            Assert.Equal(color.G, color.B);
+        }
+    }
+
+    [Fact]
+    public void NamedSchemeDoesNotChangeExplicitTrueColor()
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Vivid);
+
+        var token = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[38;2;10;20;30mx")));
+
+        Assert.Equal(Color.FromRgb(10, 20, 30), token.Style.Foreground);
+    }
+
     [Fact]
     public void ResetSequenceClearsStyle()
     {

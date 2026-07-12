@@ -38,6 +38,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("Consolas", settings.OutputFontFamily);
         Assert.Equal(14, settings.OutputFontSize);
         Assert.True(settings.OutputWordWrap);
+        Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
     }
 
     // ====================================================================
@@ -100,6 +101,16 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("|", settings.CommandStackingSeparator);
     }
 
+    [Fact]
+    public void Load_UnknownColorScheme_NormalizesToDefault()
+    {
+        SaveRaw(new AppSettings { TelnetColorScheme = "nieistniejący" });
+
+        var settings = _service.Load();
+
+        Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
+    }
+
     // ====================================================================
     // Save then Load round-trip
     // ====================================================================
@@ -115,6 +126,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             OutputWordWrap = false,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
+            TelnetColorScheme = "Colorblind",
         };
 
         _service.Save(original);
@@ -126,6 +138,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.False(loaded.OutputWordWrap);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
+        Assert.Equal("Colorblind", loaded.TelnetColorScheme);
     }
 
     // ====================================================================

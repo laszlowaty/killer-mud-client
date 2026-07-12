@@ -18,29 +18,7 @@ internal sealed class AnsiStreamParser
     // rest of the stream forever. Real terminals cap this too; MUD sequences are always short.
     private const int MaxSequenceLength = 128;
 
-    private static readonly Color[] NormalColors =
-    [
-        Color.FromRgb(80, 80, 80),
-        Color.FromRgb(205, 49, 49),
-        Color.FromRgb(13, 188, 121),
-        Color.FromRgb(229, 229, 16),
-        Color.FromRgb(36, 114, 200),
-        Color.FromRgb(188, 63, 188),
-        Color.FromRgb(17, 168, 205),
-        Color.FromRgb(229, 229, 229),
-    ];
-
-    private static readonly Color[] BrightColors =
-    [
-        Color.FromRgb(102, 102, 102),
-        Color.FromRgb(241, 76, 76),
-        Color.FromRgb(35, 209, 139),
-        Color.FromRgb(245, 245, 67),
-        Color.FromRgb(59, 142, 234),
-        Color.FromRgb(214, 112, 214),
-        Color.FromRgb(41, 184, 219),
-        Color.FromRgb(255, 255, 255),
-    ];
+    private AnsiColorPalette _palette;
 
     private enum EscapeState
     {
@@ -56,6 +34,14 @@ internal sealed class AnsiStreamParser
     private readonly StringBuilder _sequence = new();
     private AnsiStyle _style;
     private EscapeState _escapeState = EscapeState.None;
+
+    public AnsiStreamParser(string? colorScheme = null)
+    {
+        _palette = AnsiColorPalette.FromName(colorScheme);
+    }
+
+    public void SetColorScheme(string? colorScheme) =>
+        _palette = AnsiColorPalette.FromName(colorScheme);
 
     public IReadOnlyList<AnsiToken> Feed(string text)
     {
@@ -306,16 +292,16 @@ internal sealed class AnsiStreamParser
                     _style = _style with { Background = null };
                     break;
                 case >= 30 and <= 37:
-                    _style = _style with { Foreground = NormalColors[code - 30] };
+                    _style = _style with { Foreground = _palette.Normal[code - 30] };
                     break;
                 case >= 40 and <= 47:
-                    _style = _style with { Background = NormalColors[code - 40] };
+                    _style = _style with { Background = _palette.Normal[code - 40] };
                     break;
                 case >= 90 and <= 97:
-                    _style = _style with { Foreground = BrightColors[code - 90] };
+                    _style = _style with { Foreground = _palette.Bright[code - 90] };
                     break;
                 case >= 100 and <= 107:
-                    _style = _style with { Background = BrightColors[code - 100] };
+                    _style = _style with { Background = _palette.Bright[code - 100] };
                     break;
                 case 38:
                 case 48:
@@ -332,7 +318,7 @@ internal sealed class AnsiStreamParser
         }
     }
 
-    private static bool TryReadExtendedColor(
+    private bool TryReadExtendedColor(
         IReadOnlyList<int> parameters,
         ref int index,
         out Color color)
@@ -364,16 +350,16 @@ internal sealed class AnsiStreamParser
         return false;
     }
 
-    private static Color ColorFrom256Palette(int index)
+    private Color ColorFrom256Palette(int index)
     {
         if (index < 8)
         {
-            return NormalColors[index];
+            return _palette.Normal[index];
         }
 
         if (index < 16)
         {
-            return BrightColors[index - 8];
+            return _palette.Bright[index - 8];
         }
 
         if (index < 232)

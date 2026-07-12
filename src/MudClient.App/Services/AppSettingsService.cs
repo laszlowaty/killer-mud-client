@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using MudClient.App.Models;
+using MudClient.App.Controls;
 
 namespace MudClient.App.Services;
 
@@ -39,6 +40,11 @@ public sealed class AppSettingsService
                     if (string.IsNullOrWhiteSpace(settings.OutputFontFamily))
                     {
                         settings.OutputFontFamily = AppSettings.DefaultOutputFontFamily;
+                    }
+
+                    if (!AnsiColorPalette.IsKnown(settings.TelnetColorScheme))
+                    {
+                        settings.TelnetColorScheme = AppSettings.DefaultTelnetColorScheme;
                     }
 
                     // null means the property is missing from an older/corrupt settings file — use default.
