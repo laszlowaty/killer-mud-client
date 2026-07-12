@@ -162,11 +162,18 @@ jobs:
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
 
-          # Ostatnie wydania (najnowsze pierwsze). pandoc i jq są preinstalowane na ubuntu-latest.
-          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=30" \
-            --jq 'sort_by(.published_at) | reverse' > releases.json
-
           REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
+
+          # Wypisuje sekcję (nagłówek + lista) jeśli plik z liniami jest niepusty; escapuje HTML.
+          emit_group() {
+            [ -s "$2" ] || return 0
+            printf '        <h3>%s</h3>\n        <ul>\n' "$1" >> docs/changelog.html
+            while IFS= read -r line; do
+              esc=$(printf '%s' "$line" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+              printf '          <li>%s</li>\n' "$esc" >> docs/changelog.html
+            done < "$2"
+            printf '        </ul>\n' >> docs/changelog.html
+          }
 
           cat > docs/changelog.html <<HTML
           <!DOCTYPE html>
@@ -227,42 +234,47 @@ jobs:
           <main class="wrap">
           HTML
 
-          COUNT=$(jq length releases.json)
-          for i in $(seq 0 $((COUNT - 1))); do
-            NAME=$(jq -r ".[$i].name // .[$i].tag_name" releases.json)
-            REL_TAG=$(jq -r ".[$i].tag_name" releases.json)
-            DATE=$(jq -r ".[$i].published_at" releases.json | cut -dT -f1)
-            PRE=$(jq -r ".[$i].prerelease" releases.json)
+          # Iteruj po tagach (najnowsze pierwsze), max 30 — lokalnie, więc bez opóźnień API
+          # i z nowo utworzonym tagiem od razu widocznym.
+          git for-each-ref --sort=-creatordate \
+            --format='%(refname:short)|%(creatordate:short)' refs/tags | head -30 > tags.txt
+          mapfile -t TAGS  < <(cut -d'|' -f1 tags.txt)
+          mapfile -t DATES < <(cut -d'|' -f2 tags.txt)
 
-            jq -r ".[$i].body // \"\"" releases.json > body.md
+          for idx in "${!TAGS[@]}"; do
+            T="${TAGS[$idx]}"
+            DATE="${DATES[$idx]}"
+            PREV="${TAGS[$((idx + 1))]:-}"
+            if [ -n "$PREV" ]; then RANGE="$PREV..$T"; else RANGE="$T"; fi
 
-            # Upiększanie auto-notatek GitHuba do formy przyjaznej użytkownikowi:
-            #  - usuń "by @autor" i "in #PR/URL" z każdego punktu
-            #  - zetnij prefiksy conventional-commits (feat:, fix:, ...)
-            #  - przetłumacz nagłówek i zamień "Full Changelog" na dyskretny link
-            #  - wytnij sekcję "New Contributors"
-            sed -E \
-              -e 's/ by @[A-Za-z0-9_-]+( in [^[:space:]]+)?$//' \
-              -e 's/^\* (feat|fix|chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?: /* /I' \
-              -e 's/^#+ What.s Changed/## Co nowego/' \
-              -e 's#\*\*Full Changelog\*\*: (https?://[^[:space:]]+)#_[Pełny changelog na GitHubie](\1)_#' \
-              -e '/^#+ New Contributors/d' \
-              -e '/made their first contribution/d' \
-              body.md > body.clean.md
-            if ! grep -q '[^[:space:]]' body.clean.md; then
-              echo '_Brak szczegółowego opisu zmian._' > body.clean.md
-            fi
-            BODY_HTML=$(pandoc -f gfm -t html body.clean.md 2>/dev/null || cat body.clean.md)
+            # Subjecty commitów w zakresie: bez merge'y i bez commitów naszej automatyki.
+            git log --no-merges --pretty=format:'%s' "$RANGE" 2>/dev/null \
+              | grep -vE '^(chore: bump version|docs: aktualizacja listy zmian)' > all.txt || true
 
-            BADGE=""
-            if [ "$PRE" = "true" ]; then BADGE='<span class="pre">beta</span>'; fi
+            # Grupowanie po prefiksie conventional-commits; prefiks jest ścinany.
+            grep -iE '^feat(\(|!|:)' all.txt | sed -E 's/^feat(\([^)]*\))?!?:[[:space:]]*//I' > feat.txt  || true
+            grep -iE '^fix(\(|!|:)'  all.txt | sed -E 's/^fix(\([^)]*\))?!?:[[:space:]]*//I'  > fix.txt   || true
+            grep -ivE '^(feat|fix)(\(|!|:)' all.txt \
+              | sed -E 's/^(chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?:[[:space:]]*//I' > other.txt || true
+
+            PRE=""
+            case "$T" in *-*) PRE=' <span class="pre">beta</span>' ;; esac
 
             cat >> docs/changelog.html <<ARTICLE
             <article class="release">
-              <h2><a href="${REPO_URL}/releases/tag/${REL_TAG}">${NAME}</a> ${BADGE}<span class="date">${DATE}</span></h2>
-              <div class="notes">${BODY_HTML}</div>
-            </article>
+              <h2><a href="${REPO_URL}/releases/tag/${T}">${T}</a>${PRE}<span class="date">${DATE}</span></h2>
+              <div class="notes">
           ARTICLE
+
+            emit_group "✨ Nowości"          feat.txt
+            emit_group "🐛 Poprawki"         fix.txt
+            emit_group "🔧 Pozostałe zmiany" other.txt
+            if [ ! -s feat.txt ] && [ ! -s fix.txt ] && [ ! -s other.txt ]; then
+              printf '        <p class="empty">Brak istotnych zmian.</p>\n' >> docs/changelog.html
+            fi
+            printf '        <p class="ghlink"><a href="%s/releases/tag/%s">Szczegóły na GitHubie →</a></p>\n' \
+              "$REPO_URL" "$T" >> docs/changelog.html
+            printf '      </div>\n    </article>\n' >> docs/changelog.html
           done
 
           cat >> docs/changelog.html <<HTML
