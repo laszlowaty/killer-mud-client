@@ -13,11 +13,33 @@
   {
     "areaId": 1,
     "z": 0,
+    "minX": -449,
+    "minY": -26,
+    "maxX": -417,
+    "maxY": 10,
+    "opacity": 0.90,
+    "edgeFade": 0.10,
+    "fileName": "dwarven-fortress-31-131.png"
+  },
+  {
+    "areaId": 1,
+    "z": 0,
+    "minX": 40,
+    "minY": -380,
+    "maxX": 90,
+    "maxY": -327,
+    "opacity": 0.90,
+    "edgeFade": 0.10,
+    "fileName": "carrallak-233-599.png"
+  },
+  {
+    "areaId": 1,
+    "z": 0,
     "minX": -29,
     "minY": -23.5,
     "maxX": 29,
     "maxY": 23.5,
-    "opacity": 0.72,
+    "opacity": 0.90,
     "edgeFade": 0.12,
     "fileName": "arras-6000-6199.png"
   }
