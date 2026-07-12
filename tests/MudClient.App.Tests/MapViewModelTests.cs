@@ -696,6 +696,39 @@ public sealed class MapViewModelTests
         Assert.Contains(nameof(MapViewModel.SelectedZ), changedProperties);
     }
 
+    [Fact]
+    public void UpdateGroupMembers_ResolvesGmcpRoomsAndExcludesCurrentCharacter()
+    {
+        using var vm = CreateViewModel();
+        SetMapIndex(vm, CreateSampleIndex());
+        var members = new[]
+        {
+            CreateGroupMember("Hero", "100"),
+            CreateGroupMember("Companion", "100", isLeader: true),
+            CreateGroupMember("Lost", "999"),
+            CreateGroupMember("Unknown", null),
+        };
+
+        vm.UpdateGroupMembers(members, "hero");
+
+        var marker = Assert.Single(vm.GroupMarkers);
+        Assert.Equal("Companion", marker.Name);
+        Assert.True(marker.IsLeader);
+        Assert.Equal("100", marker.Room.Vnum);
+    }
+
+    [Fact]
+    public void UpdateGroupMembers_BeforeMapLoad_AreResolvedWhenMapIndexAppears()
+    {
+        using var vm = CreateViewModel();
+        vm.UpdateGroupMembers([CreateGroupMember("Companion", "100")], "Hero");
+        Assert.Empty(vm.GroupMarkers);
+
+        SetMapIndexThroughProperty(vm, CreateSampleIndex());
+
+        Assert.Equal("Companion", Assert.Single(vm.GroupMarkers).Name);
+    }
+
     // ====================================================================
     // Helpers
     // ====================================================================
@@ -737,6 +770,19 @@ public sealed class MapViewModelTests
             Areas = [area],
         };
         return new MapIndex(doc);
+    }
+
+    private static CharacterGroupMember CreateGroupMember(
+        string name,
+        string? room,
+        bool isLeader = false) =>
+        new(name, null, string.Empty, null, string.Empty, null, null, false, room, isLeader);
+
+    private static void SetMapIndexThroughProperty(MapViewModel vm, MapIndex index)
+    {
+        var property = typeof(MapViewModel).GetProperty(nameof(MapViewModel.MapIndex));
+        Assert.NotNull(property);
+        property.SetValue(vm, index);
     }
 
     private static void SetMapIndex(MapViewModel vm, MapIndex? index)

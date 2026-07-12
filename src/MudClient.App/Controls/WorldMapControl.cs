@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using MudClient.App.Services;
+using MudClient.App.ViewModels;
 using MudClient.Core.Map;
 
 namespace MudClient.App.Controls;
@@ -60,6 +61,7 @@ public sealed class WorldMapControl : Control
     private MapRoom? _currentRoom;
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _route;
+    private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private bool _isSimpleMap;
 
     private double _cameraX;
@@ -275,6 +277,16 @@ public sealed class WorldMapControl : Control
         if (_expandedGroups.Count > 0)
         {
             _expandedGroups.Clear();
+            RequestInvalidateVisual();
+        }
+    }
+
+    public IReadOnlyList<GroupMapMarker> GroupMarkers
+    {
+        get => _groupMarkers;
+        set
+        {
+            _groupMarkers = value ?? [];
             RequestInvalidateVisual();
         }
     }
@@ -592,6 +604,7 @@ public sealed class WorldMapControl : Control
         {
             DrawRoute(context, EmptyOffsets);
             DrawOverviewSelectionAndCurrent(context);
+            DrawGroupMarkers(context, EmptyOffsets);
             DrawCompass(context);
             return;
         }
@@ -608,6 +621,7 @@ public sealed class WorldMapControl : Control
         DrawRooms(context, roomsWithOffsets);
         DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
+        DrawGroupMarkers(context, roomLookup);
         if (!_isSimpleMap)
         {
             DrawCompass(context);
@@ -1217,6 +1231,41 @@ public sealed class WorldMapControl : Control
             {
                 DrawInsideOutline(context, rect, Brushes.LimeGreen, 3);
                 DrawInsideOutline(context, rect, Brushes.White, 1, 3);
+            }
+        }
+    }
+
+    private void DrawGroupMarkers(DrawingContext context, IReadOnlyDictionary<int, MapOffset> offsets)
+    {
+        var visibleMarkers = _groupMarkers
+            .Where(marker => marker.Room.AreaId == _areaId && marker.Room.Coordinates.Z == _z)
+            .GroupBy(marker => marker.Room.Id);
+
+        foreach (var roomMarkers in visibleMarkers)
+        {
+            var markers = roomMarkers.ToArray();
+            var room = markers[0].Room;
+            var roomOffset = offsets.GetValueOrDefault(room.Id, MapOffset.Zero);
+            var center = WorldToScreen(
+                room.Coordinates.X + roomOffset.X * 0.6,
+                room.Coordinates.Y + roomOffset.Y * 0.6);
+
+            for (var index = 0; index < markers.Length; index++)
+            {
+                var marker = markers[index];
+                var x = center.X + (index - (markers.Length - 1) / 2d) * 14;
+                var y = center.Y - Math.Max(_settings.RoomSize * _zoom / 2, 5) - 9;
+                var brush = marker.IsLeader ? Brushes.Gold : Brushes.DeepSkyBlue;
+                context.DrawEllipse(Brushes.Black, new Pen(brush, 2), new Point(x, y), 6, 6);
+
+                var initial = new FormattedText(
+                    marker.Name[..1].ToUpperInvariant(),
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface(WidgetFontFamily, FontStyle.Normal, FontWeight.Bold),
+                    Math.Max(8, WidgetFontSize - 3),
+                    brush);
+                context.DrawText(initial, new Point(x - initial.Width / 2, y - initial.Height / 2));
             }
         }
     }

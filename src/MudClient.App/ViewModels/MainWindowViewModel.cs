@@ -3274,6 +3274,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         TryAutoAssist();
         Dispatcher.UIThread.Post(() =>
         {
+            Map.UpdateGroupMembers(update.Members, _latestCharacterName);
             Group.Clear();
             foreach (var member in update.Members)
             {
@@ -3333,6 +3334,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var update = _latestGroupUpdate;
             Dispatcher.UIThread.Post(() =>
             {
+                Map.UpdateGroupMembers(update.Members, _latestCharacterName);
                 Group.Clear();
                 foreach (var member in update.Members)
                 {

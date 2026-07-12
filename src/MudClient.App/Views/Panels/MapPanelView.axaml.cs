@@ -60,6 +60,7 @@ public sealed partial class MapPanelView : UserControl
         MapControl.CurrentRoom = _viewModel.CurrentRoom;
         MapControl.SelectedRoom = _viewModel.SelectedRoom;
         MapControl.Route = _viewModel.RouteRooms;
+        MapControl.GroupMarkers = _viewModel.GroupMarkers;
         MapControl.IsSimpleMap = _viewModel.IsSimpleMap;
     }
 

@@ -33,6 +33,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private MapRoom? _currentRoom;
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _routeRooms;
+    private IReadOnlyList<CharacterGroupMember> _groupMembers = [];
+    private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private string? _currentSectorName;
     private bool _followPlayer = true;
     private bool _isSimpleMap;
@@ -71,7 +73,13 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     public MapIndex? MapIndex
     {
         get => _mapIndex;
-        private set => SetProperty(ref _mapIndex, value);
+        private set
+        {
+            if (SetProperty(ref _mapIndex, value))
+            {
+                RefreshGroupMarkers();
+            }
+        }
     }
 
     public SectorTextureCache? TextureCache
@@ -189,6 +197,40 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     {
         get => _followPlayer;
         set => SetProperty(ref _followPlayer, value);
+    }
+
+    /// <summary>Group members whose GMCP room can be resolved on the loaded map.</summary>
+    public IReadOnlyList<GroupMapMarker> GroupMarkers
+    {
+        get => _groupMarkers;
+        private set => SetProperty(ref _groupMarkers, value);
+    }
+
+    public void UpdateGroupMembers(IEnumerable<CharacterGroupMember> members, string? selfName)
+    {
+        ArgumentNullException.ThrowIfNull(members);
+
+        _groupMembers = members
+            .Where(member => !string.Equals(member.Name, selfName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        RefreshGroupMarkers();
+    }
+
+    private void RefreshGroupMarkers()
+    {
+        if (MapIndex is null)
+        {
+            GroupMarkers = [];
+            return;
+        }
+
+        GroupMarkers = _groupMembers
+            .Select(member => (Member: member, Room: string.IsNullOrWhiteSpace(member.Room)
+                ? null
+                : MapIndex.FindFirstRoomByVnum(member.Room)))
+            .Where(item => item.Room is not null)
+            .Select(item => new GroupMapMarker(item.Member.Name, item.Member.IsLeader, item.Room!))
+            .ToArray();
     }
 
     public bool IsSimpleMap
