@@ -120,4 +120,52 @@ public sealed class MapLoaderTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public async Task CrossLevelExit_UsesLegacyCommand_WhenEmbeddedTargetIdWasRenumbered()
+    {
+        const string json = """
+        {
+          "areas": [
+            {
+              "id": 1,
+              "name": "Stary Kontynent",
+              "rooms": [
+                {
+                  "id": 358,
+                  "coordinates": [0, 0, 0],
+                  "exits": [ { "exitId": 7837, "name": "southwest" } ],
+                  "userData": {
+                    "sw": "{\"id\":\"16125\",\"command\":\"down\"}",
+                    "vnum": "24951"
+                  }
+                },
+                {
+                  "id": 7837,
+                  "coordinates": [0, 0, -1],
+                  "exits": [],
+                  "userData": { "vnum": "45820" }
+                }
+              ]
+            }
+          ]
+        }
+        """;
+        var path = Path.GetTempFileName();
+        await File.WriteAllTextAsync(path, json);
+
+        try
+        {
+            var result = await new MapLoader().LoadAsync(path);
+            var route = new MapPathfinder(new MapIndex(result.Document)).FindPath(358, 7837);
+
+            Assert.NotNull(route);
+            Assert.Equal("down", Assert.Single(route.Steps).Command);
+            Assert.Equal(-1, route.To.Coordinates.Z);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

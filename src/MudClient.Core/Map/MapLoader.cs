@@ -61,14 +61,13 @@ public sealed class MapLoader
                 }
 
                 var exitOverrides = BuildExitCommandOverrides(rawRoom.UserData);
-
                 var exits = new List<MapExit>();
                 foreach (var rawExit in rawRoom.Exits ?? [])
                 {
                     exits.Add(new MapExit
                     {
                         ExitId = rawExit.ExitId,
-                        Name = exitOverrides.TryGetValue(rawExit.ExitId, out var cmd) ? cmd : rawExit.Name,
+                        Name = ResolveExitCommand(rawExit, exitOverrides),
                         Door = rawExit.Door,
                     });
                 }
@@ -111,18 +110,23 @@ public sealed class MapLoader
     /// <summary>
     /// Old-style exit data is stored in userData keys (direction abbreviations
     /// like "n", "s", "w", "e", "ne", "u", "d") whose value is a serialised
-    /// JSON object containing the fields "id" (target room id) and "command"
+    /// JSON object containing the fields "id" (an old target identifier) and "command"
     /// (the actual text the player must send, e.g. "up" / "down").  The map
     /// generation pipeline stored the cardinal direction derived from the key
     /// ("west" for "w") instead of the real command, so we must fix it here.
+    /// Some exports renumber rooms without updating the embedded id, therefore
+    /// the direction key is the primary match and the id is only a fallback.
     /// </summary>
-    private static Dictionary<int, string> BuildExitCommandOverrides(
+    private static ExitCommandOverrides BuildExitCommandOverrides(
         IReadOnlyDictionary<string, JsonElement>? userData)
     {
         if (userData is null)
-            return [];
+            return new ExitCommandOverrides(
+                new Dictionary<string, string>(),
+                new Dictionary<int, string>());
 
-        var overrides = new Dictionary<int, string>();
+        var byDirection = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var byTargetId = new Dictionary<int, string>();
 
         foreach (var kv in userData)
         {
@@ -135,25 +139,74 @@ public sealed class MapLoader
                 var root = inner.RootElement;
 
                 if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("id", out var idProp) &&
-                    idProp.ValueKind == JsonValueKind.Number &&
-                    idProp.TryGetInt32(out var id) &&
                     root.TryGetProperty("command", out var cmdProp) &&
                     cmdProp.ValueKind == JsonValueKind.String)
                 {
                     var command = cmdProp.GetString()!;
-                    if (!string.IsNullOrWhiteSpace(command))
+                    if (string.IsNullOrWhiteSpace(command))
+                        continue;
+
+                    byDirection[NormalizeDirection(kv.Key)] = command;
+
+                    if (root.TryGetProperty("id", out var idProp) &&
+                        TryReadInt32(idProp, out var id))
                     {
-                        overrides[id] = command;
+                        byTargetId[id] = command;
                     }
                 }
             }
             catch (JsonException)
             {
-                // Malformed old-style exit entry — skip silently.
+                // Optional legacy metadata can be malformed; retain the regular
+                // exported exit name instead of rejecting the whole map.
             }
         }
 
-        return overrides;
+        return new ExitCommandOverrides(byDirection, byTargetId);
     }
+
+    private static string? ResolveExitCommand(RawMapExit rawExit, ExitCommandOverrides overrides)
+    {
+        if (!string.IsNullOrWhiteSpace(rawExit.Name) &&
+            overrides.ByDirection.TryGetValue(NormalizeDirection(rawExit.Name), out var directionCommand))
+        {
+            return directionCommand;
+        }
+
+        return overrides.ByTargetId.GetValueOrDefault(rawExit.ExitId) ?? rawExit.Name;
+    }
+
+    private static bool TryReadInt32(JsonElement element, out int value)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Number:
+                return element.TryGetInt32(out value);
+            case JsonValueKind.String:
+                return int.TryParse(element.GetString(), out value);
+            default:
+                value = default;
+                return false;
+        }
+    }
+
+    private static string NormalizeDirection(string direction) =>
+        direction.Trim().ToLowerInvariant() switch
+        {
+            "n" => "north",
+            "ne" => "northeast",
+            "e" => "east",
+            "se" => "southeast",
+            "s" => "south",
+            "sw" => "southwest",
+            "w" => "west",
+            "nw" => "northwest",
+            "u" => "up",
+            "d" => "down",
+            _ => direction.Trim().ToLowerInvariant(),
+        };
+
+    private sealed record ExitCommandOverrides(
+        IReadOnlyDictionary<string, string> ByDirection,
+        IReadOnlyDictionary<int, string> ByTargetId);
 }
