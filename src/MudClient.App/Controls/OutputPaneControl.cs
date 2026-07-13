@@ -50,6 +50,15 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     private int _fontVersion;
     private bool _wordWrap;
     private readonly ConditionalWeakTable<OutputLine, LayoutCache> _layoutCache = new();
+    private OutputBuffer? _heightBuffer;
+    private double[]? _indexedHeights;
+    private long[]? _indexedGlobals;
+    private HeightFenwickTree? _heightTree;
+    private long _indexedFirst;
+    private long _indexedLast = -1;
+    private int _heightIndexFontVersion = -1;
+
+    internal int HeightIndexFullScanCount { get; private set; }
 
     private sealed class LayoutCache
     {
@@ -410,20 +419,10 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             return;
         }
 
+        EnsureHeightIndex(buffer);
         var count = buffer.Count;
-        var firstVisible = 0;
-        var contentY = 0d;
-        while (firstVisible < count)
-        {
-            var height = GetLayout(buffer[firstVisible]).Height;
-            if (contentY + height > _offset.Y)
-            {
-                break;
-            }
-
-            contentY += height;
-            firstVisible++;
-        }
+        var firstVisible = FindFirstVisibleLine(buffer, _offset.Y);
+        var contentY = PrefixHeight(buffer, firstVisible);
 
         var y = contentY - _offset.Y;
         var (selStartLine, selStartChar, selEndLine, selEndChar) = NormalizedSelection();
@@ -432,6 +431,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         {
             var line = buffer[i];
             var layout = GetLayout(line);
+            SetIndexedHeight(buffer.FirstGlobalIndex + i, layout.Height);
 
             if (_hasSelection)
             {
@@ -615,21 +615,12 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         }
 
         var globalY = point.Y + _offset.Y;
-        var index = 0;
-        var lineTop = 0d;
-        while (index < buffer.Count - 1)
-        {
-            var height = GetLayout(buffer[index]).Height;
-            if (lineTop + height > globalY)
-            {
-                break;
-            }
-
-            lineTop += height;
-            index++;
-        }
+        EnsureHeightIndex(buffer);
+        var index = Math.Min(FindFirstVisibleLine(buffer, globalY), buffer.Count - 1);
+        var lineTop = PrefixHeight(buffer, index);
         var line = buffer[index];
         var layout = GetLayout(line);
+        SetIndexedHeight(buffer.FirstGlobalIndex + index, layout.Height);
 
         var hit = layout.HitTestPoint(new Point(point.X + _offset.X, globalY - lineTop));
         var character = Math.Clamp(
@@ -676,18 +667,141 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     private double GetContentHeight(OutputBuffer buffer)
     {
-        if (!_wordWrap)
+        EnsureHeightIndex(buffer);
+        return PrefixHeight(buffer, buffer.Count);
+    }
+
+    private void EnsureHeightIndex(OutputBuffer buffer)
+    {
+        var last = buffer.FirstGlobalIndex + buffer.Count - 1;
+        if (!ReferenceEquals(_heightBuffer, buffer)
+            || _indexedHeights?.Length != buffer.Capacity
+            || _heightIndexFontVersion != _fontVersion
+            || buffer.FirstGlobalIndex < _indexedFirst
+            || last < _indexedLast)
         {
-            return buffer.Count * _lineHeight;
+            RebuildHeightIndex(buffer);
+            return;
         }
 
-        var height = 0d;
+        for (var global = _indexedFirst; global < buffer.FirstGlobalIndex; global++)
+        {
+            ClearIndexedHeight(global);
+        }
+
+        var updateFrom = Math.Max(buffer.FirstGlobalIndex, Math.Min(_indexedLast, last));
+        for (var global = updateFrom; global <= last; global++)
+        {
+            var line = buffer[(int)(global - buffer.FirstGlobalIndex)];
+            SetIndexedHeight(global, EstimateLineHeight(line));
+        }
+
+        _indexedFirst = buffer.FirstGlobalIndex;
+        _indexedLast = last;
+    }
+
+    private void RebuildHeightIndex(OutputBuffer buffer)
+    {
+        _heightBuffer = buffer;
+        _indexedHeights = new double[buffer.Capacity];
+        _indexedGlobals = new long[buffer.Capacity];
+        Array.Fill(_indexedGlobals, long.MinValue);
+        _heightTree = new HeightFenwickTree(buffer.Capacity);
+        _indexedFirst = buffer.FirstGlobalIndex;
+        _indexedLast = buffer.FirstGlobalIndex + buffer.Count - 1;
+        _heightIndexFontVersion = _fontVersion;
+        HeightIndexFullScanCount++;
+
         for (var i = 0; i < buffer.Count; i++)
         {
-            height += EstimateLineHeight(buffer[i]);
+            SetIndexedHeight(buffer.FirstGlobalIndex + i, EstimateLineHeight(buffer[i]));
+        }
+    }
+
+    private void SetIndexedHeight(long global, double height)
+    {
+        if (_indexedHeights is null || _indexedGlobals is null || _heightTree is null)
+        {
+            return;
+        }
+
+        var slot = (int)(global % _indexedHeights.Length);
+        if (_indexedGlobals[slot] != global)
+        {
+            if (_indexedGlobals[slot] != long.MinValue)
+            {
+                _heightTree.Add(slot, -_indexedHeights[slot]);
+            }
+
+            _indexedGlobals[slot] = global;
+            _indexedHeights[slot] = 0;
+        }
+
+        var delta = height - _indexedHeights[slot];
+        if (Math.Abs(delta) <= double.Epsilon)
+        {
+            return;
+        }
+
+        _indexedHeights[slot] = height;
+        _heightTree.Add(slot, delta);
+    }
+
+    private void ClearIndexedHeight(long global)
+    {
+        if (_indexedHeights is null || _indexedGlobals is null || _heightTree is null)
+        {
+            return;
+        }
+
+        var slot = (int)(global % _indexedHeights.Length);
+        if (_indexedGlobals[slot] != global)
+        {
+            return;
+        }
+
+        _heightTree.Add(slot, -_indexedHeights[slot]);
+        _indexedHeights[slot] = 0;
+        _indexedGlobals[slot] = long.MinValue;
+    }
+
+    private double PrefixHeight(OutputBuffer buffer, int count)
+    {
+        if (count <= 0 || _heightTree is null)
+        {
+            return 0;
+        }
+
+        count = Math.Min(count, buffer.Count);
+        var start = (int)(buffer.FirstGlobalIndex % buffer.Capacity);
+        var firstSegment = Math.Min(count, buffer.Capacity - start);
+        var height = _heightTree.RangeSum(start, start + firstSegment);
+        if (firstSegment < count)
+        {
+            height += _heightTree.RangeSum(0, count - firstSegment);
         }
 
         return height;
+    }
+
+    private int FindFirstVisibleLine(OutputBuffer buffer, double offset)
+    {
+        var low = 0;
+        var high = buffer.Count;
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (PrefixHeight(buffer, middle + 1) <= offset)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
     }
 
     /// <summary>
@@ -717,5 +831,31 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         var charsPerRow = Math.Max(1, (int)(_viewport.Width / _charWidth));
         var rows = Math.Max(1, (int)Math.Ceiling((double)line.Length / charsPerRow));
         return rows * _lineHeight;
+    }
+
+    private sealed class HeightFenwickTree(int size)
+    {
+        private readonly double[] _tree = new double[size + 1];
+
+        public void Add(int index, double delta)
+        {
+            for (var i = index + 1; i < _tree.Length; i += i & -i)
+            {
+                _tree[i] += delta;
+            }
+        }
+
+        public double RangeSum(int start, int end) => PrefixSum(end) - PrefixSum(start);
+
+        private double PrefixSum(int end)
+        {
+            var sum = 0d;
+            for (var i = end; i > 0; i -= i & -i)
+            {
+                sum += _tree[i];
+            }
+
+            return sum;
+        }
     }
 }

@@ -81,6 +81,8 @@ internal sealed class OutputBuffer
     /// <summary>Number of lines currently held, including the incomplete current line.</summary>
     public int Count { get; private set; }
 
+    public int Capacity => _lines.Length;
+
     /// <summary>Global index of the oldest line still in the buffer.</summary>
     public long FirstGlobalIndex { get; private set; }
 

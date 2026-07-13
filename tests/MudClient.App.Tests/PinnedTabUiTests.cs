@@ -6,9 +6,13 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Dock.Avalonia.Controls;
 using Dock.Model.Core;
+using MudClient.App.Controls;
 using MudClient.App.Docking;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
+using MudClient.App.Views.Panels;
+using MudClient.Core.Map;
 using Xunit;
 
 namespace MudClient.App.Tests;
@@ -21,6 +25,8 @@ namespace MudClient.App.Tests;
 public sealed class PinnedTabUiTests : IDisposable
 {
     private readonly List<Window> _windows = new();
+    private readonly string _tempDirectory = Path.Combine(
+        Path.GetTempPath(), "KillerMudClient-PinnedTabUiTests", Guid.NewGuid().ToString("N"));
 
     // All UI test classes share one headless session, and windows left open accumulate in it —
     // enough lingering pinned strips occasionally perturb a restored tab's render. xUnit makes a
@@ -34,7 +40,16 @@ public sealed class PinnedTabUiTests : IDisposable
         }
 
         Dispatcher.UIThread.RunJobs();
+        if (Directory.Exists(_tempDirectory))
+        {
+            Directory.Delete(_tempDirectory, recursive: true);
+        }
     }
+
+    private MainWindowViewModel CreateViewModel() => new(
+        new ProfileService(_tempDirectory),
+        new AppSettingsService(_tempDirectory),
+        new DockLayoutService(_tempDirectory));
 
     private MainWindow ShowWindow(MainWindowViewModel viewModel)
     {
@@ -81,7 +96,7 @@ public sealed class PinnedTabUiTests : IDisposable
     [InlineData(Alignment.Bottom)]
     public void PinnedTool_ShowsSideTabInUi(Alignment edge)
     {
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
         Pump(window);
 
@@ -131,7 +146,7 @@ public sealed class PinnedTabUiTests : IDisposable
     [InlineData(Alignment.Bottom)]
     public void PinnedTool_Preview_UsesFixedEdgeProportion(Alignment edge)
     {
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
         Pump(window);
 
@@ -181,7 +196,7 @@ public sealed class PinnedTabUiTests : IDisposable
     [AvaloniaFact]
     public void RestoredSnapshotWithPinsOnAllEdges_RendersAllTabs()
     {
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
         Pump(window);
 
@@ -215,7 +230,7 @@ public sealed class PinnedTabUiTests : IDisposable
     [AvaloniaFact]
     public void ClosedPinnedTool_RestoredFromPanelsMenu_RendersTopEdgeTab()
     {
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
         Pump(window);
         viewModel.ApplyLayoutCommand.Execute("DEFAULT");
@@ -244,5 +259,90 @@ public sealed class PinnedTabUiTests : IDisposable
         Assert.True(renderedTab.IsEffectivelyVisible
                     && renderedTab.Bounds.Width > 0
                     && renderedTab.Bounds.Height > 0);
+    }
+
+    [AvaloniaFact]
+    public void RestoringMap_DetachesPreviousMapControlFromViewModel()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        var map = factory.AllTools.First(t => t.Id == "Map");
+        var detachedMapControl = window.GetVisualDescendants()
+            .OfType<WorldMapControl>()
+            .Single(control => control.IsEffectivelyVisible);
+
+        factory.CloseDockable(map);
+        Pump(window);
+        viewModel.RestorePanelCommand.Execute(map);
+        PumpUntil(window, () => RenderedPinItems(window)
+            .Any(control => ReferenceEquals(control.DataContext, map)));
+        ((IFactory)factory).TogglePreviewPinnedDockable(map);
+        PumpUntil(window, () => window.GetVisualDescendants()
+            .OfType<WorldMapControl>()
+            .Any(control => control.IsEffectivelyVisible && control.Bounds.Width > 0));
+
+        var restoredMapControl = window.GetVisualDescendants()
+            .OfType<WorldMapControl>()
+            .Single(control => control.IsEffectivelyVisible && control.Bounds is { Width: > 0, Height: > 0 });
+        Assert.NotSame(detachedMapControl, restoredMapControl);
+
+        var sentinel = new MapRoom { Id = 1, AreaId = 1, Coordinates = new MapCoordinates(5, 6, 0) };
+        detachedMapControl.CenterOnRoom(sentinel);
+        var focused = new MapRoom { Id = 2, AreaId = 2, Coordinates = new MapCoordinates(50, 60, 0) };
+        viewModel.Map.SelectedArea = new MapArea { Id = 2, Rooms = [focused] };
+
+        Assert.Equal(sentinel.Coordinates.X, detachedMapControl.CameraX);
+        Assert.Equal(sentinel.Coordinates.Y, detachedMapControl.CameraY);
+        Assert.Equal(focused.Coordinates.X, restoredMapControl.CameraX);
+        Assert.Equal(focused.Coordinates.Y, restoredMapControl.CameraY);
+    }
+
+    [AvaloniaFact]
+    public void RestoringTerminal_DetachesPreviousTerminalFromOutputStream()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        var terminal = factory.AllTools.First(t => t.Id == "Terminal");
+        var detachedTerminal = window.GetVisualDescendants()
+            .OfType<TerminalPanelView>()
+            .Single(control => control.IsEffectivelyVisible);
+        var detachedPane = detachedTerminal.GetVisualDescendants().OfType<OutputPaneControl>().First();
+
+        factory.CloseDockable(terminal);
+        Pump(window);
+        viewModel.RestorePanelCommand.Execute(terminal);
+        PumpUntil(window, () => RenderedPinItems(window)
+            .Any(control => ReferenceEquals(control.DataContext, terminal)));
+        ((IFactory)factory).TogglePreviewPinnedDockable(terminal);
+        PumpUntil(window, () => window.GetVisualDescendants()
+            .OfType<TerminalPanelView>()
+            .Any(control => control.IsEffectivelyVisible));
+
+        var restoredTerminal = window.GetVisualDescendants()
+            .OfType<TerminalPanelView>()
+            .Single(control => control.IsEffectivelyVisible);
+        var restoredPane = restoredTerminal.GetVisualDescendants().OfType<OutputPaneControl>().First();
+        var detachedCount = detachedPane.Buffer!.Count;
+        var restoredCount = restoredPane.Buffer!.Count;
+
+        var subscribers = typeof(MainWindowViewModel)
+            .GetField(nameof(MainWindowViewModel.OutputReceived),
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?.GetValue(viewModel) as Action<string>;
+        Assert.NotNull(subscribers);
+        subscribers("performance probe\n");
+
+        Assert.Equal(detachedCount, detachedPane.Buffer.Count);
+        Assert.Equal(restoredCount + 1, restoredPane.Buffer.Count);
     }
 }

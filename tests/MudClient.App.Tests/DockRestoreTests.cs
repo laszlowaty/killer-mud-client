@@ -111,7 +111,8 @@ public sealed class DockRestoreTests
         // Mimic DockService.SplitToolDockable: new detached ToolDock + MoveDockable + SplitToDock.
         var wrapper = factory.CreateToolDock();
         wrapper.VisibleDockables = factory.CreateList<IDockable>();
-        factory.MoveDockable(tool.Owner as IDock, wrapper, tool, null);
+        var sourceDock = Assert.IsAssignableFrom<IDock>(tool.Owner);
+        factory.MoveDockable(sourceDock, wrapper, tool, null);
         factory.SplitToDock(main, wrapper, operation);
 
         Assert.False(Visible(layout, "Gmcp"));

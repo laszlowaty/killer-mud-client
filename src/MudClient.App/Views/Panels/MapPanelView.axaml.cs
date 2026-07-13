@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views.Panels;
@@ -6,6 +8,7 @@ namespace MudClient.App.Views.Panels;
 public sealed partial class MapPanelView : UserControl
 {
     private MapViewModel? _viewModel;
+    private bool _isViewModelSubscribed;
 
     public MapPanelView()
     {
@@ -18,16 +21,38 @@ public sealed partial class MapPanelView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_viewModel is not null)
-        {
-            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-            _viewModel.CenterOnCurrentRoomRequested -= OnCenterRequested;
-            _viewModel.CenterOnRoomRequested -= OnCenterOnRoomRequested;
-        }
+        UnsubscribeFromViewModel();
 
         _viewModel = DataContext as MapViewModel;
 
-        if (_viewModel is null)
+        if (this.IsAttachedToVisualTree())
+        {
+            SubscribeToViewModel();
+        }
+
+        SyncControlFromViewModel();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        SubscribeToViewModel();
+        SyncControlFromViewModel();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        UnsubscribeFromViewModel();
+
+        // The image cache publishes icon-load notifications. Leaving it assigned here would
+        // retain every map control created by Dock while panels are closed and restored.
+        MapControl.RoomImages = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void SubscribeToViewModel()
+    {
+        if (_viewModel is null || _isViewModelSubscribed)
         {
             return;
         }
@@ -35,8 +60,20 @@ public sealed partial class MapPanelView : UserControl
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.CenterOnCurrentRoomRequested += OnCenterRequested;
         _viewModel.CenterOnRoomRequested += OnCenterOnRoomRequested;
+        _isViewModelSubscribed = true;
+    }
 
-        SyncControlFromViewModel();
+    private void UnsubscribeFromViewModel()
+    {
+        if (_viewModel is null || !_isViewModelSubscribed)
+        {
+            return;
+        }
+
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.CenterOnCurrentRoomRequested -= OnCenterRequested;
+        _viewModel.CenterOnRoomRequested -= OnCenterOnRoomRequested;
+        _isViewModelSubscribed = false;
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

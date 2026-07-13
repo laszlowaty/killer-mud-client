@@ -139,7 +139,10 @@ public partial class MudOutputView : UserControl
         // No timers, no dispatcher round-trips: the buffer already holds the new text and
         // both panes repaint on the next frame. Under heavy load repaints coalesce per frame.
         _scrollbackPane.NotifyContentChanged();
-        _liveTailPane.NotifyContentChanged();
+        if (_isSplitMode)
+        {
+            _liveTailPane.NotifyContentChanged();
+        }
     }
 
     public void Clear()
@@ -291,6 +294,7 @@ public partial class MudOutputView : UserControl
         {
             _grid.RowDefinitions[0].Height = new GridLength(2, GridUnitType.Star);
             _grid.RowDefinitions[2].Height = new GridLength(1, GridUnitType.Star);
+            _liveTailPane.NotifyContentChanged();
         }
         else
         {

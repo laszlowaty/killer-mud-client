@@ -21,6 +21,7 @@ public sealed partial class TerminalPanelView : UserControl
     private readonly MudOutputView _mudOutput;
     private readonly TextBox _commandBox;
     private MainWindowViewModel? _viewModel;
+    private bool _isViewModelSubscribed;
     private int _historyIndex = -1;
     private volatile bool _shouldSelectAllOnNextInput;
 
@@ -33,7 +34,8 @@ public sealed partial class TerminalPanelView : UserControl
             ?? throw new InvalidOperationException("CommandBox not found.");
 
         DataContextChanged += OnDataContextChanged;
-        AttachedToVisualTree += (_, _) => Current = this;
+        AttachedToVisualTree += OnAttachedToVisualTree;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
 
         _mudOutput.AppendText(
             "[96mMudClient Starter[0m\n" +
@@ -78,19 +80,52 @@ public sealed partial class TerminalPanelView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs eventArgs)
     {
-        if (_viewModel is not null)
-        {
-            _viewModel.OutputReceived -= OnOutputReceived;
-            _viewModel.ProfileActivated -= OnProfileActivated;
-        }
-
+        UnsubscribeFromViewModel();
         _viewModel = DataContext as MainWindowViewModel;
 
-        if (_viewModel is not null)
+        if (this.IsAttachedToVisualTree())
         {
-            _viewModel.OutputReceived += OnOutputReceived;
-            _viewModel.ProfileActivated += OnProfileActivated;
+            SubscribeToViewModel();
         }
+    }
+
+    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs eventArgs)
+    {
+        Current = this;
+        SubscribeToViewModel();
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs eventArgs)
+    {
+        UnsubscribeFromViewModel();
+        if (ReferenceEquals(Current, this))
+        {
+            Current = null;
+        }
+    }
+
+    private void SubscribeToViewModel()
+    {
+        if (_viewModel is null || _isViewModelSubscribed)
+        {
+            return;
+        }
+
+        _viewModel.OutputReceived += OnOutputReceived;
+        _viewModel.ProfileActivated += OnProfileActivated;
+        _isViewModelSubscribed = true;
+    }
+
+    private void UnsubscribeFromViewModel()
+    {
+        if (_viewModel is null || !_isViewModelSubscribed)
+        {
+            return;
+        }
+
+        _viewModel.OutputReceived -= OnOutputReceived;
+        _viewModel.ProfileActivated -= OnProfileActivated;
+        _isViewModelSubscribed = false;
     }
 
     private async void OnProfileActivated(string profileName)

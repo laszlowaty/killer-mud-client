@@ -176,7 +176,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// </summary>
     private bool _activeProfileNeedsRegistration;
 
-    public MainWindowViewModel(ProfileService? profileService = null, AppSettingsService? settingsService = null)
+    public MainWindowViewModel(
+        ProfileService? profileService = null,
+        AppSettingsService? settingsService = null,
+        DockLayoutService? dockLayoutService = null)
     {
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
@@ -259,7 +262,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
 
         _dockFactory = new MudDockFactory(Map, this);
-        _dockLayoutService = new DockLayoutService();
+        _dockLayoutService = dockLayoutService ?? new DockLayoutService();
         Layout = _dockFactory.CreateLayout();
         _dockFactory.InitLayout(Layout);
 
