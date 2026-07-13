@@ -6,6 +6,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Dock.Avalonia.Controls;
 using Dock.Model.Core;
+using Dock.Model.Mvvm.Controls;
+using Dock.Settings;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
 using MudClient.App.Services;
@@ -88,6 +90,49 @@ public sealed class PinnedTabUiTests : IDisposable
         window.GetVisualDescendants().OfType<ToolPinItemControl>()
             .Where(p => p.IsEffectivelyVisible && p.Bounds is { Width: > 0, Height: > 0 })
             .ToList();
+
+    [AvaloniaFact]
+    public void WidgetThreeDotMenu_ContainsExplicitPinEdges()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        var chrome = window.GetVisualDescendants().OfType<ToolChromeControl>()
+            .First(control => control.IsEffectivelyVisible);
+        var flyout = Assert.IsType<MenuFlyout>(chrome.ToolFlyout);
+        var headers = flyout.Items.OfType<MenuItem>().Select(item => item.Header?.ToString()).ToList();
+
+        Assert.Contains("Wróć do układu", headers);
+        Assert.Contains("Przypnij z lewej", headers);
+        Assert.Contains("Przypnij z prawej", headers);
+        Assert.Contains("Przypnij u góry", headers);
+        Assert.Contains("Przypnij u dołu", headers);
+    }
+
+    [AvaloniaFact]
+    public void ExpandedPinnedWidget_DisablesHeaderDrag()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        var gmcp = factory.AllTools.First(tool => tool.Id == "Gmcp");
+        factory.PinToolToEdge(gmcp, Alignment.Top);
+        ((IFactory)factory).TogglePreviewPinnedDockable(gmcp);
+        Pump(window);
+
+        var chrome = window.GetVisualDescendants().OfType<ToolChromeControl>()
+            .First(control => control.IsEffectivelyVisible
+                              && control.DataContext is ToolDock dock
+                              && ReferenceEquals(dock.ActiveDockable, gmcp));
+
+        Assert.False(gmcp.CanDrag);
+        Assert.False(chrome.GetValue(DockProperties.IsDragEnabledProperty));
+    }
 
     [AvaloniaTheory]
     [InlineData(Alignment.Left)]

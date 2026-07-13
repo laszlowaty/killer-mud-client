@@ -1,12 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.RoomInfoPanelView"
-             x:DataType="vm:MapViewModel">
+             x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
-    <Grid ColumnDefinitions="*,Auto" Margin="12">
-      <!-- Left: details -->
-      <StackPanel Grid.Column="0" Spacing="8">
+    <StackPanel Spacing="12" Margin="12">
+      <Grid ColumnDefinitions="*,Auto">
+        <!-- Left: details -->
+        <StackPanel Grid.Column="0" Spacing="8">
         <TextBlock Classes="mud-heading" Text="SZCZEGÓŁY POKOJU" />
 
         <Border Background="{StaticResource MudBrushVoid}"
@@ -14,52 +16,82 @@
           <StackPanel Spacing="6">
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Id:" />
-              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Id}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding Map.SelectedRoom.Id}" />
             </Grid>
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Nazwa:" />
               <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                         Text="{Binding SelectedRoom.Name}"
+                         Text="{Binding Map.SelectedRoom.Name}"
                          TextTrimming="CharacterEllipsis" />
             </Grid>
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Vnum:" />
-              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Vnum}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding Map.SelectedRoom.Vnum}" />
             </Grid>
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Sektor:" />
-              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Sector}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding Map.SelectedRoom.Sector}" />
             </Grid>
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Środowisko:" />
               <TextBlock Grid.Column="1" HorizontalAlignment="Right"
-                         Text="{Binding SelectedRoom.Environment}"
+                         Text="{Binding Map.SelectedRoom.Environment}"
                          TextTrimming="CharacterEllipsis" />
             </Grid>
             <Grid ColumnDefinitions="Auto,*">
               <TextBlock Classes="mud-muted" Text="Waga:" />
-              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding SelectedRoom.Weight}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Text="{Binding Map.SelectedRoom.Weight}" />
             </Grid>
           </StackPanel>
         </Border>
-      </StackPanel>
+        </StackPanel>
 
-      <!-- Right: square room image -->
-      <Border Grid.Column="1"
-              Background="{StaticResource MudBrushVoid}"
-              BorderBrush="{StaticResource MudBrushGoldDim}"
-              BorderThickness="1"
-              CornerRadius="4"
-              Padding="6"
-              Margin="12,0,0,0"
-              Width="170"
-              Height="170"
-              VerticalAlignment="Top">
-        <Image Source="{Binding SelectedRoomIcon}"
-               Stretch="Uniform"
-               VerticalAlignment="Center"
-               HorizontalAlignment="Center" />
-      </Border>
-    </Grid>
+        <!-- Right: square room image -->
+        <Border Grid.Column="1"
+                Background="{StaticResource MudBrushVoid}"
+                BorderBrush="{StaticResource MudBrushGoldDim}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="6"
+                Margin="12,0,0,0"
+                Width="170"
+                Height="170"
+                VerticalAlignment="Top">
+          <Image Source="{Binding Map.SelectedRoomIcon}"
+                 Stretch="Uniform"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Center" />
+        </Border>
+      </Grid>
+
+      <StackPanel Spacing="6">
+        <TextBlock Classes="mud-heading" Text="OSOBY W POKOJU" />
+        <TextBlock Classes="mud-faint" Text="Nikogo tu nie ma."
+                   IsVisible="{Binding !People.Count}" />
+        <ItemsControl ItemsSource="{Binding People}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:PersonEntry">
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,1">
+                <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                            IsVisible="{Binding !IsSelf}">
+                  <Button Content="exa" Classes="mud-small" Padding="6,1"
+                          Command="{Binding $parent[UserControl].DataContext.ExaminePersonCommand}"
+                          CommandParameter="{Binding Name}" />
+                  <Button Content="kill" Classes="mud-small mud-danger" Padding="6,1"
+                          Command="{Binding $parent[UserControl].DataContext.KillPersonCommand}"
+                          CommandParameter="{Binding Name}" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                           Text="{Binding FightingText}"
+                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                           IsVisible="{Binding IsFighting}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </StackPanel>
   </ScrollViewer>
 </UserControl>

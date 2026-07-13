@@ -27,13 +27,23 @@ public sealed class DockRestoreTests
     private static bool Visible(IRootDock layout, string id) =>
         (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).Any(p => p.Id == id);
 
+    [Fact]
+    public void CreateLayout_UsesSingleCombinedRoomPanel()
+    {
+        var factory = CreateFactory(out _);
+
+        var room = Assert.Single(factory.AllTools, tool => tool.Title?.Contains("Pokój") == true);
+        Assert.Equal("RoomInfo", room.Id);
+        Assert.Equal(typeof(MudClient.App.Views.Panels.RoomInfoPanelView), room.ViewType);
+    }
+
     // Close every tool of the right-top dock one by one, then restore each. The dock
     // empties and Dock removes it partway through — the classic "sometimes doesn't work".
     [Fact]
     public void CloseAllThenRestoreAll_RightTop()
     {
         var factory = CreateFactory(out var layout);
-        var ids = new[] { "CharInfo", "Condition", "Effects", "Buffs", "RoomPeople", "Group", "MemSpells" };
+        var ids = new[] { "CharInfo", "Condition", "Effects", "Buffs", "Group", "MemSpells" };
 
         foreach (var id in ids)
         {
@@ -85,77 +95,10 @@ public sealed class DockRestoreTests
         Assert.Same(map, owner.ActiveDockable);
     }
 
-    // Dragging a panel onto the main window's outer edge (global dock → SplitToDock on the
-    // root-level target) must become a collapsed tab on that edge, not a layout split.
-    [Theory]
-    [InlineData(DockOperation.Left)]
-    [InlineData(DockOperation.Right)]
-    [InlineData(DockOperation.Top)]
-    [InlineData(DockOperation.Bottom)]
-    public void EdgeDrop_BecomesPinnedTabOnThatEdge(DockOperation operation)
-    {
-        var factory = CreateFactory(out var layout);
-        var tool = GetTool(factory, "Gmcp");
-
-        factory.SplitToDock(layout, tool, operation);
-
-        Assert.False(Visible(layout, "Gmcp"));
-        var pinned = operation switch
-        {
-            DockOperation.Left => layout.LeftPinnedDockables,
-            DockOperation.Right => layout.RightPinnedDockables,
-            DockOperation.Top => layout.TopPinnedDockables,
-            _ => layout.BottomPinnedDockables,
-        };
-        Assert.Contains(pinned ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
-    }
-
-    // Real drags don't pass the bare PanelTool: Dock's DockService first moves the tool
-    // into a fresh DETACHED ToolDock and passes that wrapper to SplitToDock. The wrapper
-    // variant must pin just the same.
-    [Theory]
-    [InlineData(DockOperation.Left)]
-    [InlineData(DockOperation.Bottom)]
-    public void EdgeDrop_WrappedInDetachedToolDock_BecomesPinnedTab(DockOperation operation)
-    {
-        var factory = CreateFactory(out var layout);
-        var main = Assert.IsAssignableFrom<IDock>(
-            (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).First(d => d.Id == "MainLayout"));
-        var tool = GetTool(factory, "Gmcp");
-
-        // Mimic DockService.SplitToolDockable: new detached ToolDock + MoveDockable + SplitToDock.
-        var wrapper = factory.CreateToolDock();
-        wrapper.VisibleDockables = factory.CreateList<IDockable>();
-        var sourceDock = Assert.IsAssignableFrom<IDock>(tool.Owner);
-        factory.MoveDockable(sourceDock, wrapper, tool, null);
-        factory.SplitToDock(main, wrapper, operation);
-
-        Assert.False(Visible(layout, "Gmcp"));
-        var pinned = operation == DockOperation.Left
-            ? layout.LeftPinnedDockables
-            : layout.BottomPinnedDockables;
-        Assert.Contains(pinned ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
-    }
-
-    // The same drop on the layout's outermost proportional dock (what global docking
-    // actually resolves to) must behave identically.
+    // Dragging only performs Dock's regular local split next to the dock under the pointer.
+    // It must never be reinterpreted by the app as an auto-hide edge command.
     [Fact]
-    public void EdgeDrop_OnMainLayout_BecomesPinnedTab()
-    {
-        var factory = CreateFactory(out var layout);
-        var main = Assert.IsAssignableFrom<IDock>(
-            (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).First(d => d.Id == "MainLayout"));
-
-        factory.SplitToDock(main, GetTool(factory, "Notes"), DockOperation.Right);
-
-        Assert.False(Visible(layout, "Notes"));
-        Assert.Contains(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Notes");
-    }
-
-    // An inner split (target deeper in the tree, not touching that edge) keeps default split
-    // behavior. CenterPane is the middle child, so it hugs neither the left nor right edge.
-    [Fact]
-    public void InnerSplit_StillSplits()
+    public void DragSplit_SnapsToTargetDockWithoutPinning()
     {
         var factory = CreateFactory(out var layout);
         var center = Assert.IsAssignableFrom<IDock>(FindIn(layout, "CenterPane"));
@@ -166,33 +109,77 @@ public sealed class DockRestoreTests
         Assert.Empty(layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>());
     }
 
-    // Near-miss: Dock 12 resolves a drop aimed at the window edge as a LOCAL split of the pane
-    // hugging that edge (the more tabs there, the more often). That edge-most inner target must
-    // pin, not split — RightTopPane sits flush against the right edge, so a rightward split pins.
     [Fact]
-    public void EdgeMostInnerSplit_TowardOwnEdge_Pins()
+    public void PinToolToEdge_MovingPinnedTool_RemovesOldEdgeAndDoesNotDuplicate()
     {
         var factory = CreateFactory(out var layout);
-        var rightPane = Assert.IsAssignableFrom<IDock>(FindIn(layout, "RightTopPane"));
+        var tool = GetTool(factory, "Map");
 
-        factory.SplitToDock(rightPane, GetTool(factory, "Map"), DockOperation.Right);
+        factory.PinToolToEdge(tool, Alignment.Top);
+        factory.PinToolToEdge(tool, Alignment.Left);
 
         Assert.False(Visible(layout, "Map"));
-        Assert.Contains(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+        Assert.False(tool.CanDrag);
+        Assert.DoesNotContain(layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+        Assert.Single(layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+        Assert.DoesNotContain(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+        Assert.DoesNotContain(layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
     }
 
-    // Same edge-most pane, but the split points AWAY from its window edge: a genuine inner split
-    // that must NOT be hijacked into a pin.
     [Fact]
-    public void EdgeMostInnerSplit_TowardOppositeEdge_StillSplits()
+    public void PinToolToEdge_WhenDockClearsOwners_ReattachesRememberedParent()
     {
         var factory = CreateFactory(out var layout);
-        var rightPane = Assert.IsAssignableFrom<IDock>(FindIn(layout, "RightTopPane"));
+        var tool = GetTool(factory, "Map");
+        var originalOwner = Assert.IsType<ToolDock>(tool.Owner);
+        factory.PinToolToEdge(tool, Alignment.Top);
 
-        factory.SplitToDock(rightPane, GetTool(factory, "Map"), DockOperation.Left);
+        // Reproduce Dock 12 losing both references while the tool still remains in a pinned list.
+        tool.Owner = null;
+        tool.OriginalOwner = null;
+
+        factory.PinToolToEdge(tool, Alignment.Right);
+
+        Assert.DoesNotContain(layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+        Assert.Single(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+
+        factory.Restore(tool);
 
         Assert.True(Visible(layout, "Map"));
-        Assert.Empty(layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>());
+        Assert.True(tool.CanDrag);
+        Assert.Same(originalOwner, tool.Owner);
+        Assert.DoesNotContain(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
+    }
+
+    [Fact]
+    public void PinToolToEdge_HiddenTool_RestoresItDirectlyOnSelectedEdge()
+    {
+        var factory = CreateFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+        factory.CloseDockable(tool);
+
+        factory.PinToolToEdge(tool, Alignment.Right);
+
+        Assert.DoesNotContain(tool, factory.HiddenTools);
+        Assert.Single(layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
+    }
+
+    [Fact]
+    public void ReturnToLayoutCommand_UnpinsIntoRememberedDockAndRestoresDragging()
+    {
+        var factory = CreateFactory(out var layout);
+        var tool = GetTool(factory, "Map");
+        var originalOwner = Assert.IsType<ToolDock>(tool.Owner);
+        factory.PinToolToEdge(tool, Alignment.Bottom);
+
+        Assert.True(tool.ReturnToLayoutCommand.CanExecute(null));
+        tool.ReturnToLayoutCommand.Execute(null);
+
+        Assert.True(Visible(layout, "Map"));
+        Assert.Same(originalOwner, tool.Owner);
+        Assert.True(tool.CanDrag);
+        Assert.False(tool.ReturnToLayoutCommand.CanExecute(null));
+        Assert.DoesNotContain(layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Map");
     }
 
     // Per-edge tab round-trips through layout snapshots (auto-save and named presets).

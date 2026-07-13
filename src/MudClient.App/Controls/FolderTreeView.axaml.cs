@@ -6,6 +6,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
@@ -21,6 +22,8 @@ namespace MudClient.App.Controls;
 /// </summary>
 public partial class FolderTreeView : UserControl
 {
+    private readonly HashSet<string> _pendingRenames = [];
+
     public static readonly StyledProperty<IEnumerable?> NodesProperty =
         AvaloniaProperty.Register<FolderTreeView, IEnumerable?>(nameof(Nodes));
 
@@ -128,24 +131,36 @@ public partial class FolderTreeView : UserControl
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
-    private void FolderName_OnLostFocus(object? sender, RoutedEventArgs e) => CommitRename(sender);
+    private void FolderName_OnLostFocus(object? sender, RoutedEventArgs e) => QueueRename(sender);
 
     private void FolderName_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key is Key.Enter or Key.Return)
         {
-            CommitRename(sender);
+            e.Handled = true;
+            QueueRename(sender);
         }
     }
 
-    private void CommitRename(object? sender)
+    private void QueueRename(object? sender)
     {
-        if (sender is Control { DataContext: FolderTreeNode { Folder: { } folder } } &&
-            RenameFolderCommand is { } command &&
-            command.CanExecute(folder))
+        if (sender is not Control { DataContext: FolderTreeNode { Folder: { } folder } }
+            || !_pendingRenames.Add(folder.Id))
         {
-            command.Execute(folder);
+            return;
         }
+
+        // Rename rebuilds the projected folder tree. Doing that synchronously inside KeyDown
+        // or LostFocus detaches the TextBox (and its parents) while Avalonia is still routing
+        // that event. Defer one dispatcher turn and coalesce Enter + the resulting LostFocus.
+        Dispatcher.UIThread.Post(() =>
+        {
+            _pendingRenames.Remove(folder.Id);
+            if (RenameFolderCommand is { } command && command.CanExecute(folder))
+            {
+                command.Execute(folder);
+            }
+        }, DispatcherPriority.Background);
     }
 
     private void ExportFolder_OnClick(object? sender, RoutedEventArgs e)

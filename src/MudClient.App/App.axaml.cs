@@ -12,10 +12,10 @@ public partial class App : Application
 {
     public override void Initialize()
     {
-        // Make window-edge drops resolve to the OUTERMOST dock (our "MainLayout"), not the
-        // dock under the cursor. MudDockFactory.SplitToDock relies on this to tell an edge
-        // drop (→ collapsed side tab) apart from an ordinary inner split.
-        DockSettings.GlobalDockingPreset = DockGlobalDockingPreset.GlobalFirst;
+        // Prefer the dock under the pointer while dragging. Edge auto-hide is selected
+        // explicitly from the Panels menu; dragging is only for snapping next to another
+        // panel, not for creating a tab on the outer edge of the main window.
+        DockSettings.GlobalDockingPreset = DockGlobalDockingPreset.LocalFirst;
 
         AvaloniaXamlLoader.Load(this);
 

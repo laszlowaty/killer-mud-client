@@ -53,8 +53,8 @@ public sealed class MudDockFactory : Factory, IFactory
             // Floating panel windows are disabled: Dock 12 corrupts the layout when
             // a floated window loses activation (panels vanish from the tree).
             CanFloat = false,
-            // CanPin must stay true — Dock's PinDockable is a no-op otherwise, and both the
-            // edge drag & drop below and the "Schowaj z…" tab menu pin programmatically.
+            // CanPin must stay true — Dock's PinDockable is a no-op otherwise, while the
+            // explicit edge commands in the Panels and tab menus pin programmatically.
             // The chrome's own pin button is hidden in Styles/Docking.axaml.
             CanPin = true,
             // "Dock as tabbed document" misbehaves in Dock 12 (panels get lost) — disabled,
@@ -62,6 +62,8 @@ public sealed class MudDockFactory : Factory, IFactory
             CanDockAsDocument = false,
         };
         tool.PinToEdge = edge => PinToolToEdge(tool, edge);
+        tool.ReturnToLayout = () => ReturnToLayout(tool);
+        tool.CanReturnToLayout = () => _root is not null && IsPinned(_root, tool);
         AllTools.Add(tool);
         return tool;
     }
@@ -75,7 +77,52 @@ public sealed class MudDockFactory : Factory, IFactory
     /// </summary>
     public void PinToolToEdge(PanelTool tool, Alignment edge)
     {
-        if (tool.Owner is not ToolDock owner)
+        if (_root is null)
+        {
+            return;
+        }
+
+        // A pinned preview is moved between edges only through its menu. Re-enable drag
+        // temporarily for Dock's internal unpin/re-pin transition, then disable it again.
+        tool.CanDrag = true;
+
+        // Preserve the last real ToolDock before Dock replaces Owner with the root while
+        // auto-hidden. OriginalOwner is not reliable after repeated pin/unpin operations.
+        var preferredOwner =
+            LiveToolDockOrNull(tool.Owner as IDock)
+            ?? LiveToolDockOrNull(tool.OriginalOwner as IDock)
+            ?? (_lastOwners.TryGetValue(tool, out var rememberedOwner)
+                ? Reattach(rememberedOwner) as ToolDock
+                : null);
+        if (preferredOwner is not null)
+        {
+            RememberOwner(tool, preferredOwner);
+        }
+
+        // PinDockable does not move an already pinned tool between edge collections reliably
+        // in Dock 12. It can leave the same tab on both the old and new edge. Always normalize
+        // the model back to one live ToolDock before pinning it exactly once.
+        if (IsPinned(_root, tool))
+        {
+            UnpinDockable(tool);
+        }
+
+        RemovePinnedEntries(tool);
+
+        if (!ContainsDockable(_root, tool))
+        {
+            preferredOwner ??=
+                (_lastOwners.TryGetValue(tool, out var lastOwner) ? Reattach(lastOwner) as ToolDock : null)
+                ?? FindFirstToolDock(_root) as ToolDock;
+            if (preferredOwner is null)
+            {
+                return;
+            }
+
+            AddDockable(preferredOwner, tool);
+        }
+
+        if (LiveToolDockOrNull(tool.Owner as IDock) is not { } owner)
         {
             return;
         }
@@ -87,6 +134,18 @@ public sealed class MudDockFactory : Factory, IFactory
         owner.Alignment = saved;
 
         ApplyFixedPinnedSize(tool, edge);
+        tool.CanDrag = false;
+        HiddenTools.Remove(tool);
+        tool.RefreshDockCommands();
+    }
+
+    private void RememberOwner(PanelTool tool, ToolDock owner)
+    {
+        _lastOwners[tool] = owner;
+        if (owner.Owner is IDock dockOwner)
+        {
+            _lastDockOwners[owner] = dockOwner;
+        }
     }
 
     /// <summary>
@@ -149,139 +208,15 @@ public sealed class MudDockFactory : Factory, IFactory
 
     private static bool IsValidSize(double size) => !double.IsNaN(size) && !double.IsInfinity(size) && size > 0;
 
-    /// <summary>
-    /// Dropping a panel on the main window's outer edge (Dock's "global docking") normally
-    /// splits the whole layout, which users found broken and useless. Instead, turn an edge
-    /// drop into a pinned tab on that edge — drag a panel to the window border and it becomes
-    /// a collapsed side tab.
-    /// </summary>
-    /// <remarks>
-    /// Dock 12 only routes a drop through global docking (→ outermost target) when the pointer
-    /// lands on the small, fixed-size global edge selector at release time; otherwise it falls
-    /// back to a <em>local</em> split of the ToolDock under the cursor. The edge-most panes are
-    /// the last thing between the cursor and the window border, so the more tabs pile up there
-    /// the more often an intended edge-pin was resolved as a split instead — the reported bug.
-    /// We close that gap: a directional split whose target dock actually sits against that window
-    /// edge (<see cref="IsAgainstWindowEdge"/>) is treated as an edge-pin too, not just the
-    /// outermost/global target. Genuine inner splits (targets not touching the edge) are untouched.
-    /// </remarks>
-    public override void SplitToDock(IDock dock, IDockable dockable, DockOperation operation)
-    {
-        if (ToPinEdge(operation) is { } edge && ExtractPanels(dockable) is { Count: > 0 } panels)
-        {
-            // Global drops target the outermost dock thanks to GlobalDockingPreset.GlobalFirst
-            // (set in App.Initialize); near-miss local splits arrive with a deeper target that
-            // may still be the pane hugging this window edge.
-            var isOuterTarget = dock is IRootDock || dock.Owner is IRootDock;
-            if (isOuterTarget || IsAgainstWindowEdge(dock, edge))
-            {
-                foreach (var panel in panels)
-                {
-                    PinPanelToEdge(panel, edge);
-                }
-
-                return;
-            }
-        }
-
-        base.SplitToDock(dock, dockable, operation);
-    }
-
-    /// <summary>
-    /// True when <paramref name="dock"/> sits flush against the window's <paramref name="edge"/>
-    /// in the live layout tree. Every ProportionalDock ancestor that splits <em>along</em> the
-    /// edge's axis must be entered through its first (Left/Top) or last (Right/Bottom) non-splitter
-    /// child; ancestors that split along the other axis span the full edge and add no constraint.
-    /// </summary>
-    private bool IsAgainstWindowEdge(IDock dock, Alignment edge)
-    {
-        if (LiveOrNull(dock) is null)
-        {
-            return false;
-        }
-
-        var edgeAxisIsHorizontal = edge is Alignment.Left or Alignment.Right;
-        var wantFirstChild = edge is Alignment.Left or Alignment.Top;
-
-        IDockable current = dock;
-        for (var owner = dock.Owner as IDock; owner is not null; current = owner, owner = owner.Owner as IDock)
-        {
-            if (owner is not ProportionalDock proportional)
-            {
-                // Root and tool-dock wrappers impose no positional constraint.
-                continue;
-            }
-
-            if ((proportional.Orientation == Orientation.Horizontal) != edgeAxisIsHorizontal)
-            {
-                // Splits along the other axis — this ancestor spans the whole edge.
-                continue;
-            }
-
-            var siblings = (proportional.VisibleDockables ?? Enumerable.Empty<IDockable>())
-                .Where(child => child is not ProportionalDockSplitter)
-                .ToList();
-            var edgeSibling = wantFirstChild ? siblings.FirstOrDefault() : siblings.LastOrDefault();
-            if (!ReferenceEquals(edgeSibling, current))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// The panels carried by an edge drop. Dock's DockService wraps the dragged tool in a
-    /// fresh, detached ToolDock before calling <see cref="SplitToDock"/>, so unwrap both a
-    /// bare <see cref="PanelTool"/> and any dock of them.
-    /// </summary>
-    private static List<PanelTool> ExtractPanels(IDockable dockable) => DescendantTools(dockable).ToList();
-
-    /// <summary>
-    /// Pins <paramref name="panel"/> to <paramref name="edge"/> even when it currently sits in
-    /// a detached wrapper dock (the DockService one): the panel is first docked into a live
-    /// tool dock so Dock can find its root, then collapsed into the edge tab.
-    /// </summary>
-    private void PinPanelToEdge(PanelTool panel, Alignment edge)
-    {
-        if (_root is null)
-        {
-            return;
-        }
-
-        if (LiveOrNull(panel.Owner as IDock) is null)
-        {
-            if (FindFirstToolDock(_root) is not { } live)
-            {
-                return;
-            }
-
-            AddDockable(live, panel);
-        }
-
-        PinToolToEdge(panel, edge);
-    }
-
-    private static Alignment? ToPinEdge(DockOperation operation) => operation switch
-    {
-        DockOperation.Left => Alignment.Left,
-        DockOperation.Right => Alignment.Right,
-        DockOperation.Top => Alignment.Top,
-        DockOperation.Bottom => Alignment.Bottom,
-        _ => null,
-    };
-
     public override IRootDock CreateLayout()
     {
         var mapTool = NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
-        var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mapContext);
+        var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
         var terminalTool = NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
         var infoTool = NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
         var conditionTool = NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
         var effectsTool = NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
         var buffsTool = NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
-        var roomPeopleTool = NewTool("RoomPeople", "👁 Pokój", typeof(Views.Panels.RoomPeoplePanelView), _mainContext);
         var groupTool = NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
         var memSpellsTool = NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
         var automationTool = NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
@@ -316,7 +251,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Proportion = 0.5,
             ActiveDockable = infoTool,
             VisibleDockables = CreateList<IDockable>(
-                infoTool, conditionTool, effectsTool, buffsTool, roomPeopleTool, groupTool, memSpellsTool),
+                infoTool, conditionTool, effectsTool, buffsTool, groupTool, memSpellsTool),
             Alignment = Alignment.Right,
         };
 
@@ -414,9 +349,12 @@ public sealed class MudDockFactory : Factory, IFactory
     {
         foreach (var tool in DescendantTools(dockable))
         {
-            if (tool.Owner is IDock owner)
+            // Never overwrite a remembered ToolDock with the root that temporarily owns an
+            // auto-hidden tool. That is the parent-loss bug seen after closing a pinned preview.
+            var owner = tool.Owner as ToolDock ?? tool.OriginalOwner as ToolDock;
+            if (owner is not null)
             {
-                _lastOwners[tool] = owner;
+                RememberOwner(tool, owner);
             }
         }
 
@@ -442,6 +380,8 @@ public sealed class MudDockFactory : Factory, IFactory
             return;
         }
 
+        tool.CanDrag = true;
+
         // Closing the chrome of an expanded auto-hide preview does not fully clear Dock
         // 12's pinned/preview state. If we AddDockable immediately, the model changes but
         // the presenter keeps treating the tool as a closed side tab and renders nothing.
@@ -450,11 +390,21 @@ public sealed class MudDockFactory : Factory, IFactory
         if (IsPinned(_root, tool))
         {
             UnpinDockable(tool);
+            RemovePinnedEntries(tool);
             if (ContainsDockable(_root, tool) && tool.Owner is ToolDock restoredOwner)
             {
+                if (_lastOwners.TryGetValue(tool, out var remembered)
+                    && Reattach(remembered) is ToolDock preferredOwner
+                    && !ReferenceEquals(restoredOwner, preferredOwner))
+                {
+                    MoveDockable(restoredOwner, preferredOwner, tool, null);
+                    restoredOwner = preferredOwner;
+                }
+
                 SetActiveDockable(tool);
                 SetFocusedDockable(restoredOwner, tool);
                 HiddenTools.Remove(tool);
+                tool.RefreshDockCommands();
                 return;
             }
         }
@@ -473,6 +423,18 @@ public sealed class MudDockFactory : Factory, IFactory
         SetActiveDockable(tool);
         SetFocusedDockable(owner, tool);
         HiddenTools.Remove(tool);
+        tool.RefreshDockCommands();
+    }
+
+    /// <summary>Moves an auto-hidden widget back to its remembered ToolDock.</summary>
+    public void ReturnToLayout(PanelTool tool)
+    {
+        if (_root is null || !IsPinned(_root, tool))
+        {
+            return;
+        }
+
+        Restore(tool);
     }
 
     /// <summary>Restores, selects and focuses a tool so an action can reveal its content.</summary>
@@ -506,18 +468,18 @@ public sealed class MudDockFactory : Factory, IFactory
     /// </summary>
     public void RestoreToTopEdge(PanelTool tool)
     {
+        PinToolToEdge(tool, Alignment.Top);
+    }
+
+    private void RemovePinnedEntries(PanelTool tool)
+    {
         if (_root is null)
         {
             return;
         }
 
-        if (IsPinned(_root, tool))
-        {
-            UnpinDockable(tool);
-        }
-
         // UnpinDockable does not always remove a closed preview wrapper in Dock 12.
-        // Remove every stale pinned entry carrying this tool before pinning it anew.
+        // Purge all stale wrappers/references before adding one canonical edge entry.
         foreach (var pinned in new[]
         {
             _root.LeftPinnedDockables,
@@ -533,21 +495,6 @@ public sealed class MudDockFactory : Factory, IFactory
                 pinned!.Remove(entry);
             }
         }
-
-        var stagingDock = FindFirstToolDock(_root);
-        if (stagingDock is null)
-        {
-            return;
-        }
-
-        if (!ReferenceEquals(tool.Owner, stagingDock)
-            || stagingDock.VisibleDockables?.Contains(tool) != true)
-        {
-            AddDockable(stagingDock, tool);
-        }
-
-        PinToolToEdge(tool, Alignment.Top);
-        HiddenTools.Remove(tool);
     }
 
     private static bool IsPinned(IRootDock root, PanelTool tool) =>

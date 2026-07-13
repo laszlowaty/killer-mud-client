@@ -1,18 +1,33 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:dock="using:Dock.Avalonia.Controls"
+        xmlns:dockSettings="using:Dock.Settings"
         xmlns:psp="using:Dock.Controls.ProportionalStackPanel"
-        xmlns:docking="using:MudClient.App.Docking"
         xmlns:panels="using:MudClient.App.Views.Panels">
   <!--
     Light-touch theming so Dock.Avalonia's chrome (tab strips, tool headers,
     splitters) blends with the fantasy palette instead of the default Fluent look.
   -->
   <Styles.Resources>
+    <!-- The three-dot menu belongs to the active widget's ToolDock. Runtime bindings are
+         intentional: ActiveDockable is declared as IDockable but is a PanelTool here. -->
+    <MenuFlyout x:Key="MudToolFlyout" x:CompileBindings="False">
+      <MenuItem Header="Wróć do układu" Command="{Binding ActiveDockable.ReturnToLayoutCommand}" />
+      <Separator />
+      <MenuItem Header="Przypnij z lewej" Command="{Binding ActiveDockable.PinLeftCommand}" />
+      <MenuItem Header="Przypnij z prawej" Command="{Binding ActiveDockable.PinRightCommand}" />
+      <MenuItem Header="Przypnij u góry" Command="{Binding ActiveDockable.PinTopCommand}" />
+      <MenuItem Header="Przypnij u dołu" Command="{Binding ActiveDockable.PinBottomCommand}" />
+      <Separator />
+      <MenuItem Header="Zamknij"
+                Command="{Binding Owner.Factory.CloseDockable}"
+                CommandParameter="{Binding ActiveDockable}" />
+    </MenuFlyout>
+
     <!--
-      Hides the chrome's built-in pin/auto-hide button. Its single click pins to the owner
-      dock's edge, which conflicts with edge tabs driven by drag & drop / the "Schowaj z…"
-      menu. CanPin must stay true (PinDockable no-ops otherwise), so we blank the button:
+      Hides the chrome's built-in pin/auto-hide button. Its single click chooses the owner
+      dock's edge instead of the edge explicitly selected in the panel menu. CanPin must stay
+      true (PinDockable no-ops otherwise), so we blank the button:
       empty template + zero size + no hit-testing.
     -->
     <ControlTheme x:Key="MudHiddenPinButton" TargetType="Button">
@@ -34,28 +49,18 @@
   <Style Selector="dock|ToolChromeControl">
     <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />
     <Setter Property="PinButtonTheme" Value="{StaticResource MudHiddenPinButton}" />
+    <Setter Property="ToolFlyout" Value="{DynamicResource MudToolFlyout}" />
+  </Style>
+
+  <!-- Expanded auto-hide previews must not enter Dock 12's drag pipeline. Dragging that
+       temporary ToolDock can leave both the original pinned item and a split wrapper. -->
+  <Style Selector="dock|ToolChromeControl:pinned">
+    <Setter Property="(dockSettings:DockProperties.IsDragEnabled)" Value="False" />
   </Style>
 
   <Style Selector="dock|DocumentTabStripItem, dock|ToolTabStripItem">
     <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
-  </Style>
-
-  <!--
-    Right-click a tool tab to collapse it into a side tab on a chosen screen edge —
-    same result as dragging the panel onto that window edge. Replacing the ContextMenu
-    also suppresses Dock's built-in menu (Auto Hide / Float / …), whose entries misbehave
-    in Dock 12. The menu items inherit the tab's DataContext, which is the PanelTool.
-  -->
-  <Style Selector="dock|ToolTabStripItem">
-    <Setter Property="ContextMenu">
-      <ContextMenu x:DataType="docking:PanelTool">
-        <MenuItem Header="Schowaj z lewej" Command="{Binding PinLeftCommand}" />
-        <MenuItem Header="Schowaj z prawej" Command="{Binding PinRightCommand}" />
-        <MenuItem Header="Schowaj u góry" Command="{Binding PinTopCommand}" />
-        <MenuItem Header="Schowaj u dołu" Command="{Binding PinBottomCommand}" />
-      </ContextMenu>
-    </Setter>
   </Style>
 
   <Style Selector="dock|DocumentTabStripItem:selected, dock|ToolTabStripItem:selected">

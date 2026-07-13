@@ -2,7 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -15,7 +17,7 @@ namespace MudClient.App.Tests;
 public sealed class FolderTreeViewUiTests
 {
     [AvaloniaFact]
-    public async Task AutomationPanel_UsesThreeFocusedTabsWithLocalPrimaryActions()
+    public async Task AutomationPanel_UsesFocusedTabsWithLocalPrimaryActionsAndTeamAutomation()
     {
         var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_AutomationUi_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -30,7 +32,7 @@ public sealed class FolderTreeViewUiTests
         window.Show();
         window.UpdateLayout();
         var tabs = Assert.Single(window.GetLogicalDescendants().OfType<TabControl>());
-        Assert.Equal(3, tabs.Items.Count);
+        Assert.Equal(4, tabs.Items.Count);
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy timer"));
 
         tabs.SelectedIndex = 1;
@@ -40,6 +42,12 @@ public sealed class FolderTreeViewUiTests
         tabs.SelectedIndex = 2;
         window.UpdateLayout();
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy trigger"));
+
+        tabs.SelectedIndex = 3;
+        window.UpdateLayout();
+        var teamOptions = window.GetLogicalDescendants().OfType<CheckBox>().ToList();
+        Assert.Contains(teamOptions, checkBox => Equals(checkBox.Content, "Autoassist — automatyczne wspieranie drużyny"));
+        Assert.Contains(teamOptions, checkBox => Equals(checkBox.Content, "Ordery — wykonuj rozkazy członków drużyny"));
 
         window.Close();
         await viewModel.DisposeAsync();
@@ -90,6 +98,48 @@ public sealed class FolderTreeViewUiTests
 
         Assert.Empty(viewModel.Folders);
         Assert.Null(viewModel.StartupErrorMessage);
+
+        window.Close();
+        await viewModel.DisposeAsync();
+        Directory.Delete(directory, recursive: true);
+    }
+
+    [AvaloniaFact]
+    public async Task FolderName_Enter_DefersTreeRebuildAndSavesWithoutStartupError()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_FolderEnter_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(
+            new ProfileService(directory),
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        viewModel.CreateFolderCommand.Execute(FolderKind.Timers);
+
+        var window = new Window
+        {
+            Width = 500,
+            Height = 700,
+            Content = new AutomationPanelView { DataContext = viewModel },
+        };
+        window.Show();
+        window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var nameBox = window.GetLogicalDescendants().OfType<TextBox>().First(
+            textBox => textBox.IsEffectivelyVisible
+                       && textBox.DataContext is FolderTreeNode { IsFolder: true });
+        nameBox.Text = "Timery bojowe";
+        nameBox.Focus();
+
+        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        Assert.Equal("Timery bojowe", Assert.Single(viewModel.Folders).Name);
+        Assert.Null(viewModel.StartupErrorMessage);
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBox>(),
+            textBox => textBox.DataContext is FolderTreeNode { Folder.Name: "Timery bojowe" });
 
         window.Close();
         await viewModel.DisposeAsync();

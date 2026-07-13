@@ -14,11 +14,14 @@ public sealed class PanelTool : Tool
     public required Type ViewType { get; init; }
 
     /// <summary>
-    /// Set by <see cref="MudDockFactory"/>; collapses this tool into a tab on the requested
-    /// screen edge. Drives the "Schowaj z…" context-menu commands below — the same action
-    /// as dragging the panel onto that window edge.
+    /// Set by <see cref="MudDockFactory"/>; moves this tool into a collapsed tab on the
+    /// requested edge. Used by the explicit edge choices in panel menus.
     /// </summary>
     internal Action<Alignment>? PinToEdge { get; set; }
+
+    internal Action? ReturnToLayout { get; set; }
+
+    internal Func<bool>? CanReturnToLayout { get; set; }
 
     public PanelTool()
     {
@@ -26,6 +29,9 @@ public sealed class PanelTool : Tool
         PinRightCommand = new RelayCommand(() => PinToEdge?.Invoke(Alignment.Right));
         PinTopCommand = new RelayCommand(() => PinToEdge?.Invoke(Alignment.Top));
         PinBottomCommand = new RelayCommand(() => PinToEdge?.Invoke(Alignment.Bottom));
+        ReturnToLayoutCommand = new RelayCommand(
+            () => ReturnToLayout?.Invoke(),
+            () => CanReturnToLayout?.Invoke() == true);
     }
 
     public IRelayCommand PinLeftCommand { get; }
@@ -35,4 +41,8 @@ public sealed class PanelTool : Tool
     public IRelayCommand PinTopCommand { get; }
 
     public IRelayCommand PinBottomCommand { get; }
+
+    public IRelayCommand ReturnToLayoutCommand { get; }
+
+    internal void RefreshDockCommands() => ReturnToLayoutCommand.NotifyCanExecuteChanged();
 }

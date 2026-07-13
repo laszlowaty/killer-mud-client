@@ -9,6 +9,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
 using MudClient.App.Views.Panels;
@@ -24,6 +25,9 @@ namespace MudClient.App.Tests;
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class MainWindowClickTests : IDisposable
 {
+    private readonly string _tempDirectory = Path.Combine(
+        Path.GetTempPath(), "KillerMudClient-MainWindowClickTests", Guid.NewGuid().ToString("N"));
+
     public void Dispose()
     {
         // Every test in this class opens one MainWindow. Closing it before Avalonia.Headless
@@ -35,11 +39,21 @@ public sealed class MainWindowClickTests : IDisposable
         }
 
         Dispatcher.UIThread.RunJobs();
+
+        if (Directory.Exists(_tempDirectory))
+        {
+            Directory.Delete(_tempDirectory, recursive: true);
+        }
     }
 
     // ==================================================================
     // Helpers
     // ==================================================================
+
+    private MainWindowViewModel CreateViewModel() => new(
+        new ProfileService(_tempDirectory),
+        new AppSettingsService(_tempDirectory),
+        new DockLayoutService(_tempDirectory));
 
     /// <summary>
     /// Returns the live TerminalPanelView instance associated with the given
@@ -173,7 +187,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void FocusCommandBoxAndSelectAll_FocusesAndSelectsAll()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -194,7 +208,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void FocusCommandBoxAndSelectAll_WithEmptyText_SelectsNothing()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -220,7 +234,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void HandlePostSend_FocusesAndSelectsAllAndResetsHistoryIndex()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -246,7 +260,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void HandlePostSend_WithEmptyText_ResetsHistoryIndex()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -278,7 +292,7 @@ public sealed class MainWindowClickTests : IDisposable
         // we raise PointerPressedEventArgs directly on the root grid
         // (a non-excluded visual) to exercise the real handler.
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -318,7 +332,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Validates exclusion logic directly: a Button ancestor causes
         // the handler to return early.
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -348,7 +362,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Validates that clicking on MudOutputView does NOT find a Button
         // ancestor, so the handler proceeds to FocusCommandBoxAndSelectAll.
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -370,7 +384,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PointerPressed_OnSendButton_FocusesCommandBoxViaHandler()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -416,7 +430,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void OwnsControl_ReturnsFalseForMudOutputChild()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -449,7 +463,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PointerPressed_OnMudOutputChild_RedirectsFocusAndSelectsAll()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -504,7 +518,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PointerPressed_OnNonOutputSelectableTextBlock_IsExcluded()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -562,7 +576,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PointerPressed_MudOutputSelectableTextBlock_FindsMudOutputAncestor()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -596,7 +610,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PointerPressed_NonOutputSelectableTextBlock_FindsNoMudOutputAncestor()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -629,7 +643,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PrepareCommandBoxForFirstInput_WithMark_SelectsAll()
     {
         // Arrange: command box has text, mark is set (as after window activation).
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -654,7 +668,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PrepareCommandBoxForFirstInput_WithoutMark_DoesNotChangeSelection()
     {
         // Arrange: command box has text, mark is NOT set.
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -676,7 +690,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void PrepareCommandBoxForFirstInput_WithMarkAndEmptyText_SelectsNothing()
     {
         // Arrange: empty command box, mark is set.
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 
@@ -699,7 +713,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void MarkForSelectAllOnNextInput_SetsFlag()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -721,7 +735,7 @@ public sealed class MainWindowClickTests : IDisposable
         // The public FocusCommandBoxAndSelectAll should also clear the
         // select-all-on-next-input flag.
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -745,7 +759,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void IsCommandBox_ReturnsTrueForOwnCommandBox()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -761,7 +775,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void IsCommandBox_ReturnsFalseForOtherTextBox()
     {
         // Arrange: create a non-terminal TextBox (e.g. Host box).
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -787,7 +801,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void ClearSelectAllOnNextInput_ClearsFlag()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -807,7 +821,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void ClearSelectAllOnNextInput_WhenNotSet_StaysFalse()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -830,7 +844,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void OnWindowActivated_WithCommandBoxFocused_SetsMark()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -852,7 +866,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void OnWindowActivated_WithNonCommandBoxFocused_DoesNotSetMark()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
@@ -885,7 +899,7 @@ public sealed class MainWindowClickTests : IDisposable
     public void OnPreviewTextInput_WithNonTerminalTextBox_ClearsPendingMark()
     {
         // Arrange
-        var viewModel = new MainWindowViewModel();
+        var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         EnsureLayout(window);
