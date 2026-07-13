@@ -180,7 +180,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
-        AutomationRules.CollectionChanged += (_, _) => RebuildRuleViews();
+        AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
+        Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
+        Notes.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
+        Locations.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
+        Folders.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         ApplyWidgetFontResources();
         PopulateAvailableFonts();
         _settingsLoaded = true;
@@ -1062,6 +1066,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         ClearRuleForm();
         RebuildRuleViews();
+        RebuildFolderTrees();
         ApplyAutomation();
         SaveActiveProfile();
     }
@@ -2423,6 +2428,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         StopAutowalk("Autowalk zatrzymany (zmiana konta).");
 
+        // Suppress per-add tree rebuilds; rebuild once after the bulk load below.
+        _suppressTreeRebuild = true;
+
         Notes.Clear();
         AutomationRules.Clear();
         Timers.Clear();
@@ -2482,7 +2490,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
 
         ActiveProfileName = profile.Name;
+        _suppressTreeRebuild = false;
         RebuildRuleViews();
+        RebuildFolderTrees();
         ApplyAutomation();
         _timers.CancelAll();
         SyncAllTimers();
@@ -2804,6 +2814,295 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         return false;
+    }
+
+    // --- Folder trees (hierarchy projected per section for the FolderTreeView) ---
+    public ObservableCollection<FolderTreeNode> TimerTree { get; } = [];
+    public ObservableCollection<FolderTreeNode> AliasTree { get; } = [];
+    public ObservableCollection<FolderTreeNode> TriggerTree { get; } = [];
+    public ObservableCollection<FolderTreeNode> NoteTree { get; } = [];
+    public ObservableCollection<FolderTreeNode> AutowalkTree { get; } = [];
+
+    /// <summary>When true, collection-change handlers skip rebuilds (bulk load).</summary>
+    private bool _suppressTreeRebuild;
+
+    private void OnFolderCollectionsChanged()
+    {
+        if (_suppressTreeRebuild)
+        {
+            return;
+        }
+
+        RebuildRuleViews();
+        RebuildFolderTrees();
+    }
+
+    /// <summary>Rebuilds every section's folder tree from the flat collections.</summary>
+    private void RebuildFolderTrees()
+    {
+        RebuildTree(TimerTree, FolderKind.Timers, Timers);
+        RebuildTree(AliasTree, FolderKind.Aliases, AliasRules);
+        RebuildTree(TriggerTree, FolderKind.Triggers, TriggerRules);
+        RebuildTree(NoteTree, FolderKind.Notes, Notes);
+        RebuildTree(AutowalkTree, FolderKind.Autowalk, Locations);
+    }
+
+    /// <summary>
+    /// Projects the folders of <paramref name="kind"/> and the given items into a
+    /// tree of <see cref="FolderTreeNode"/>. Folders sort by name, items keep
+    /// their collection order; loose items (no/unknown folder) render at the root.
+    /// </summary>
+    private void RebuildTree(ObservableCollection<FolderTreeNode> target, FolderKind kind, IEnumerable<IFolderItem> items)
+    {
+        target.Clear();
+
+        var folders = Folders.Where(f => f.Kind == kind).ToList();
+        var folderIds = folders.Select(f => f.Id).ToHashSet();
+        var nodesById = folders.ToDictionary(f => f.Id, f => new FolderTreeNode { IsFolder = true, Folder = f });
+
+        // Link subfolders to parents; unknown/absent parents become roots.
+        var roots = new List<FolderTreeNode>();
+        foreach (var folder in folders)
+        {
+            var node = nodesById[folder.Id];
+            if (folder.ParentId is not null && nodesById.TryGetValue(folder.ParentId, out var parent))
+            {
+                parent.Children.Add(node);
+            }
+            else
+            {
+                roots.Add(node);
+            }
+        }
+
+        // Attach items to their folder, or to the root when loose.
+        var looseItems = new List<IFolderItem>();
+        foreach (var item in items)
+        {
+            var node = new FolderTreeNode { IsFolder = false, Content = item, Folder = null };
+            if (item.FolderId is not null && nodesById.TryGetValue(item.FolderId, out var owner))
+            {
+                owner.Children.Add(node);
+            }
+            else
+            {
+                looseItems.Add(item);
+            }
+        }
+
+        // Recursive item counts for folder badges.
+        foreach (var root in roots)
+        {
+            ComputeItemCounts(root);
+        }
+
+        // Emit roots: folders (by name) first, then loose items in order.
+        foreach (var folderNode in roots.OrderBy(n => n.Folder!.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            SortFolderChildren(folderNode);
+            target.Add(folderNode);
+        }
+
+        foreach (var item in looseItems)
+        {
+            target.Add(new FolderTreeNode { IsFolder = false, Content = item });
+        }
+
+        _ = folderIds; // reserved for future validation
+    }
+
+    private static int ComputeItemCounts(FolderTreeNode node)
+    {
+        if (!node.IsFolder)
+        {
+            return 1;
+        }
+
+        var count = 0;
+        foreach (var child in node.Children)
+        {
+            count += ComputeItemCounts(child);
+        }
+
+        node.ItemCount = count;
+        return count;
+    }
+
+    private static void SortFolderChildren(FolderTreeNode folderNode)
+    {
+        var ordered = folderNode.Children
+            .OrderByDescending(c => c.IsFolder)
+            .ThenBy(c => c.IsFolder ? c.Folder!.Name : string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        folderNode.Children.Clear();
+        foreach (var child in ordered)
+        {
+            folderNode.Children.Add(child);
+            if (child.IsFolder)
+            {
+                SortFolderChildren(child);
+            }
+        }
+    }
+
+    // ========================================================================
+    // Folder commands (generic across kinds)
+    // ========================================================================
+
+    public RelayCommand<FolderKind> CreateFolderCommand => new(CreateFolder);
+    public RelayCommand<FolderNode> CreateSubfolderCommand => new(CreateSubfolder);
+    public RelayCommand<FolderNode> RenameFolderCommand => new(RenameFolder);
+    public RelayCommand<FolderNode> DeleteFolderCommand => new(DeleteFolder);
+    public RelayCommand<FolderNode> ToggleFolderGlobalCommand => new(ToggleFolderGlobal);
+    public RelayCommand<FolderNode> ToggleFolderEnabledCommand => new(ToggleFolderEnabled);
+
+    private void CreateFolder(FolderKind kind)
+    {
+        Folders.Add(new FolderNode { Name = "Nowy folder", Kind = kind });
+        SaveActiveProfile();
+    }
+
+    private void CreateSubfolder(FolderNode? parent)
+    {
+        if (parent is null)
+        {
+            return;
+        }
+
+        Folders.Add(new FolderNode
+        {
+            Name = "Nowy folder",
+            Kind = parent.Kind,
+            ParentId = parent.Id,
+            IsGlobal = parent.IsGlobal,
+        });
+        SaveActiveProfile();
+    }
+
+    /// <summary>Persists an inline folder rename and refreshes the trees.</summary>
+    private void RenameFolder(FolderNode? folder)
+    {
+        if (folder is null)
+        {
+            return;
+        }
+
+        RebuildFolderTrees();
+        SaveActiveProfile();
+    }
+
+    private void DeleteFolder(FolderNode? folder)
+    {
+        if (folder is null)
+        {
+            return;
+        }
+
+        var ids = CollectSubtreeFolderIds(folder);
+
+        foreach (var timer in Timers.Where(t => t.FolderId is not null && ids.Contains(t.FolderId)).ToList())
+        {
+            Timers.Remove(timer);
+        }
+
+        foreach (var rule in AutomationRules.Where(r => r.FolderId is not null && ids.Contains(r.FolderId)).ToList())
+        {
+            AutomationRules.Remove(rule);
+        }
+
+        foreach (var note in Notes.Where(n => n.FolderId is not null && ids.Contains(n.FolderId)).ToList())
+        {
+            Notes.Remove(note);
+        }
+
+        foreach (var location in Locations.Where(l => l.FolderId is not null && ids.Contains(l.FolderId)).ToList())
+        {
+            Locations.Remove(location);
+        }
+
+        foreach (var f in Folders.Where(f => ids.Contains(f.Id)).ToList())
+        {
+            Folders.Remove(f);
+        }
+
+        AfterFolderStructureChange(folder.Kind);
+    }
+
+    private void ToggleFolderGlobal(FolderNode? folder)
+    {
+        if (folder is null)
+        {
+            return;
+        }
+
+        SetFolderGlobalCascade(folder, !folder.IsGlobal);
+        AfterFolderStructureChange(folder.Kind);
+    }
+
+    private void ToggleFolderEnabled(FolderNode? folder)
+    {
+        if (folder is null)
+        {
+            return;
+        }
+
+        var ids = CollectSubtreeFolderIds(folder);
+        var timers = Timers.Where(t => t.FolderId is not null && ids.Contains(t.FolderId)).ToList();
+        var rules = AutomationRules.Where(r => r.FolderId is not null && ids.Contains(r.FolderId)).ToList();
+
+        // Enable all when anything is disabled, otherwise disable all.
+        var enable = timers.Any(t => !t.IsEnabled) || rules.Any(r => !r.IsEnabled);
+        foreach (var timer in timers)
+        {
+            timer.IsEnabled = enable;
+        }
+
+        foreach (var rule in rules)
+        {
+            rule.IsEnabled = enable;
+        }
+
+        AfterFolderStructureChange(folder.Kind);
+    }
+
+    /// <summary>Folder ids of the given folder plus every descendant folder.</summary>
+    private HashSet<string> CollectSubtreeFolderIds(FolderNode root)
+    {
+        var ids = new HashSet<string> { root.Id };
+        var changed = true;
+        var guard = 0;
+        while (changed && guard++ < 1000)
+        {
+            changed = false;
+            foreach (var folder in Folders)
+            {
+                if (folder.ParentId is not null && ids.Contains(folder.ParentId) && ids.Add(folder.Id))
+                {
+                    changed = true;
+                }
+            }
+        }
+
+        return ids;
+    }
+
+    /// <summary>Persists and re-syncs the engines affected by a folder change.</summary>
+    private void AfterFolderStructureChange(FolderKind kind)
+    {
+        RebuildFolderTrees();
+
+        if (kind is FolderKind.Aliases or FolderKind.Triggers)
+        {
+            ApplyAutomation();
+        }
+        else if (kind is FolderKind.Timers)
+        {
+            _timers.CancelAll();
+            SyncAllTimers();
+        }
+
+        SaveActiveProfile();
     }
 
     /// <summary>

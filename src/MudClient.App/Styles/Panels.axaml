@@ -43,6 +43,22 @@
     <Setter Property="Padding" Value="10" />
   </Style>
 
+  <!-- Folder header row inside the reusable FolderTreeView -->
+  <Style Selector="Border.mud-folder-row">
+    <Setter Property="Background" Value="{StaticResource MudBrushHeaderGradient}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="TextBox.mud-folder-name">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="2,0" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+  </Style>
+
   <!-- Small rounded label pill, e.g. rule type or interval -->
   <Style Selector="Border.mud-badge">
     <Setter Property="Background" Value="{StaticResource MudBrushSlate}" />

@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:controls="using:MudClient.App.Controls"
+             x:Class="MudClient.App.Controls.FolderTreeView"
+             x:CompileBindings="False">
+  <TreeView ItemsSource="{Binding Nodes, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+            Background="Transparent" BorderThickness="0" Padding="0"
+            SelectionMode="Single">
+    <TreeView.Styles>
+      <Style Selector="TreeViewItem">
+        <Setter Property="IsExpanded" Value="{Binding Folder.IsExpanded, Mode=TwoWay}" />
+      </Style>
+    </TreeView.Styles>
+    <TreeView.ItemTemplate>
+      <TreeDataTemplate ItemsSource="{Binding Children}" x:CompileBindings="False">
+        <Panel Margin="0,1">
+
+          <!-- Folder row -->
+          <Border IsVisible="{Binding IsFolder}"
+                  Classes="mud-folder-row" Padding="6,4">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="4">
+              <TextBox Grid.Column="0"
+                       Classes="mud-folder-name"
+                       Text="{Binding Folder.Name, Mode=TwoWay}"
+                       LostFocus="FolderName_OnLostFocus"
+                       KeyDown="FolderName_OnKeyDown"
+                       VerticalAlignment="Center" />
+
+              <Border Grid.Column="1" Classes="mud-badge" VerticalAlignment="Center"
+                      ToolTip.Tip="Liczba wpisów w folderze">
+                <TextBlock Text="{Binding ItemCount}" />
+              </Border>
+
+              <Border Grid.Column="2" Classes="mud-badge" VerticalAlignment="Center"
+                      IsVisible="{Binding Folder.IsGlobal}"
+                      ToolTip.Tip="Wspólny dla wszystkich kont">
+                <TextBlock Text="GLOBALNY" />
+              </Border>
+
+              <Button Grid.Column="3" Classes="mud-small"
+                      Content="⏻" Padding="6,2"
+                      IsVisible="{Binding SupportsEnableToggle, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                      ToolTip.Tip="Włącz / wyłącz wszystkie wpisy w folderze"
+                      Command="{Binding ToggleFolderEnabledCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                      CommandParameter="{Binding Folder}" />
+
+              <Button Grid.Column="4" Classes="mud-small"
+                      Content="🌐" Padding="6,2"
+                      ToolTip.Tip="Przełącz: folder globalny (wspólny dla kont)"
+                      Command="{Binding ToggleFolderGlobalCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                      CommandParameter="{Binding Folder}" />
+
+              <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4">
+                <Button Classes="mud-small"
+                        Content="＋" Padding="6,2"
+                        ToolTip.Tip="Nowy podfolder"
+                        Command="{Binding CreateSubfolderCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                        CommandParameter="{Binding Folder}" />
+                <Button Classes="mud-small mud-danger"
+                        Content="✕" Padding="6,2"
+                        ToolTip.Tip="Usuń folder wraz z zawartością"
+                        Command="{Binding DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                        CommandParameter="{Binding Folder}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Leaf row -->
+          <ContentControl IsVisible="{Binding !IsFolder}"
+                          Content="{Binding Content}"
+                          ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}" />
+        </Panel>
+      </TreeDataTemplate>
+    </TreeView.ItemTemplate>
+  </TreeView>
+</UserControl>

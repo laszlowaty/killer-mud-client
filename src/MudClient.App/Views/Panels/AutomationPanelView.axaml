@@ -2,9 +2,59 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:controls="using:MudClient.App.Controls"
              x:Class="MudClient.App.Views.Panels.AutomationPanelView"
              x:DataType="vm:MainWindowViewModel">
   <UserControl.Resources>
+    <!-- Leaf template for a timer inside the folder tree. -->
+    <DataTemplate x:Key="TimerItemTemplate" x:DataType="models:TimerEntry">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+        <StackPanel Spacing="6">
+
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
+                        VerticalAlignment="Center">
+              <TextBlock Text="{Binding Name}"
+                         VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis" />
+              <Border Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
+              </Border>
+              <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                      ToolTip.Tip="Wspólny dla wszystkich kont">
+                <TextBlock Text="GLOBALNY" />
+              </Border>
+            </StackPanel>
+
+            <ToggleButton Grid.Column="1" Classes="mud-switch"
+                          IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                          Content="{Binding StatusText}"
+                          Click="ToggleTimer_OnClick"
+                          ToolTip.Tip="Włącz / wyłącz timer" />
+
+            <Button Grid.Column="2"
+                    Classes="mud-small"
+                    Content="✎" Padding="6,2"
+                    ToolTip.Tip="Edytuj timer"
+                    Click="EditTimer_OnClick" />
+
+            <Button Grid.Column="3"
+                    Classes="mud-small mud-danger"
+                    Content="✕" Padding="6,2"
+                    ToolTip.Tip="Usuń timer"
+                    Click="DeleteTimer_OnClick" />
+          </Grid>
+
+          <Border Classes="mud-inset" Padding="8,5">
+            <TextBlock Text="{Binding CommandsText}"
+                       Foreground="{StaticResource MudBrushParchmentDim}"
+                       TextWrapping="Wrap" />
+          </Border>
+
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
     <!-- Shared item template for aliases and triggers (rendered in two sections). -->
     <DataTemplate x:Key="RuleItemTemplate" x:DataType="models:AutomationRuleEntry">
       <Border Classes="mud-section" Padding="10,8" Margin="0,2">
@@ -106,57 +156,20 @@
                  Text="Brak timerów. Timer powtarza komendy w nieskończoność, dopóki go nie wyłączysz."
                  IsVisible="{Binding !Timers.Count}" />
 
-      <ItemsControl ItemsSource="{Binding Timers}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="models:TimerEntry">
-            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
-              <StackPanel Spacing="6">
+      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+              HorizontalAlignment="Left"
+              ToolTip.Tip="Utwórz folder na timery"
+              Command="{Binding CreateFolderCommand}"
+              CommandParameter="{x:Static models:FolderKind.Timers}" />
 
-                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                  <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
-                              VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-                    <Border Classes="mud-badge mud-badge-gold">
-                      <TextBlock Text="{Binding IntervalText, StringFormat='co {0}'}" />
-                    </Border>
-                    <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                            ToolTip.Tip="Wspólny dla wszystkich kont">
-                      <TextBlock Text="GLOBALNY" />
-                    </Border>
-                  </StackPanel>
-
-                  <ToggleButton Grid.Column="1" Classes="mud-switch"
-                                IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                Content="{Binding StatusText}"
-                                Click="ToggleTimer_OnClick"
-                                ToolTip.Tip="Włącz / wyłącz timer" />
-
-                  <Button Grid.Column="2"
-                          Classes="mud-small"
-                          Content="✎" Padding="6,2"
-                          ToolTip.Tip="Edytuj timer"
-                          Click="EditTimer_OnClick" />
-
-                  <Button Grid.Column="3"
-                          Classes="mud-small mud-danger"
-                          Content="✕" Padding="6,2"
-                          ToolTip.Tip="Usuń timer"
-                          Click="DeleteTimer_OnClick" />
-                </Grid>
-
-                <Border Classes="mud-inset" Padding="8,5">
-                  <TextBlock Text="{Binding CommandsText}"
-                             Foreground="{StaticResource MudBrushParchmentDim}"
-                             TextWrapping="Wrap" />
-                </Border>
-
-              </StackPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <controls:FolderTreeView Nodes="{Binding TimerTree}"
+                               ItemTemplate="{StaticResource TimerItemTemplate}"
+                               SupportsEnableToggle="True"
+                               CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                               RenameFolderCommand="{Binding RenameFolderCommand}"
+                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                               ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
       <!-- ===== Aliasy i triggery ===== -->
       <TextBlock Classes="mud-heading" Text="ALIASY I TRIGGERY" Margin="0,10,0,0" />
@@ -226,8 +239,20 @@
                  Text="Brak aliasów. Alias podmienia komendę, którą wpisujesz (np. skrót)."
                  IsVisible="{Binding !AliasRules.Count}" />
 
-      <ItemsControl ItemsSource="{Binding AliasRules}"
-                    ItemTemplate="{StaticResource RuleItemTemplate}" />
+      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+              HorizontalAlignment="Left"
+              ToolTip.Tip="Utwórz folder na aliasy"
+              Command="{Binding CreateFolderCommand}"
+              CommandParameter="{x:Static models:FolderKind.Aliases}" />
+
+      <controls:FolderTreeView Nodes="{Binding AliasTree}"
+                               ItemTemplate="{StaticResource RuleItemTemplate}"
+                               SupportsEnableToggle="True"
+                               CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                               RenameFolderCommand="{Binding RenameFolderCommand}"
+                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                               ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
       <!-- Triggery -->
       <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
@@ -241,8 +266,20 @@
                  Text="Brak triggerów. Trigger wysyła akcję, gdy linia z serwera pasuje do wzorca."
                  IsVisible="{Binding !TriggerRules.Count}" />
 
-      <ItemsControl ItemsSource="{Binding TriggerRules}"
-                    ItemTemplate="{StaticResource RuleItemTemplate}" />
+      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+              HorizontalAlignment="Left"
+              ToolTip.Tip="Utwórz folder na triggery"
+              Command="{Binding CreateFolderCommand}"
+              CommandParameter="{x:Static models:FolderKind.Triggers}" />
+
+      <controls:FolderTreeView Nodes="{Binding TriggerTree}"
+                               ItemTemplate="{StaticResource RuleItemTemplate}"
+                               SupportsEnableToggle="True"
+                               CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                               RenameFolderCommand="{Binding RenameFolderCommand}"
+                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                               ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
     </StackPanel>
   </ScrollViewer>
