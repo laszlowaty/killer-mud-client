@@ -129,7 +129,7 @@ public sealed class PinnedTabUiTests : IDisposable
     [InlineData(Alignment.Right)]
     [InlineData(Alignment.Top)]
     [InlineData(Alignment.Bottom)]
-    public void PinnedTool_Preview_OpensAtHalfDockArea(Alignment edge)
+    public void PinnedTool_Preview_UsesFixedEdgeProportion(Alignment edge)
     {
         var viewModel = new MainWindowViewModel();
         var window = ShowWindow(viewModel);
@@ -148,11 +148,32 @@ public sealed class PinnedTabUiTests : IDisposable
         Pump(window);
 
         gmcp.GetPinnedBounds(out _, out _, out var width, out var height);
-        var horizontal = edge is Alignment.Left or Alignment.Right;
-        var expected = (horizontal ? dockControl.Bounds.Width : dockControl.Bounds.Height) / 2.0;
-        var actual = horizontal ? width : height;
+        var side = edge is Alignment.Left or Alignment.Right;
+        var expected = side ? dockControl.Bounds.Width / 3.0 : dockControl.Bounds.Height / 2.0;
+        var actual = side ? width : height;
         Assert.True(Math.Abs(actual - expected) <= 1.0,
-            $"Pinned preview size for {edge} should be half the dock area (~{expected:F1}) but was {actual:F1}.");
+            $"Pinned preview size for {edge} should use the fixed edge proportion (~{expected:F1}) but was {actual:F1}.");
+
+        // The preview can still be resized while it is open.
+        ((IFactory)factory).TogglePreviewPinnedDockable(gmcp);
+        Pump(window);
+        var resizeSplitter = window.GetVisualDescendants().OfType<GridSplitter>()
+            .FirstOrDefault(splitter => splitter.Name == "PART_PinnedDockSplitter");
+        Assert.NotNull(resizeSplitter);
+        Assert.True(resizeSplitter.IsEffectivelyVisible && resizeSplitter.IsHitTestVisible,
+            "Pinned preview resize splitter should remain usable.");
+
+        // Simulate that resize, close the preview, then open it again. The next expansion must
+        // discard the resized value and recompute the fixed proportion from current dock bounds.
+        gmcp.SetPinnedBounds(0, 0, 123, 123);
+        ((IFactory)factory).TogglePreviewPinnedDockable(gmcp);
+        ((IFactory)factory).TogglePreviewPinnedDockable(gmcp);
+        Pump(window);
+
+        gmcp.GetPinnedBounds(out _, out _, out width, out height);
+        actual = side ? width : height;
+        Assert.True(Math.Abs(actual - expected) <= 1.0,
+            $"Pinned preview size for {edge} remembered a previous size instead of returning to ~{expected:F1}.");
     }
 
     // Mirrors a real user profile: several tools pinned to different edges, restored via

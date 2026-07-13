@@ -11,7 +11,7 @@ namespace MudClient.App.Docking;
 /// Builds the default dock layout (map / room info | terminal | six right-side panels)
 /// and tracks tools the user has closed so they can be restored from the "Panele" menu.
 /// </summary>
-public sealed class MudDockFactory : Factory
+public sealed class MudDockFactory : Factory, IFactory
 {
     private readonly object _mapContext;
     private readonly object _mainContext;
@@ -33,8 +33,8 @@ public sealed class MudDockFactory : Factory
     public ObservableCollection<PanelTool> HiddenTools { get; } = new();
 
     /// <summary>
-    /// Supplies the desired expanded size (in DIPs) for a freshly pinned edge tab's preview:
-    /// half the dock area's width for <see cref="Alignment.Left"/>/<see cref="Alignment.Right"/>,
+    /// Supplies the fixed expanded size (in DIPs) for a pinned edge tab's preview: one third of
+    /// the dock area's width for <see cref="Alignment.Left"/>/<see cref="Alignment.Right"/> and
     /// half its height for <see cref="Alignment.Top"/>/<see cref="Alignment.Bottom"/>. Wired from
     /// the view, which knows the live control bounds; left null in headless tests, where the
     /// preview keeps Dock's content-sized default.
@@ -86,18 +86,15 @@ public sealed class MudDockFactory : Factory
         PinDockable(tool);
         owner.Alignment = saved;
 
-        ApplyDefaultPinnedSize(tool, edge);
+        ApplyFixedPinnedSize(tool, edge);
     }
 
     /// <summary>
-    /// Gives a newly pinned tab a preview that opens at half the dock area — half the width for
-    /// a side (Left/Right) tab, half the height for a top/bottom tab. Dock reads the expanded
-    /// size from the tool's <c>PinnedBounds</c>; <see cref="PinDockable"/> seeds those bounds with
-    /// the collapsed pane's own (much smaller) size, so this must run <em>after</em> pinning and
-    /// overwrite it. Both axes are stored (only the edge's axis is applied to the preview) so Dock
-    /// treats the size as explicit and won't reset it to the content's desired size on later passes.
+    /// Replaces Dock's remembered <c>PinnedBounds</c> with the configured fixed edge size. Both
+    /// axes are stored (only the edge's axis is applied to the preview) so Dock treats the size as
+    /// explicit rather than falling back to the panel content's desired size.
     /// </summary>
-    private void ApplyDefaultPinnedSize(PanelTool tool, Alignment edge)
+    private void ApplyFixedPinnedSize(PanelTool tool, Alignment edge)
     {
         if (PinnedPreviewSizeProvider is not { } provider)
         {
@@ -113,6 +110,41 @@ public sealed class MudDockFactory : Factory
         // Off-axis dimension is irrelevant to the preview but must stay valid so Dock keeps the
         // on-axis size fixed; reuse the same value rather than leaving it NaN.
         tool.SetPinnedBounds(0, 0, size, size);
+    }
+
+    /// <summary>
+    /// Dock's tab button invokes this method through <see cref="IFactory"/>. Reset the bounds on
+    /// every toggle so a previous splitter drag or a window resize is never remembered by the next
+    /// expansion; the preview is always recalculated from the live dock dimensions.
+    /// </summary>
+    void IFactory.TogglePreviewPinnedDockable(IDockable dockable)
+    {
+        if (dockable is PanelTool tool && FindPinnedEdge(tool) is { } edge)
+        {
+            ApplyFixedPinnedSize(tool, edge);
+        }
+
+        TogglePreviewPinnedDockable(dockable);
+    }
+
+    private Alignment? FindPinnedEdge(PanelTool tool)
+    {
+        if (_root?.LeftPinnedDockables?.Contains(tool) == true)
+        {
+            return Alignment.Left;
+        }
+
+        if (_root?.RightPinnedDockables?.Contains(tool) == true)
+        {
+            return Alignment.Right;
+        }
+
+        if (_root?.TopPinnedDockables?.Contains(tool) == true)
+        {
+            return Alignment.Top;
+        }
+
+        return _root?.BottomPinnedDockables?.Contains(tool) == true ? Alignment.Bottom : null;
     }
 
     private static bool IsValidSize(double size) => !double.IsNaN(size) && !double.IsInfinity(size) && size > 0;

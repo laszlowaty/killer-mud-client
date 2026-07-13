@@ -313,8 +313,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
 
     /// <summary>
-    /// Lets the view supply the live dock-area size so newly pinned edge tabs open at half the
-    /// screen (width for side tabs, height for top/bottom tabs). The factory itself is UI-agnostic.
+    /// Lets the view supply the live fixed preview size: one third of the dock width for side tabs
+    /// and half its height for top/bottom tabs. The factory itself is UI-agnostic.
     /// </summary>
     public void ConfigurePinnedPreviewSize(Func<Dock.Model.Core.Alignment, double> provider) =>
         _dockFactory.PinnedPreviewSizeProvider = provider;

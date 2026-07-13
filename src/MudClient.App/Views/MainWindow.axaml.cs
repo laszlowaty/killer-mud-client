@@ -27,8 +27,9 @@ public partial class MainWindow : Window
         DataContextChanged += (_, _) =>
         {
             _viewModel = DataContext as MainWindowViewModel;
-            // Pinned edge tabs open at half the dock area (width for side tabs, height for
-            // top/bottom tabs); the view supplies the live size the UI-agnostic factory can't see.
+            // Pinned edge tabs use fixed proportions of the live dock area: one third of its
+            // width at the sides and half its height at the top/bottom. The view supplies the
+            // dimensions because the UI-agnostic factory cannot see the rendered DockControl.
             _viewModel?.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
         };
 
@@ -108,9 +109,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Half the live dock area for the given edge: half its width for a side (Left/Right) tab,
-    /// half its height for a top/bottom tab. Falls back to the window client size before the dock
-    /// has been laid out.
+    /// The fixed preview size for the given edge: one third of the live dock width for a side
+    /// (Left/Right) tab and half its height for a top/bottom tab. Falls back to the window client
+    /// size before the dock has been laid out.
     /// </summary>
     private double GetPinnedPreviewSize(Dock.Model.Core.Alignment edge)
     {
@@ -122,8 +123,8 @@ public partial class MainWindow : Window
             height = ClientSize.Height;
         }
 
-        var horizontal = edge is Dock.Model.Core.Alignment.Left or Dock.Model.Core.Alignment.Right;
-        return (horizontal ? width : height) / 2.0;
+        var side = edge is Dock.Model.Core.Alignment.Left or Dock.Model.Core.Alignment.Right;
+        return side ? width / 3.0 : height / 2.0;
     }
 
     private void Window_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
