@@ -796,6 +796,37 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
     // ====================================================================
     // Alias / trigger split views (AliasRules / TriggerRules)
+
+    [Fact]
+    public void SeparateAddCommands_OpenFormWithFixedRuleType()
+    {
+        _vm.StartAddTriggerCommand.Execute(null);
+        Assert.Equal("trigger", _vm.NewRuleType);
+        Assert.True(_vm.IsRuleFormExpanded);
+        Assert.True(_vm.IsTriggerRuleFormVisible);
+        Assert.False(_vm.IsAliasRuleFormVisible);
+        Assert.Equal(2, _vm.SelectedAutomationTabIndex);
+        Assert.Equal("＋ Nowy trigger", _vm.RuleFormHeader);
+
+        _vm.StartAddAliasCommand.Execute(null);
+        Assert.Equal("alias", _vm.NewRuleType);
+        Assert.True(_vm.IsAliasRuleFormVisible);
+        Assert.False(_vm.IsTriggerRuleFormVisible);
+        Assert.Equal(1, _vm.SelectedAutomationTabIndex);
+        Assert.Equal("＋ Nowy alias", _vm.RuleFormHeader);
+    }
+
+    [Fact]
+    public void StartAddTimer_OpensTimerEditorOnTimerTab()
+    {
+        _vm.SelectedAutomationTabIndex = 2;
+
+        _vm.StartAddTimerCommand.Execute(null);
+
+        Assert.Equal(0, _vm.SelectedAutomationTabIndex);
+        Assert.True(_vm.IsTimerFormExpanded);
+        Assert.Equal("＋ Nowy timer", _vm.TimerFormHeader);
+    }
     // ====================================================================
 
     [Fact]

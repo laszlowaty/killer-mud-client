@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Alias or trigger shown in the UI. Pattern is a .NET regex; Action may use
 /// capture-group substitutions like $1.
 /// </summary>
-public sealed class AutomationRuleEntry : ObservableObject, IFolderItem
+public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderItem
 {
     private string _name;
     private string _type;

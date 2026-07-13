@@ -18,6 +18,13 @@
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="10,5" />
   </Style>
+  <Style Selector="TabControl.mud-automation-tabs TabItem">
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="MinWidth" Value="82" />
+  </Style>
+  <Style Selector="TabControl.mud-automation-tabs TabItem Border.mud-badge">
+    <Setter Property="Padding" Value="5,1" />
+  </Style>
   <Style Selector="TabItem:selected">
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
   </Style>

@@ -34,6 +34,7 @@ public sealed class EditRuleClickTests
 
         viewModel.AutomationRules.Add(new AutomationRuleEntry(
             "test", "trigger", "^abc$", "def", isEnabled: true));
+        viewModel.SelectedAutomationTabIndex = 2;
 
         // The Automation panel lives in a Dock layout whose ToolDock creates
         // views lazily (only for the active tool).  To make the edit button

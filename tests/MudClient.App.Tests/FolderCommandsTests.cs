@@ -147,12 +147,69 @@ public sealed class FolderCommandsTests : IAsyncDisposable
         _vm.AutomationRules.Add(t1);
         _vm.AutomationRules.Add(t2);
 
-        _vm.ToggleFolderEnabledCommand.Execute(folder);
-        Assert.False(t1.IsEnabled);
-        Assert.False(t2.IsEnabled);
+        var root = Assert.Single(_vm.TriggerTree);
+        Assert.True(root.IsAllEnabled);
+        Assert.Equal("AKTYWNY", root.ActivationText);
+
+        _vm.ToggleRuleCommand.Execute(t1);
+        root = Assert.Single(_vm.TriggerTree);
+        Assert.True(root.IsMixedActivation);
+        Assert.Equal("MIESZANY", root.ActivationText);
 
         _vm.ToggleFolderEnabledCommand.Execute(folder);
         Assert.True(t1.IsEnabled);
         Assert.True(t2.IsEnabled);
+        Assert.True(Assert.Single(_vm.TriggerTree).IsAllEnabled);
+
+        _vm.ToggleFolderEnabledCommand.Execute(folder);
+        Assert.False(t1.IsEnabled);
+        Assert.False(t2.IsEnabled);
+        root = Assert.Single(_vm.TriggerTree);
+        Assert.True(root.IsAllDisabled);
+        Assert.Equal("WYŁĄCZONY", root.ActivationText);
+    }
+
+    [Fact]
+    public void MoveIntoFolder_MovesItemAndInheritsGlobalOwnership()
+    {
+        _vm.CreateFolderCommand.Execute(FolderKind.Aliases);
+        var target = _vm.Folders.Single();
+        target.IsGlobal = true;
+        var alias = new AutomationRuleEntry("a", "alias", "^a$", "b", true);
+        _vm.AutomationRules.Add(alias);
+
+        _vm.MoveIntoFolderCommand.Execute(new FolderMoveRequest(alias, target));
+
+        Assert.Equal(target.Id, alias.FolderId);
+        Assert.True(alias.IsGlobal);
+        Assert.Same(alias, Assert.Single(Assert.Single(_vm.AliasTree).Children).Content);
+    }
+
+    [Fact]
+    public void MoveIntoFolder_NestsFolderButRejectsCycle()
+    {
+        _vm.CreateFolderCommand.Execute(FolderKind.Timers);
+        var parent = _vm.Folders.Single();
+        _vm.CreateFolderCommand.Execute(FolderKind.Timers);
+        var target = _vm.Folders.Last();
+
+        _vm.MoveIntoFolderCommand.Execute(new FolderMoveRequest(parent, target));
+        Assert.Equal(target.Id, parent.ParentId);
+
+        _vm.MoveIntoFolderCommand.Execute(new FolderMoveRequest(target, parent));
+        Assert.Null(target.ParentId);
+    }
+
+    [Fact]
+    public void MoveIntoFolder_RejectsCrossDomainMove()
+    {
+        _vm.CreateFolderCommand.Execute(FolderKind.Triggers);
+        var target = _vm.Folders.Single();
+        var timer = new TimerEntry { Name = "t", Seconds = 1, CommandsText = "look" };
+        _vm.Timers.Add(timer);
+
+        _vm.MoveIntoFolderCommand.Execute(new FolderMoveRequest(timer, target));
+
+        Assert.Null(timer.FolderId);
     }
 }

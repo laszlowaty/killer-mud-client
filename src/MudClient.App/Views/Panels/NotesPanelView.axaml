@@ -85,6 +85,7 @@
       <controls:FolderTreeView Nodes="{Binding NoteTree}"
                                ItemTemplate="{StaticResource NoteItemTemplate}"
                                SupportsEnableToggle="False"
+                               MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
                                DeleteFolderCommand="{Binding DeleteFolderCommand}"

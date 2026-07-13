@@ -11,7 +11,7 @@
       <Border Classes="mud-section" Padding="10,8" Margin="0,2">
         <StackPanel Spacing="6">
 
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="6">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
                         VerticalAlignment="Center">
               <TextBlock Text="{Binding Name}"
@@ -39,6 +39,12 @@
                     Click="EditTimer_OnClick" />
 
             <Button Grid.Column="3"
+                    Classes="mud-small"
+                    Content="⇩" Padding="6,2"
+                    ToolTip.Tip="Eksportuj timer do JSON"
+                    Click="ExportItem_OnClick" />
+
+            <Button Grid.Column="4"
                     Classes="mud-small mud-danger"
                     Content="✕" Padding="6,2"
                     ToolTip.Tip="Usuń timer"
@@ -60,27 +66,31 @@
       <Border Classes="mud-section" Padding="10,8" Margin="0,2">
         <StackPanel Spacing="4">
 
-          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
-            <Border Grid.Column="0" Classes="mud-badge mud-badge-gold">
-              <TextBlock Text="{Binding Type}" />
-            </Border>
-            <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6">
+            <TextBlock Grid.Column="0" Text="{Binding Name}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource MudBrushParchment}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+            <Border Grid.Column="1" Classes="mud-badge mud-badge-gold" IsVisible="{Binding IsGlobal}"
                     ToolTip.Tip="Wspólna dla wszystkich kont">
               <TextBlock Text="GLOBALNA" />
             </Border>
-            <TextBlock Grid.Column="2" Text="{Binding Name}"
-                       VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" />
-            <ToggleButton Grid.Column="3" Classes="mud-switch"
+            <ToggleButton Grid.Column="2" Classes="mud-switch"
                           IsChecked="{Binding IsEnabled, Mode=OneWay}"
                           Content="{Binding StatusText}"
                           Click="ToggleRule_OnClick"
                           ToolTip.Tip="Włącz / wyłącz regułę" />
-            <Button Grid.Column="4"
+            <Button Grid.Column="3"
                     Classes="mud-small"
                     Content="✎" Padding="6,2"
                     ToolTip.Tip="Edytuj regułę"
                     Click="EditRule_OnClick" />
+            <Button Grid.Column="4"
+                    Classes="mud-small"
+                    Content="⇩" Padding="6,2"
+                    ToolTip.Tip="Eksportuj wpis do JSON"
+                    Click="ExportItem_OnClick" />
             <Button Grid.Column="5"
                     Classes="mud-small mud-danger"
                     Content="✕" Padding="6,2"
@@ -100,187 +110,221 @@
         </StackPanel>
       </Border>
     </DataTemplate>
-  </UserControl.Resources>
-  <ScrollViewer>
-    <StackPanel Spacing="8" Margin="12">
 
-      <!-- ===== Timery ===== -->
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Classes="mud-heading" Text="TIMERY" VerticalAlignment="Center" />
-        <Border Grid.Column="1" Classes="mud-badge">
-          <TextBlock Text="{Binding Timers.Count}" />
+    <DataTemplate x:Key="TimerEditorTemplate" x:DataType="vm:MainWindowViewModel">
+      <StackPanel Spacing="8">
+        <TextBox Text="{Binding NewTimerName}" PlaceholderText="Nazwa timera…" />
+        <StackPanel Spacing="3">
+          <TextBlock Classes="mud-faint" Text="Interwał powtarzania" />
+          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Text="{Binding NewTimerMinutes}" PlaceholderText="0" InnerRightContent="min" />
+            <TextBox Grid.Column="1" Text="{Binding NewTimerSeconds}" PlaceholderText="0" InnerRightContent="s" />
+            <TextBox Grid.Column="2" Text="{Binding NewTimerMilliseconds}" PlaceholderText="0" InnerRightContent="ms" />
+          </Grid>
+        </StackPanel>
+        <StackPanel Spacing="3">
+          <TextBlock Classes="mud-faint" Text="Komendy — każda w osobnej linii" />
+          <TextBox Text="{Binding NewTimerCommands}"
+                   PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
+                   MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
+        </StackPanel>
+        <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
+                  Content="Globalny — dostępny na wszystkich kontach" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <Button Content="{Binding TimerFormButtonText}" Command="{Binding AddTimerCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+          <Button Grid.Column="1" Content="Anuluj" Command="{Binding CancelTimerEditCommand}" />
+        </Grid>
+      </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RuleEditorTemplate" x:DataType="vm:MainWindowViewModel">
+      <StackPanel Spacing="8">
+        <TextBox Text="{Binding NewRuleName}" PlaceholderText="Nazwa…" />
+        <StackPanel Spacing="3">
+          <TextBlock Classes="mud-faint" Text="Wzorzec (regex .NET)" />
+          <TextBox Text="{Binding NewRulePattern}"
+                   PlaceholderText="np. ^zb (.+)$  albo  (\w+) upada na ziemie" />
+          <TextBlock Text="{Binding NewRulePatternError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     TextWrapping="Wrap" IsVisible="{Binding HasNewRulePatternError}" />
+        </StackPanel>
+        <StackPanel Spacing="3">
+          <TextBlock Classes="mud-faint" Text="Akcja — komendy w osobnych liniach; grupy: $1, $2…" />
+          <TextBox Text="{Binding NewRuleAction}"
+                   PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
+                   MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
+        </StackPanel>
+        <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
+                  Content="Globalny — dostępny na wszystkich kontach" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <Button Content="{Binding RuleFormButtonText}" Command="{Binding AddRuleCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+          <Button Grid.Column="1" Content="Anuluj" Command="{Binding CancelRuleEditCommand}" />
+        </Grid>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+  <TabControl Classes="mud-subtabs mud-automation-tabs"
+              SelectedIndex="{Binding SelectedAutomationTabIndex, Mode=TwoWay}">
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Timery" />
+          <Border Classes="mud-badge"><TextBlock Text="{Binding Timers.Count}" /></Border>
+        </StackPanel>
+      </TabItem.Header>
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="mud-bar-bottom">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <Button Content="＋ Nowy timer" Command="{Binding StartAddTimerCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
+                    ToolTip.Tip="Utwórz folder na timery"
+                    Command="{Binding CreateFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Timers}" />
+            <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
+                    ToolTip.Tip="Importuj timery lub folder z pliku JSON"
+                    Tag="{x:Static models:FolderKind.Timers}" Click="Import_OnClick" />
+          </Grid>
         </Border>
-      </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8" Margin="10,8,10,12">
 
       <Expander Classes="mud-expander"
                 Header="{Binding TimerFormHeader}"
-                IsExpanded="{Binding IsTimerFormExpanded}">
-        <StackPanel Spacing="8" Margin="0,8,0,0">
-          <TextBox Text="{Binding NewTimerName}" PlaceholderText="Nazwa timera…" />
-
-          <StackPanel Spacing="2">
-            <TextBlock Classes="mud-faint" Text="Interwał powtarzania" />
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
-              <TextBox Grid.Column="0" Text="{Binding NewTimerMinutes}"
-                       PlaceholderText="0" InnerRightContent="min" />
-              <TextBox Grid.Column="1" Text="{Binding NewTimerSeconds}"
-                       PlaceholderText="0" InnerRightContent="s" />
-              <TextBox Grid.Column="2" Text="{Binding NewTimerMilliseconds}"
-                       PlaceholderText="0" InnerRightContent="ms" />
-            </Grid>
-          </StackPanel>
-
-          <StackPanel Spacing="2">
-            <TextBlock Classes="mud-faint" Text="Komendy — jedna w linii, wysyłane w kolejności" />
-            <TextBox Text="{Binding NewTimerCommands}"
-                     PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
-                     MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
-          </StackPanel>
-
-          <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
-                    Content="Globalny — wspólny dla wszystkich kont" />
-
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <Button Grid.Column="0" Content="{Binding TimerFormButtonText}"
-                    Command="{Binding AddTimerCommand}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center" Padding="16,6" />
-            <Button Grid.Column="1" Content="Anuluj"
-                    Command="{Binding CancelTimerEditCommand}"
-                    IsVisible="{Binding IsEditingTimer}" Padding="16,6" />
-          </Grid>
-        </StackPanel>
+                IsExpanded="{Binding IsTimerFormExpanded}"
+                IsVisible="{Binding IsTimerFormExpanded}">
+        <ContentControl Content="{Binding}"
+                        ContentTemplate="{StaticResource TimerEditorTemplate}"
+                        Margin="0,8,0,0" />
       </Expander>
 
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Brak timerów. Timer powtarza komendy w nieskończoność, dopóki go nie wyłączysz."
                  IsVisible="{Binding !Timers.Count}" />
 
-      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
-              HorizontalAlignment="Left"
-              ToolTip.Tip="Utwórz folder na timery"
-              Command="{Binding CreateFolderCommand}"
-              CommandParameter="{x:Static models:FolderKind.Timers}" />
-
       <controls:FolderTreeView Nodes="{Binding TimerTree}"
                                ItemTemplate="{StaticResource TimerItemTemplate}"
                                SupportsEnableToggle="True"
+                               SupportsExport="True"
+                               FolderExportRequested="FolderTree_OnFolderExportRequested"
+                               MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
                                DeleteFolderCommand="{Binding DeleteFolderCommand}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
-      <!-- ===== Aliasy i triggery ===== -->
-      <TextBlock Classes="mud-heading" Text="ALIASY I TRIGGERY" Margin="0,10,0,0" />
-
-      <Expander Classes="mud-expander"
-                Header="{Binding RuleFormHeader}"
-                IsExpanded="{Binding IsRuleFormExpanded}">
-        <StackPanel Spacing="8" Margin="0,8,0,0">
-
-          <StackPanel Spacing="2">
-            <TextBlock Classes="mud-faint" Text="Typ reguły" />
-            <ComboBox ItemsSource="{Binding RuleTypes}"
-                      SelectedItem="{Binding NewRuleType}"
-                      HorizontalAlignment="Stretch" />
-            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                       Text="Alias podmienia komendę, którą wpisujesz. Trigger reaguje na linię z serwera."
-                       IsVisible="{Binding NewRuleIsAlias}" />
-            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                       Text="Trigger wysyła akcję, gdy linia z serwera pasuje do wzorca."
-                       IsVisible="{Binding !NewRuleIsAlias}" />
           </StackPanel>
-
-          <TextBox Text="{Binding NewRuleName}" PlaceholderText="Nazwa reguły…" />
-
-          <StackPanel Spacing="2">
-            <TextBlock Classes="mud-faint" Text="Wzorzec (regex .NET)" />
-            <TextBox Text="{Binding NewRulePattern}"
-                     PlaceholderText="np. ^zb (.+)$  albo  (\w+) upada na ziemie"
-                     />
-            <TextBlock Text="{Binding NewRulePatternError}"
-                       Foreground="{StaticResource MudBrushCrimsonBright}"
-                       TextWrapping="Wrap"
-                       IsVisible="{Binding HasNewRulePatternError}" />
-          </StackPanel>
-
-          <StackPanel Spacing="2">
-            <TextBlock Classes="mud-faint" Text="Akcja — jedna komenda w linii; możesz użyć grup: $1, $2…" />
-            <TextBox Text="{Binding NewRuleAction}"
-                     PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
-                     MinHeight="70" AcceptsReturn="True" TextWrapping="Wrap" />
-          </StackPanel>
-
-          <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
-                    Content="Globalna — wspólna dla wszystkich kont" />
-
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <Button Grid.Column="0" Content="{Binding RuleFormButtonText}"
-                    Command="{Binding AddRuleCommand}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center" Padding="16,6" />
-            <Button Grid.Column="1" Content="Anuluj"
-                    Command="{Binding CancelRuleEditCommand}"
-                    IsVisible="{Binding IsEditingRule}" Padding="16,6" />
-          </Grid>
-        </StackPanel>
-      </Expander>
-
-      <!-- Aliasy -->
-      <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-        <TextBlock Classes="mud-heading" Text="ALIASY" VerticalAlignment="Center" />
-        <Border Grid.Column="1" Classes="mud-badge">
-          <TextBlock Text="{Binding AliasRules.Count}" />
-        </Border>
+        </ScrollViewer>
       </Grid>
+    </TabItem>
+
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Aliasy" />
+          <Border Classes="mud-badge"><TextBlock Text="{Binding AliasRules.Count}" /></Border>
+        </StackPanel>
+      </TabItem.Header>
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="mud-bar-bottom">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <Button Content="＋ Nowy alias" Command="{Binding StartAddAliasCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
+                    ToolTip.Tip="Utwórz folder na aliasy"
+                    Command="{Binding CreateFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Aliases}" />
+            <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
+                    ToolTip.Tip="Importuj alias lub folder z pliku JSON"
+                    Tag="{x:Static models:FolderKind.Aliases}" Click="Import_OnClick" />
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8" Margin="10,8,10,12">
+            <Expander Classes="mud-expander"
+                      Header="{Binding RuleFormHeader}"
+                      IsExpanded="{Binding IsRuleFormExpanded}"
+                      IsVisible="{Binding IsAliasRuleFormVisible}">
+              <ContentControl Content="{Binding}"
+                              ContentTemplate="{StaticResource RuleEditorTemplate}"
+                              Margin="0,8,0,0" />
+            </Expander>
 
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Brak aliasów. Alias podmienia komendę, którą wpisujesz (np. skrót)."
                  IsVisible="{Binding !AliasRules.Count}" />
 
-      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
-              HorizontalAlignment="Left"
-              ToolTip.Tip="Utwórz folder na aliasy"
-              Command="{Binding CreateFolderCommand}"
-              CommandParameter="{x:Static models:FolderKind.Aliases}" />
-
       <controls:FolderTreeView Nodes="{Binding AliasTree}"
                                ItemTemplate="{StaticResource RuleItemTemplate}"
                                SupportsEnableToggle="True"
+                               SupportsExport="True"
+                               FolderExportRequested="FolderTree_OnFolderExportRequested"
+                               MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
                                DeleteFolderCommand="{Binding DeleteFolderCommand}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
-      <!-- Triggery -->
-      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-        <TextBlock Classes="mud-heading" Text="TRIGGERY" VerticalAlignment="Center" />
-        <Border Grid.Column="1" Classes="mud-badge">
-          <TextBlock Text="{Binding TriggerRules.Count}" />
-        </Border>
+          </StackPanel>
+        </ScrollViewer>
       </Grid>
+    </TabItem>
+
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Triggery" />
+          <Border Classes="mud-badge"><TextBlock Text="{Binding TriggerRules.Count}" /></Border>
+        </StackPanel>
+      </TabItem.Header>
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="mud-bar-bottom">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <Button Content="＋ Nowy trigger" Command="{Binding StartAddTriggerCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
+                    ToolTip.Tip="Utwórz folder na triggery"
+                    Command="{Binding CreateFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Triggers}" />
+            <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
+                    ToolTip.Tip="Importuj trigger lub folder z pliku JSON"
+                    Tag="{x:Static models:FolderKind.Triggers}" Click="Import_OnClick" />
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8" Margin="10,8,10,12">
+            <Expander Classes="mud-expander"
+                      Header="{Binding RuleFormHeader}"
+                      IsExpanded="{Binding IsRuleFormExpanded}"
+                      IsVisible="{Binding IsTriggerRuleFormVisible}">
+              <ContentControl Content="{Binding}"
+                              ContentTemplate="{StaticResource RuleEditorTemplate}"
+                              Margin="0,8,0,0" />
+            </Expander>
 
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Brak triggerów. Trigger wysyła akcję, gdy linia z serwera pasuje do wzorca."
                  IsVisible="{Binding !TriggerRules.Count}" />
 
-      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
-              HorizontalAlignment="Left"
-              ToolTip.Tip="Utwórz folder na triggery"
-              Command="{Binding CreateFolderCommand}"
-              CommandParameter="{x:Static models:FolderKind.Triggers}" />
-
       <controls:FolderTreeView Nodes="{Binding TriggerTree}"
                                ItemTemplate="{StaticResource RuleItemTemplate}"
                                SupportsEnableToggle="True"
+                               SupportsExport="True"
+                               FolderExportRequested="FolderTree_OnFolderExportRequested"
+                               MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
                                DeleteFolderCommand="{Binding DeleteFolderCommand}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
-    </StackPanel>
-  </ScrollViewer>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+  </TabControl>
 </UserControl>

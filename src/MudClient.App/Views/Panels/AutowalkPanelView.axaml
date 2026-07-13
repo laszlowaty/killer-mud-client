@@ -123,6 +123,7 @@
       <controls:FolderTreeView Nodes="{Binding AutowalkTree}"
                                ItemTemplate="{StaticResource LocationItemTemplate}"
                                SupportsEnableToggle="False"
+                               MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
                                DeleteFolderCommand="{Binding DeleteFolderCommand}"

@@ -50,6 +50,18 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
+  <Style Selector="Border.mud-folder-row.mud-folder-enabled">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushEmerald}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.mud-folder-row.mud-folder-disabled">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushCrimson}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.mud-folder-row.mud-folder-mixed">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushAmberWarn}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
 
   <Style Selector="TextBox.mud-folder-name">
     <Setter Property="Background" Value="Transparent" />
@@ -76,6 +88,12 @@
   </Style>
   <Style Selector="Border.mud-badge-green > TextBlock">
     <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+  </Style>
+  <Style Selector="Border.mud-badge-red > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
+  </Style>
+  <Style Selector="Border.mud-badge-amber > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushAmberWarn}" />
   </Style>
 
   <!-- Themed expander used for "add new..." forms in the sidebar -->

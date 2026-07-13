@@ -4,6 +4,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using MudClient.App.Models;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
 using Xunit;
@@ -14,9 +15,43 @@ namespace MudClient.App.Tests;
 public sealed class FolderTreeViewUiTests
 {
     [AvaloniaFact]
-    public void FolderTreeView_RendersFolderChrome_AndDeleteFolderCommandWorks()
+    public async Task AutomationPanel_UsesThreeFocusedTabsWithLocalPrimaryActions()
     {
-        var viewModel = new MainWindowViewModel();
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_AutomationUi_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(new ProfileService(directory), new AppSettingsService(directory));
+        var window = new Window
+        {
+            Width = 520,
+            Height = 720,
+            Content = new AutomationPanelView { DataContext = viewModel },
+        };
+
+        window.Show();
+        window.UpdateLayout();
+        var tabs = Assert.Single(window.GetLogicalDescendants().OfType<TabControl>());
+        Assert.Equal(3, tabs.Items.Count);
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy timer"));
+
+        tabs.SelectedIndex = 1;
+        window.UpdateLayout();
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy alias"));
+
+        tabs.SelectedIndex = 2;
+        window.UpdateLayout();
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy trigger"));
+
+        window.Close();
+        await viewModel.DisposeAsync();
+        Directory.Delete(directory, recursive: true);
+    }
+
+    [AvaloniaFact]
+    public async Task FolderTreeView_RendersFolderChrome_AndDeleteFolderCommandWorks()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_FolderUi_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(new ProfileService(directory), new AppSettingsService(directory));
         viewModel.CreateFolderCommand.Execute(FolderKind.Timers);
 
         var window = new Window
@@ -42,7 +77,7 @@ public sealed class FolderTreeViewUiTests
             .GetLogicalDescendants()
             .OfType<Button>()
             .FirstOrDefault(b => b.DataContext is FolderTreeNode { IsFolder: true } &&
-                                 Equals(b.Content, "✕"));
+                                 Equals(b.Content, "Usuń"));
         Assert.NotNull(deleteButton);
 
         // The RelativeSource command binding and the {Binding Folder} parameter
@@ -55,5 +90,9 @@ public sealed class FolderTreeViewUiTests
 
         Assert.Empty(viewModel.Folders);
         Assert.Null(viewModel.StartupErrorMessage);
+
+        window.Close();
+        await viewModel.DisposeAsync();
+        Directory.Delete(directory, recursive: true);
     }
 }

@@ -14,55 +14,84 @@
     </TreeView.Styles>
     <TreeView.ItemTemplate>
       <TreeDataTemplate ItemsSource="{Binding Children}" x:CompileBindings="False">
-        <Panel Margin="0,1">
+        <Panel Margin="0,1"
+               DragDrop.AllowDrop="True"
+               PointerPressed="Node_OnPointerPressed"
+               PointerMoved="Node_OnPointerMoved"
+               DragDrop.DragOver="Node_OnDragOver"
+               DragDrop.Drop="Node_OnDrop">
 
           <!-- Folder row -->
           <Border IsVisible="{Binding IsFolder}"
-                  Classes="mud-folder-row" Padding="6,4">
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="4">
-              <TextBox Grid.Column="0"
+                  Classes="mud-folder-row" Padding="6,4"
+                  Classes.mud-folder-enabled="{Binding IsAllEnabled}"
+                  Classes.mud-folder-disabled="{Binding IsAllDisabled}"
+                  Classes.mud-folder-mixed="{Binding IsMixedActivation}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="5">
+                <TextBlock Grid.Column="0" Text="▣"
+                           Foreground="{StaticResource MudBrushGoldDim}"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="Przeciągnij folder, aby go zagnieździć" />
+              <TextBox Grid.Column="1"
                        Classes="mud-folder-name"
                        Text="{Binding Folder.Name, Mode=TwoWay}"
                        LostFocus="FolderName_OnLostFocus"
                        KeyDown="FolderName_OnKeyDown"
                        VerticalAlignment="Center" />
 
-              <Border Grid.Column="1" Classes="mud-badge" VerticalAlignment="Center"
+              <Border Grid.Column="2" Classes="mud-badge" VerticalAlignment="Center"
                       ToolTip.Tip="Liczba wpisów w folderze">
                 <TextBlock Text="{Binding ItemCount}" />
               </Border>
 
-              <Border Grid.Column="2" Classes="mud-badge" VerticalAlignment="Center"
+              <Border Grid.Column="3" Classes="mud-badge" VerticalAlignment="Center"
+                      Classes.mud-badge-green="{Binding IsAllEnabled}"
+                      Classes.mud-badge-red="{Binding IsAllDisabled}"
+                      Classes.mud-badge-amber="{Binding IsMixedActivation}"
+                      IsVisible="{Binding HasActivatableItems}"
+                      ToolTip.Tip="Stan wszystkich aktywowalnych wpisów w folderze i podfolderach">
+                <TextBlock Text="{Binding ActivationText}" />
+              </Border>
+
+              <Border Grid.Column="4" Classes="mud-badge mud-badge-gold" VerticalAlignment="Center"
                       IsVisible="{Binding Folder.IsGlobal}"
                       ToolTip.Tip="Wspólny dla wszystkich kont">
                 <TextBlock Text="GLOBALNY" />
               </Border>
+              </Grid>
 
-              <Button Grid.Column="3" Classes="mud-small"
-                      Content="⏻" Padding="6,2"
+              <WrapPanel Grid.Row="1" HorizontalAlignment="Right"
+                         Orientation="Horizontal">
+              <Button Classes="mud-small" Margin="2"
+                      Content="⏻ Aktywność" Padding="6,2"
                       IsVisible="{Binding SupportsEnableToggle, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
                       ToolTip.Tip="Włącz / wyłącz wszystkie wpisy w folderze"
                       Command="{Binding ToggleFolderEnabledCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
                       CommandParameter="{Binding Folder}" />
 
-              <Button Grid.Column="4" Classes="mud-small"
-                      Content="🌐" Padding="6,2"
+              <Button Classes="mud-small" Margin="2"
+                      Content="🌐 Globalny" Padding="6,2"
                       ToolTip.Tip="Przełącz: folder globalny (wspólny dla kont)"
                       Command="{Binding ToggleFolderGlobalCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
                       CommandParameter="{Binding Folder}" />
 
-              <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4">
                 <Button Classes="mud-small"
-                        Content="＋" Padding="6,2"
+                        Content="⇩ Eksport" Padding="6,2" Margin="2"
+                        IsVisible="{Binding SupportsExport, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
+                        ToolTip.Tip="Eksportuj folder do JSON"
+                        Click="ExportFolder_OnClick" />
+                <Button Classes="mud-small"
+                        Content="＋ Podfolder" Padding="6,2" Margin="2"
                         ToolTip.Tip="Nowy podfolder"
                         Command="{Binding CreateSubfolderCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
                         CommandParameter="{Binding Folder}" />
                 <Button Classes="mud-small mud-danger"
-                        Content="✕" Padding="6,2"
+                        Content="Usuń" Padding="6,2" Margin="2"
                         ToolTip.Tip="Usuń folder wraz z zawartością"
                         Command="{Binding DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
                         CommandParameter="{Binding Folder}" />
-              </StackPanel>
+              </WrapPanel>
             </Grid>
           </Border>
 

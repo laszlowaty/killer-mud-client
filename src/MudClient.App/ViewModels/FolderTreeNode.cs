@@ -27,6 +27,21 @@ public sealed partial class FolderTreeNode : ObservableObject
     [ObservableProperty]
     private int _itemCount;
 
+    [ObservableProperty]
+    private bool _hasActivatableItems;
+
+    [ObservableProperty]
+    private bool _isAllEnabled;
+
+    [ObservableProperty]
+    private bool _isAllDisabled;
+
+    [ObservableProperty]
+    private bool _isMixedActivation;
+
+    [ObservableProperty]
+    private string _activationText = string.Empty;
+
     /// <summary>True when this is a folder that currently holds no items or subfolders.</summary>
     public bool IsEmptyFolder => IsFolder && Children.Count == 0;
 }

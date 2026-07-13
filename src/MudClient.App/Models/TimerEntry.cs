@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Editable timer shown in the UI. Interval = Minutes + Seconds + Milliseconds;
 /// while enabled it fires repeatedly and sends its commands in order.
 /// </summary>
-public sealed class TimerEntry : ObservableObject, IFolderItem
+public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
 {
     private string _name = string.Empty;
     private int _minutes;

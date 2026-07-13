@@ -117,6 +117,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _newTimerIsGlobal;
     private TimerEntry? _editedTimer;
     private bool _isTimerFormExpanded;
+    private int _selectedAutomationTabIndex;
 
     // --- Autowalk ---
     private string _newLocationName = string.Empty;
@@ -199,11 +200,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
         DeleteProfileCommand = new RelayCommand<string>(DeleteProfile);
         AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
+        StartAddTimerCommand = new RelayCommand(StartAddTimer);
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
         ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
         EditTimerCommand = new RelayCommand<TimerEntry>(EditTimer);
         CancelTimerEditCommand = new RelayCommand(CancelTimerEdit);
         AddRuleCommand = new RelayCommand(AddRule, CanAddRule);
+        StartAddAliasCommand = new RelayCommand(() => StartAddRule("alias"));
+        StartAddTriggerCommand = new RelayCommand(() => StartAddRule("trigger"));
         DeleteRuleCommand = new RelayCommand<AutomationRuleEntry>(DeleteRule);
         ToggleRuleCommand = new RelayCommand<AutomationRuleEntry>(ToggleRule);
         EditRuleCommand = new RelayCommand<AutomationRuleEntry>(EditRule);
@@ -921,9 +925,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // Aliases & triggers (regex-based, saved per profile)
     // ========================================================================
 
-    public IReadOnlyList<string> RuleTypes { get; } = ["alias", "trigger"];
-
     public RelayCommand AddRuleCommand { get; }
+    public RelayCommand StartAddAliasCommand { get; }
+    public RelayCommand StartAddTriggerCommand { get; }
     public RelayCommand<AutomationRuleEntry> DeleteRuleCommand { get; }
     public RelayCommand<AutomationRuleEntry> ToggleRuleCommand { get; }
     public RelayCommand<AutomationRuleEntry> EditRuleCommand { get; }
@@ -935,12 +939,33 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsRuleFormExpanded
     {
         get => _isRuleFormExpanded;
-        set => SetProperty(ref _isRuleFormExpanded, value);
+        set
+        {
+            if (SetProperty(ref _isRuleFormExpanded, value))
+            {
+                OnPropertyChanged(nameof(IsAliasRuleFormVisible));
+                OnPropertyChanged(nameof(IsTriggerRuleFormVisible));
+            }
+        }
     }
 
-    public string RuleFormButtonText => IsEditingRule ? "Zapisz zmiany" : "Dodaj regułę";
+    public bool IsAliasRuleFormVisible => IsRuleFormExpanded && NewRuleIsAlias;
 
-    public string RuleFormHeader => IsEditingRule ? "✎ Edytuj alias / trigger" : "＋ Nowy alias / trigger";
+    public bool IsTriggerRuleFormVisible => IsRuleFormExpanded && !NewRuleIsAlias;
+
+    public int SelectedAutomationTabIndex
+    {
+        get => _selectedAutomationTabIndex;
+        set => SetProperty(ref _selectedAutomationTabIndex, value);
+    }
+
+    public string RuleFormButtonText => IsEditingRule
+        ? "Zapisz zmiany"
+        : NewRuleIsAlias ? "Dodaj alias" : "Dodaj trigger";
+
+    public string RuleFormHeader => IsEditingRule
+        ? NewRuleIsAlias ? "✎ Edytuj alias" : "✎ Edytuj trigger"
+        : NewRuleIsAlias ? "＋ Nowy alias" : "＋ Nowy trigger";
 
     public string NewRuleName
     {
@@ -963,6 +988,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (SetProperty(ref _newRuleType, value))
             {
                 OnPropertyChanged(nameof(NewRuleIsAlias));
+                OnPropertyChanged(nameof(RuleFormButtonText));
+                OnPropertyChanged(nameof(RuleFormHeader));
+                OnPropertyChanged(nameof(IsAliasRuleFormVisible));
+                OnPropertyChanged(nameof(IsTriggerRuleFormVisible));
             }
         }
     }
@@ -1085,7 +1114,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewRuleAction = entry.Action;
         NewRuleIsGlobal = entry.IsGlobal;
         IsRuleFormExpanded = true;
+        SelectedAutomationTabIndex = entry.Type == "trigger" ? 2 : 1;
         NotifyRuleEditModeChanged();
+    }
+
+    private void StartAddRule(string type)
+    {
+        ClearRuleForm();
+        NewRuleType = type;
+        IsRuleFormExpanded = true;
+        SelectedAutomationTabIndex = type == "trigger" ? 2 : 1;
     }
 
     private void CancelRuleEdit() => ClearRuleForm();
@@ -1093,6 +1131,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void ClearRuleForm()
     {
         _editedRule = null;
+        IsRuleFormExpanded = false;
         NewRuleName = string.Empty;
         NewRulePattern = string.Empty;
         NewRuleAction = string.Empty;
@@ -1134,6 +1173,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         entry.IsEnabled = !entry.IsEnabled;
         ApplyAutomation();
+        RebuildFolderTrees();
         SaveActiveProfile();
     }
 
@@ -1144,6 +1184,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<TimerEntry> Timers { get; } = [];
 
     public RelayCommand AddTimerCommand { get; }
+    public RelayCommand StartAddTimerCommand { get; }
     public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
     public RelayCommand<TimerEntry> ToggleTimerCommand { get; }
     public RelayCommand<TimerEntry> EditTimerCommand { get; }
@@ -1276,7 +1317,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewTimerCommands = entry.CommandsText;
         NewTimerIsGlobal = entry.IsGlobal;
         IsTimerFormExpanded = true;
+        SelectedAutomationTabIndex = 0;
         NotifyTimerEditModeChanged();
+    }
+
+    private void StartAddTimer()
+    {
+        ClearTimerForm();
+        IsTimerFormExpanded = true;
+        SelectedAutomationTabIndex = 0;
     }
 
     private void CancelTimerEdit() => ClearTimerForm();
@@ -1284,6 +1333,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void ClearTimerForm()
     {
         _editedTimer = null;
+        IsTimerFormExpanded = false;
         NewTimerName = string.Empty;
         NewTimerMinutes = "0";
         NewTimerSeconds = "0";
@@ -1326,6 +1376,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         entry.IsEnabled = !entry.IsEnabled;
         SyncTimer(entry);
+        RebuildFolderTrees();
         SaveActiveProfile();
 
         AddToast(entry.IsEnabled
@@ -2890,10 +2941,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
         }
 
-        // Recursive item counts for folder badges.
+        // Recursive item counts and activation state for folder badges/chrome.
         foreach (var root in roots)
         {
-            ComputeItemCounts(root);
+            ComputeFolderMetrics(root);
         }
 
         // Emit roots: folders (by name) first, then loose items in order.
@@ -2911,21 +2962,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _ = folderIds; // reserved for future validation
     }
 
-    private static int ComputeItemCounts(FolderTreeNode node)
+    private static FolderMetrics ComputeFolderMetrics(FolderTreeNode node)
     {
         if (!node.IsFolder)
         {
-            return 1;
+            return node.Content is IActivatableFolderItem activatable
+                ? new FolderMetrics(1, activatable.IsEnabled ? 1 : 0, activatable.IsEnabled ? 0 : 1)
+                : new FolderMetrics(1, 0, 0);
         }
 
-        var count = 0;
+        var metrics = new FolderMetrics(0, 0, 0);
         foreach (var child in node.Children)
         {
-            count += ComputeItemCounts(child);
+            metrics += ComputeFolderMetrics(child);
         }
 
-        node.ItemCount = count;
-        return count;
+        node.ItemCount = metrics.ItemCount;
+        node.HasActivatableItems = metrics.EnabledCount + metrics.DisabledCount > 0;
+        node.IsAllEnabled = node.HasActivatableItems && metrics.DisabledCount == 0;
+        node.IsAllDisabled = node.HasActivatableItems && metrics.EnabledCount == 0;
+        node.IsMixedActivation = metrics.EnabledCount > 0 && metrics.DisabledCount > 0;
+        node.ActivationText = node.IsAllEnabled
+            ? "AKTYWNY"
+            : node.IsAllDisabled ? "WYŁĄCZONY" : node.IsMixedActivation ? "MIESZANY" : string.Empty;
+        return metrics;
+    }
+
+    private readonly record struct FolderMetrics(int ItemCount, int EnabledCount, int DisabledCount)
+    {
+        public static FolderMetrics operator +(FolderMetrics left, FolderMetrics right) => new(
+            left.ItemCount + right.ItemCount,
+            left.EnabledCount + right.EnabledCount,
+            left.DisabledCount + right.DisabledCount);
     }
 
     private static void SortFolderChildren(FolderTreeNode folderNode)
@@ -2956,6 +3024,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand<FolderNode> DeleteFolderCommand => new(DeleteFolder);
     public RelayCommand<FolderNode> ToggleFolderGlobalCommand => new(ToggleFolderGlobal);
     public RelayCommand<FolderNode> ToggleFolderEnabledCommand => new(ToggleFolderEnabled);
+    public RelayCommand<FolderMoveRequest> MoveIntoFolderCommand => new(MoveIntoFolder);
 
     private void CreateFolder(FolderKind kind)
     {
@@ -3065,6 +3134,209 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         AfterFolderStructureChange(folder.Kind);
     }
+
+    /// <summary>
+    /// Moves a leaf or a folder into another folder of the same domain. Cycles
+    /// and cross-domain moves are rejected; global ownership follows the target.
+    /// </summary>
+    private void MoveIntoFolder(FolderMoveRequest? request)
+    {
+        if (request is null || !Folders.Contains(request.Target))
+        {
+            return;
+        }
+
+        if (request.Source is FolderNode sourceFolder)
+        {
+            if (!Folders.Contains(sourceFolder) || sourceFolder.Kind != request.Target.Kind ||
+                sourceFolder.Id == request.Target.Id ||
+                CollectSubtreeFolderIds(sourceFolder).Contains(request.Target.Id))
+            {
+                return;
+            }
+
+            sourceFolder.ParentId = request.Target.Id;
+            SetFolderGlobalCascade(sourceFolder, request.Target.IsGlobal);
+            AfterFolderStructureChange(sourceFolder.Kind);
+            return;
+        }
+
+        if (request.Source is not IFolderItem item || GetFolderKind(item) != request.Target.Kind)
+        {
+            return;
+        }
+
+        item.FolderId = request.Target.Id;
+        item.IsGlobal = request.Target.IsGlobal;
+        AfterFolderStructureChange(request.Target.Kind);
+    }
+
+    private static FolderKind? GetFolderKind(IFolderItem item) => item switch
+    {
+        TimerEntry => FolderKind.Timers,
+        AutomationRuleEntry { Type: "alias" } => FolderKind.Aliases,
+        AutomationRuleEntry { Type: "trigger" } => FolderKind.Triggers,
+        NoteEntry => FolderKind.Notes,
+        AutowalkLocation => FolderKind.Autowalk,
+        _ => null,
+    };
+
+    /// <summary>Creates a JSON-ready package for one automation item or folder subtree.</summary>
+    public AutomationTransferPackage CreateAutomationTransferPackage(object selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+
+        if (selection is FolderNode folder)
+        {
+            if (folder.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers))
+            {
+                throw new InvalidOperationException("Eksport jest dostępny tylko dla aliasów, triggerów i timerów.");
+            }
+
+            var ids = CollectSubtreeFolderIds(folder);
+            var package = new AutomationTransferPackage { Kind = folder.Kind };
+            package.Folders.AddRange(Folders.Where(f => ids.Contains(f.Id)).Select(f => new ProfileFolder
+            {
+                Id = f.Id,
+                ParentId = ids.Contains(f.ParentId ?? string.Empty) ? f.ParentId : null,
+                Name = f.Name,
+                Kind = f.Kind,
+                IsGlobal = f.IsGlobal,
+            }));
+
+            AddTransferItems(package, ids);
+            return package;
+        }
+
+        return selection switch
+        {
+            TimerEntry timer => new AutomationTransferPackage
+            {
+                Kind = FolderKind.Timers,
+                Timers = [CloneProfileTimer(ToProfileTimer(timer), folderId: null)],
+            },
+            AutomationRuleEntry { Type: "alias" } alias => new AutomationTransferPackage
+            {
+                Kind = FolderKind.Aliases,
+                Aliases = [CloneProfileRule(ToProfileRule(alias), folderId: null)],
+            },
+            AutomationRuleEntry { Type: "trigger" } trigger => new AutomationTransferPackage
+            {
+                Kind = FolderKind.Triggers,
+                Triggers = [CloneProfileRule(ToProfileRule(trigger), folderId: null)],
+            },
+            _ => throw new InvalidOperationException("Tego elementu nie można wyeksportować."),
+        };
+    }
+
+    private void AddTransferItems(AutomationTransferPackage package, HashSet<string> folderIds)
+    {
+        if (package.Kind == FolderKind.Timers)
+        {
+            package.Timers.AddRange(Timers.Where(t => t.FolderId is not null && folderIds.Contains(t.FolderId))
+                .Select(t => CloneProfileTimer(ToProfileTimer(t), t.FolderId)));
+        }
+        else
+        {
+            var rules = AutomationRules.Where(r => r.FolderId is not null && folderIds.Contains(r.FolderId));
+            var target = package.Kind == FolderKind.Aliases ? package.Aliases : package.Triggers;
+            target.AddRange(rules.Where(r => GetFolderKind(r) == package.Kind)
+                .Select(r => CloneProfileRule(ToProfileRule(r), r.FolderId)));
+        }
+    }
+
+    /// <summary>Imports a validated package, remapping every folder id to avoid collisions.</summary>
+    public void ImportAutomationTransferPackage(AutomationTransferPackage package)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        AutomationTransferService.ValidatePackage(package);
+
+        var idMap = package.Folders.ToDictionary(f => f.Id, _ => Guid.NewGuid().ToString("N"));
+        _suppressTreeRebuild = true;
+        try
+        {
+            foreach (var folder in package.Folders)
+            {
+                Folders.Add(new FolderNode
+                {
+                    Id = idMap[folder.Id],
+                    ParentId = folder.ParentId is not null && idMap.TryGetValue(folder.ParentId, out var parentId)
+                        ? parentId
+                        : null,
+                    Name = folder.Name,
+                    Kind = package.Kind,
+                    IsGlobal = folder.IsGlobal,
+                });
+            }
+
+            foreach (var root in package.Folders.Where(folder => folder.ParentId is null))
+            {
+                SetFolderGlobalCascade(Folders.First(folder => folder.Id == idMap[root.Id]), root.IsGlobal);
+            }
+
+            foreach (var timer in package.Timers)
+            {
+                var folderId = RemapFolderId(timer.FolderId, idMap);
+                var isGlobal = ImportedItemIsGlobal(folderId, timer.IsGlobal);
+                Timers.Add(MakeTimerEntry(CloneProfileTimer(timer, folderId), isGlobal));
+            }
+
+            foreach (var alias in package.Aliases)
+            {
+                var clone = CloneProfileRule(alias, RemapFolderId(alias.FolderId, idMap));
+                clone.Type = "alias";
+                AutomationRules.Add(MakeRuleEntry(clone, ImportedItemIsGlobal(clone.FolderId, clone.IsGlobal)));
+            }
+
+            foreach (var trigger in package.Triggers)
+            {
+                var clone = CloneProfileRule(trigger, RemapFolderId(trigger.FolderId, idMap));
+                clone.Type = "trigger";
+                AutomationRules.Add(MakeRuleEntry(clone, ImportedItemIsGlobal(clone.FolderId, clone.IsGlobal)));
+            }
+        }
+        finally
+        {
+            _suppressTreeRebuild = false;
+        }
+
+        RebuildRuleViews();
+        AfterFolderStructureChange(package.Kind);
+    }
+
+    public void ReportAutomationTransfer(string message, bool isError = false) =>
+        AddToast(message, isError ? "error" : "info");
+
+    private static string? RemapFolderId(string? folderId, IReadOnlyDictionary<string, string> idMap) =>
+        folderId is not null && idMap.TryGetValue(folderId, out var mapped) ? mapped : null;
+
+    private bool ImportedItemIsGlobal(string? folderId, bool looseValue) =>
+        folderId is null ? looseValue : Folders.First(folder => folder.Id == folderId).IsGlobal;
+
+    private static ProfileRule CloneProfileRule(ProfileRule source, string? folderId) => new()
+    {
+        Name = source.Name,
+        Type = source.Type,
+        Pattern = source.Pattern,
+        Action = source.Action,
+        IsEnabled = source.IsEnabled,
+        IsGlobal = source.IsGlobal,
+        FolderId = folderId,
+    };
+
+    private static ProfileTimer CloneProfileTimer(ProfileTimer source, string? folderId) => new()
+    {
+        Id = Guid.NewGuid().ToString("N"),
+        Name = source.Name,
+        Minutes = source.Minutes,
+        Seconds = source.Seconds,
+        Milliseconds = source.Milliseconds,
+        Commands = [.. source.Commands],
+        CommandsText = source.CommandsText,
+        IsEnabled = source.IsEnabled,
+        IsGlobal = source.IsGlobal,
+        FolderId = folderId,
+    };
 
     /// <summary>Folder ids of the given folder plus every descendant folder.</summary>
     private HashSet<string> CollectSubtreeFolderIds(FolderNode root)
