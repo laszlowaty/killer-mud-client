@@ -25,6 +25,13 @@
   <Style Selector="TabControl.mud-automation-tabs TabItem Border.mud-badge">
     <Setter Property="Padding" Value="5,1" />
   </Style>
+  <Style Selector="TabControl.mud-large-widget-tabs TabItem">
+    <Setter Property="FontFamily" Value="{DynamicResource WidgetFontFamilyResource}" />
+    <Setter Property="FontSize" Value="{DynamicResource WidgetFontSizeResource}" />
+    <Setter Property="FontWeight" Value="{DynamicResource WidgetFontWeightResource}" />
+    <Setter Property="Padding" Value="18,10" />
+    <Setter Property="MinWidth" Value="150" />
+  </Style>
   <Style Selector="TabItem:selected">
     <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
   </Style>

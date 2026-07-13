@@ -60,6 +60,12 @@
                     Padding="8,3"
                     VerticalAlignment="Center"
                     ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
+            <Button Content="killeropedia"
+                    Command="{Binding OpenKilleropediaCommand}"
+                    FontSize="11"
+                    Padding="10,3"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Otwórz killeropedię" />
             <Button Content="{Binding HiddenPanels.Count, StringFormat='Panele ({0})'}"
                     FontSize="11"
                     Padding="8,3"
@@ -201,6 +207,23 @@
         <TextBlock Classes="mud-faint" Text="{Binding StatusText}" />
       </Grid>
     </Border>
+
+    <controls:LargeTabbedWidget Grid.RowSpan="3"
+                                Title="KILLEROPEDIA"
+                                IsOpen="{Binding IsKilleropediaOpen}">
+      <controls:LargeTabbedWidget.TabContent>
+        <TabControl Classes="mud-large-widget-tabs">
+          <TabItem Header="Nauczyciele">
+            <views:KilleropediaTeachersView Margin="0,12,0,0"
+                                            DataContext="{Binding Killeropedia}" />
+          </TabItem>
+          <TabItem Header="Księgi Magiczne">
+            <views:KilleropediaBooksView Margin="0,12,0,0"
+                                         DataContext="{Binding Killeropedia}" />
+          </TabItem>
+        </TabControl>
+      </controls:LargeTabbedWidget.TabContent>
+    </controls:LargeTabbedWidget>
 
     <!-- Profile picker overlay (shown until a profile is chosen) -->
     <Grid Grid.RowSpan="3"

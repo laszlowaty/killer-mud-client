@@ -56,6 +56,23 @@ Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj
 - **Mem** — zapamiętane czary,
 - **GMCP** — surowy podgląd pakietów GMCP.
 
+### Killeropedia
+
+Przycisk **killeropedia** w górnym pasku otwiera duży, zakładkowy widget. Zakładka
+**Nauczyciele** zawiera lokalny spis nauczycieli i ich umiejętności z wyszukiwaniem
+po nazwie, umiejętności, klasie, krainie oraz vnum. Bazowy katalog pochodzi z
+[`MudletScripts/kbase/teachers.json`](https://github.com/laszlowaty/MudletScripts/blob/master/kbase/teachers.json)
+i jest uzupełniony o wpisy utrzymywane w `TeacherCatalogLoader`.
+
+Zakładka **Księgi Magiczne** czyta lokalny `killeropedia-books.json` i pozwala
+wyszukiwać po nazwie księgi, zaklęciu, profesji, miejscu ładowania oraz vnum.
+Katalog może odtworzyć wyłącznie narzędzie deweloperskie sterowane stałymi w
+`DeveloperFeatures.cs`: osobno można pokazać/ukryć przycisk **Odśwież** oraz zezwolić
+na jego użycie. Aktywacja jest domyślnie wyłączona. Odświeżanie wymaga połączenia,
+pobiera listy dla `druid`, `mag`, `paladyn`, `nomad` i `kleryk`, a następnie szczegóły
+każdego unikalnego vnum. Gotowy katalog jest zapisywany atomowo w katalogu ustawień
+aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu w repozytorium.
+
 ### Automatyzacja
 
 - **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy,

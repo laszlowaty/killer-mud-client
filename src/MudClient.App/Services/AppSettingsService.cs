@@ -24,7 +24,10 @@ public sealed class AppSettingsService
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "KillerMudClient");
         _path = Path.Combine(folder, "settings.json");
+        DirectoryPath = folder;
     }
+
+    public string DirectoryPath { get; }
 
     public AppSettings Load()
     {

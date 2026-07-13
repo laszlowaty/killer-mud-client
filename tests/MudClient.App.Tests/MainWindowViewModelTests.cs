@@ -99,6 +99,16 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void OpenKilleropediaCommand_OpensLargeWidget()
+    {
+        Assert.False(_vm.IsKilleropediaOpen);
+
+        _vm.OpenKilleropediaCommand.Execute(null);
+
+        Assert.True(_vm.IsKilleropediaOpen);
+    }
+
+    [Fact]
     public void Constructor_HeaderDefaultsToDisconnected()
     {
         Assert.Equal("--- Niepołączono ---", _vm.HeaderAreaText);

@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:MudClient.App.Controls"
+             x:Class="MudClient.App.Controls.LargeTabbedWidget"
+             x:DataType="controls:LargeTabbedWidget"
+             x:Name="Root"
+             IsVisible="{Binding IsOpen, ElementName=Root}"
+             FontFamily="{DynamicResource WidgetFontFamilyResource}"
+             FontSize="{DynamicResource WidgetFontSizeResource}"
+             FontWeight="{DynamicResource WidgetFontWeightResource}"
+             KeyDown="OnKeyDown">
+  <Grid Background="#D9080A0B">
+    <Grid ColumnDefinitions="5*,90*,5*" RowDefinitions="5*,90*,5*">
+      <Border x:Name="WidgetFrame"
+              Grid.Row="1"
+              Grid.Column="1"
+              Classes="mud-panel"
+              BorderBrush="{StaticResource MudBrushGoldDim}"
+              BorderThickness="1"
+              CornerRadius="6"
+              ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*">
+          <Border Grid.Row="0"
+                  Classes="mud-bar"
+                  Padding="16,10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Grid.Column="0"
+                         Classes="mud-heading-lg"
+                         Text="{Binding Title, ElementName=Root}"
+                         VerticalAlignment="Center" />
+              <Button Grid.Column="1"
+                      Content="✕"
+                      Padding="10,5"
+                      ToolTip.Tip="Zamknij"
+                      Click="Close_OnClick" />
+            </Grid>
+          </Border>
+
+          <ContentPresenter Grid.Row="1"
+                            Content="{Binding TabContent, ElementName=Root}"
+                            Margin="16,10,16,16" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

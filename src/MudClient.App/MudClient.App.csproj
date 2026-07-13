@@ -9,6 +9,8 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\killer.ico" />
     <AvaloniaResource Include="Assets\Fonts\**" />
+    <EmbeddedResource Include="Assets\Data\teachers.json.gz" />
+    <EmbeddedResource Include="Assets\Data\books.json" />
     <Content Include="Assets\killer.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

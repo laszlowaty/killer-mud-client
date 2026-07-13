@@ -24,6 +24,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AliasEngine _aliases = new();
     private readonly TriggerEngine _triggers = new();
     private readonly MudTimerService _timers = new();
+    private readonly BookCatalogStore _bookCatalogStore;
+    private readonly BookCatalogRefreshCoordinator _bookCatalogRefreshCoordinator;
     private readonly GmcpLocationResolver _locationResolver = new();
     private readonly RoomExitsResolver _roomExits = new();
     private readonly CharacterStateResolver _characterState = new();
@@ -82,6 +84,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _isBusy;
     private string? _startupErrorMessage;
     private string? _startupErrorDetails;
+    private bool _isKilleropediaOpen;
 
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
@@ -137,6 +140,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // or when a new walk starts — only an abnormal interruption sets it.
     private AutowalkLocation? _pendingResumeTarget;
     private CancellationTokenSource _autowalkCts = new();
+    private CancellationTokenSource? _bookRefreshCts;
     private int? _latestMovement;
     private int? _latestMaximumMovement;
     private IReadOnlyList<MemorizedSpell> _latestMemorizedSpells = [];
@@ -179,11 +183,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public MainWindowViewModel(
         ProfileService? profileService = null,
         AppSettingsService? settingsService = null,
-        DockLayoutService? dockLayoutService = null)
+        DockLayoutService? dockLayoutService = null,
+        BookCatalogStore? bookCatalogStore = null,
+        BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null)
     {
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
+        _bookCatalogStore = bookCatalogStore ?? new BookCatalogStore(
+            DeveloperFeatures.BookCatalogOutputPath
+            ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"));
+        _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
+        Killeropedia = new KilleropediaViewModel(
+            TeacherCatalogLoader.Load(),
+            _bookCatalogStore,
+            RefreshBookCatalogAsync);
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Notes.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
@@ -287,6 +301,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyLayoutCommand = new RelayCommand<string>(ApplyLayout);
         SaveLayoutCommand = new RelayCommand(SaveLayout);
         DeleteLayoutCommand = new RelayCommand<string>(DeleteLayout);
+        OpenKilleropediaCommand = new RelayCommand(() => IsKilleropediaOpen = true);
 
         PopulateMockData();
 
@@ -304,6 +319,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public MapViewModel Map { get; }
+
+    public KilleropediaViewModel Killeropedia { get; }
 
     public IRootDock Layout
     {
@@ -334,6 +351,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand SaveLayoutCommand { get; }
 
     public IRelayCommand<string> DeleteLayoutCommand { get; }
+
+    public IRelayCommand OpenKilleropediaCommand { get; }
 
     /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
     public string NewLayoutName
@@ -497,6 +516,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (SetProperty(ref _isConnected, value))
             {
+                Killeropedia.SetConnectionState(value);
                 RefreshCommands();
                 if (value)
                 {
@@ -560,6 +580,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _headerAreaText;
         private set => SetProperty(ref _headerAreaText, value);
+    }
+
+    public bool IsKilleropediaOpen
+    {
+        get => _isKilleropediaOpen;
+        set => SetProperty(ref _isKilleropediaOpen, value);
     }
 
     public int SelectedRightTab
@@ -1409,7 +1435,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var commands = entry.GetCommands(CommandStackingSeparator);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
-            if (!IsConnected)
+            if (!IsConnected || _bookRefreshCts is not null)
             {
                 return;
             }
@@ -3431,7 +3457,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private bool CanDisconnect() => !IsBusy && IsConnected;
 
-    private bool CanSendCommand() => !IsBusy && IsConnected;
+    private bool CanSendCommand() => !IsBusy && IsConnected && _bookRefreshCts is null;
 
     private async Task ConnectAsync()
     {
@@ -3726,11 +3752,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnTextReceived(string text)
     {
+        _bookCatalogRefreshCoordinator.ObserveText(text);
         Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(text));
     }
 
     private void OnLineReceived(string line)
     {
+        // The creator-only book refresh owns complete response lines while active. Raw text still
+        // reaches the terminal through TextReceived, but booklist output must not fire user triggers.
+        if (_bookCatalogRefreshCoordinator.TryCaptureLine(line))
+        {
+            return;
+        }
+
         if (IsDeathLine(line))
         {
             // Capture the position on the UI thread — Map state is UI-bound.
@@ -4256,6 +4290,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnConnectionClosed()
     {
+        _bookRefreshCts?.Cancel();
         Dispatcher.UIThread.Post(() => IsConnected = false);
     }
 
@@ -4271,6 +4306,70 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void EmitSystem(string text, int ansiColor)
     {
         OutputReceived?.Invoke($"\u001b[{ansiColor}m{text}\u001b[0m\n");
+    }
+
+    private bool CanRefreshBookCatalog() =>
+        DeveloperFeatures.EnableBookCatalogRefreshButton
+        && IsConnected
+        && _bookRefreshCts is null;
+
+    private async Task RefreshBookCatalogAsync()
+    {
+        if (!CanRefreshBookCatalog())
+        {
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _bookRefreshCts = cancellation;
+        _sendCommandCommand.NotifyCanExecuteChanged();
+        Killeropedia.BeginBookRefresh();
+        var lockTaken = false;
+
+        try
+        {
+            await _triggerSendLock.WaitAsync(cancellation.Token);
+            lockTaken = true;
+            var progress = new Progress<BookCatalogRefreshProgress>(Killeropedia.ReportBookRefresh);
+            var catalog = await _bookCatalogRefreshCoordinator.RefreshAsync(
+                SendBookCatalogCommandAsync,
+                progress,
+                cancellation.Token);
+            await _bookCatalogStore.SaveAsync(catalog, cancellation.Token);
+            Killeropedia.CompleteBookRefresh(catalog);
+            AddToast($"Odświeżono katalog ksiąg ({catalog.Books.Count}).", "info");
+        }
+        catch (OperationCanceledException)
+        {
+            Killeropedia.FailBookRefresh("Odświeżanie katalogu ksiąg zostało anulowane.");
+        }
+        catch (Exception exception)
+        {
+            Killeropedia.FailBookRefresh($"Błąd odświeżania: {exception.Message}");
+            EmitSystem($"Killeropedia: {exception.Message}", 31);
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                _triggerSendLock.Release();
+            }
+
+            _bookRefreshCts = null;
+            _sendCommandCommand.NotifyCanExecuteChanged();
+            cancellation.Dispose();
+            if (Killeropedia.IsBookRefreshRunning)
+            {
+                Killeropedia.FailBookRefresh("Odświeżanie katalogu ksiąg zakończone bez zapisu.");
+            }
+        }
+    }
+
+    private async Task SendBookCatalogCommandAsync(string command, CancellationToken cancellationToken)
+    {
+        var echo = command.Length == 0 ? "[PUSTA WIADOMOŚĆ]" : command;
+        await Dispatcher.UIThread.InvokeAsync(() => EmitSystem($"> {echo}", 90));
+        await _session.SendCommandAsync(command, cancellationToken);
     }
 
     private void RefreshCommands()
@@ -4353,6 +4452,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
 
         _autowalkCts.Cancel();
+        _bookRefreshCts?.Cancel();
+        if (Killeropedia.RefreshBooksCommand.ExecutionTask is { } bookRefreshTask)
+        {
+            try
+            {
+                await bookRefreshTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when closing the application during a creator refresh.
+            }
+        }
 
         // Phase 1 — stop accepting new trigger tasks atomically.
         // OnLineReceived holds the same lock when it checks the flag,

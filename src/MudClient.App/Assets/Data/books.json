@@ -1,0 +1,2902 @@
+{
+  "generatedAtUtc": "2026-07-13T13:24:25.2451189+00:00",
+  "classes": [
+    "druid",
+    "mag",
+    "paladyn",
+    "nomad",
+    "kleryk"
+  ],
+  "books": [
+    {
+      "vnum": 585,
+      "name": "magiczna ksiega z czarem \u0027swiatlo\u0027",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "light"
+      ],
+      "loadLocations": [],
+      "vnumText": "585",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 586,
+      "name": "kaplanska ksiega z czarem \u0027swiatlo\u0027",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "spiritual light"
+      ],
+      "loadLocations": [],
+      "vnumText": "586",
+      "classesText": "kleryk",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 885,
+      "name": "stara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "float",
+        "healing sleep",
+        "lightning bolt",
+        "ray of enfeeblement"
+      ],
+      "loadLocations": [
+        "na mobie: swirniety mag (\u002B# Twierdza Szkarlatnych Plaszczy)"
+      ],
+      "vnumText": "885",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1210,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [],
+      "loadLocations": [],
+      "vnumText": "1210",
+      "classesText": "mag",
+      "spellCountText": "0 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1322,
+      "name": "zwoj dziekana",
+      "classes": [
+        "mag"
+      ],
+      "spells": [],
+      "loadLocations": [],
+      "vnumText": "1322",
+      "classesText": "mag",
+      "spellCountText": "0 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1331,
+      "name": "zdobiona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "antimagic manacles",
+        "force field",
+        "hold monster",
+        "protection from summon"
+      ],
+      "loadLocations": [
+        "na mobie: mag Barjin (\u002B# Biblioteka Naukowa)"
+      ],
+      "vnumText": "1331",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1354,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "charm person",
+        "hold person",
+        "iceshield",
+        "reflect spell I"
+      ],
+      "loadLocations": [
+        "na mobie: wampirzy patriarcha (\u002B# Biblioteka Naukowa)"
+      ],
+      "vnumText": "1354",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1400,
+      "name": "podrecznik magii",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "eagle splendor",
+        "float",
+        "mirror image",
+        "piercing sight"
+      ],
+      "loadLocations": [
+        "na mobie: bibliotekarz (\u002B# Carrallak)"
+      ],
+      "vnumText": "1400",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1401,
+      "name": "ksiazka z podstawami magii",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "change sex",
+        "dismiss insect",
+        "fox cunning",
+        "hardiness"
+      ],
+      "loadLocations": [
+        "na mobie: adeptka magii (\u002B# Carrallak)"
+      ],
+      "vnumText": "1401",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1402,
+      "name": "brudna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cat grace",
+        "daze",
+        "invisibility",
+        "mirror image"
+      ],
+      "loadLocations": [
+        "na mobie: czarnoksieznik gnolli (\u002B# Dziwny las)"
+      ],
+      "vnumText": "1402",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1403,
+      "name": "pozolkla ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "bear endurance",
+        "cautious sleep",
+        "detect hidden",
+        "mirror image"
+      ],
+      "loadLocations": [],
+      "vnumText": "1403",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1404,
+      "name": "ciemnoszara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "eagle splendor",
+        "remove paralysis",
+        "spirits armor",
+        "wall of mist"
+      ],
+      "loadLocations": [
+        "na mobie: upadly kaplan (\u002B# Warownia Grazla)"
+      ],
+      "vnumText": "1404",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1405,
+      "name": "ksiega elementow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "acid arrow",
+        "dismiss monster",
+        "lightning bolt",
+        "lower resistance"
+      ],
+      "loadLocations": [
+        "na mobie: mistrz zywiolow (\u002B# Carrallak)"
+      ],
+      "vnumText": "1405",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1406,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "acid blast",
+        "force missiles",
+        "hold person",
+        "raise zombie",
+        "vampiric touch"
+      ],
+      "loadLocations": [
+        "na mobie: czarodziej Adhal (\u002B# Zajazd \u0027Pod zatruta strzala\u0027)",
+        "na mobie: goblinski szaman (Podmrok - Podziemne Drogi)"
+      ],
+      "vnumText": "1406",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1407,
+      "name": "niezniszczona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "haste",
+        "lightning bolt",
+        "resist fire",
+        "summon flying creature"
+      ],
+      "loadLocations": [
+        "na mobie: gnomi mag (\u002B# Dziwny Zajazd Kraken)"
+      ],
+      "vnumText": "1407",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1409,
+      "name": "starozytna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "charm monster",
+        "domination",
+        "enchant weapon"
+      ],
+      "loadLocations": [
+        "na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
+      ],
+      "vnumText": "1409",
+      "classesText": "mag",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1664,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "alicorn lance",
+        "flame blade",
+        "hold plant",
+        "magic fang",
+        "nature ally II"
+      ],
+      "loadLocations": [
+        "na mobie: druid-wojownik (\u002B# Carrallak - obwodnica i droga)"
+      ],
+      "vnumText": "1664",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1665,
+      "name": "poplamiona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "faerie fire",
+        "poison",
+        "resist poison",
+        "weaken"
+      ],
+      "loadLocations": [
+        "na mobie: podejrzany truciciel (\u002B# Carrallak - obwodnica i droga)"
+      ],
+      "vnumText": "1665",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1666,
+      "name": "pobrudzona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "goodbarry",
+        "immolate",
+        "luck",
+        "refresh"
+      ],
+      "loadLocations": [
+        "na mobie: pijany druid (\u002B# Spalona Wies)"
+      ],
+      "vnumText": "1666",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1667,
+      "name": "bagienna ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cure plant",
+        "dismiss plant",
+        "entangle",
+        "luck"
+      ],
+      "loadLocations": [
+        "na mobie: bagienna istota (\u002B# Sciezka przez moczary)"
+      ],
+      "vnumText": "1667",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1668,
+      "name": "poszarpana zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "animal invisibility",
+        "cat grace",
+        "charm animal",
+        "create spring",
+        "dismiss animal"
+      ],
+      "loadLocations": [
+        "w obiekcie: zwloki kobiety (\u002B# Jaskinie goblinow)"
+      ],
+      "vnumText": "1668",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1669,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cause moderate",
+        "faerie fire",
+        "hold animal",
+        "silence"
+      ],
+      "loadLocations": [],
+      "vnumText": "1669",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1670,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "bark guardian",
+        "bear endurance",
+        "create tree",
+        "ring of vanion"
+      ],
+      "loadLocations": [
+        "na mobie: sedziwy druid (\u002B# Druidzki Krag)",
+        "na mobie: zgrzybialy druid (\u002B# Druidzki Krag)",
+        "na mobie: podstarzaly druid (\u002B# Druidzki Krag)"
+      ],
+      "vnumText": "1670",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1671,
+      "name": "podniszczona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cure moderate",
+        "ice bolt",
+        "nature ally II",
+        "resist acid"
+      ],
+      "loadLocations": [],
+      "vnumText": "1671",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1672,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "call lightning",
+        "cause serious",
+        "fly",
+        "ice bolt",
+        "owl wisdom"
+      ],
+      "loadLocations": [
+        "na mobie: mroczna druidka (\u002B# Carrallak - obwodnica i droga)"
+      ],
+      "vnumText": "1672",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1673,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "fly",
+        "liveoak",
+        "resist cold",
+        "weaken"
+      ],
+      "loadLocations": [
+        "na mobie: duch bestii (\u002B# Carrallak - obwodnica i droga)"
+      ],
+      "vnumText": "1673",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1769,
+      "name": "stara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "detect hidden",
+        "float",
+        "invisibility",
+        "summon greenskin"
+      ],
+      "loadLocations": [],
+      "vnumText": "1769",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1811,
+      "name": "starozytna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "fireball",
+        "resist weapon",
+        "stone skin",
+        "summon greater meteor",
+        "thunder bolt"
+      ],
+      "loadLocations": [
+        "na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
+      ],
+      "vnumText": "1811",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 1963,
+      "name": "szara ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "confusion",
+        "fear",
+        "poison",
+        "weaken"
+      ],
+      "loadLocations": [
+        "na mobie: kaplan Sha (\u002B# Kryjowka zlodziei)"
+      ],
+      "vnumText": "1963",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2015,
+      "name": "niepozorny modlitewnik",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause moderate",
+        "curse",
+        "sense life",
+        "silence"
+      ],
+      "loadLocations": [
+        "na mobie: plugawy morhg (\u002B# Cmentarz)"
+      ],
+      "vnumText": "2015",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2016,
+      "name": "ksiega ochrony przed ogniem",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "endure fire"
+      ],
+      "loadLocations": [],
+      "vnumText": "2016",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2017,
+      "name": "modlitewnik ochrony przed ogniem",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "endure fire"
+      ],
+      "loadLocations": [],
+      "vnumText": "2017",
+      "classesText": "kleryk",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2018,
+      "name": "modlitewnik ochrony przed ogniem",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "endure fire"
+      ],
+      "loadLocations": [],
+      "vnumText": "2018",
+      "classesText": "druid",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2022,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "bonelace",
+        "dismiss person",
+        "misfortune",
+        "ray of enfeeblement"
+      ],
+      "loadLocations": [
+        "na mobie: nekromantka (\u002B# Cmentarz)"
+      ],
+      "vnumText": "2022",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2058,
+      "name": "ksiega oprawiona w skore",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cone of cold",
+        "horrid wilting",
+        "mend golem",
+        "power word blind",
+        "unholy fury"
+      ],
+      "loadLocations": [
+        "na mobie: upiorny rycerz (\u002B# Cmentarz)"
+      ],
+      "vnumText": "2058",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2124,
+      "name": "stara ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "divine power",
+        "hold person",
+        "holy bolt",
+        "owl wisdom"
+      ],
+      "loadLocations": [
+        "na mobie: przywodca Zorur (\u002B# Wiocha krasnali)"
+      ],
+      "vnumText": "2124",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2232,
+      "name": "stara ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "blade barrier",
+        "flamestrike",
+        "hold person",
+        "reinvigore animal",
+        "shield of nature"
+      ],
+      "loadLocations": [
+        "na mobie: druid Helnion (\u002B# [NK] Wioska drwali)"
+      ],
+      "vnumText": "2232",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2319,
+      "name": "ksiega ochrony przed zimnem",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "endure cold"
+      ],
+      "loadLocations": [],
+      "vnumText": "2319",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2320,
+      "name": "modlitewnik ochrony przed zimnem",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "endure cold"
+      ],
+      "loadLocations": [],
+      "vnumText": "2320",
+      "classesText": "kleryk",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2321,
+      "name": "zielona ksiega ochrony przed zimnem",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "endure cold"
+      ],
+      "loadLocations": [],
+      "vnumText": "2321",
+      "classesText": "druid",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 2895,
+      "name": "ksiega zaklec magicznych",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "charm monster",
+        "resist magic weapon",
+        "summon greater meteor",
+        "summon strong creature"
+      ],
+      "loadLocations": [
+        "na mobie: rogaty demon (\u002B# Magiczna jaskinia)"
+      ],
+      "vnumText": "2895",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3252,
+      "name": "czarna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dimension door",
+        "fetch",
+        "inspire",
+        "mass invis",
+        "psychic scream"
+      ],
+      "loadLocations": [],
+      "vnumText": "3252",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3253,
+      "name": "zielona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "acid hands"
+      ],
+      "loadLocations": [],
+      "vnumText": "3253",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3658,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "dismiss plant",
+        "goodbarry",
+        "hold animal",
+        "waterwalk"
+      ],
+      "loadLocations": [
+        "na mobie: mlody druid (\u002B# Dziwny Las)"
+      ],
+      "vnumText": "3658",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3707,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "decay",
+        "haste",
+        "raise zombie",
+        "resist cold"
+      ],
+      "loadLocations": [
+        "na mobie: duch gnomiego maga (\u002B# Lasek i podziemia)"
+      ],
+      "vnumText": "3707",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3734,
+      "name": "ksiega wiedzy",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "create healing water",
+        "free action",
+        "resist fire"
+      ],
+      "loadLocations": [
+        "w obiekcie: niewielka szczelina (\u002B# Lasek i podziemia)"
+      ],
+      "vnumText": "3734",
+      "classesText": "kleryk",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 3908,
+      "name": "czarna ksiega modlitw",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "animate dead",
+        "blindness",
+        "cause serious",
+        "fear"
+      ],
+      "loadLocations": [
+        "na mobie: potezny Arcykaplan (\u002B# Ukryta kaplica w puszczy pod Carrallak)"
+      ],
+      "vnumText": "3908",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 4510,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "free action",
+        "hold undead",
+        "remove paralysis",
+        "repayment"
+      ],
+      "loadLocations": [
+        "na mobie: czarodziejka sahuaginow (\u002B# Podwodna jaskinia Sahuaginow)"
+      ],
+      "vnumText": "4510",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 4511,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "dispel good",
+        "energy shield",
+        "heat metal",
+        "hold person"
+      ],
+      "loadLocations": [
+        "na mobie: kaplan sahuaginow (\u002B# Podwodna jaskinia Sahuaginow)"
+      ],
+      "vnumText": "4511",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 5112,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "create healing water",
+        "cure critical",
+        "divine power",
+        "lesser restoration",
+        "mass aid"
+      ],
+      "loadLocations": [
+        "na mobie: upiorny kaplan (\u002B# Cmentarz upadlych)"
+      ],
+      "vnumText": "5112",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 5113,
+      "name": "plugawa ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "decay",
+        "ghoul touch",
+        "minor globe of invulnerability",
+        "raise ghoul"
+      ],
+      "loadLocations": [],
+      "vnumText": "5113",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 5413,
+      "name": "starozytna elfia ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "change weapon",
+        "draconic wisdom",
+        "giant strength",
+        "major haste",
+        "stone skin"
+      ],
+      "loadLocations": [
+        "na mobie: Caerion Hasteveral (\u002B# Stara Elfia Nekropolia)"
+      ],
+      "vnumText": "5413",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 5501,
+      "name": "zniszczona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cone of cold",
+        "confusion",
+        "haste",
+        "razorblade hands"
+      ],
+      "loadLocations": [],
+      "vnumText": "5501",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 5766,
+      "name": "zwyczajny notatnik",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "energy shield",
+        "eyes of the torturer",
+        "power word kill",
+        "reflect spell II",
+        "wizard eye"
+      ],
+      "loadLocations": [],
+      "vnumText": "5766",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6149,
+      "name": "niepozorna ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "chill metal",
+        "heat metal",
+        "hold person",
+        "pyrotechnics",
+        "resist magic"
+      ],
+      "loadLocations": [
+        "na mobie: Armade Smialy (\u002B# Miasto Arras)"
+      ],
+      "vnumText": "6149",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6440,
+      "name": "stara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cautious sleep",
+        "embalm",
+        "identify",
+        "silence"
+      ],
+      "loadLocations": [
+        "na mobie: mnich Vereia (\u002B# Dolina Elfow II)"
+      ],
+      "vnumText": "6440",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6442,
+      "name": "modlitewnik",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cure moderate",
+        "holy bolt",
+        "mass cure light",
+        "undead invisibility"
+      ],
+      "loadLocations": [
+        "na mobie: kaplan (\u002B# Dolina Elfow II)"
+      ],
+      "vnumText": "6442",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6482,
+      "name": "zdobiona ksiega",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "cure poison",
+        "cure serious",
+        "owl wisdom",
+        "undead invisibility"
+      ],
+      "loadLocations": [
+        "na mobie: Gardes (\u002B# Zajazd \u0022Pod kasztanami\u0022)"
+      ],
+      "vnumText": "6482",
+      "classesText": "paladyn",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6483,
+      "name": "modlitewnik",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "cure moderate",
+        "hold evil",
+        "remove fear",
+        "undead invisibility"
+      ],
+      "loadLocations": [],
+      "vnumText": "6483",
+      "classesText": "paladyn",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6607,
+      "name": "piaskowa ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "animate dead",
+        "embalm",
+        "ethereal armor",
+        "ghoul touch"
+      ],
+      "loadLocations": [
+        "na mobie: ozywieniec (\u002B# Koszmary Pustyni Kaan-ar)"
+      ],
+      "vnumText": "6607",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 6906,
+      "name": "szara ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cure blindness",
+        "cure disease",
+        "cure moderate"
+      ],
+      "loadLocations": [
+        "na mobie: kaplan Isoryka (\u002B# Martwe stepy)"
+      ],
+      "vnumText": "6906",
+      "classesText": "kleryk",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 8220,
+      "name": "ciemnozielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cause critical",
+        "heal animal",
+        "heal plant",
+        "wind shield"
+      ],
+      "loadLocations": [
+        "w obiekcie: zwloki czlowieka (\u002B# Ogrowisko - Orkowisko)"
+      ],
+      "vnumText": "8220",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 8863,
+      "name": "stara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [],
+      "loadLocations": [],
+      "vnumText": "8863",
+      "classesText": "mag",
+      "spellCountText": "0 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 9303,
+      "name": "prastara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "draconic wisdom",
+        "summon",
+        "summon ancient creature",
+        "summon greater meteor"
+      ],
+      "loadLocations": [
+        "na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
+      ],
+      "vnumText": "9303",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 9352,
+      "name": "ksiega ochrony przed elektrycznoscia",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "endure lightning"
+      ],
+      "loadLocations": [],
+      "vnumText": "9352",
+      "classesText": "kleryk",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 9353,
+      "name": "ksiega ochrony przed elektrycznoscia",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "endure lightning"
+      ],
+      "loadLocations": [],
+      "vnumText": "9353",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 9354,
+      "name": "ksiega ochrony przed elektrycznoscia",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "endure lightning"
+      ],
+      "loadLocations": [],
+      "vnumText": "9354",
+      "classesText": "druid",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 10950,
+      "name": "czarna ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "harm",
+        "heal",
+        "mass bless",
+        "mass cure critical",
+        "mass protection evil"
+      ],
+      "loadLocations": [
+        "na mobie: Ymxahirativra (\u002B# Osada barbarzyncow \u002B grobowiec)"
+      ],
+      "vnumText": "10950",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 10953,
+      "name": "podniszczona ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "chill metal",
+        "mass bless",
+        "resist fire",
+        "weaken"
+      ],
+      "loadLocations": [],
+      "vnumText": "10953",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 10957,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "horrid wilting",
+        "mend",
+        "pass door",
+        "spirits armor",
+        "vampiric touch"
+      ],
+      "loadLocations": [],
+      "vnumText": "10957",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11134,
+      "name": "ksiega mrocznej potegi",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "decay",
+        "iceshield",
+        "raise ghoul",
+        "raise zombie"
+      ],
+      "loadLocations": [
+        "na mobie: Ghrihwegg (\u002B# Podziemia nekromanty)"
+      ],
+      "vnumText": "11134",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11493,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "brave cloak",
+        "cause serious",
+        "cure serious",
+        "lesser restoration"
+      ],
+      "loadLocations": [
+        "na mobie: gnoll piesniarz Kor\u0027totha (\u002B# Warownia Gnolli)",
+        "na mobie: mlody kaplan Portena (Podmrok - Podziemne korytarze)"
+      ],
+      "vnumText": "11493",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11831,
+      "name": "ksiega w niebieskiej okladce",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "blindness",
+        "change liquid",
+        "prayer",
+        "transmute staff"
+      ],
+      "loadLocations": [
+        "na mobie: adept Turlitha (\u002B# Carrallak)"
+      ],
+      "vnumText": "11831",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11832,
+      "name": "podniszczony modlitewnik",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "blindness",
+        "change liquid",
+        "poison",
+        "transmute staff"
+      ],
+      "loadLocations": [
+        "na mobie: szalony kaplan Istovirtha (\u002B# Spalona Wies)"
+      ],
+      "vnumText": "11832",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11840,
+      "name": "szara ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause serious",
+        "cure serious",
+        "dispel magic",
+        "sanctuary"
+      ],
+      "loadLocations": [
+        "na mobie: kaplan w zelaznej masce (\u002B# Czarny zamek)"
+      ],
+      "vnumText": "11840",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11842,
+      "name": "szara ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "aid",
+        "bull strength",
+        "cure moderate",
+        "detect invis"
+      ],
+      "loadLocations": [
+        "na mobie: poslaniec (\u002B# Zajazd \u0022Pod kasztanami\u0022)",
+        "na mobie: drowia kaplanka (Messholzarn)"
+      ],
+      "vnumText": "11842",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11852,
+      "name": "malutka ksiazeczka",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "bear endurance",
+        "detect hidden",
+        "mirror image",
+        "water breathing"
+      ],
+      "loadLocations": [
+        "na mobie: smietnikowy mag (\u002B# Kanaly pod Arras II)"
+      ],
+      "vnumText": "11852",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 11853,
+      "name": "wlochata ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [],
+      "loadLocations": [],
+      "vnumText": "11853",
+      "classesText": "mag",
+      "spellCountText": "0 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14020,
+      "name": "ksiega zaklec",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "fireshield",
+        "fly",
+        "hold monster",
+        "remove paralysis"
+      ],
+      "loadLocations": [
+        "na mobie: oblakany staruch (\u002B# Wyspa oblakanych)"
+      ],
+      "vnumText": "14020",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14060,
+      "name": "ksiega zaklec",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "lesser magic resist",
+        "mental barrier",
+        "stability",
+        "summon distortion"
+      ],
+      "loadLocations": [
+        "na mobie: wodz ogrow (\u002B# Ogrowisko - Orkowisko)"
+      ],
+      "vnumText": "14060",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14062,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "bull strength",
+        "mind blast",
+        "mind fortess",
+        "perfect self"
+      ],
+      "loadLocations": [
+        "na mobie: krasnoludzki czarodziej (\u002B# Kamienice w Krasnoludzkiej Fortecy)"
+      ],
+      "vnumText": "14062",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14069,
+      "name": "magiczna ksiega z czarem \u0027uderzenie mocy\u0027",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "force bolt"
+      ],
+      "loadLocations": [],
+      "vnumText": "14069",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14070,
+      "name": "magiczna ksiega z czarem \u0027kwasowy podmuch\u0027",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "acid blast"
+      ],
+      "loadLocations": [],
+      "vnumText": "14070",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14071,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "charm monster",
+        "force missiles",
+        "mass invis",
+        "mental barrier"
+      ],
+      "loadLocations": [],
+      "vnumText": "14071",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14072,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cat grace",
+        "identify",
+        "invisibility",
+        "lightning bolt",
+        "silence"
+      ],
+      "loadLocations": [
+        "na mobie: imp (\u002B# Cmentarz)",
+        "na mobie: drowi adept magii (Messholzarn)"
+      ],
+      "vnumText": "14072",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14074,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss insect",
+        "magic missile",
+        "mind fortess",
+        "piercing sight"
+      ],
+      "loadLocations": [],
+      "vnumText": "14074",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14075,
+      "name": "ksiega nekromancji",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "animate dead",
+        "healing sleep",
+        "increase wounds"
+      ],
+      "loadLocations": [],
+      "vnumText": "14075",
+      "classesText": "mag",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14076,
+      "name": "opasla ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "chaotic shock",
+        "flame lace",
+        "force bolt",
+        "minor globe of invulnerability"
+      ],
+      "loadLocations": [
+        "na mobie: Asher Verys (\u002B# Podmrok - Seeyma)"
+      ],
+      "vnumText": "14076",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14077,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dimension door",
+        "reflect spell I",
+        "resist elements",
+        "resist normal weapon"
+      ],
+      "loadLocations": [
+        "na mobie: biala smoczyca (\u002B# Smocze Legowisko - rozbudowa)",
+        "na mobie: biala smoczyca (\u002B# Smocze legowisko)"
+      ],
+      "vnumText": "14077",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14078,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "animate dead",
+        "bull strength",
+        "hallucinations",
+        "perfect senses",
+        "vampiric touch"
+      ],
+      "loadLocations": [
+        "na mobie: widmo (\u002B# Cmentarz)"
+      ],
+      "vnumText": "14078",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14079,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "fox cunning",
+        "invisibility",
+        "lightning bolt",
+        "maze"
+      ],
+      "loadLocations": [
+        "na mobie: wedrowny mag (\u002B# Oboz wojskowy)"
+      ],
+      "vnumText": "14079",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 14080,
+      "name": "ksiega boskich inwokacji",
+      "classes": [
+        "mag"
+      ],
+      "spells": [],
+      "loadLocations": [],
+      "vnumText": "14080",
+      "classesText": "mag",
+      "spellCountText": "0 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 15293,
+      "name": "ksiega druidzka",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "bark guardian",
+        "cure moderate",
+        "neutralize poison",
+        "reinvigore animal"
+      ],
+      "loadLocations": [
+        "na mobie: druid Salamidar (Druidzki staw w Obilonie)"
+      ],
+      "vnumText": "15293",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 15905,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "hold undead",
+        "mass cure serious",
+        "remove paralysis",
+        "restoration"
+      ],
+      "loadLocations": [
+        "w obiekcie: wielka debowa skrzynia (\u002B# Jaskinie ogrow)"
+      ],
+      "vnumText": "15905",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 16615,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "confusion",
+        "force bolt",
+        "free action",
+        "razorblade hands",
+        "resist acid"
+      ],
+      "loadLocations": [
+        "na mobie: kosooki mag (\u002B# Kryjowka piratow)"
+      ],
+      "vnumText": "16615",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 16818,
+      "name": "ksiega zaklec",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "decay",
+        "fly",
+        "force bolt",
+        "resist elements",
+        "vampiric touch"
+      ],
+      "loadLocations": [
+        "na mobie: czarnoksieznik Zeerith\u0027din (Podmrok gobliny)"
+      ],
+      "vnumText": "16818",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 16848,
+      "name": "dostojna ksiega wiedzy",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause critical",
+        "cure critical",
+        "cure serious",
+        "free action",
+        "remove paralysis"
+      ],
+      "loadLocations": [
+        "na mobie: dostojny mykonid (Podmrok Jaskinia Mykonidow)"
+      ],
+      "vnumText": "16848",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 17801,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss outsider",
+        "loop",
+        "loyalty",
+        "noble look",
+        "resist normal weapon"
+      ],
+      "loadLocations": [
+        "na mobie: obserwator (\u002B# Lodowa Gora)"
+      ],
+      "vnumText": "17801",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 17957,
+      "name": "stara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "behemot toughness",
+        "deflect wounds",
+        "great dispel magic",
+        "major globe of invulnerability"
+      ],
+      "loadLocations": [
+        "na mobie: Behemot (\u002B# Jaskinie Naugrimow)"
+      ],
+      "vnumText": "17957",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 17963,
+      "name": "zakrwawiona, magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "behemot toughness",
+        "change weapon",
+        "deflect wounds",
+        "giant strength",
+        "summon ancient creature"
+      ],
+      "loadLocations": [],
+      "vnumText": "17963",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 17965,
+      "name": "zniszczona ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "exile",
+        "imbue with element",
+        "mantle",
+        "minor globe of invulnerability",
+        "puppet master"
+      ],
+      "loadLocations": [
+        "na mobie: szalony minotaur (\u002B# Jaskinie Naugrimow)"
+      ],
+      "vnumText": "17965",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 18370,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "calm",
+        "cure serious",
+        "dispel evil",
+        "lore undead"
+      ],
+      "loadLocations": [
+        "na mobie: Veditth Ven (\u002B# Carrallak - komnata paladynow)"
+      ],
+      "vnumText": "18370",
+      "classesText": "paladyn",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 19033,
+      "name": "druidzka ksiega czarow",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "beast claws",
+        "blade barrier",
+        "flamestrike",
+        "heat metal",
+        "nature ally III"
+      ],
+      "loadLocations": [
+        "na mobie: druid Enselar (\u002B# Jaskinie Naugrimow 2)"
+      ],
+      "vnumText": "19033",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 19407,
+      "name": "lodowa ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "chain lightning",
+        "energy strike",
+        "globe of invulnerability",
+        "rain of blades",
+        "thunder bolt"
+      ],
+      "loadLocations": [],
+      "vnumText": "19407",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 20352,
+      "name": "zdobiona ksiega",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "cure disease",
+        "detect undead",
+        "lore undead",
+        "remove curse",
+        "spiritual weapon"
+      ],
+      "loadLocations": [],
+      "vnumText": "20352",
+      "classesText": "paladyn",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 20353,
+      "name": "zakurzona ksiega",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "brave cloak",
+        "bull strength",
+        "eagle splendor",
+        "holy weapons"
+      ],
+      "loadLocations": [
+        "na mobie: opetany paladyn (\u002B# Koszmary Pustyni Kaan-ar)"
+      ],
+      "vnumText": "20353",
+      "classesText": "paladyn",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 20360,
+      "name": "zniszczona ksiega",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "cure blindness",
+        "divine shield",
+        "remove curse"
+      ],
+      "loadLocations": [
+        "na mobie: duch wielkiego wojownika (\u002B# Jaskinie Ogrow w Gorach Smoczych 1)"
+      ],
+      "vnumText": "20360",
+      "classesText": "paladyn",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 22704,
+      "name": "ksiega arcymaga",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "elemental devastation",
+        "lightingshield",
+        "master of piercing sight",
+        "nexus",
+        "portal"
+      ],
+      "loadLocations": [
+        "na mobie: Arcymag (\u002B# [NK] Wieza Magow)"
+      ],
+      "vnumText": "22704",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 22878,
+      "name": "brudny modlitewnik",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "bark guardian",
+        "entangle",
+        "ice bolt",
+        "sunscorch"
+      ],
+      "loadLocations": [],
+      "vnumText": "22878",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 23611,
+      "name": "piaskowy tom",
+      "classes": [
+        "nomad"
+      ],
+      "spells": [
+        "brave cloak",
+        "desert light",
+        "fetch",
+        "neutralize poison",
+        "sand shroud"
+      ],
+      "loadLocations": [
+        "na mobie: nieumarly kaplan starozytnego kultu (\u002B# (Karakris) Piramida)"
+      ],
+      "vnumText": "23611",
+      "classesText": "nomad",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 23621,
+      "name": "ognista ksiega",
+      "classes": [
+        "nomad"
+      ],
+      "spells": [
+        "desert light",
+        "lesser magic resist",
+        "quiet step",
+        "resist elements",
+        "sand storm"
+      ],
+      "loadLocations": [
+        "na mobie: majestatyczny zloto upierzony feniks (\u002B# (Karakris) Piramida)"
+      ],
+      "vnumText": "23621",
+      "classesText": "nomad",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 24908,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cure critical",
+        "fly",
+        "mass luck",
+        "nature ally III",
+        "nature curse"
+      ],
+      "loadLocations": [
+        "na mobie: zblakany ent (\u002B# Sniezne Zaspy)"
+      ],
+      "vnumText": "24908",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 24984,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "chill metal",
+        "cure serious",
+        "storm shell",
+        "wind shield"
+      ],
+      "loadLocations": [
+        "na mobie: demon puszczy (\u002B# Lesne sanktuarium)"
+      ],
+      "vnumText": "24984",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 25400,
+      "name": "magiczna ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "blink",
+        "dimension door",
+        "eye of vision",
+        "hold monster",
+        "locate object"
+      ],
+      "loadLocations": [
+        "na mobie: bodak (\u002B# Sciezka, las, podziemia)"
+      ],
+      "vnumText": "25400",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 25669,
+      "name": "czarna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "horrid wilting",
+        "power word stun",
+        "raise ghast",
+        "unholy fury"
+      ],
+      "loadLocations": [
+        "na mobie: Gregzagg (\u002B# Sciezka, las, podziemia)"
+      ],
+      "vnumText": "25669",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 25670,
+      "name": "tajemnicza ksiega zaklec",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "insight",
+        "mass fly",
+        "mass invis",
+        "nimbleness",
+        "slippery floor"
+      ],
+      "loadLocations": [
+        "na mobie: prastary yugoloth (\u002B# Otchlan yugolothow)"
+      ],
+      "vnumText": "25670",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 26966,
+      "name": "modlitewnik ochrony przed kwasem",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "endure acid"
+      ],
+      "loadLocations": [],
+      "vnumText": "26966",
+      "classesText": "kleryk",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 26967,
+      "name": "modlitewnik ochrony przed kwasem",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "endure acid"
+      ],
+      "loadLocations": [],
+      "vnumText": "26967",
+      "classesText": "druid",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 26968,
+      "name": "ksiega ochrony przed kwasem",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "endure acid"
+      ],
+      "loadLocations": [],
+      "vnumText": "26968",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 26984,
+      "name": "Ksiega z magicznym zakleciem \u0022Swiatlo\u0022",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "light"
+      ],
+      "loadLocations": [],
+      "vnumText": "26984",
+      "classesText": "mag",
+      "spellCountText": "1 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 26998,
+      "name": "ksiega mocy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss insect",
+        "mirror image",
+        "misfortune",
+        "slow"
+      ],
+      "loadLocations": [],
+      "vnumText": "26998",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27433,
+      "name": "ksiega wiedzy zakonu Vigorsterei",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "enchant armor",
+        "free action",
+        "loyalty",
+        "power word stun",
+        "resist magic weapon"
+      ],
+      "loadLocations": [
+        "na mobie: mistrz Tsiv (\u002B# Karczma w Obilonie)"
+      ],
+      "vnumText": "27433",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27612,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "create greater illusion",
+        "fetch",
+        "inspire",
+        "psychic scream",
+        "shadow conjuration"
+      ],
+      "loadLocations": [
+        "na mobie: Quaz\u0027gyved, astralny wojownik (\u002B# Jaskinie Umbrowych Kolosow)"
+      ],
+      "vnumText": "27612",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27637,
+      "name": "ksiega boskich inwokacji",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause critical",
+        "cure poison",
+        "dispel evil",
+        "resist lightning"
+      ],
+      "loadLocations": [
+        "na mobie: kapelan (\u002B# Oboz wojskowy)"
+      ],
+      "vnumText": "27637",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27683,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cure critical",
+        "detect hidden",
+        "mass aid",
+        "resist cold",
+        "restoration"
+      ],
+      "loadLocations": [
+        "na mobie: widmo kaplanki (\u002B# Przydrozna kapliczka)"
+      ],
+      "vnumText": "27683",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27828,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "nature ally II",
+        "owl wisdom",
+        "reinvigore animal",
+        "resist fire"
+      ],
+      "loadLocations": [
+        "na mobie: lesna nimfa (\u002B# Pradawna puszcza)"
+      ],
+      "vnumText": "27828",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27829,
+      "name": "zielona ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "hellfire",
+        "ice bolt",
+        "neutralize poison",
+        "owl wisdom",
+        "reinvigore plant"
+      ],
+      "loadLocations": [
+        "na mobie: wodna nimfa (\u002B# Pradawna puszcza)"
+      ],
+      "vnumText": "27829",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27830,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss animal",
+        "faerie fog",
+        "hold animal",
+        "invisibility",
+        "perfect senses"
+      ],
+      "loadLocations": [
+        "na mobie: pixie (\u002B# Pradawna puszcza)"
+      ],
+      "vnumText": "27830",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 27876,
+      "name": "ksiega czarow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss plant",
+        "flame arrow",
+        "summon greenskin",
+        "water breathing"
+      ],
+      "loadLocations": [],
+      "vnumText": "27876",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 28038,
+      "name": "ksiega w granitowej oprawie",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "cure critical",
+        "earthquake",
+        "flamestrike",
+        "stone skin",
+        "wildthorn"
+      ],
+      "loadLocations": [
+        "w obiekcie: drewniana polka (\u002B# Narshe)"
+      ],
+      "vnumText": "28038",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 28063,
+      "name": "starozytna ksiega wywolywan",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cone of cold",
+        "energy strike",
+        "fireball",
+        "force bolt",
+        "iceshield"
+      ],
+      "loadLocations": [
+        "w obiekcie: drewniany regal (\u002B# Narshe)"
+      ],
+      "vnumText": "28063",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 28600,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "confusion shell",
+        "fly",
+        "force missiles"
+      ],
+      "loadLocations": [
+        "na mobie: mag Villert (\u002B# Czarny zamek)"
+      ],
+      "vnumText": "28600",
+      "classesText": "mag",
+      "spellCountText": "3 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 28805,
+      "name": "czarna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "increase wounds",
+        "lower resistance",
+        "raise zombie",
+        "soul trap",
+        "vampiric touch"
+      ],
+      "loadLocations": [
+        "na mobie: cieniste widmo (\u002B# Katakumby pod Cmentarzem)"
+      ],
+      "vnumText": "28805",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 30119,
+      "name": "czarna kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause critical",
+        "dispel good",
+        "fear",
+        "harm",
+        "heal"
+      ],
+      "loadLocations": [
+        "na mobie: czarny kaplan Variotha (\u002B# Zamek Wyznawcow Variotha)"
+      ],
+      "vnumText": "30119",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 30123,
+      "name": "notatnik Kaylin",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "entrophy wave",
+        "ethereal armor",
+        "ethereal body",
+        "revive",
+        "vampiric aura"
+      ],
+      "loadLocations": [
+        "na mobie: nekromantka Kaylin Ygresse (\u002B# Zamek Wyznawcow Variotha)"
+      ],
+      "vnumText": "30123",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 33020,
+      "name": "ksiega najwyzszej nekromancji",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "banshee\u0060s howl",
+        "orb of entropy",
+        "raise ghast",
+        "revive"
+      ],
+      "loadLocations": [
+        "w obiekcie: wneka w scianie (\u002B# Nawiedzone Hale)"
+      ],
+      "vnumText": "33020",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 33021,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "brainwash",
+        "chain lightning",
+        "deflect wounds",
+        "domination",
+        "wizard eye"
+      ],
+      "loadLocations": [],
+      "vnumText": "33021",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 33024,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "energy shield",
+        "life transfer",
+        "mass luck",
+        "mass resist negative",
+        "restoration"
+      ],
+      "loadLocations": [
+        "na mobie: starozytna mumia (\u002B# Nawiedzone Hale)"
+      ],
+      "vnumText": "33024",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 33027,
+      "name": "ksiega magii wysokiej",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "absolute magic protection",
+        "brainwash",
+        "reflect spell III",
+        "resist weapon"
+      ],
+      "loadLocations": [
+        "w obiekcie: wneka w scianie (\u002B# Nawiedzone Hale)"
+      ],
+      "vnumText": "33027",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 34536,
+      "name": "podrecznik magii kleryckiej",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause light",
+        "create food",
+        "create water",
+        "cure light",
+        "prayer"
+      ],
+      "loadLocations": [],
+      "vnumText": "34536",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 40532,
+      "name": "magiczna ksiega lowcy",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "psychic scream",
+        "summon"
+      ],
+      "loadLocations": [],
+      "vnumText": "40532",
+      "classesText": "mag",
+      "spellCountText": "2 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 40888,
+      "name": "ksiega paladynska",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "calm",
+        "cure poison",
+        "hold evil",
+        "owl wisdom"
+      ],
+      "loadLocations": [
+        "na mobie: wodz Efilof (\u002B# [NK] Osada barbarzyncow)"
+      ],
+      "vnumText": "40888",
+      "classesText": "paladyn",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 41232,
+      "name": "antyczna, magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "absolute magic protection",
+        "enchant artefact",
+        "master of piercing sight",
+        "revive",
+        "summon"
+      ],
+      "loadLocations": [
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)",
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
+      ],
+      "vnumText": "41232",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 41233,
+      "name": "antyczna ksiega magii kleryckiej",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "heal",
+        "life transfer",
+        "mass cure critical",
+        "mass resist negative"
+      ],
+      "loadLocations": [
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)",
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
+      ],
+      "vnumText": "41233",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 41234,
+      "name": "antyczna ksiega natury",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "mass luck",
+        "mass refresh",
+        "stone master",
+        "stone skin",
+        "wildthorn"
+      ],
+      "loadLocations": [
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)",
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
+      ],
+      "vnumText": "41234",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 41235,
+      "name": "antyczna ksiega nauk paladynskich",
+      "classes": [
+        "paladyn"
+      ],
+      "spells": [
+        "aura of battle lust",
+        "aura of endurance",
+        "aura of improved healing",
+        "aura of precision",
+        "aura of vigor"
+      ],
+      "loadLocations": [
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)",
+        "na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
+      ],
+      "vnumText": "41235",
+      "classesText": "paladyn",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 42348,
+      "name": "ksiega magii",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "create greater illusion",
+        "inspiring presence",
+        "power word blind",
+        "shadow conjuration",
+        "shadow swarm"
+      ],
+      "loadLocations": [
+        "na mobie: Sethriz (\u002B# [NK] Wezowisko pod ruinami)"
+      ],
+      "vnumText": "42348",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 42376,
+      "name": "druidzka ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "animal rage",
+        "freezing rain",
+        "nature ally III",
+        "smashing wave"
+      ],
+      "loadLocations": [
+        "na mobie: srebrzystogrzywy wilkolak (\u002B# [NK] Las na wschod od rzeki)"
+      ],
+      "vnumText": "42376",
+      "classesText": "druid",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 42826,
+      "name": "okuta druidzka ksiega",
+      "classes": [
+        "druid"
+      ],
+      "spells": [
+        "circle of vanion",
+        "healing ring",
+        "mass refresh",
+        "stone skin",
+        "wind charger"
+      ],
+      "loadLocations": [
+        "na mobie: druidzki mistrz (\u002B# Gory na zachod od Fortecy  )",
+        "na mobie: czarna pantera (\u002B# Gory na zachod od Fortecy  )",
+        "na mobie: czarny ogromny niedzwiedz (\u002B# Gory na zachod od Fortecy  )",
+        "na mobie: czarny niebezpieczny wilk (\u002B# Gory na zachod od Fortecy  )"
+      ],
+      "vnumText": "42826",
+      "classesText": "druid",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 43068,
+      "name": "ksiega magii",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "banshee\u0060s howl",
+        "decay",
+        "raise ghast",
+        "shadow weapon"
+      ],
+      "loadLocations": [
+        "na mobie: podly nekromanta (\u002B# Wyspa nieumarlych)"
+      ],
+      "vnumText": "43068",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 44406,
+      "name": "ksiega magii drowow",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "charm monster",
+        "cone of cold",
+        "mass fly",
+        "summon flying creature"
+      ],
+      "loadLocations": [
+        "na mobie: drowi czarnoksieznik (\u002B# [NK] Wyzyny na polnoc od wscieklego trolla)"
+      ],
+      "vnumText": "44406",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 45557,
+      "name": "magiczna ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "detect hidden",
+        "flame arrow",
+        "resist lightning",
+        "summon greenskin"
+      ],
+      "loadLocations": [
+        "na mobie: ork czarodziej (\u002B# Podziemna wioska orkow)"
+      ],
+      "vnumText": "45557",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 46363,
+      "name": "szara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "dismiss monster",
+        "flame arrow",
+        "haste",
+        "minor globe of invulnerability",
+        "summon flying creature"
+      ],
+      "loadLocations": [
+        "na mobie: Feezin (\u002B# Krypta Kamienia)"
+      ],
+      "vnumText": "46363",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 46376,
+      "name": "nadpalona kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause critical",
+        "divine power",
+        "mass protection good",
+        "sanctuary"
+      ],
+      "loadLocations": [
+        "na mobie: Freaker Lytha (\u002B# Krypta Kamienia)"
+      ],
+      "vnumText": "46376",
+      "classesText": "kleryk",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 51007,
+      "name": "prastara lodowa ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "absolute magic protection",
+        "blizzard storm",
+        "chain lightning",
+        "power word kill"
+      ],
+      "loadLocations": [
+        "na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
+      ],
+      "vnumText": "51007",
+      "classesText": "mag",
+      "spellCountText": "4 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 55418,
+      "name": "ksiega magii",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "cone of cold",
+        "fly",
+        "orb of entropy",
+        "raise ghoul",
+        "unholy fury"
+      ],
+      "loadLocations": [
+        "na mobie: nekromanta Nagash (\u002B# [NK] Wyspa Nekromanty Nagasha)"
+      ],
+      "vnumText": "55418",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 64939,
+      "name": "szara ksiega",
+      "classes": [
+        "mag"
+      ],
+      "spells": [
+        "darkness",
+        "dismiss undead",
+        "mend golem",
+        "summon flying creature",
+        "summon lesser meteor"
+      ],
+      "loadLocations": [
+        "na mobie: ponury mag (\u002B# Gory nad Jaskiniami Naugrimow)"
+      ],
+      "vnumText": "64939",
+      "classesText": "mag",
+      "spellCountText": "5 zakl\u0119\u0107"
+    },
+    {
+      "vnum": 64941,
+      "name": "kaplanska ksiega",
+      "classes": [
+        "kleryk"
+      ],
+      "spells": [
+        "cause critical",
+        "champion strength",
+        "cure critical",
+        "mass cure moderate",
+        "resist acid"
+      ],
+      "loadLocations": [
+        "na mobie: drowia kaplanka (\u002B# Podmrok - Seeyma)"
+      ],
+      "vnumText": "64941",
+      "classesText": "kleryk",
+      "spellCountText": "5 zakl\u0119\u0107"
+    }
+  ]
+}
