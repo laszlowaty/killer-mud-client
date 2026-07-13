@@ -58,6 +58,25 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Same(della, viewModel.SelectedTeacher);
     }
 
+    [Fact]
+    public void ShowTeacherOnMapCommand_OnlyInvokesCallbackForKnownRoom()
+    {
+        TeacherEntry? requestedTeacher = null;
+        var teachers = TeacherCatalogLoader.Load();
+        var mappedTeacher = teachers.First(teacher => teacher.HasRoomLocation);
+        var viewModel = new KilleropediaViewModel(
+            teachers,
+            CreateBookStore(),
+            null,
+            teacher => requestedTeacher = teacher);
+
+        Assert.True(viewModel.ShowTeacherOnMapCommand.CanExecute(mappedTeacher));
+        viewModel.ShowTeacherOnMapCommand.Execute(mappedTeacher);
+
+        Assert.Same(mappedTeacher, requestedTeacher);
+        Assert.False(viewModel.ShowTeacherOnMapCommand.CanExecute(mappedTeacher with { RoomVnum = null }));
+    }
+
     [AvaloniaFact]
     public void TeachersView_RendersCatalogAndSelectedTeacherDetails()
     {

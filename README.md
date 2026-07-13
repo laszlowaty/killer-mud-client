@@ -64,6 +64,9 @@ po nazwie, umiejętności, klasie, krainie oraz vnum. Bazowy katalog pochodzi z
 [`MudletScripts/kbase/teachers.json`](https://github.com/laszlowaty/MudletScripts/blob/master/kbase/teachers.json)
 i jest uzupełniony o wpisy utrzymywane w `TeacherCatalogLoader`.
 
+Przycisk **Pokaż na mapie** przy nauczycielu z rozpoznanym pokojem zamyka Killeropedię,
+zaznacza jego lokalizację i rysuje dostępną trasę bez uruchamiania autowalka.
+
 Zakładka **Księgi Magiczne** czyta lokalny `killeropedia-books.json` i pozwala
 wyszukiwać po nazwie księgi, zaklęciu, profesji, miejscu ładowania oraz vnum.
 Katalog może odtworzyć wyłącznie narzędzie deweloperskie sterowane stałymi w

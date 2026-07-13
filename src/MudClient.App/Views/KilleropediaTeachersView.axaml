@@ -54,9 +54,14 @@
                 <TextBlock Classes="mud-heading-lg" Text="{Binding Name}" />
                 <TextBlock Classes="mud-muted" Text="{Binding RegionText}" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="3">
+              <StackPanel Grid.Column="1" Spacing="7" HorizontalAlignment="Right">
                 <TextBlock Classes="mud-faint" Text="{Binding MobVnum, StringFormat='Mob vnum: {0}'}" />
                 <TextBlock Classes="mud-faint" Text="{Binding RoomText, StringFormat='Pokój vnum: {0}'}" />
+                <Button Content="Pokaż na mapie"
+                        HorizontalAlignment="Right"
+                        IsVisible="{Binding HasRoomLocation}"
+                        Command="{Binding $parent[UserControl].DataContext.ShowTeacherOnMapCommand}"
+                        CommandParameter="{Binding}" />
               </StackPanel>
             </Grid>
 

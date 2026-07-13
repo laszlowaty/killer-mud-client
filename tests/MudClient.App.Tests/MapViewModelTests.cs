@@ -325,6 +325,37 @@ public sealed class MapViewModelTests
         Assert.Equal(5.0, vm.SelectedZ);
     }
 
+    [Fact]
+    public void FocusRoomByVnum_SelectsAreaFloorAndRoomWithoutFollowingPlayer()
+    {
+        using var vm = CreateViewModel();
+        var index = CreateSampleIndex();
+        SetMapIndexThroughProperty(vm, index);
+        MapRoom? centeredRoom = null;
+        vm.CenterOnRoomRequested += room => centeredRoom = room;
+
+        var room = vm.FocusRoomByVnum("100");
+
+        Assert.NotNull(room);
+        Assert.Same(room, vm.SelectedRoom);
+        Assert.Same(room, centeredRoom);
+        Assert.Equal(1, vm.SelectedArea?.Id);
+        Assert.Equal(5, vm.SelectedZ);
+        Assert.False(vm.FollowPlayer);
+    }
+
+    [Fact]
+    public void FocusRoomByVnum_UnknownRoomLeavesMapUnchanged()
+    {
+        using var vm = CreateViewModel();
+        SetMapIndexThroughProperty(vm, CreateSampleIndex());
+
+        var room = vm.FocusRoomByVnum("missing");
+
+        Assert.Null(room);
+        Assert.Null(vm.SelectedRoom);
+    }
+
     // ====================================================================
     // TryResolveCurrentRoom (invoked via reflection) — FollowPlayer preservation
     // ====================================================================

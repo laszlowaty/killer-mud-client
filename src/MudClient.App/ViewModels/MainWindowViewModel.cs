@@ -197,7 +197,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Killeropedia = new KilleropediaViewModel(
             TeacherCatalogLoader.Load(),
             _bookCatalogStore,
-            RefreshBookCatalogAsync);
+            RefreshBookCatalogAsync,
+            ShowTeacherOnMap);
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Notes.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
@@ -1514,6 +1515,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnMapRoomDoubleClicked(MapRoom room)
     {
+        PreviewRouteToRoom(room);
+    }
+
+    private void PreviewRouteToRoom(MapRoom room)
+    {
         var vnum = room.Vnum;
         if (string.IsNullOrWhiteSpace(vnum))
         {
@@ -1555,6 +1561,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         PaintRoute(path, 0);
         AutowalkStatusText = $"Cel: „{_temporaryTarget!.Name}” — {path.Steps.Count} kroków. Wpisz /idz albo kliknij IDŹ DO CELU.";
+    }
+
+    private void ShowTeacherOnMap(TeacherEntry teacher)
+    {
+        IsKilleropediaOpen = false;
+        _dockFactory.ShowTool("Map");
+
+        if (teacher.RoomVnum is not { Length: > 0 } roomVnum
+            || Map.FocusRoomByVnum(roomVnum) is not { } room)
+        {
+            Map.RouteRooms = null;
+            AddToast($"Lokalizacja nauczyciela „{teacher.Name}” nie jest dostępna na mapie.", "error");
+            return;
+        }
+
+        PreviewRouteToRoom(room);
     }
 
     /// <summary>

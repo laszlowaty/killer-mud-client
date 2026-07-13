@@ -70,6 +70,21 @@ public sealed class DockRestoreTests
         Assert.True(missing.Count == 0, "Not restored: " + string.Join(", ", missing));
     }
 
+    [Fact]
+    public void ShowTool_SelectsRequestedTab()
+    {
+        var factory = CreateFactory(out _);
+        var map = GetTool(factory, "Map");
+        var roomInfo = GetTool(factory, "RoomInfo");
+        var owner = Assert.IsType<ToolDock>(map.Owner);
+        factory.SetActiveDockable(roomInfo);
+
+        var shown = factory.ShowTool("Map");
+
+        Assert.True(shown);
+        Assert.Same(map, owner.ActiveDockable);
+    }
+
     // Dragging a panel onto the main window's outer edge (global dock → SplitToDock on the
     // root-level target) must become a collapsed tab on that edge, not a layout split.
     [Theory]

@@ -31,6 +31,8 @@ public sealed record TeacherEntry(
 
     public string RoomText => string.IsNullOrWhiteSpace(RoomVnum) ? "brak danych" : RoomVnum;
 
+    public bool HasRoomLocation => !string.IsNullOrWhiteSpace(RoomVnum);
+
     public string ClassesText => Classes.Count == 0 ? "brak danych" : string.Join(", ", Classes);
 
     public string SkillCountText => $"{Skills.Count} umiejętności";

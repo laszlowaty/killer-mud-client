@@ -474,6 +474,29 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         CenterOnCurrentRoomRequested?.Invoke();
     }
 
+    /// <summary>
+    /// Selects and centers a mapped room without enabling follow-player mode.
+    /// Returns null when the vnum is not present in the loaded map.
+    /// </summary>
+    public MapRoom? FocusRoomByVnum(string vnum)
+    {
+        if (MapIndex?.FindFirstRoomByVnum(vnum) is not { } room)
+        {
+            return null;
+        }
+
+        if (MapIndex.AreasById.GetValueOrDefault(room.AreaId) is { } area)
+        {
+            SetSelectedAreaInternal(area);
+        }
+
+        SetSelectedZInternal(room.Coordinates.Z);
+        SelectedRoom = room;
+        FollowPlayer = false;
+        CenterOnRoomRequested?.Invoke(room);
+        return room;
+    }
+
     private void RequestCenterOnCurrentRoom() => CenterOnPlayer();
 
     public void Dispose()

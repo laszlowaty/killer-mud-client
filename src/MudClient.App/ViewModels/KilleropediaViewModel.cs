@@ -13,6 +13,7 @@ public sealed class KilleropediaViewModel : ObservableObject
     private readonly IReadOnlyList<TeacherEntry> _allTeachers;
     private readonly BookCatalogStore _bookCatalogStore;
     private readonly Func<Task>? _refreshBooksAsync;
+    private readonly Action<TeacherEntry>? _showTeacherOnMap;
     private readonly AsyncRelayCommand _refreshBooksCommand;
     private readonly List<BookEntry> _allBooks = [];
     private string _teacherSearchText = string.Empty;
@@ -26,19 +27,24 @@ public sealed class KilleropediaViewModel : ObservableObject
     private DateTimeOffset? _booksGeneratedAtUtc;
 
     public KilleropediaViewModel()
-        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null)
+        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null, null)
     {
     }
 
     internal KilleropediaViewModel(
         IReadOnlyList<TeacherEntry> teachers,
         BookCatalogStore bookCatalogStore,
-        Func<Task>? refreshBooksAsync)
+        Func<Task>? refreshBooksAsync,
+        Action<TeacherEntry>? showTeacherOnMap = null)
     {
         _allTeachers = teachers;
         _bookCatalogStore = bookCatalogStore;
         _refreshBooksAsync = refreshBooksAsync;
+        _showTeacherOnMap = showTeacherOnMap;
         _refreshBooksCommand = new AsyncRelayCommand(RefreshBooksAsync, CanRefreshBooks);
+        ShowTeacherOnMapCommand = new RelayCommand<TeacherEntry>(
+            ShowTeacherOnMap,
+            teacher => teacher?.HasRoomLocation == true && _showTeacherOnMap is not null);
         ApplyTeacherFilter();
         LoadBookCatalog();
     }
@@ -64,6 +70,8 @@ public sealed class KilleropediaViewModel : ObservableObject
     }
 
     public string FilteredTeacherCountText => $"Nauczyciele: {FilteredTeachers.Count} z {_allTeachers.Count}";
+
+    public IRelayCommand<TeacherEntry> ShowTeacherOnMapCommand { get; }
 
     public ObservableCollection<BookEntry> FilteredBooks { get; } = [];
 
@@ -208,6 +216,14 @@ public sealed class KilleropediaViewModel : ObservableObject
         if (_refreshBooksAsync is not null)
         {
             await _refreshBooksAsync();
+        }
+    }
+
+    private void ShowTeacherOnMap(TeacherEntry? teacher)
+    {
+        if (teacher?.HasRoomLocation == true)
+        {
+            _showTeacherOnMap?.Invoke(teacher);
         }
     }
 

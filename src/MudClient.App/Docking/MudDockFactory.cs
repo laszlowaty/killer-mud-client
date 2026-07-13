@@ -475,6 +475,30 @@ public sealed class MudDockFactory : Factory, IFactory
         HiddenTools.Remove(tool);
     }
 
+    /// <summary>Restores, selects and focuses a tool so an action can reveal its content.</summary>
+    public bool ShowTool(string id)
+    {
+        if (_root is null || AllTools.FirstOrDefault(tool => tool.Id == id) is not { } tool)
+        {
+            return false;
+        }
+
+        if (IsPinned(_root, tool) || !ContainsDockable(_root, tool))
+        {
+            Restore(tool);
+        }
+
+        if (tool.Owner is not ToolDock owner || !ContainsDockable(_root, tool))
+        {
+            return false;
+        }
+
+        SetActiveDockable(tool);
+        SetFocusedDockable(owner, tool);
+        HiddenTools.Remove(tool);
+        return true;
+    }
+
     /// <summary>
     /// Restores a panel selected from the "Panele" menu as a top-edge auto-hide tab.
     /// This deliberately ignores the previous owner: Dock 12 can leave that owner detached

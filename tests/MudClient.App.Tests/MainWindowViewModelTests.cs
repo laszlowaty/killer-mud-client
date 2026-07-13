@@ -108,6 +108,73 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.True(_vm.IsKilleropediaOpen);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ShowTeacherOnMap_FocusesTeacherAndOnlyPaintsReachableRoute(bool routeExists)
+    {
+        var teacher = _vm.Killeropedia.FilteredTeachers.First(item => item.HasRoomLocation);
+        var current = new MapRoom
+        {
+            Id = 900001,
+            AreaId = 1,
+            Name = "Current room",
+            Coordinates = new MapCoordinates(0, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement("test-current"),
+            },
+            Exits = routeExists
+                ? [new MapExit { Name = "east", ExitId = 900002 }]
+                : [],
+        };
+        var target = new MapRoom
+        {
+            Id = 900002,
+            AreaId = routeExists ? 1 : 2,
+            Name = teacher.Name,
+            Coordinates = new MapCoordinates(1, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement(teacher.RoomVnum),
+            },
+        };
+        var document = new MapDocument
+        {
+            Areas = routeExists
+                ? [new MapArea { Id = 1, Name = "Connected", Rooms = [current, target] }]
+                :
+                [
+                    new MapArea { Id = 1, Name = "Old continent", Rooms = [current] },
+                    new MapArea { Id = 2, Name = "New continent", Rooms = [target] },
+                ],
+        };
+        typeof(MapViewModel).GetProperty(nameof(MapViewModel.MapIndex))!
+            .SetValue(_vm.Map, new MapIndex(document));
+        var resolver = (GmcpLocationResolver)typeof(MainWindowViewModel)
+            .GetField("_locationResolver", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_vm)!;
+        typeof(GmcpLocationResolver).GetProperty(nameof(GmcpLocationResolver.CurrentVnum))!
+            .SetValue(resolver, "test-current");
+        _vm.IsKilleropediaOpen = true;
+
+        _vm.Killeropedia.ShowTeacherOnMapCommand.Execute(teacher);
+
+        Assert.False(_vm.IsKilleropediaOpen);
+        Assert.False(_vm.IsAutowalking);
+        Assert.Same(target, _vm.Map.SelectedRoom);
+        Assert.Equal(target.AreaId, _vm.Map.SelectedArea?.Id);
+        Assert.False(_vm.Map.FollowPlayer);
+        if (routeExists)
+        {
+            Assert.Equal([current, target], _vm.Map.RouteRooms);
+        }
+        else
+        {
+            Assert.Null(_vm.Map.RouteRooms);
+        }
+    }
+
     [Fact]
     public void Constructor_HeaderDefaultsToDisconnected()
     {
