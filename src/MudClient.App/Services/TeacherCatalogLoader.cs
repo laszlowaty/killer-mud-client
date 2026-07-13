@@ -203,5 +203,29 @@ internal static class TeacherCatalogLoader
         S("bladesplash", 45, 65, 75, 45, "10785", "Nohi", "Dziwny Zajazd Kraken", "Carrallak", "Złodziej"),
         S("bladesplash", 60, 95, 75, 60, "20404", "Drowi zwiadowca", "Podmrok - Groty Zbojów", "Podmrok", "Złodziej"),
         S("bladesplash", 65, 85, 75, 65, "16705", "Drow złodziej", "Messholzarn", "Podmrok", "Złodziej"),
+
+        S("twohanded weapon mastery", 0, 45, 40, 35, "52", "Barbarzyńca Y'ergiz", "Krasnoludzka Forteca", "Forteca", "Barbarzyńca"),
+        S("twohanded weapon mastery", 0, 34, 0, 0, "534", "Barbarzyńca Brahadhan", "Carrallak", "Carrallak", "Barbarzyńca"),
+        S("twohanded weapon mastery", 10, 49, 0, 0, "24933", "Barbarzyńca", "Śnieżne Zaspy", "Easterial", "Barbarzyńca"),
+        S("twohanded weapon mastery", 35, 75, 55, 50, "17938", "Mistrz barbarzyński", "Jaskinie Naugrimów", "Easterial", "Barbarzyńca"),
+        S("twohanded weapon mastery", 35, 60, 0, 0, "10845", "Wysoki półork", "Spalona Wieś", "Arras", "Barbarzyńca"),
+        S("twohanded weapon mastery", 50, 80, 80, 65, "50616", "Potężny Barbarzyńca Grmar", "Obozowisko w górskich lasach", "Easterial", "Barbarzyńca"),
+        S("twohanded weapon mastery", 70, 85, 80, 70, "20399", "Wysoki pikinier", "Forteca - obwodnica południowa", "Arras", "Barbarzyńca"),
+        S("twohanded weapon mastery", 70, 95, 80, 70, "3810", "Spokojny tytan", "Wyspa tytanów", "Carrallak", "Barbarzyńca"),
+
+        S("unity with familiar", 0, 29, 0, 0, "34626", "Mag Sareech", "szkoła - mag", "Szkoła Mag", "Mag"),
+        S("unity with familiar", 0, 41, 0, 0, "26983", "Cemris", "Arrasyjska Szkoła Magii", "Arras", "Mag"),
+        S("unity with familiar", 0, 40, 0, 0, "16703", "Drowi czarodziej", "Messholzarn", "Podmrok", "Mag"),
+        S("unity with familiar", 0, 25, 0, 0, "16701", "Niski białowłosy drow", "Messholzarn", "Podmrok", "Mag"),
+        S("unity with familiar", 20, 60, 0, 0, "17654", "Bitewny mag Quenteavel", "Wieża Calizara", "Carrallak", "Mag"),
+        S("unity with familiar", 20, 60, 60, 45, "50138", "Mag Lerurd", "Silea", "Silea", "Mag"),
+        S("unity with familiar", 30, 65, 60, 43, "16817", "Uwięziony duch", "Podmrok gobliny", "Podmrok", "Mag"),
+        S("unity with familiar", 50, 90, 100, 60, "17934", "Arcymag Nilfog", "Jaskinie Naugrimów", "Easterial", "Mag"),
+        S("unity with familiar", 70, 95, 75, 70, "66990", "Drowi mag", "Podmrok Siedziba illithidów", "Podmrok", "Mag"),
+
+        S("loth prayer", 0, 21, 0, 0, "16702", "Dostojna drowia kapłanka", "Messholzarn", "Podmrok", "Kleryk"),
+        S("loth prayer", 20, 60, 30, 45, "16699", "Drowia kapłanka", "Messholzarn", "Podmrok", "Kleryk"),
+        S("loth prayer", 60, 85, 80, 60, "16851", "Drowia kapłanka", "Podmrok Jaskinia Mykonidów", "Podmrok", "Kleryk"),
+        S("loth prayer", 70, 95, 65, 55, "66989", "Drowia kapłanka", "Podmrok Siedziba illithidów", "Podmrok", "Kleryk"),
     ];
 }

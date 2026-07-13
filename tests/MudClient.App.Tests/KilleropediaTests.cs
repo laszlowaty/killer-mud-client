@@ -31,8 +31,8 @@ public sealed class KilleropediaTests : IDisposable
     {
         var teachers = TeacherCatalogLoader.Load();
 
-        Assert.Equal(141, teachers.Count);
-        Assert.Equal(1871, teachers.Sum(teacher => teacher.Skills.Count));
+        Assert.Equal(150, teachers.Count);
+        Assert.Equal(1892, teachers.Sum(teacher => teacher.Skills.Count));
 
         var renegade = Assert.Single(teachers, teacher => teacher.MobVnum == "19216");
         Assert.Contains(renegade.Skills, skill => skill.Name == "whirlwind");
@@ -42,6 +42,25 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Single(haghburg.Skills, skill => skill.Name == "whirlwind");
         Assert.Contains(haghburg.Skills, skill => skill.Name == "cyclone");
         Assert.Equal("Koszmary Pustyni Kaan-ar", haghburg.Area);
+
+        Assert.Equal(8, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "twohanded weapon mastery")));
+        Assert.Equal(9, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "unity with familiar")));
+        Assert.Equal(5, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "bladedance")));
+        Assert.Equal(5, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "bladefury")));
+        Assert.Equal(5, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "desert bond")));
+        Assert.Equal(4, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "loth prayer")));
+
+        var yergiz = Assert.Single(teachers, teacher => teacher.MobVnum == "52");
+        Assert.Contains(yergiz.Skills, skill => skill == new TeacherSkillEntry(
+            "twohanded weapon mastery", 0, 45, 35, 40));
+
+        var sareech = Assert.Single(teachers, teacher => teacher.MobVnum == "34626");
+        Assert.Contains(sareech.Skills, skill => skill == new TeacherSkillEntry(
+            "unity with familiar", 0, 29, 0, 0));
+
+        var lothTeacher = Assert.Single(teachers, teacher => teacher.MobVnum == "66989");
+        Assert.Contains(lothTeacher.Skills, skill => skill == new TeacherSkillEntry(
+            "loth prayer", 70, 95, 55, 65));
     }
 
     [Fact]
@@ -88,7 +107,7 @@ public sealed class KilleropediaTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();
-        Assert.Equal(141, list.ItemCount);
+        Assert.Equal(150, list.ItemCount);
         Assert.NotNull(viewModel.SelectedTeacher);
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
