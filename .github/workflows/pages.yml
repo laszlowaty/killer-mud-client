@@ -26,6 +26,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # A reusable workflow otherwise checks out the caller SHA. The release job commits
+          # the generated changelog after that SHA, so Pages must always deploy current main.
+          ref: main
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

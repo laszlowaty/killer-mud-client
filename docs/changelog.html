@@ -34,11 +34,13 @@
       background: #b45de022; color: var(--accent); border: 1px solid var(--accent);
       border-radius: 999px; padding: 1px 10px; font-weight: 600; }
     .notes { margin-top: 12px; }
-    .notes h3 { color: var(--gold); font-size: 1rem; margin: 14px 0 6px; letter-spacing: .5px; }
-    .notes ul { margin: 6px 0 6px 22px; }
+    .notes h1, .notes h2, .notes h3 { color: var(--gold); font-size: 1.05rem;
+      margin: 16px 0 6px; letter-spacing: .5px; }
+    .notes ul, .notes ol { margin: 6px 0 6px 22px; }
     .notes li { color: var(--text); margin: 2px 0; }
-    .notes .empty { color: var(--text-dim); font-style: italic; }
-    .notes .ghlink { margin-top: 12px; font-size: .82rem; }
+    .notes p { color: var(--text-dim); margin: 6px 0; }
+    .notes code { font-family: var(--mono); font-size: .85rem; background: #0e1016;
+      border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
     footer { margin-top: 48px; padding: 28px 0; border-top: 1px solid var(--border);
       text-align: center; color: var(--text-dim); font-size: .88rem; }
   </style>
@@ -52,9 +54,45 @@
   </div>
 </header>
 <main class="wrap">
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.2">v0.2.1-beta.2</a> <span class="pre">beta</span><span class="date">2026-07-12</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.3.0">v0.3.0</a><span class="date">2026-07-13</span></h2>
+    <div class="notes">
+        <h3>🐛 Poprawki</h3>
+        <ul>
+          <li>przypinaj panel przy dropie na skrajny panel krawędzi</li>
+        </ul>
+        <h3>🔧 Pozostałe zmiany</h3>
+        <ul>
+          <li>Stabilizacja cleanupu testów Avalonia Headless</li>
+          <li>Stałe proporcje przypiętych paneli</li>
+          <li>Rozbudowa automatów o foldery i import JSON</li>
+          <li>Foldery notatek i lokacji autowalk (FolderTreeView bez wlacz/wylacz)</li>
+          <li>Reuzywalny FolderTreeView i foldery w panelu automatyzacji</li>
+          <li>Generyczny model folderow i persystencja (FolderNode, FolderId)</li>
+          <li>Rozdzielenie aliasow od triggerow w panelu automatyzacji</li>
+          <li>Rejestracja nowej postaci na MUD-zie z popupu wyboru konta</li>
+          <li>Wznawianie autowalk po zakończeniu walki</li>
+          <li>Wznawianie przerwanej podróży autowalk komendą /idz</li>
+          <li>Stabilizacja headless-owych testów UI w CI</li>
+          <li>Zakładki krawędziowe rozwijane na pół ekranu</li>
+          <li>Mapy lokacji, lokalny kalibrator i sprzątanie plików roboczych</li>
+          <li>Skill mapy w repozytorium i przenośne skrypty kalibracji</li>
+          <li>Mapa/terminal: płynniejsza zmiana czcionki w oknie MUD-a</li>
+          <li>Mapa: widoczność członków drużyny z GMCP</li>
+          <li>Mapa: porządek w nagłówku</li>
+          <li>Ulepsz nagłówek i prosty widok mapy</li>
+          <li>Wyłącz stare tła na warstwach z atlasem</li>
+          <li>Dodaj tła krasnoludzkiej fortecy i Carrallak</li>
+          <li>Zmniejsz krycie efektów terenu na mapie</li>
+          <li>Dodaj klimatyczne tła mapy Starego Kontynentu</li>
+          <li>build changelog from git commits, not empty PR notes</li>
+        </ul>
+        <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.3.0">Szczegóły na GitHubie →</a></p>
+      </div>
+    </article>
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.2">v0.2.1-beta.2</a> <span class="pre">beta</span><span class="date">2026-07-12</span></h2>
+    <div class="notes">
         <h3>🔧 Pozostałe zmiany</h3>
         <ul>
           <li>prettify changelog notes for end users</li>
@@ -63,9 +101,9 @@
         <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.2">Szczegóły na GitHubie →</a></p>
       </div>
     </article>
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.1">v0.2.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-12</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.1">v0.2.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-12</span></h2>
+    <div class="notes">
         <h3>🔧 Pozostałe zmiany</h3>
         <ul>
           <li>publish changelog to GitHub Pages on release</li>
@@ -73,9 +111,9 @@
         <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1-beta.1">Szczegóły na GitHubie →</a></p>
       </div>
     </article>
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1">v0.2.1</a><span class="date">2026-07-12</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1">v0.2.1</a><span class="date">2026-07-12</span></h2>
+    <div class="notes">
         <h3>✨ Nowości</h3>
         <ul>
           <li>add configurable widget fonts</li>
@@ -100,9 +138,9 @@
         <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.1">Szczegóły na GitHubie →</a></p>
       </div>
     </article>
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.0">v0.2.0</a><span class="date">2026-07-11</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.0">v0.2.0</a><span class="date">2026-07-11</span></h2>
+    <div class="notes">
         <h3>✨ Nowości</h3>
         <ul>
           <li>copy terminal selection as image</li>
@@ -121,9 +159,9 @@
         <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.2.0">Szczegóły na GitHubie →</a></p>
       </div>
     </article>
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.2">v0.1.2</a><span class="date">2026-07-11</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.2">v0.1.2</a><span class="date">2026-07-11</span></h2>
+    <div class="notes">
         <h3>🔧 Pozostałe zmiany</h3>
         <ul>
           <li>Add .nojekyll to docs to trigger Pages deploy via Actions</li>
@@ -132,9 +170,9 @@
         <p class="ghlink"><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.2">Szczegóły na GitHubie →</a></p>
       </div>
     </article>
-    <article class="release">
-      <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.1-beta.1">v0.1.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-11</span></h2>
-      <div class="notes">
+  <article class="release">
+    <h2><a href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.1.1-beta.1">v0.1.1-beta.1</a> <span class="pre">beta</span><span class="date">2026-07-11</span></h2>
+    <div class="notes">
         <h3>✨ Nowości</h3>
         <ul>
           <li>konta z hasłem (DPAPI) i autologowaniem, usuwanie kont, poprawki UI popupu</li>
