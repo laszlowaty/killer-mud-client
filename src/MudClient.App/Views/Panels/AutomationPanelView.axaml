@@ -4,6 +4,53 @@
              xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.AutomationPanelView"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <!-- Shared item template for aliases and triggers (rendered in two sections). -->
+    <DataTemplate x:Key="RuleItemTemplate" x:DataType="models:AutomationRuleEntry">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+        <StackPanel Spacing="4">
+
+          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+            <Border Grid.Column="0" Classes="mud-badge mud-badge-gold">
+              <TextBlock Text="{Binding Type}" />
+            </Border>
+            <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                    ToolTip.Tip="Wspólna dla wszystkich kont">
+              <TextBlock Text="GLOBALNA" />
+            </Border>
+            <TextBlock Grid.Column="2" Text="{Binding Name}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+            <ToggleButton Grid.Column="3" Classes="mud-switch"
+                          IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                          Content="{Binding StatusText}"
+                          Click="ToggleRule_OnClick"
+                          ToolTip.Tip="Włącz / wyłącz regułę" />
+            <Button Grid.Column="4"
+                    Classes="mud-small"
+                    Content="✎" Padding="6,2"
+                    ToolTip.Tip="Edytuj regułę"
+                    Click="EditRule_OnClick" />
+            <Button Grid.Column="5"
+                    Classes="mud-small mud-danger"
+                    Content="✕" Padding="6,2"
+                    ToolTip.Tip="Usuń regułę"
+                    Click="DeleteRule_OnClick" />
+          </Grid>
+
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
+                       Text="{Binding Pattern}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
+                       Text="{Binding Action}" TextWrapping="Wrap" />
+          </Grid>
+
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
   <ScrollViewer>
     <StackPanel Spacing="8" Margin="12">
 
@@ -112,12 +159,7 @@
       </ItemsControl>
 
       <!-- ===== Aliasy i triggery ===== -->
-      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-        <TextBlock Classes="mud-heading" Text="ALIASY I TRIGGERY" VerticalAlignment="Center" />
-        <Border Grid.Column="1" Classes="mud-badge">
-          <TextBlock Text="{Binding AutomationRules.Count}" />
-        </Border>
-      </Grid>
+      <TextBlock Classes="mud-heading" Text="ALIASY I TRIGGERY" Margin="0,10,0,0" />
 
       <Expander Classes="mud-expander"
                 Header="{Binding RuleFormHeader}"
@@ -172,58 +214,35 @@
         </StackPanel>
       </Expander>
 
+      <!-- Aliasy -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+        <TextBlock Classes="mud-heading" Text="ALIASY" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding AliasRules.Count}" />
+        </Border>
+      </Grid>
+
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Brak reguł na tym koncie. Dodaj alias (skrót komendy) albo trigger (automatyczna reakcja na tekst z gry)."
-                 IsVisible="{Binding !AutomationRules.Count}" />
+                 Text="Brak aliasów. Alias podmienia komendę, którą wpisujesz (np. skrót)."
+                 IsVisible="{Binding !AliasRules.Count}" />
 
-      <ItemsControl ItemsSource="{Binding AutomationRules}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="models:AutomationRuleEntry">
-            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
-              <StackPanel Spacing="4">
+      <ItemsControl ItemsSource="{Binding AliasRules}"
+                    ItemTemplate="{StaticResource RuleItemTemplate}" />
 
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
-                  <Border Grid.Column="0" Classes="mud-badge mud-badge-gold">
-                    <TextBlock Text="{Binding Type}" />
-                  </Border>
-                  <Border Grid.Column="1" Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                          ToolTip.Tip="Wspólna dla wszystkich kont">
-                    <TextBlock Text="GLOBALNA" />
-                  </Border>
-                  <TextBlock Grid.Column="2" Text="{Binding Name}"
-                             VerticalAlignment="Center"
-                             TextTrimming="CharacterEllipsis" />
-                  <ToggleButton Grid.Column="3" Classes="mud-switch"
-                                IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                Content="{Binding StatusText}"
-                                Click="ToggleRule_OnClick"
-                                ToolTip.Tip="Włącz / wyłącz regułę" />
-                  <Button Grid.Column="4"
-                          Classes="mud-small"
-                          Content="✎" Padding="6,2"
-                          ToolTip.Tip="Edytuj regułę"
-                          Click="EditRule_OnClick" />
-                  <Button Grid.Column="5"
-                          Classes="mud-small mud-danger"
-                          Content="✕" Padding="6,2"
-                          ToolTip.Tip="Usuń regułę"
-                          Click="DeleteRule_OnClick" />
-                </Grid>
+      <!-- Triggery -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBlock Classes="mud-heading" Text="TRIGGERY" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Classes="mud-badge">
+          <TextBlock Text="{Binding TriggerRules.Count}" />
+        </Border>
+      </Grid>
 
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
-                  <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
-                             Text="{Binding Pattern}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
-                  <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
-                             Text="{Binding Action}" TextWrapping="Wrap" />
-                </Grid>
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="Brak triggerów. Trigger wysyła akcję, gdy linia z serwera pasuje do wzorca."
+                 IsVisible="{Binding !TriggerRules.Count}" />
 
-              </StackPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <ItemsControl ItemsSource="{Binding TriggerRules}"
+                    ItemTemplate="{StaticResource RuleItemTemplate}" />
 
     </StackPanel>
   </ScrollViewer>

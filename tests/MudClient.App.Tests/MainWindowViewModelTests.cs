@@ -784,6 +784,78 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         _vm.AddRuleCommand.Execute(null);
     }
 
+    /// <summary>Registers a trigger through the real rule pipeline.</summary>
+    private void AddDeathTrigger()
+    {
+        _vm.NewRuleName = "Zgon";
+        _vm.NewRuleType = "trigger";
+        _vm.NewRulePattern = "^umierasz$";
+        _vm.NewRuleAction = "modl sie";
+        _vm.AddRuleCommand.Execute(null);
+    }
+
+    // ====================================================================
+    // Alias / trigger split views (AliasRules / TriggerRules)
+    // ====================================================================
+
+    [Fact]
+    public void AddRule_Alias_AppearsOnlyInAliasView()
+    {
+        AddLookAlias();
+
+        Assert.Single(_vm.AliasRules);
+        Assert.Empty(_vm.TriggerRules);
+        Assert.Equal("alias", _vm.AliasRules[0].Type);
+    }
+
+    [Fact]
+    public void AddRule_Trigger_AppearsOnlyInTriggerView()
+    {
+        AddDeathTrigger();
+
+        Assert.Single(_vm.TriggerRules);
+        Assert.Empty(_vm.AliasRules);
+        Assert.Equal("trigger", _vm.TriggerRules[0].Type);
+    }
+
+    [Fact]
+    public void SplitViews_TogetherCoverAllRules()
+    {
+        AddLookAlias();
+        AddDeathTrigger();
+
+        Assert.Equal(2, _vm.AutomationRules.Count);
+        Assert.Single(_vm.AliasRules);
+        Assert.Single(_vm.TriggerRules);
+    }
+
+    [Fact]
+    public void DeleteRule_RemovesFromSplitView()
+    {
+        AddLookAlias();
+        var alias = _vm.AliasRules[0];
+
+        _vm.DeleteRuleCommand.Execute(alias);
+
+        Assert.Empty(_vm.AliasRules);
+        Assert.Empty(_vm.AutomationRules);
+    }
+
+    [Fact]
+    public void EditRule_ChangingType_MovesBetweenSplitViews()
+    {
+        AddLookAlias();
+        var rule = _vm.AliasRules[0];
+
+        _vm.EditRuleCommand.Execute(rule);
+        _vm.NewRuleType = "trigger";
+        _vm.AddRuleCommand.Execute(null);
+
+        Assert.Empty(_vm.AliasRules);
+        Assert.Single(_vm.TriggerRules);
+        Assert.Same(rule, _vm.TriggerRules[0]);
+    }
+
     [Fact]
     public async Task SendCommand_HistoryContainsAliasExpandedVersion()
     {

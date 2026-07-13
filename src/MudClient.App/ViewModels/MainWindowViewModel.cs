@@ -1060,6 +1060,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         ClearRuleForm();
+        RebuildRuleViews();
         ApplyAutomation();
         SaveActiveProfile();
     }
@@ -1113,6 +1114,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         AutomationRules.Remove(entry);
+        RebuildRuleViews();
         ApplyAutomation();
         SaveActiveProfile();
     }
@@ -2475,6 +2477,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
 
         ActiveProfileName = profile.Name;
+        RebuildRuleViews();
         ApplyAutomation();
         _timers.CancelAll();
         SyncAllTimers();
@@ -2692,6 +2695,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     // --- Automation rules (mock) ---
     public ObservableCollection<AutomationRuleEntry> AutomationRules { get; } = [];
+
+    /// <summary>Aliases only (Type == "alias"), a filtered view over <see cref="AutomationRules"/>.</summary>
+    public ObservableCollection<AutomationRuleEntry> AliasRules { get; } = [];
+
+    /// <summary>Triggers only (Type == "trigger"), a filtered view over <see cref="AutomationRules"/>.</summary>
+    public ObservableCollection<AutomationRuleEntry> TriggerRules { get; } = [];
+
+    /// <summary>
+    /// Rebuilds the alias/trigger filtered views from <see cref="AutomationRules"/>.
+    /// Call after any change to the source collection or a rule's Type.
+    /// </summary>
+    private void RebuildRuleViews()
+    {
+        AliasRules.Clear();
+        TriggerRules.Clear();
+        foreach (var rule in AutomationRules)
+        {
+            switch (rule.Type)
+            {
+                case "alias":
+                    AliasRules.Add(rule);
+                    break;
+                case "trigger":
+                    TriggerRules.Add(rule);
+                    break;
+            }
+        }
+    }
 
     // --- Notes ---
     public ObservableCollection<NoteEntry> Notes { get; } = [];
