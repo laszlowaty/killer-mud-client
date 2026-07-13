@@ -30,6 +30,10 @@ public static class AutowalkRecoveryPolicy
             : LowMovementAction.Rest;
     }
 
+    /// <summary>True when the GMCP position reports the character is in combat.</summary>
+    public static bool IsCombatPosition(string? position) =>
+        string.Equals(position, "fighting", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the spell is memorized and ready to cast.</summary>
     public static bool HasMemorizedSpell(IReadOnlyList<MemorizedSpell> memorizedSpells, string name) =>
         memorizedSpells.Any(spell =>

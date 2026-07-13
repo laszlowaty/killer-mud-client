@@ -145,6 +145,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _autowalkGateCommandsSent;
     private bool _autowalkGateIsOpen;
 
+    // Set while an active walk is on hold because a fight broke out mid-route:
+    // no room change arrives during combat, so the walk must be nudged back to
+    // life once GMCP reports the character has left the "fighting" position.
+    private bool _autowalkPausedForCombat;
+
     // --- Required buffs ---
     private string _newBuffName = string.Empty;
 
@@ -1663,6 +1668,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _autowalkWaitingForGate = false;
         _autowalkGateCommandsSent = false;
         _autowalkGateIsOpen = false;
+        _autowalkPausedForCombat = false;
     }
 
     private void SendAutowalkStep(bool skipMovementCheck = false)
@@ -1901,6 +1907,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _autowalkWaitingForGate = false;
             _autowalkGateCommandsSent = false;
             _autowalkGateIsOpen = false;
+            // A room actually changed, so the walk is moving again — any combat
+            // pause (e.g. after fleeing) no longer applies.
+            _autowalkPausedForCombat = false;
 
             var steps = _autowalkPath.Steps;
             for (var i = _autowalkStep; i < steps.Count; i++)
@@ -3006,6 +3015,64 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         QueueTriggeredCommands(commands);
     }
 
+    /// <summary>
+    /// Records the latest GMCP position and, when it crosses into or out of the
+    /// "fighting" state, pauses or resumes an active autowalk. Runs on the
+    /// network thread; the autowalk nudges are posted to the UI thread.
+    /// </summary>
+    private void UpdateCharacterPosition(string position)
+    {
+        var wasFighting = AutowalkRecoveryPolicy.IsCombatPosition(_latestCharacterPosition);
+        var nowFighting = AutowalkRecoveryPolicy.IsCombatPosition(position);
+        _latestCharacterPosition = position;
+
+        if (nowFighting && !wasFighting)
+        {
+            OnAutowalkCombatStarted();
+        }
+        else if (wasFighting && !nowFighting)
+        {
+            OnAutowalkCombatEnded();
+        }
+    }
+
+    /// <summary>Marks an active walk as paused so it can be resumed once the fight is over.</summary>
+    private void OnAutowalkCombatStarted()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count)
+            {
+                return;
+            }
+
+            _autowalkPausedForCombat = true;
+            AutowalkStatusText = $"Walka — autowalk wstrzymany (cel „{_autowalkTargetName}”).";
+        });
+    }
+
+    /// <summary>
+    /// Resumes a walk that a fight put on hold. The walk stalled because no room
+    /// change arrived during combat, so the pending step is re-sent (after a
+    /// stand, in case combat left the character sitting or resting).
+    /// </summary>
+    private void OnAutowalkCombatEnded()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_autowalkPausedForCombat || _autowalkPath is null ||
+                _autowalkStep >= _autowalkPath.Steps.Count)
+            {
+                return;
+            }
+
+            _autowalkPausedForCombat = false;
+            AutowalkStatusText = $"Walka skończona — wracam na trasę do „{_autowalkTargetName}”.";
+            _ = SendTriggeredCommandAsync("stand");
+            SendAutowalkStep();
+        });
+    }
+
     private void TryAutoAssist()
     {
         if (_autoAssist.ShouldAssist(
@@ -3217,7 +3284,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (update.Mv is { } movement) _latestMovement = movement;
         if (update.MaxMv is { } maximumMovement) _latestMaximumMovement = maximumMovement;
         if (update.Name is { } name) _latestCharacterName = name;
-        if (update.Position is { } position) _latestCharacterPosition = position;
+        if (update.Position is { } position) UpdateCharacterPosition(position);
         TryAutoAssist();
 
         Dispatcher.UIThread.Post(() =>
@@ -3246,7 +3313,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         if (update.Position is { } position)
         {
-            _latestCharacterPosition = position;
+            UpdateCharacterPosition(position);
         }
 
         TryAutoAssist();

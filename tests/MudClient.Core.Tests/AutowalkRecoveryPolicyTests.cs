@@ -57,4 +57,24 @@ public sealed class AutowalkRecoveryPolicyTests
     {
         Assert.False(AutowalkRecoveryPolicy.IsLockedGateMessage(line));
     }
+
+    [Theory]
+    [InlineData("fighting")]
+    [InlineData("Fighting")]
+    [InlineData("FIGHTING")]
+    public void IsCombatPosition_RecognizesFighting(string position)
+    {
+        Assert.True(AutowalkRecoveryPolicy.IsCombatPosition(position));
+    }
+
+    [Theory]
+    [InlineData("standing")]
+    [InlineData("resting")]
+    [InlineData("sitting")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void IsCombatPosition_RejectsNonCombatPositions(string? position)
+    {
+        Assert.False(AutowalkRecoveryPolicy.IsCombatPosition(position));
+    }
 }
