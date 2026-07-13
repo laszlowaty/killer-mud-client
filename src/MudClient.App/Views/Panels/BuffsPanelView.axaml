@@ -7,6 +7,10 @@
   <!-- Required buffs (user-defined, matched against Char.Affects) -->
   <ScrollViewer>
     <StackPanel Spacing="4" Margin="12">
+      <Button Content="RECAST BRAKUJĄCYCH" Classes="mud-small"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Command="{Binding RecastBuffsCommand}" />
+
       <Grid ColumnDefinitions="*,Auto">
         <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)" />
         <Button Grid.Column="1" Content="Dodaj" Classes="mud-small" Margin="4,0,0,0"
@@ -21,11 +25,18 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:BuffWatchEntry">
             <Grid>
-              <!-- Active: green -->
-              <Border BorderBrush="{StaticResource MudBrushEmerald}"
+              <!-- Active: green. Clicking the whole entry recasts just this spell. -->
+              <Button BorderBrush="{StaticResource MudBrushEmerald}"
+                      Background="Transparent"
                       BorderThickness="1" CornerRadius="3"
                       Padding="6,3" Margin="0,1"
-                      IsVisible="{Binding IsActive}">
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
+                      Cursor="Hand"
+                      ToolTip.Tip="Rzuć ten spell"
+                      IsVisible="{Binding IsActive}"
+                      Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
+                      CommandParameter="{Binding}">
                 <Grid ColumnDefinitions="Auto,*,Auto">
                   <TextBlock Text="[+]"
                              Foreground="{StaticResource MudBrushEmeraldBright}"
@@ -37,13 +48,19 @@
                           Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
                           CommandParameter="{Binding}" />
                 </Grid>
-              </Border>
+              </Button>
               <!-- Missing: red -->
-              <Border BorderBrush="{StaticResource MudBrushCrimson}"
+              <Button BorderBrush="{StaticResource MudBrushCrimson}"
                       Background="{StaticResource MudBrushStoneLight}"
                       BorderThickness="1" CornerRadius="3"
                       Padding="6,3" Margin="0,1"
-                      IsVisible="{Binding !IsActive}">
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
+                      Cursor="Hand"
+                      ToolTip.Tip="Rzuć ten spell"
+                      IsVisible="{Binding !IsActive}"
+                      Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
+                      CommandParameter="{Binding}">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                   <TextBlock Text="[!]"
                              Foreground="{StaticResource MudBrushCrimsonBright}"
@@ -59,15 +76,12 @@
                           Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
                           CommandParameter="{Binding}" />
                 </Grid>
-              </Border>
+              </Button>
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
-      <Button Content="RECAST BRAKUJĄCYCH" Classes="mud-small"
-              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-              Command="{Binding RecastBuffsCommand}" />
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Komenda /recast wysyła cast &quot;nazwa&quot; self dla każdego brakującego buffa." />
     </StackPanel>

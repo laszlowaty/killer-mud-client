@@ -238,6 +238,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddBuffCommand = new RelayCommand(AddBuff, () => !string.IsNullOrWhiteSpace(NewBuffName));
         DeleteBuffCommand = new RelayCommand<BuffWatchEntry>(DeleteBuff);
         RecastBuffsCommand = new AsyncRelayCommand(RecastMissingBuffsAsync);
+        RecastSingleBuffCommand = new AsyncRelayCommand<BuffWatchEntry>(RecastSingleBuffAsync);
         GoToLocationCommand = new RelayCommand<AutowalkLocation>(entry =>
         {
             if (entry is not null)
@@ -2240,6 +2241,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand AddBuffCommand { get; }
     public RelayCommand<BuffWatchEntry> DeleteBuffCommand { get; }
     public AsyncRelayCommand RecastBuffsCommand { get; }
+    public AsyncRelayCommand<BuffWatchEntry> RecastSingleBuffCommand { get; }
 
     /// <summary>Header badge for the buffs section, e.g. "2/3" (active/required).</summary>
     public string BuffsBadge => RequiredBuffs.Count == 0
@@ -2344,6 +2346,26 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             await SendTriggeredCommandAsync($"cast \"{buff.Name}\" self");
         }
+    }
+
+    /// <summary>
+    /// Sends "cast &quot;nazwa&quot; self" for a single buff. Bound to clicking an
+    /// individual buff entry in the buffs panel.
+    /// </summary>
+    private async Task RecastSingleBuffAsync(BuffWatchEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        if (!IsConnected)
+        {
+            AddToast("Nie połączono — nie można rzucić buffa.", "error");
+            return;
+        }
+
+        await SendTriggeredCommandAsync($"cast \"{entry.Name}\" self");
     }
 
     // ========================================================================
