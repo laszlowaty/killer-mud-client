@@ -2932,6 +2932,78 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
+    // Autowalk — resuming an interrupted journey with a bare /idz
+    //
+    // When a walk is cut short (lost route / off-course), the destination is
+    // remembered in _pendingResumeTarget. A bare /idz with no map-picked
+    // target then resumes toward it instead of only printing usage help.
+    // ====================================================================
+
+    private static FieldInfo GetPendingResumeTargetField()
+    {
+        var field = typeof(MainWindowViewModel).GetField("_pendingResumeTarget",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_BareIdz_WithPendingResume_AttemptsWalk()
+    {
+        // Arrange: a journey was interrupted, so a resume target is pending
+        // (and there is no temporary map-picked target).
+        Assert.False(_vm.HasTemporaryTarget);
+        GetPendingResumeTargetField().SetValue(_vm, new AutowalkLocation("Plac Aras", "7007"));
+        _vm.Toasts.Clear();
+
+        // Act: bare /idz
+        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        Assert.True(consumed);
+
+        // Assert: it announces the resume, then StartAutowalk runs (no map →
+        // "Mapa nie jest załadowana"). Crucially it is NOT the usage help.
+        Assert.Contains(_vm.Toasts, t => t.Text.Contains("Wznawiam podróż do „Plac Aras”"));
+        Assert.Contains(_vm.Toasts, t => t.Text.Contains("Mapa nie jest załadowana"));
+        Assert.DoesNotContain(_vm.Toasts, t => t.Text.Contains("Użycie: /idz"));
+    }
+
+    [Fact]
+    public void StopAutowalk_Resumable_RemembersDestination_ExplicitStopClearsIt()
+    {
+        var pendingField = GetPendingResumeTargetField();
+        var pathField = typeof(MainWindowViewModel).GetField("_autowalkPath",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var nameField = typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var stop = typeof(MainWindowViewModel).GetMethod("StopAutowalk",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        var from = CreateTestRoom(100, "100");
+        var to = CreateTestRoom(200, "200", "Świątynia");
+        var path = new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        };
+
+        // A resumable stop remembers where we were headed.
+        pathField.SetValue(_vm, path);
+        nameField.SetValue(_vm, "Świątynia");
+        stop.Invoke(_vm, ["przerwane", "error", true]);
+
+        var pending = Assert.IsType<AutowalkLocation>(pendingField.GetValue(_vm));
+        Assert.Equal("Świątynia", pending.Name);
+        Assert.Equal("200", pending.Vnum);
+
+        // An explicit (non-resumable) stop clears the pending target.
+        pathField.SetValue(_vm, path);
+        stop.Invoke(_vm, ["zatrzymane", "info", false]);
+        Assert.Null(pendingField.GetValue(_vm));
+    }
+
+    // ====================================================================
     // Autowalk — StopAutowalkDuringDoubleClickRegression
     //
     // Verifies that StopAutowalk (which IS used by other paths like /stop

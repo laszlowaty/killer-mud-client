@@ -130,6 +130,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _autowalkTargetName;
     private string _autowalkStatusText = "Bezczynny.";
     private AutowalkLocation? _temporaryTarget;
+
+    // Destination of a walk that was cut short (lost route / off-course), so a
+    // bare /idz can pick the journey back up. Cleared on arrival, explicit stop,
+    // or when a new walk starts — only an abnormal interruption sets it.
+    private AutowalkLocation? _pendingResumeTarget;
     private CancellationTokenSource _autowalkCts = new();
     private int? _latestMovement;
     private int? _latestMaximumMovement;
@@ -1600,6 +1605,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _autowalkStep = 0;
         _autowalkRecomputes = 0;
         _autowalkTargetName = entry.Name;
+        _pendingResumeTarget = null;
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
         PaintRoute(path, 0);
@@ -1607,9 +1613,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SendAutowalkStep();
     }
 
-    private void StopAutowalk(string message, string toastType = "info")
+    private void StopAutowalk(string message, string toastType = "info", bool resumable = false)
     {
         var wasWalking = _autowalkPath is not null;
+
+        // Remember where we were headed BEFORE clearing state, but only when the
+        // walk was cut short (resumable) — an arrival or an explicit /stop leaves
+        // nothing to continue. A bare /idz then re-plots from the new position.
+        if (resumable && _autowalkPath is { To.Vnum: { Length: > 0 } destVnum } cutPath)
+        {
+            _pendingResumeTarget = new AutowalkLocation(
+                _autowalkTargetName ?? cutPath.To.Name ?? $"pokój {destVnum}",
+                destVnum,
+                cutPath.To.Name);
+        }
+        else
+        {
+            _pendingResumeTarget = null;
+        }
+
         _autowalkCts.Cancel();
         _autowalkPath = null;
         _autowalkStep = 0;
@@ -1915,15 +1937,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (_autowalkRecomputes >= 5)
             {
                 StopAutowalk(
-                    $"Autowalk przerwany: trasa do „{targetName}” schodzi z kursu przy każdym kroku (mapa niezgodna z serwerem?).",
-                    "error");
+                    $"Autowalk przerwany: trasa do „{targetName}” schodzi z kursu przy każdym kroku (mapa niezgodna z serwerem?). Wpisz /idz, aby spróbować dalej.",
+                    "error",
+                    resumable: true);
                 return;
             }
 
             var path = GetPathfinder()?.FindPathByVnum(vnum, _autowalkPath.To.Vnum ?? string.Empty);
             if (path is null)
             {
-                StopAutowalk($"Zgubiłem trasę do „{targetName}” — autowalk przerwany.", "error");
+                StopAutowalk(
+                    $"Zgubiłem trasę do „{targetName}” — autowalk przerwany. Wpisz /idz, aby kontynuować.",
+                    "error",
+                    resumable: true);
                 return;
             }
 
@@ -1950,6 +1976,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (_temporaryTarget is { } target)
         {
             StartAutowalk(target);
+        }
+        else if (_pendingResumeTarget is { } resume)
+        {
+            AddToast($"Wznawiam podróż do „{resume.Name}”.", "info");
+            StartAutowalk(resume);
         }
         else
         {
