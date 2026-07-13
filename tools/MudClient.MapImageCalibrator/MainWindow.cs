@@ -19,7 +19,7 @@ public sealed class MainWindow : Window
     private readonly TextBox _minX = Field(), _minY = Field(), _maxX = Field(), _maxY = Field();
     private readonly TextBox _label = Field();
     private readonly TextBox _newLayerName = Field();
-    private readonly Slider _opacitySlider = new() { Minimum = 0, Maximum = 1, TickFrequency = 0.01 };
+    private readonly Slider _opacitySlider = new() { Minimum = 0, Maximum = 2, TickFrequency = 0.01 };
     private readonly Slider _edgeFadeSlider = new() { Minimum = 0, Maximum = 0.49, TickFrequency = 0.01 };
     private readonly TextBlock _opacityValue = new(), _edgeFadeValue = new();
     private readonly TextBlock _status = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
@@ -481,7 +481,9 @@ public sealed class MainWindow : Window
 
     private void RefreshSliderLabels()
     {
-        _opacityValue.Text = $"Krycie obrazu: {_opacitySlider.Value:0.00}";
+        _opacityValue.Text = _opacitySlider.Value <= 1
+            ? $"Krycie obrazu: {_opacitySlider.Value:0.00}"
+            : $"Krycie obrazu: 1.00 + rozjaśnienie {_opacitySlider.Value - 1:0.00}";
         _edgeFadeValue.Text = $"Zanikanie krawędzi: {_edgeFadeSlider.Value:0.00}";
     }
 

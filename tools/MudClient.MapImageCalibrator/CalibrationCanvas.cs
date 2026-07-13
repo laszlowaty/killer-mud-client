@@ -78,18 +78,38 @@ public sealed class CalibrationCanvas : Control
         if (Layer is null || Image is null) return;
 
         var imageRect = new Rect(WorldToScreen(Layer.MinX, Layer.MaxY), WorldToScreen(Layer.MaxX, Layer.MinY));
-        using (context.PushOpacity(Layer.Opacity))
+        var sourceRect = new Rect(0, 0, Image.PixelSize.Width, Image.PixelSize.Height);
+        // Opacity 0..1 controls coverage; values above 1 additionally brighten the
+        // image toward white (a "rozjaśnienie" wash proportional to Opacity - 1).
+        var coverage = Math.Min(1.0, Layer.Opacity);
+        var brighten = Math.Clamp(Layer.Opacity - 1.0, 0.0, 1.0);
+        using (context.PushOpacity(coverage))
         {
             if (Layer.EdgeFade > 0)
             {
                 var masks = CreateEdgeMasks(Layer.EdgeFade);
                 using var horizontal = context.PushOpacityMask(masks.Horizontal, imageRect);
                 using var vertical = context.PushOpacityMask(masks.Vertical, imageRect);
-                context.DrawImage(Image, new Rect(0, 0, Image.PixelSize.Width, Image.PixelSize.Height), imageRect);
+                context.DrawImage(Image, sourceRect, imageRect);
             }
             else
             {
-                context.DrawImage(Image, new Rect(0, 0, Image.PixelSize.Width, Image.PixelSize.Height), imageRect);
+                context.DrawImage(Image, sourceRect, imageRect);
+            }
+        }
+        if (brighten > 0)
+        {
+            var wash = new SolidColorBrush(Colors.White, brighten);
+            if (Layer.EdgeFade > 0)
+            {
+                var masks = CreateEdgeMasks(Layer.EdgeFade);
+                using var horizontal = context.PushOpacityMask(masks.Horizontal, imageRect);
+                using var vertical = context.PushOpacityMask(masks.Vertical, imageRect);
+                context.FillRectangle(wash, imageRect);
+            }
+            else
+            {
+                context.FillRectangle(wash, imageRect);
             }
         }
         context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(210, 255, 180, 30)), 2), imageRect);
