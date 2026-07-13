@@ -36,7 +36,7 @@ public sealed class AnsiStreamParserTests
 
     [Theory]
     [InlineData(AnsiColorPalette.Colorblind, 136, 136, 136)]
-    [InlineData(AnsiColorPalette.Vivid, 0, 255, 68)]
+    [InlineData(AnsiColorPalette.Vivid, 0, 128, 0)]
     public void NamedSchemeChangesStandardAnsiColors(
         string scheme, byte red, byte green, byte blue)
     {
@@ -46,6 +46,69 @@ public sealed class AnsiStreamParserTests
             Assert.Single(parser.Feed($"{Esc}[32mx")));
 
         Assert.Equal(Color.FromRgb(red, green, blue), token.Style.Foreground);
+    }
+
+    [Theory]
+    [InlineData(31, 128, 0, 0)]
+    [InlineData(33, 128, 128, 0)]
+    [InlineData(91, 255, 0, 0)]
+    [InlineData(93, 255, 255, 0)]
+    public void VividSchemeUsesMudletRedAndYellow(
+        int sgrCode, byte red, byte green, byte blue)
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Vivid);
+
+        var token = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[{sgrCode}mx")));
+
+        Assert.Equal(Color.FromRgb(red, green, blue), token.Style.Foreground);
+    }
+
+    [Theory]
+    [InlineData("1;31")]
+    [InlineData("31;1")]
+    public void BoldStandardColorUsesMudletBrightVariantRegardlessOfParameterOrder(string parameters)
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Vivid);
+
+        var token = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[{parameters}mx")));
+
+        Assert.True(token.Style.Bold);
+        Assert.Equal(Color.FromRgb(255, 0, 0), token.Style.Foreground);
+    }
+
+    [Fact]
+    public void BoldStateChangesPreviouslySelectedStandardColorAndIntensityResetRestoresIt()
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Vivid);
+
+        var normal = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[31mA")));
+        var bright = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[1mB")));
+        var normalAgain = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[22mC")));
+
+        Assert.Equal(Color.FromRgb(128, 0, 0), normal.Style.Foreground);
+        Assert.Equal(Color.FromRgb(255, 0, 0), bright.Style.Foreground);
+        Assert.Equal(Color.FromRgb(128, 0, 0), normalAgain.Style.Foreground);
+    }
+
+    [Fact]
+    public void IntensityResetDoesNotDarkenExplicitBrightOrTrueColor()
+    {
+        var parser = new AnsiStreamParser(AnsiColorPalette.Vivid);
+
+        var explicitBright = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[1;91;22mA")));
+        var trueColor = Assert.IsType<AnsiTextToken>(
+            Assert.Single(parser.Feed($"{Esc}[38;2;12;34;56;1mB")));
+
+        Assert.False(explicitBright.Style.Bold);
+        Assert.Equal(Color.FromRgb(255, 0, 0), explicitBright.Style.Foreground);
+        Assert.True(trueColor.Style.Bold);
+        Assert.Equal(Color.FromRgb(12, 34, 56), trueColor.Style.Foreground);
     }
 
     [Fact]

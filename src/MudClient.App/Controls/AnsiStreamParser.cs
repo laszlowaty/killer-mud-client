@@ -33,6 +33,8 @@ internal sealed class AnsiStreamParser
 
     private readonly StringBuilder _sequence = new();
     private AnsiStyle _style;
+    private int? _standardForegroundIndex;
+    private bool _standardForegroundIsExplicitlyBright;
     private EscapeState _escapeState = EscapeState.None;
 
     public AnsiStreamParser(string? colorScheme = null)
@@ -40,8 +42,11 @@ internal sealed class AnsiStreamParser
         _palette = AnsiColorPalette.FromName(colorScheme);
     }
 
-    public void SetColorScheme(string? colorScheme) =>
+    public void SetColorScheme(string? colorScheme)
+    {
         _palette = AnsiColorPalette.FromName(colorScheme);
+        UpdateStandardForeground();
+    }
 
     public IReadOnlyList<AnsiToken> Feed(string text)
     {
@@ -272,12 +277,16 @@ internal sealed class AnsiStreamParser
             {
                 case 0:
                     _style = default;
+                    _standardForegroundIndex = null;
+                    _standardForegroundIsExplicitlyBright = false;
                     break;
                 case 1:
                     _style = _style with { Bold = true };
+                    UpdateStandardForeground();
                     break;
                 case 22:
                     _style = _style with { Bold = false };
+                    UpdateStandardForeground();
                     break;
                 case 4:
                     _style = _style with { Underline = true };
@@ -287,18 +296,24 @@ internal sealed class AnsiStreamParser
                     break;
                 case 39:
                     _style = _style with { Foreground = null };
+                    _standardForegroundIndex = null;
+                    _standardForegroundIsExplicitlyBright = false;
                     break;
                 case 49:
                     _style = _style with { Background = null };
                     break;
                 case >= 30 and <= 37:
-                    _style = _style with { Foreground = _palette.Normal[code - 30] };
+                    _standardForegroundIndex = code - 30;
+                    _standardForegroundIsExplicitlyBright = false;
+                    UpdateStandardForeground();
                     break;
                 case >= 40 and <= 47:
                     _style = _style with { Background = _palette.Normal[code - 40] };
                     break;
                 case >= 90 and <= 97:
-                    _style = _style with { Foreground = _palette.Bright[code - 90] };
+                    _standardForegroundIndex = code - 90;
+                    _standardForegroundIsExplicitlyBright = true;
+                    UpdateStandardForeground();
                     break;
                 case >= 100 and <= 107:
                     _style = _style with { Background = _palette.Bright[code - 100] };
@@ -311,11 +326,31 @@ internal sealed class AnsiStreamParser
                         _style = isForeground
                             ? _style with { Foreground = color }
                             : _style with { Background = color };
+
+                        if (isForeground)
+                        {
+                            _standardForegroundIndex = null;
+                            _standardForegroundIsExplicitlyBright = false;
+                        }
                     }
 
                     break;
             }
         }
+    }
+
+    private void UpdateStandardForeground()
+    {
+        if (_standardForegroundIndex is not { } index)
+        {
+            return;
+        }
+
+        var useBright = _standardForegroundIsExplicitlyBright || _style.Bold;
+        _style = _style with
+        {
+            Foreground = useBright ? _palette.Bright[index] : _palette.Normal[index],
+        };
     }
 
     private bool TryReadExtendedColor(

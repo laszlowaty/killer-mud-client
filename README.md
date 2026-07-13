@@ -28,7 +28,7 @@ Do aplikacji dołączono również czcionkę OpenDyslexic. Jest dostępna w obu 
 instalowania jej w systemie operacyjnym. Pliki fontu są rozpowszechniane na licencji
 SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexic/OFL.txt`.
 
-- kolory ANSI SGR: 16 kolorów z wybieralnymi schematami (ciepły, colorblind w skali szarości i mocno nasycony jaskrawy), 256 kolorów, RGB, bold, underline i reset,
+- kolory ANSI SGR: 16 kolorów z wybieralnymi schematami (ciepły, colorblind w skali szarości i jaskrawy wzorowany na domyślnej palecie Mudleta), mudletowe rozjaśnianie kolorów 30–37 przez SGR bold, 256 kolorów, RGB, underline i reset,
 - filtry kanałów nad terminalem: Wszystko / Walka / Czaty / System,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
 - zwirtualizowany bufor wyjścia: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`) — koszt dopisania tekstu nie zależy od wielkości scrollbacka, więc wielogodzinne sesje nie spowalniają UI,
