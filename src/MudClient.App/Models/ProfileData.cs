@@ -10,6 +10,14 @@ public sealed class ProfileData
     /// <summary>Account password encrypted with DPAPI (base64); empty = no password stored.</summary>
     public string EncryptedPassword { get; set; } = string.Empty;
 
+    /// <summary>
+    /// True for a freshly created account that has never been registered on the
+    /// MUD. On the first connection the client sends the character-creation
+    /// sequence (name, "t", password, password, space) instead of a plain login;
+    /// the flag is cleared afterwards so later logins send only name + password.
+    /// </summary>
+    public bool NeedsRegistration { get; set; }
+
     public List<ProfileNote> Notes { get; set; } = [];
 
     public List<ProfileRule> Rules { get; set; } = [];

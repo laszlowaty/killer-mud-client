@@ -291,7 +291,7 @@
 
           <TextBlock Classes="mud-faint"
                      TextWrapping="Wrap"
-                     Text="Nowe konto — po połączeniu klient sam wyśle nazwę i hasło." />
+                     Text="Nowe konto — przy pierwszym połączeniu klient sam utworzy postać na MUD-zie (nazwa, hasło i potwierdzenie)." />
 
           <TextBox Text="{Binding NewProfileName}"
                    PlaceholderText="Nazwa konta" />

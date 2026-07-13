@@ -169,6 +169,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// <summary>Decrypted password of the active account, kept only in memory.</summary>
     private string _activeProfilePassword = string.Empty;
 
+    /// <summary>
+    /// True while the active account still needs the MUD character-creation
+    /// sequence on connect (mirrors <see cref="ProfileData.NeedsRegistration"/>).
+    /// </summary>
+    private bool _activeProfileNeedsRegistration;
+
     public MainWindowViewModel(ProfileService? profileService = null, AppSettingsService? settingsService = null)
     {
         _profiles = profileService ?? new ProfileService();
@@ -2343,6 +2349,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Name = name,
             EncryptedPassword = PasswordProtector.Protect(NewProfilePassword),
+            NeedsRegistration = true,
             Rules =
             [
                 new ProfileRule
@@ -2406,6 +2413,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SelectedProfileName = ActiveProfileName;
         ActiveProfileName = null;
         _activeProfilePassword = string.Empty;
+        _activeProfileNeedsRegistration = false;
     }
 
     private void ActivateProfile(ProfileData profile)
@@ -2464,6 +2472,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RefreshBuffIndicators();
 
         _activeProfilePassword = PasswordProtector.Unprotect(profile.EncryptedPassword);
+        _activeProfileNeedsRegistration = profile.NeedsRegistration;
 
         ActiveProfileName = profile.Name;
         ApplyAutomation();
@@ -2604,6 +2613,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }).ToList(),
             RequiredBuffs = RequiredBuffs.Select(b => b.Name).ToList(),
             EncryptedPassword = PasswordProtector.Protect(_activeProfilePassword),
+            NeedsRegistration = _activeProfileNeedsRegistration,
         };
 
         try
@@ -2751,6 +2761,30 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         // Give the server a moment to show the login prompt before answering it.
         await Task.Delay(500);
+
+        if (_activeProfileNeedsRegistration)
+        {
+            // First connection for a freshly created account. KillerMUD asks to
+            // confirm the new character ("t"), then the password twice, and a
+            // single space skips the intro screen. This runs only once — the
+            // flag is cleared and persisted so later logins use the plain
+            // name + password sequence below.
+            await _session.SendCommandAsync(name);
+            await Task.Delay(500);
+            await _session.SendCommandAsync("t");
+            await Task.Delay(500);
+            await _session.SendCommandAsync(_activeProfilePassword);
+            await Task.Delay(500);
+            await _session.SendCommandAsync(_activeProfilePassword);
+            await Task.Delay(500);
+            await _session.SendCommandAsync(" ");
+
+            _activeProfileNeedsRegistration = false;
+            SaveActiveProfile();
+            EmitSystem($"Utworzono i zalogowano nową postać {name}.", 36);
+            return;
+        }
+
         await _session.SendCommandAsync(name);
         await Task.Delay(500);
         await _session.SendCommandAsync(_activeProfilePassword);
