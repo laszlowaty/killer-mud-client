@@ -2,8 +2,39 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:controls="using:MudClient.App.Controls"
              x:Class="MudClient.App.Views.Panels.AutowalkPanelView"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="LocationItemTemplate" x:DataType="models:AutowalkLocation">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding Name}"
+                         TextTrimming="CharacterEllipsis" />
+              <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                      ToolTip.Tip="Wspólna dla wszystkich kont">
+                <TextBlock Text="GLOBALNA" />
+              </Border>
+            </StackPanel>
+            <TextBlock Text="{Binding Display}" Classes="mud-faint"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <Button Grid.Column="1"
+                  Classes="mud-small"
+                  Content="⚑ IDŹ" Padding="8,2"
+                  ToolTip.Tip="Idź do tej lokacji"
+                  Click="GoToLocation_OnClick" />
+          <Button Grid.Column="2"
+                  Classes="mud-small mud-danger"
+                  Content="✕" Padding="6,2"
+                  ToolTip.Tip="Usuń lokację"
+                  Click="DeleteLocation_OnClick" />
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
   <ScrollViewer>
     <StackPanel Spacing="8" Margin="12">
 
@@ -83,38 +114,19 @@
                  Text="Brak zapisanych lokacji. Dodaj obecną pozycję albo wpisz vnum docelowego pokoju."
                  IsVisible="{Binding !Locations.Count}" />
 
-      <ItemsControl ItemsSource="{Binding Locations}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="models:AutowalkLocation">
-            <Border Classes="mud-section" Padding="10,8" Margin="0,2">
-              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding Name}"
-                               TextTrimming="CharacterEllipsis" />
-                    <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
-                            ToolTip.Tip="Wspólna dla wszystkich kont">
-                      <TextBlock Text="GLOBALNA" />
-                    </Border>
-                  </StackPanel>
-                  <TextBlock Text="{Binding Display}" Classes="mud-faint"
-                             TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Classes="mud-small"
-                        Content="⚑ IDŹ" Padding="8,2"
-                        ToolTip.Tip="Idź do tej lokacji"
-                        Click="GoToLocation_OnClick" />
-                <Button Grid.Column="2"
-                        Classes="mud-small mud-danger"
-                        Content="✕" Padding="6,2"
-                        ToolTip.Tip="Usuń lokację"
-                        Click="DeleteLocation_OnClick" />
-              </Grid>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+              HorizontalAlignment="Left"
+              ToolTip.Tip="Utwórz folder na lokacje"
+              Command="{Binding CreateFolderCommand}"
+              CommandParameter="{x:Static models:FolderKind.Autowalk}" />
+
+      <controls:FolderTreeView Nodes="{Binding AutowalkTree}"
+                               ItemTemplate="{StaticResource LocationItemTemplate}"
+                               SupportsEnableToggle="False"
+                               CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                               RenameFolderCommand="{Binding RenameFolderCommand}"
+                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}" />
 
       <!-- Death marks -->
       <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
