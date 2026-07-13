@@ -22,8 +22,21 @@ namespace MudClient.App.Tests;
 /// the window delegates to <see cref="TerminalPanelView.Current"/>.
 /// </summary>
 [Collection(AvaloniaUiCollection.Name)]
-public sealed class MainWindowClickTests
+public sealed class MainWindowClickTests : IDisposable
 {
+    public void Dispose()
+    {
+        // Every test in this class opens one MainWindow. Closing it before Avalonia.Headless
+        // tears down the per-test compositor prevents its render-loop task leaking into the
+        // next isolated application on a different test thread.
+        if (TerminalPanelView.Current?.FindAncestorOfType<Window>() is { } window)
+        {
+            window.Close();
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
+
     // ==================================================================
     // Helpers
     // ==================================================================

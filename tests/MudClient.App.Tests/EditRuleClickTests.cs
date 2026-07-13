@@ -23,13 +23,22 @@ public static class TestAppBuilder
 }
 
 [Collection(AvaloniaUiCollection.Name)]
-public sealed class EditRuleClickTests
+public sealed class EditRuleClickTests : IDisposable
 {
+    private Window? _window;
+
+    public void Dispose()
+    {
+        _window?.Close();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
+
     [AvaloniaFact]
     public void ClickingEditRule_DoesNotThrow()
     {
         var viewModel = new MainWindowViewModel();
         var window = new MainWindow { DataContext = viewModel };
+        _window = window;
         window.Show();
 
         viewModel.AutomationRules.Add(new AutomationRuleEntry(

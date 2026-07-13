@@ -9,10 +9,9 @@ using Xunit;
 
 namespace MudClient.App.Tests;
 
-// Serialization alone still lets each Avalonia UI test class spin up its own HeadlessUnitTestSession,
-// and re-initializing the Avalonia platform in a process whose previous session thread lingers
-// throws the same cross-thread error. Grouping every UI test class into one collection gives them a
-// single shared session (one platform setup), which removes the re-init race for good. Apply
+// Keep every Avalonia test in one non-parallel collection as an explicit guard against accidental
+// concurrent platform access. Per-test Avalonia isolation still requires each test to close every
+// window it opens before its application and compositor are torn down. Apply
 // [Collection(AvaloniaUiCollection.Name)] to every class using [AvaloniaFact]/[AvaloniaTheory].
 [CollectionDefinition(Name)]
 public sealed class AvaloniaUiCollection
