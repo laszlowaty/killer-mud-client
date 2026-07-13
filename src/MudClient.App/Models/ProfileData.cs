@@ -26,6 +26,9 @@ public sealed class ProfileData
 
     public List<ProfileLocation> Locations { get; set; } = [];
 
+    /// <summary>Grouping folders (per kind) owned by this profile.</summary>
+    public List<ProfileFolder> Folders { get; set; } = [];
+
     /// <summary>Last 10 death locations, newest first.</summary>
     public List<ProfileDeath> Deaths { get; set; } = [];
 
@@ -46,6 +49,30 @@ public sealed class GlobalData
     public List<ProfileTimer> Timers { get; set; } = [];
 
     public List<ProfileLocation> Locations { get; set; } = [];
+
+    /// <summary>Grouping folders (per kind) shared by all profiles.</summary>
+    public List<ProfileFolder> Folders { get; set; } = [];
+}
+
+/// <summary>
+/// A grouping folder persisted per character or in the shared global file.
+/// Folders form a tree via <see cref="ParentId"/> and group items of a single
+/// <see cref="Kind"/>.
+/// </summary>
+public sealed class ProfileFolder
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    /// <summary>Parent folder id, or null for a root folder.</summary>
+    public string? ParentId { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Domain this folder belongs to (Timers/Aliases/Triggers/Notes/Autowalk).</summary>
+    public FolderKind Kind { get; set; }
+
+    /// <summary>True when stored in the shared global file, not a profile.</summary>
+    public bool IsGlobal { get; set; }
 }
 
 /// <summary>A named autowalk target room stored per character.</summary>
@@ -57,6 +84,9 @@ public sealed class ProfileLocation
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId { get; set; }
 }
 
 /// <summary>A death location stored per character (newest first, max 10).</summary>
@@ -100,6 +130,9 @@ public sealed class ProfileTimer
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId { get; set; }
 }
 
 public sealed class ProfileNote
@@ -112,6 +145,9 @@ public sealed class ProfileNote
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId { get; set; }
 }
 
 public sealed class ProfileRule
@@ -129,4 +165,7 @@ public sealed class ProfileRule
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId { get; set; }
 }

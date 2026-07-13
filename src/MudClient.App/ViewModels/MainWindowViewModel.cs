@@ -180,6 +180,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
+        AutomationRules.CollectionChanged += (_, _) => RebuildRuleViews();
         ApplyWidgetFontResources();
         PopulateAvailableFonts();
         _settingsLoaded = true;
@@ -2426,11 +2427,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AutomationRules.Clear();
         Timers.Clear();
         Locations.Clear();
+        Folders.Clear();
         Deaths.Clear();
         RequiredBuffs.Clear();
 
         // Globals first, then the profile's own entries.
         LoadGlobalEntries();
+
+        foreach (var folder in profile.Folders)
+        {
+            Folders.Add(MakeFolderNode(folder, isGlobal: false));
+        }
 
         foreach (var note in profile.Notes)
         {
@@ -2439,8 +2446,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var rule in profile.Rules)
         {
-            AutomationRules.Add(new AutomationRuleEntry(
-                rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled));
+            AutomationRules.Add(MakeRuleEntry(rule, isGlobal: false));
         }
 
         foreach (var timer in profile.Timers)
@@ -2450,8 +2456,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var location in profile.Locations)
         {
-            var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
-            Locations.Add(new AutowalkLocation(location.Name, location.Vnum, room?.Name));
+            Locations.Add(MakeLocationEntry(location, isGlobal: false));
         }
 
         foreach (var death in profile.Deaths.Take(MaxDeathMarks))
@@ -2490,6 +2495,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         var global = _profiles.LoadGlobal();
 
+        foreach (var folder in global.Folders)
+        {
+            Folders.Add(MakeFolderNode(folder, isGlobal: true));
+        }
+
         foreach (var note in global.Notes)
         {
             Notes.Add(MakeNoteEntry(note, isGlobal: true));
@@ -2497,8 +2507,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var rule in global.Rules)
         {
-            AutomationRules.Add(new AutomationRuleEntry(
-                rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled, isGlobal: true));
+            AutomationRules.Add(MakeRuleEntry(rule, isGlobal: true));
         }
 
         foreach (var timer in global.Timers)
@@ -2508,8 +2517,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var location in global.Locations)
         {
-            var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
-            Locations.Add(new AutowalkLocation(location.Name, location.Vnum, room?.Name, isGlobal: true));
+            Locations.Add(MakeLocationEntry(location, isGlobal: true));
         }
     }
 
@@ -2519,6 +2527,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Content = note.Content,
         CreatedAt = note.CreatedAt,
         IsGlobal = isGlobal,
+        FolderId = note.FolderId,
     };
 
     private static ProfileNote ToProfileNote(NoteEntry n) => new()
@@ -2527,7 +2536,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Content = n.Content,
         CreatedAt = n.CreatedAt,
         IsGlobal = n.IsGlobal,
+        FolderId = n.FolderId,
     };
+
+    private static AutomationRuleEntry MakeRuleEntry(ProfileRule rule, bool isGlobal) =>
+        new(rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled, isGlobal)
+        {
+            FolderId = rule.FolderId,
+        };
 
     private static TimerEntry MakeTimerEntry(ProfileTimer timer, bool isGlobal) => new()
     {
@@ -2541,6 +2557,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             : string.Join(Environment.NewLine, timer.Commands),
         IsEnabled = timer.IsEnabled,
         IsGlobal = isGlobal,
+        FolderId = timer.FolderId,
+    };
+
+    private AutowalkLocation MakeLocationEntry(ProfileLocation location, bool isGlobal)
+    {
+        var room = Map.MapIndex?.FindFirstRoomByVnum(location.Vnum);
+        return new AutowalkLocation(location.Name, location.Vnum, room?.Name, isGlobal)
+        {
+            FolderId = location.FolderId,
+        };
+    }
+
+    private static FolderNode MakeFolderNode(ProfileFolder folder, bool isGlobal) => new()
+    {
+        Id = string.IsNullOrWhiteSpace(folder.Id) ? Guid.NewGuid().ToString("N") : folder.Id,
+        ParentId = folder.ParentId,
+        Name = folder.Name,
+        Kind = folder.Kind,
+        IsGlobal = isGlobal,
+    };
+
+    private static ProfileFolder ToProfileFolder(FolderNode f) => new()
+    {
+        Id = f.Id,
+        ParentId = f.ParentId,
+        Name = f.Name,
+        Kind = f.Kind,
+        IsGlobal = f.IsGlobal,
     };
 
     private static ProfileRule ToProfileRule(AutomationRuleEntry r) => new()
@@ -2551,6 +2595,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Action = r.Action,
         IsEnabled = r.IsEnabled,
         IsGlobal = r.IsGlobal,
+        FolderId = r.FolderId,
     };
 
     private ProfileTimer ToProfileTimer(TimerEntry t) => new()
@@ -2564,6 +2609,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         CommandsText = t.CommandsText,
         IsEnabled = t.IsEnabled,
         IsGlobal = t.IsGlobal,
+        FolderId = t.FolderId,
     };
 
     private static ProfileLocation ToProfileLocation(AutowalkLocation l) => new()
@@ -2571,6 +2617,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Name = l.Name,
         Vnum = l.Vnum,
         IsGlobal = l.IsGlobal,
+        FolderId = l.FolderId,
     };
 
     /// <summary>
@@ -2585,6 +2632,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Rules = AutomationRules.Where(r => r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => t.IsGlobal).Select(ToProfileTimer).ToList(),
             Locations = Locations.Where(l => l.IsGlobal).Select(ToProfileLocation).ToList(),
+            Folders = Folders.Where(f => f.IsGlobal).Select(ToProfileFolder).ToList(),
         };
 
         try
@@ -2608,6 +2656,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
             Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList(),
+            Folders = Folders.Where(f => !f.IsGlobal).Select(ToProfileFolder).ToList(),
             Deaths = Deaths.Select(d => new ProfileDeath
             {
                 Vnum = d.Vnum,
@@ -2701,6 +2750,61 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>Triggers only (Type == "trigger"), a filtered view over <see cref="AutomationRules"/>.</summary>
     public ObservableCollection<AutomationRuleEntry> TriggerRules { get; } = [];
+
+    /// <summary>
+    /// Grouping folders across every kind (timers, aliases, triggers, notes,
+    /// autowalk). A folder's <see cref="FolderNode.Kind"/> selects which section
+    /// renders it; membership is stored on each item via its FolderId.
+    /// </summary>
+    public ObservableCollection<FolderNode> Folders { get; } = [];
+
+    /// <summary>
+    /// Applies a folder's global flag to the folder itself and, cascading, to
+    /// every descendant folder and every item that belongs to the subtree.
+    /// Keeps item.IsGlobal in sync with the containing folder so persistence
+    /// routes the whole subtree to the same file.
+    /// </summary>
+    private void SetFolderGlobalCascade(FolderNode folder, bool isGlobal)
+    {
+        folder.IsGlobal = isGlobal;
+
+        foreach (var child in Folders.Where(f => f.ParentId == folder.Id).ToList())
+        {
+            SetFolderGlobalCascade(child, isGlobal);
+        }
+
+        foreach (var item in ItemsInFolder(folder.Id))
+        {
+            item.IsGlobal = isGlobal;
+        }
+    }
+
+    /// <summary>Direct (non-recursive) item members of the given folder.</summary>
+    private IEnumerable<IFolderItem> ItemsInFolder(string folderId)
+    {
+        foreach (var t in Timers.Where(t => t.FolderId == folderId)) yield return t;
+        foreach (var r in AutomationRules.Where(r => r.FolderId == folderId)) yield return r;
+        foreach (var n in Notes.Where(n => n.FolderId == folderId)) yield return n;
+        foreach (var l in Locations.Where(l => l.FolderId == folderId)) yield return l;
+    }
+
+    /// <summary>
+    /// True when the node lives inside a global folder subtree (any global
+    /// ancestor), walking up the ParentId chain.
+    /// </summary>
+    private bool IsInsideGlobalFolder(string? folderId)
+    {
+        var guard = 0;
+        while (folderId is not null && guard++ < 1000)
+        {
+            var folder = Folders.FirstOrDefault(f => f.Id == folderId);
+            if (folder is null) return false;
+            if (folder.IsGlobal) return true;
+            folderId = folder.ParentId;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Rebuilds the alias/trigger filtered views from <see cref="AutomationRules"/>.

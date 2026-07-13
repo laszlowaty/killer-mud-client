@@ -592,4 +592,126 @@ public sealed class ProfileTests : IDisposable
         Assert.DoesNotContain(vm.Notes, n => n.Title == "Notatka Pippina");
         Assert.Contains(vm.Notes, n => n.Title == "Smaug");
     }
+
+    // ====================================================================
+    // Folders (Etap 2 — model + persistence)
+    // ====================================================================
+
+    [Fact]
+    public void SaveAndLoad_RoundTripsFoldersAndFolderId()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Thorin",
+            Folders = [new ProfileFolder { Id = "f1", Name = "PvP", Kind = FolderKind.Aliases }],
+            Rules = [new ProfileRule { Name = "R", Type = "alias", Pattern = "^k$", Action = "kill", FolderId = "f1" }],
+        });
+
+        var loaded = service.Load("Thorin");
+
+        Assert.NotNull(loaded);
+        var folder = Assert.Single(loaded!.Folders);
+        Assert.Equal("PvP", folder.Name);
+        Assert.Equal(FolderKind.Aliases, folder.Kind);
+        Assert.Equal("f1", Assert.Single(loaded.Rules).FolderId);
+    }
+
+    [Fact]
+    public void Load_ProfileJsonWithoutFolders_IsBackwardCompatible()
+    {
+        var service = CreateService();
+        Directory.CreateDirectory(_directory);
+        // JSON written before folders existed — no Folders array, no FolderId.
+        File.WriteAllText(Path.Combine(_directory, "Kili.json"),
+            """{"Name":"Kili","Rules":[{"Name":"R","Type":"alias","Pattern":"^l$","Action":"look","IsEnabled":true}]}""");
+
+        var loaded = service.Load("Kili");
+
+        Assert.NotNull(loaded);
+        Assert.Empty(loaded!.Folders);
+        var rule = Assert.Single(loaded.Rules);
+        Assert.Null(rule.FolderId);
+    }
+
+    [Fact]
+    public async Task Vm_SelectProfile_LoadsFoldersAndItemMembership()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Dwalin",
+            Folders = [new ProfileFolder { Id = "f1", Name = "Walka", Kind = FolderKind.Triggers }],
+            Rules = [new ProfileRule { Name = "T", Type = "trigger", Pattern = "^x$", Action = "y", IsEnabled = true, FolderId = "f1" }],
+        });
+
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Dwalin";
+        vm.SelectProfileCommand.Execute(null);
+
+        var folder = Assert.Single(vm.Folders);
+        Assert.Equal("Walka", folder.Name);
+        Assert.Equal("f1", Assert.Single(vm.TriggerRules).FolderId);
+    }
+
+    [Fact]
+    public async Task Vm_GlobalFolder_PersistsToGlobalFileWithItems()
+    {
+        var service = CreateService();
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.NewProfileName = "Nori";
+        vm.CreateProfileCommand.Execute(null);
+
+        var folder = new FolderNode { Name = "Wspólne", Kind = FolderKind.Aliases, IsGlobal = true };
+        vm.Folders.Add(folder);
+        var alias = new AutomationRuleEntry("a", "alias", "^l$", "look", true, isGlobal: true) { FolderId = folder.Id };
+        vm.AutomationRules.Add(alias);
+        InvokeSaveActiveProfile(vm);
+
+        var global = service.LoadGlobal();
+        Assert.Equal("Wspólne", Assert.Single(global.Folders).Name);
+        Assert.Equal(folder.Id, Assert.Single(global.Rules).FolderId);
+        // The profile file must NOT carry the global folder/rule.
+        var storedProfile = service.Load("Nori")!;
+        Assert.Empty(storedProfile.Folders);
+        Assert.DoesNotContain(storedProfile.Rules, r => r.FolderId == folder.Id);
+    }
+
+    [Fact]
+    public async Task SetFolderGlobalCascade_MarksSubtreeAndItemsThenClears()
+    {
+        await using var vm = new MainWindowViewModel(CreateService(), CreateSettingsService());
+        var parent = new FolderNode { Name = "PvP", Kind = FolderKind.Aliases };
+        var child = new FolderNode { Name = "Sub", Kind = FolderKind.Aliases, ParentId = parent.Id };
+        vm.Folders.Add(parent);
+        vm.Folders.Add(child);
+        var alias = new AutomationRuleEntry("a", "alias", "^x$", "y", true) { FolderId = child.Id };
+        vm.AutomationRules.Add(alias);
+
+        InvokeSetFolderGlobalCascade(vm, parent, true);
+        Assert.True(parent.IsGlobal);
+        Assert.True(child.IsGlobal);
+        Assert.True(alias.IsGlobal);
+
+        InvokeSetFolderGlobalCascade(vm, parent, false);
+        Assert.False(parent.IsGlobal);
+        Assert.False(child.IsGlobal);
+        Assert.False(alias.IsGlobal);
+    }
+
+    private static void InvokeSetFolderGlobalCascade(MainWindowViewModel vm, FolderNode folder, bool isGlobal)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("SetFolderGlobalCascade",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(vm, [folder, isGlobal]);
+    }
+
+    private static void InvokeSaveActiveProfile(MainWindowViewModel vm)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("SaveActiveProfile",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(vm, null);
+    }
 }

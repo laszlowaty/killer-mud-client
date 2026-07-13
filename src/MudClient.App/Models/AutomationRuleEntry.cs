@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Alias or trigger shown in the UI. Pattern is a .NET regex; Action may use
 /// capture-group substitutions like $1.
 /// </summary>
-public sealed class AutomationRuleEntry : ObservableObject
+public sealed class AutomationRuleEntry : ObservableObject, IFolderItem
 {
     private string _name;
     private string _type;
@@ -14,6 +14,7 @@ public sealed class AutomationRuleEntry : ObservableObject
     private string _action;
     private bool _isEnabled;
     private bool _isGlobal;
+    private string? _folderId;
 
     public AutomationRuleEntry(string name, string type, string pattern, string action, bool isEnabled, bool isGlobal = false)
     {
@@ -69,5 +70,12 @@ public sealed class AutomationRuleEntry : ObservableObject
     {
         get => _isGlobal;
         set => SetProperty(ref _isGlobal, value);
+    }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId
+    {
+        get => _folderId;
+        set => SetProperty(ref _folderId, value);
     }
 }

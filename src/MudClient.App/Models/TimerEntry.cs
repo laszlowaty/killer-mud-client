@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Editable timer shown in the UI. Interval = Minutes + Seconds + Milliseconds;
 /// while enabled it fires repeatedly and sends its commands in order.
 /// </summary>
-public sealed class TimerEntry : ObservableObject
+public sealed class TimerEntry : ObservableObject, IFolderItem
 {
     private string _name = string.Empty;
     private int _minutes;
@@ -15,6 +15,7 @@ public sealed class TimerEntry : ObservableObject
     private string _commandsText = string.Empty;
     private bool _isEnabled;
     private bool _isGlobal;
+    private string? _folderId;
 
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
 
@@ -68,6 +69,13 @@ public sealed class TimerEntry : ObservableObject
     {
         get => _isGlobal;
         set => SetProperty(ref _isGlobal, value);
+    }
+
+    /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId
+    {
+        get => _folderId;
+        set => SetProperty(ref _folderId, value);
     }
 
     public TimeSpan Interval =>
