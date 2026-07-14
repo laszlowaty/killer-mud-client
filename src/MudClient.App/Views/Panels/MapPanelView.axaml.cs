@@ -98,7 +98,7 @@ public sealed partial class MapPanelView : UserControl
         MapControl.SelectedRoom = _viewModel.SelectedRoom;
         MapControl.Route = _viewModel.RouteRooms;
         MapControl.GroupMarkers = _viewModel.GroupMarkers;
-        MapControl.IsSimpleMap = _viewModel.IsSimpleMap;
+        MapControl.DisplayMode = _viewModel.SelectedDisplayMode.Mode;
     }
 
     private void OnRoomDoubleClicked(MudClient.Core.Map.MapRoom room)

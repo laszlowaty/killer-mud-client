@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MudClient.App\MudClient.App.csproj" />
+    <ProjectReference Include="..\..\tools\MudClient.MapImageCalibrator\MudClient.MapImageCalibrator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

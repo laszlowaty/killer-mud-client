@@ -7,7 +7,7 @@ using System.Globalization;
 
 namespace MudClient.MapImageCalibrator;
 
-public enum CalibrationMode { MoveImage, SelectRooms, SelectRoomsLasso, MoveSelectedRooms, MoveSingleRoom, AddMarker }
+public enum CalibrationMode { MoveImage, EditElements, SelectRooms, SelectRoomsLasso, MoveSelectedRooms, MoveSingleRoom, AddMarker }
 
 public sealed class CalibrationCanvas : Control
 {
@@ -19,6 +19,9 @@ public sealed class CalibrationCanvas : Control
     private Point? _selectionCurrent;
     private readonly List<Point> _lassoPoints = [];
     private int? _draggedRoomId;
+    private string? _draggedElementId;
+    private RoomPoint? _hoverRoom;
+    private Point _hoverPoint;
     private double _cameraX;
     private double _cameraY;
     private double _scale = 18;
@@ -31,12 +34,20 @@ public sealed class CalibrationCanvas : Control
     public Dictionary<int, Point> RoomOffsets { get; set; } = [];
     public HashSet<int> SelectedRoomIds { get; set; } = [];
     public IReadOnlyList<ImageMarker> Markers { get; set; } = [];
+    public IReadOnlyList<MapImageElement> ImageElements { get; set; } = [];
+    public IReadOnlyDictionary<string, Bitmap> ElementBitmaps { get; set; } = new Dictionary<string, Bitmap>();
+    public string? SelectedElementId { get; set; }
+    public bool CanAcceptAssetDrop { get; set; }
 
     public event Action? LayerChanged;
     public event Action<Rect>? ChunkSelected;
     public event Action<IReadOnlyList<Point>>? LassoSelected;
     public event Action<Point>? MarkerPointPicked;
     public event Action? RoomOffsetsChanged;
+    public event Action<string?>? SelectedElementChanged;
+    public event Action? ElementEditStarted;
+    public event Action? ElementEditCompleted;
+    public event Action<Point>? AssetDropped;
 
     public CalibrationCanvas()
     {
@@ -46,6 +57,15 @@ public sealed class CalibrationCanvas : Control
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheel;
+        DragDrop.SetAllowDrop(this, true);
+        DragDrop.AddDragOverHandler(this, OnDragOver);
+        DragDrop.AddDropHandler(this, OnDrop);
+        PointerExited += (_, _) =>
+        {
+            if (_hoverRoom is null) return;
+            _hoverRoom = null;
+            InvalidateVisual();
+        };
     }
 
     public void Fit()
@@ -70,6 +90,32 @@ public sealed class CalibrationCanvas : Control
         _cameraY = (minY + maxY) / 2;
         _scale = Math.Max(0.05, Math.Min(Bounds.Width / (width * 1.35), Bounds.Height / (height * 1.35)));
         InvalidateVisual();
+    }
+
+    public void SaveComposite(string path)
+    {
+        if (Image is null) throw new InvalidOperationException("Nie wybrano obrazu warstwy.");
+        using var result = new RenderTargetBitmap(Image.PixelSize, new Vector(96, 96));
+        using (var context = result.CreateDrawingContext())
+        {
+            var canvasRect = new Rect(0, 0, Image.PixelSize.Width, Image.PixelSize.Height);
+            context.DrawImage(Image, canvasRect, canvasRect);
+            foreach (var element in ImageElements.OrderBy(item => item.ZIndex))
+            {
+                if (!ElementBitmaps.TryGetValue(element.AssetFile, out var bitmap)) continue;
+                var center = new Point(element.ImageX, element.ImageY);
+                var target = new Rect(
+                    element.ImageX - element.Width / 2,
+                    element.ImageY - element.Height / 2,
+                    element.Width,
+                    element.Height);
+                using (context.PushTransform(Matrix.CreateRotation(element.Rotation * Math.PI / 180, center)))
+                using (context.PushOpacity(Math.Clamp(element.Opacity, 0, 1)))
+                    context.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height), target);
+            }
+        }
+        using var stream = File.Create(path);
+        result.Save(stream, PngBitmapEncoderOptions.Default);
     }
 
     public override void Render(DrawingContext context)
@@ -112,6 +158,7 @@ public sealed class CalibrationCanvas : Control
                 context.FillRectangle(wash, imageRect);
             }
         }
+        DrawImageElements(context, imageRect);
         context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(210, 255, 180, 30)), 2), imageRect);
 
         var visibleRooms = Rooms.Where(room => room.AreaId == Layer.AreaId && room.Z == Layer.Z).ToList();
@@ -128,9 +175,13 @@ public sealed class CalibrationCanvas : Control
         foreach (var room in visibleRooms)
         {
             var point = RoomToScreen(room);
-            var brush = SelectedRoomIds.Contains(room.Id) ? Brushes.Orange : room.Vnum is null ? Brushes.Gray : Brushes.White;
-            var size = SelectedRoomIds.Contains(room.Id) ? 8 : 5;
-            context.FillRectangle(brush, new Rect(point.X - size / 2, point.Y - size / 2, size, size));
+            var brush = SelectedRoomIds.Contains(room.Id)
+                ? Brushes.Orange
+                : room.Vnum is null ? Brushes.Gray : SectorBrush(room.Sector);
+            var size = SelectedRoomIds.Contains(room.Id) ? 8 : 6;
+            var rect = new Rect(point.X - size / 2, point.Y - size / 2, size, size);
+            context.FillRectangle(brush, rect);
+            context.DrawRectangle(RoomOutlinePen, rect);
         }
 
         foreach (var anchor in Anchors)
@@ -155,6 +206,22 @@ public sealed class CalibrationCanvas : Control
             context.DrawText(text, new Point(point.X - text.Width / 2, point.Y - text.Height / 2));
         }
 
+        if (_hoverRoom is { } hover)
+        {
+            var lines = hover.Name ?? "(bez nazwy)";
+            if (hover.Vnum is not null) lines += $"\nvnum: {hover.Vnum}";
+            if (!string.IsNullOrWhiteSpace(hover.Sector)) lines += $"\nsektor: {hover.Sector}";
+            var text = new FormattedText(lines, CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight, Typeface.Default, 13, Brushes.White);
+            var origin = new Point(
+                Math.Min(_hoverPoint.X + 14, Bounds.Width - text.Width - 10),
+                Math.Min(_hoverPoint.Y + 14, Bounds.Height - text.Height - 10));
+            var background = new Rect(origin.X - 6, origin.Y - 4, text.Width + 12, text.Height + 8);
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 20, 24, 22)), background);
+            context.DrawRectangle(new Pen(Brushes.Orange, 1), background);
+            context.DrawText(text, origin);
+        }
+
         if (_selectionStart is { } start && _selectionCurrent is { } current)
         {
             var selection = RectFromPoints(start, current);
@@ -173,13 +240,37 @@ public sealed class CalibrationCanvas : Control
         Focus();
         var point = e.GetPosition(this);
         var properties = e.GetCurrentPoint(this).Properties;
-        if (properties.IsRightButtonPressed)
+        if (Mode == CalibrationMode.EditElements && properties.IsLeftButtonPressed && Layer is not null && Image is not null)
+        {
+            var element = FindElement(point);
+            SetSelectedElement(element?.Id);
+            if (element is not null)
+            {
+                _dragView = false;
+                _draggedElementId = element.Id;
+                _dragPoint = point;
+                ElementEditStarted?.Invoke();
+                e.Pointer.Capture(this);
+                return;
+            }
+        }
+        if (Mode == CalibrationMode.AddMarker && Layer is not null && Image is not null &&
+            (properties.IsLeftButtonPressed || properties.IsRightButtonPressed))
+        {
+            var world = ScreenToWorld(point);
+            var x = (world.X - Layer.MinX) / Layer.Width * Image.PixelSize.Width;
+            var y = (Layer.MaxY - world.Y) / Layer.Height * Image.PixelSize.Height;
+            if (x >= 0 && y >= 0 && x <= Image.PixelSize.Width && y <= Image.PixelSize.Height)
+                MarkerPointPicked?.Invoke(new Point(x, y));
+            return;
+        }
+        if (properties.IsLeftButtonPressed)
         {
             _dragView = true;
             _dragPoint = point;
             return;
         }
-        if (!properties.IsLeftButtonPressed || Layer is null || Image is null) return;
+        if (!properties.IsRightButtonPressed || Layer is null || Image is null) return;
         _dragView = false;
 
         if (Mode == CalibrationMode.SelectRooms)
@@ -194,15 +285,6 @@ public sealed class CalibrationCanvas : Control
             _lassoPoints.Clear();
             _lassoPoints.Add(point);
             InvalidateVisual();
-            return;
-        }
-        if (Mode == CalibrationMode.AddMarker)
-        {
-            var world = ScreenToWorld(point);
-            var x = (world.X - Layer.MinX) / Layer.Width * Image.PixelSize.Width;
-            var y = (Layer.MaxY - world.Y) / Layer.Height * Image.PixelSize.Height;
-            if (x >= 0 && y >= 0 && x <= Image.PixelSize.Width && y <= Image.PixelSize.Height)
-                MarkerPointPicked?.Invoke(new Point(x, y));
             return;
         }
         if (Mode == CalibrationMode.MoveSingleRoom)
@@ -242,8 +324,22 @@ public sealed class CalibrationCanvas : Control
             InvalidateVisual();
             return;
         }
-        if (_dragPoint is not { } previous || Layer is null) return;
+        if (_dragPoint is not { } previous || Layer is null)
+        {
+            UpdateHover(e.GetPosition(this));
+            return;
+        }
+        _hoverRoom = null;
         var current = e.GetPosition(this);
+        if (Mode == CalibrationMode.EditElements && _draggedElementId is { } elementId &&
+            ImageElements.FirstOrDefault(item => item.Id == elementId) is { } element && Image is not null)
+        {
+            element.ImageX += (current.X - previous.X) / (_scale * Layer.Width) * Image.PixelSize.Width;
+            element.ImageY += (current.Y - previous.Y) / (_scale * Layer.Height) * Image.PixelSize.Height;
+            _dragPoint = current;
+            InvalidateVisual();
+            return;
+        }
         var dx = (current.X - previous.X) / _scale;
         var dy = -(current.Y - previous.Y) / _scale;
         if (_dragView)
@@ -273,6 +369,14 @@ public sealed class CalibrationCanvas : Control
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_draggedElementId is not null)
+        {
+            _draggedElementId = null;
+            _dragPoint = null;
+            e.Pointer.Capture(null);
+            ElementEditCompleted?.Invoke();
+            return;
+        }
         _dragPoint = null;
         _draggedRoomId = null;
         if (_lassoPoints.Count > 2 && Mode == CalibrationMode.SelectRoomsLasso)
@@ -307,6 +411,82 @@ public sealed class CalibrationCanvas : Control
         InvalidateVisual();
     }
 
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = CanAcceptAssetDrop ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (!CanAcceptAssetDrop || !TryScreenToImage(e.GetPosition(this), out var imagePoint)) return;
+        AssetDropped?.Invoke(imagePoint);
+        e.Handled = true;
+    }
+
+    private void DrawImageElements(DrawingContext context, Rect imageRect)
+    {
+        if (Image is null) return;
+        foreach (var element in ImageElements.OrderBy(item => item.ZIndex))
+        {
+            if (!ElementBitmaps.TryGetValue(element.AssetFile, out var bitmap)) continue;
+            var center = new Point(
+                imageRect.X + element.ImageX / Image.PixelSize.Width * imageRect.Width,
+                imageRect.Y + element.ImageY / Image.PixelSize.Height * imageRect.Height);
+            var width = element.Width / Image.PixelSize.Width * imageRect.Width;
+            var height = element.Height / Image.PixelSize.Height * imageRect.Height;
+            var target = new Rect(center.X - width / 2, center.Y - height / 2, width, height);
+            using (context.PushTransform(Matrix.CreateRotation(element.Rotation * Math.PI / 180, center)))
+            using (context.PushOpacity(Math.Clamp(element.Opacity, 0, 1)))
+                context.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height), target);
+
+            if (element.Id == SelectedElementId)
+            {
+                using (context.PushTransform(Matrix.CreateRotation(element.Rotation * Math.PI / 180, center)))
+                {
+                    context.DrawRectangle(new Pen(Brushes.DeepSkyBlue, 2), target);
+                    context.FillRectangle(Brushes.White, new Rect(target.Right - 4, target.Bottom - 4, 8, 8));
+                }
+            }
+        }
+    }
+
+    private MapImageElement? FindElement(Point screenPoint)
+    {
+        if (Image is null || !TryScreenToImage(screenPoint, out var imagePoint)) return null;
+        foreach (var element in ImageElements.OrderByDescending(item => item.ZIndex))
+        {
+            var radians = -element.Rotation * Math.PI / 180;
+            var dx = imagePoint.X - element.ImageX;
+            var dy = imagePoint.Y - element.ImageY;
+            var localX = dx * Math.Cos(radians) - dy * Math.Sin(radians);
+            var localY = dx * Math.Sin(radians) + dy * Math.Cos(radians);
+            if (Math.Abs(localX) <= element.Width / 2 && Math.Abs(localY) <= element.Height / 2)
+                return element;
+        }
+        return null;
+    }
+
+    private bool TryScreenToImage(Point screenPoint, out Point imagePoint)
+    {
+        imagePoint = default;
+        if (Layer is null || Image is null || Layer.Width <= 0 || Layer.Height <= 0) return false;
+        var world = ScreenToWorld(screenPoint);
+        var x = (world.X - Layer.MinX) / Layer.Width * Image.PixelSize.Width;
+        var y = (Layer.MaxY - world.Y) / Layer.Height * Image.PixelSize.Height;
+        if (x < 0 || y < 0 || x > Image.PixelSize.Width || y > Image.PixelSize.Height) return false;
+        imagePoint = new Point(x, y);
+        return true;
+    }
+
+    private void SetSelectedElement(string? id)
+    {
+        if (SelectedElementId == id) return;
+        SelectedElementId = id;
+        SelectedElementChanged?.Invoke(id);
+        InvalidateVisual();
+    }
+
     private Point WorldToScreen(double x, double y) =>
         new(Bounds.Width / 2 + (x - _cameraX) * _scale, Bounds.Height / 2 - (y - _cameraY) * _scale);
     private Point ScreenToWorld(Point p) =>
@@ -324,6 +504,46 @@ public sealed class CalibrationCanvas : Control
         var nearest = Rooms.Select(room => (Room: room, Distance: Distance(RoomToScreen(room), point)))
             .OrderBy(item => item.Distance).FirstOrDefault();
         return nearest.Room is not null && nearest.Distance <= 24 ? nearest.Room : null;
+    }
+
+    private void UpdateHover(Point point)
+    {
+        var room = FindNearestRoom(point);
+        if (!ReferenceEquals(room, _hoverRoom) || (room is not null && Distance(point, _hoverPoint) > 1))
+        {
+            _hoverRoom = room;
+            _hoverPoint = point;
+            InvalidateVisual();
+        }
+    }
+
+    private static readonly Pen RoomOutlinePen = new(new SolidColorBrush(Color.FromArgb(180, 0, 0, 0)), 1);
+
+    private static IBrush SectorBrush(string? sector)
+    {
+        var value = (sector ?? string.Empty).Trim().ToLowerInvariant();
+        if (value.Contains("lawa")) return Rgb(196, 63, 35);
+        if (value.Contains("ocean") || value.Contains("morze") || value.Contains("rzeka") ||
+            value.Contains("jezioro") || value.Contains("woda")) return Rgb(52, 128, 176);
+        if (value.Contains("lodowiec") || value.Contains("arkty") || value.Contains("tundra")) return Rgb(196, 216, 218);
+        if (value.Contains("gory") || value.Contains("gorska") || value.Contains("wzgorza")) return Rgb(140, 141, 136);
+        if (value.Contains("pust") || value.Contains("wydmy") || value.Contains("piaski") || value.Contains("plaza")) return Rgb(214, 178, 106);
+        if (value.Contains("bagno") || value.Contains("blotna")) return Rgb(94, 122, 84);
+        if (value.Contains("puszcza")) return Rgb(34, 96, 62);
+        if (value.Contains("las")) return Rgb(58, 132, 78);
+        if (value.Contains("droga") || value.Contains("sciezka")) return Rgb(190, 160, 120);
+        if (value.Contains("miasto") || value.Contains("plac") || value.Contains("arena") || value.Contains("ruiny")) return Rgb(171, 138, 106);
+        if (value.Contains("podzi") || value.Contains("jaskinia") || value.Contains("kopalnia") || value.Contains("wewnatrz")) return Rgb(108, 99, 118);
+        if (value.Contains("pole") || value.Contains("laka") || value.Contains("trawa") || value.Contains("step")) return Rgb(132, 165, 92);
+        return Brushes.White;
+    }
+
+    private static readonly Dictionary<(byte, byte, byte), IBrush> BrushCache = [];
+    private static IBrush Rgb(byte r, byte g, byte b)
+    {
+        if (!BrushCache.TryGetValue((r, g, b), out var brush))
+            BrushCache[(r, g, b)] = brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        return brush;
     }
 
     private static (IBrush Horizontal, IBrush Vertical) CreateEdgeMasks(double fade)

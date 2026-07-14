@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MudClient.App.Controls;
 using MudClient.App.Services;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
@@ -37,7 +38,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private string? _currentSectorName;
     private bool _followPlayer = true;
-    private bool _isSimpleMap;
+    private MapDisplayModeOption _selectedDisplayMode;
 
     public MapViewModel(string appBaseDirectory, GmcpLocationResolver locationResolver)
     {
@@ -48,6 +49,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         _sectorManifestPath = Path.Combine(_sectorDirectory, "sectors.json");
         _roomImageDirectory = Path.Combine(mapDirectory, "Rooms");
 
+        _selectedDisplayMode = MapDisplayModeOption.All[0];
         _locationResolver = locationResolver;
         _locationResolver.LocationChanged += OnLocationChanged;
 
@@ -233,10 +235,12 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             .ToArray();
     }
 
-    public bool IsSimpleMap
+    public IReadOnlyList<MapDisplayModeOption> DisplayModes { get; } = MapDisplayModeOption.All;
+
+    public MapDisplayModeOption SelectedDisplayMode
     {
-        get => _isSimpleMap;
-        set => SetProperty(ref _isSimpleMap, value);
+        get => _selectedDisplayMode;
+        set => SetProperty(ref _selectedDisplayMode, value);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

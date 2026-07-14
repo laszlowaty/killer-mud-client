@@ -45,10 +45,10 @@
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
                         Margin="0,4" />
-                <ToggleSwitch Content="Prosta mapa"
-                              IsChecked="{Binding IsSimpleMap}"
-                              HorizontalAlignment="Stretch"
-                              Padding="6,4" />
+                <TextBlock Classes="mud-heading" Text="TRYB MAPY" Margin="0,4,0,0" />
+                <ComboBox ItemsSource="{Binding DisplayModes}"
+                          SelectedItem="{Binding SelectedDisplayMode}"
+                          HorizontalAlignment="Stretch" />
               </StackPanel>
             </Flyout>
           </Button.Flyout>

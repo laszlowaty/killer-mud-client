@@ -35,12 +35,12 @@
   {
     "areaId": 1,
     "z": 0,
-    "minX": -27.945,
-    "minY": -25.057,
-    "maxX": 30.055,
-    "maxY": 21.943,
-    "opacity": 1,
-    "edgeFade": 0,
+    "minX": -25.55,
+    "minY": -26.305,
+    "maxX": 32.45,
+    "maxY": 20.695,
+    "opacity": 1.0487012987012987,
+    "edgeFade": 0.21617647058823528,
     "fileName": "arras-6000-6199.png"
   },
   {
@@ -53,5 +53,16 @@
     "opacity": 1,
     "edgeFade": 0.09127450980392157,
     "fileName": "zajazd-gardesa.png"
+  },
+  {
+    "areaId": 1,
+    "z": 0,
+    "minX": -34,
+    "minY": -64,
+    "maxX": -2,
+    "maxY": -36,
+    "opacity": 1,
+    "edgeFade": 0.1,
+    "fileName": "cmentarz-arras.png"
   }
 ]

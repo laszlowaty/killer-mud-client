@@ -62,7 +62,9 @@ public sealed class WorldMapControl : Control
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _route;
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
+    private MapDisplayMode _displayMode;
     private bool _isSimpleMap;
+    private bool _isTerrainMap;
 
     private double _cameraX;
     private double _cameraY;
@@ -181,14 +183,16 @@ public sealed class WorldMapControl : Control
         }
     }
 
-    public bool IsSimpleMap
+    public MapDisplayMode DisplayMode
     {
-        get => _isSimpleMap;
+        get => _displayMode;
         set
         {
-            if (_isSimpleMap != value)
+            if (_displayMode != value)
             {
-                _isSimpleMap = value;
+                _displayMode = value;
+                _isSimpleMap = value == MapDisplayMode.Simple;
+                _isTerrainMap = value == MapDisplayMode.Terrain;
                 RequestInvalidateVisual();
             }
         }
@@ -612,7 +616,7 @@ public sealed class WorldMapControl : Control
         var roomsWithOffsets = GetVisibleRooms().ToList();
         var roomLookup = roomsWithOffsets.ToDictionary(r => r.Room.Id, r => r.Offset);
 
-        if (!_isSimpleMap && _textureCache?.HasLocationBackdrops(_areaId, _z) != true)
+        if (!_isSimpleMap && (_isTerrainMap || _textureCache?.HasLocationBackdrops(_areaId, _z) != true))
         {
             DrawTerrain(context, roomsWithOffsets, roomLookup);
         }
@@ -659,7 +663,7 @@ public sealed class WorldMapControl : Control
             return false;
         }
 
-        var hasLocationBackdrop = _textureCache?.HasLocationBackdrops(_areaId, _z) == true;
+        var hasLocationBackdrop = !_isTerrainMap && _textureCache?.HasLocationBackdrops(_areaId, _z) == true;
         if (!hasLocationBackdrop && _textureCache?.GetBackgroundTexture() is { } texture)
         {
             var sourceWidth = texture.PixelSize.Width;
@@ -709,7 +713,10 @@ public sealed class WorldMapControl : Control
             }
         }
 
-        DrawLocationBackdrops(context, visible);
+        if (!_isTerrainMap)
+        {
+            DrawLocationBackdrops(context, visible);
+        }
 
         if (_zoom < OverviewZoomThreshold)
         {

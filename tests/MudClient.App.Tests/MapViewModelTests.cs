@@ -154,18 +154,18 @@ public sealed class MapViewModelTests
     }
 
     [Fact]
-    public void IsSimpleMap_DefaultsToFalseAndRaisesPropertyChangedWhenEnabled()
+    public void SelectedDisplayMode_DefaultsToStandardAndRaisesPropertyChangedWhenChanged()
     {
         using var vm = CreateViewModel();
         var changedProperties = new List<string?>();
         vm.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
-        Assert.False(vm.IsSimpleMap);
+        Assert.Equal(MudClient.App.Controls.MapDisplayMode.Standard, vm.SelectedDisplayMode.Mode);
 
-        vm.IsSimpleMap = true;
+        vm.SelectedDisplayMode = vm.DisplayModes.First(m => m.Mode == MudClient.App.Controls.MapDisplayMode.Simple);
 
-        Assert.True(vm.IsSimpleMap);
-        Assert.Contains(nameof(MapViewModel.IsSimpleMap), changedProperties);
+        Assert.Equal(MudClient.App.Controls.MapDisplayMode.Simple, vm.SelectedDisplayMode.Mode);
+        Assert.Contains(nameof(MapViewModel.SelectedDisplayMode), changedProperties);
     }
 
     // ====================================================================
