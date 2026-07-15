@@ -12,7 +12,8 @@
               Command="{Binding RecastBuffsCommand}" />
 
       <Grid ColumnDefinitions="*,Auto">
-        <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)" />
+        <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)"
+                 KeyDown="NewBuffBox_OnKeyDown" />
         <Button Grid.Column="1" Content="Dodaj" Classes="mud-small" Margin="4,0,0,0"
                 VerticalAlignment="Stretch"
                 Command="{Binding AddBuffCommand}" />

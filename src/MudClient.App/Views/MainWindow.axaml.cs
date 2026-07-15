@@ -192,6 +192,26 @@ public partial class MainWindow : Window
         terminal.RedirectTextInput(e);
     }
 
+    private void SelectProfileField_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+        => ExecuteOnEnter(eventArgs, _viewModel?.SelectProfileCommand);
+
+    private void CreateProfileField_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+        => ExecuteOnEnter(eventArgs, _viewModel?.CreateProfileCommand);
+
+    private static void ExecuteOnEnter(KeyEventArgs eventArgs, System.Windows.Input.ICommand? command)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return) || command is null)
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (command.CanExecute(null))
+        {
+            command.Execute(null);
+        }
+    }
+
     private void ProfileList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
     {
         if (_viewModel is null)

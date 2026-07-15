@@ -305,6 +305,7 @@
                    PasswordChar="●"
                    PlaceholderText="Zmień hasło wybranego konta (opcjonalnie)"
                    IsVisible="{Binding HasProfiles}"
+                   KeyDown="SelectProfileField_OnKeyDown"
                    ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
 
           <Button Content="Wybierz konto"
@@ -321,13 +322,15 @@
                      Text="Nowe konto — przy pierwszym połączeniu klient sam utworzy postać na MUD-zie (nazwa, hasło i potwierdzenie)." />
 
           <TextBox Text="{Binding NewProfileName}"
-                   PlaceholderText="Nazwa konta" />
+                   PlaceholderText="Nazwa konta"
+                   KeyDown="CreateProfileField_OnKeyDown" />
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBox Grid.Column="0"
                      Text="{Binding NewProfilePassword}"
                      PasswordChar="●"
-                     PlaceholderText="Hasło (zapisywane zaszyfrowane)" />
+                     PlaceholderText="Hasło (zapisywane zaszyfrowane)"
+                     KeyDown="CreateProfileField_OnKeyDown" />
             <Button Grid.Column="1"
                     Content="Utwórz"
                     Command="{Binding CreateProfileCommand}"
