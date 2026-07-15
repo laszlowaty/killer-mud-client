@@ -1,0 +1,7 @@
+interface:
+  display_name: "Ikony RPG do Nortantis"
+  short_description: "Twórz ikony w stylu Killer Mud v1/v2"
+  default_prompt: "Użyj $nortantis-rpg-icons, aby przygotować czytelny art pack RPG zgodny ze stylem ikon Killer Mud v1/v2."
+
+policy:
+  allow_implicit_invocation: true
