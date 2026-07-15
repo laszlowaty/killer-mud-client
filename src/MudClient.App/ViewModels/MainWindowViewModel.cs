@@ -85,6 +85,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _startupErrorMessage;
     private string? _startupErrorDetails;
     private bool _isKilleropediaOpen;
+    private bool _isHelpOpen;
 
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
@@ -303,7 +304,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyLayoutCommand = new RelayCommand<string>(ApplyLayout);
         SaveLayoutCommand = new RelayCommand(SaveLayout);
         DeleteLayoutCommand = new RelayCommand<string>(DeleteLayout);
-        OpenKilleropediaCommand = new RelayCommand(() => IsKilleropediaOpen = true);
+        OpenKilleropediaCommand = new RelayCommand(() =>
+        {
+            IsHelpOpen = false;
+            IsKilleropediaOpen = true;
+        });
+        OpenHelpCommand = new RelayCommand(() =>
+        {
+            IsKilleropediaOpen = false;
+            IsHelpOpen = true;
+        });
 
         PopulateMockData();
 
@@ -355,6 +365,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand<string> DeleteLayoutCommand { get; }
 
     public IRelayCommand OpenKilleropediaCommand { get; }
+
+    public IRelayCommand OpenHelpCommand { get; }
 
     /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
     public string NewLayoutName
@@ -588,6 +600,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _isKilleropediaOpen;
         set => SetProperty(ref _isKilleropediaOpen, value);
+    }
+
+    public bool IsHelpOpen
+    {
+        get => _isHelpOpen;
+        set => SetProperty(ref _isHelpOpen, value);
     }
 
     public int SelectedRightTab

@@ -76,6 +76,11 @@ pobiera listy dla `druid`, `mag`, `paladyn`, `nomad` i `kleryk`, a następnie sz
 każdego unikalnego vnum. Gotowy katalog jest zapisywany atomowo w katalogu ustawień
 aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu w repozytorium.
 
+### Pomoc aplikacji
+
+Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/idz`,
+`/idz <cel>`, `/stop` oraz `/recast`.
+
 ### Automatyzacja
 
 - **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy,

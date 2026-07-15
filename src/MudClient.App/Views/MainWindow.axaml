@@ -66,6 +66,12 @@
                     Padding="10,3"
                     VerticalAlignment="Center"
                     ToolTip.Tip="Otwórz killeropedię" />
+            <Button Content="Pomoc"
+                    Command="{Binding OpenHelpCommand}"
+                    FontSize="11"
+                    Padding="10,3"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Otwórz pomoc aplikacji" />
             <Button Content="{Binding HiddenPanels.Count, StringFormat='Panele ({0})'}"
                     FontSize="11"
                     Padding="8,3"
@@ -224,6 +230,61 @@
           <TabItem Header="Mapa Świata">
             <views:KilleropediaWorldMapView Margin="0,12,0,0"
                                             DataContext="{Binding Killeropedia}" />
+          </TabItem>
+        </TabControl>
+      </controls:LargeTabbedWidget.TabContent>
+    </controls:LargeTabbedWidget>
+
+    <controls:LargeTabbedWidget Grid.RowSpan="3"
+                                Title="POMOC"
+                                IsOpen="{Binding IsHelpOpen}">
+      <controls:LargeTabbedWidget.TabContent>
+        <TabControl Classes="mud-large-widget-tabs">
+          <TabItem Header="Dostępne komendy">
+            <ScrollViewer Margin="0,12,0,0">
+              <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+                <TextBlock Classes="mud-heading-lg" Text="DOSTĘPNE KOMENDY" />
+                <TextBlock Classes="mud-muted"
+                           Text="Komendy klienta wpisuj w polu komendy terminala. Wielkość liter nie ma znaczenia."
+                           TextWrapping="Wrap" />
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/idz" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Rozpoczyna marsz do celu wybranego dwuklikiem na mapie albo wznawia przerwaną podróż." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/idz &lt;cel&gt;" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Rozpoczyna marsz do zapisanej lokacji o podanej nazwie." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/stop" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Zatrzymuje trwający autowalk." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/recast" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Ponownie rzuca wszystkie brakujące czary z listy wymaganych buffów na postać." />
+                  </Grid>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
           </TabItem>
         </TabControl>
       </controls:LargeTabbedWidget.TabContent>

@@ -184,6 +184,40 @@ public sealed class MainWindowClickTests : IDisposable
     // ==================================================================
 
     [AvaloniaFact]
+    public void HelpButton_ShowsAvailableClientCommands()
+    {
+        var viewModel = CreateViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var helpWidget = window.GetVisualDescendants()
+            .OfType<LargeTabbedWidget>()
+            .Single(widget => widget.Title == "POMOC");
+        Assert.False(helpWidget.IsVisible);
+
+        var helpButton = window.GetVisualDescendants()
+            .OfType<Button>()
+            .Single(button => button.Content?.ToString() == "Pomoc");
+        Assert.NotNull(helpButton.Command);
+        helpButton.Command.Execute(helpButton.CommandParameter);
+        Assert.True(viewModel.IsHelpOpen);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        Assert.True(helpWidget.IsVisible);
+        var helpTexts = helpWidget.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(text => text.Text)
+            .ToList();
+        Assert.Contains("/idz", helpTexts);
+        Assert.Contains("/idz <cel>", helpTexts);
+        Assert.Contains("/stop", helpTexts);
+        Assert.Contains("/recast", helpTexts);
+    }
+
+    [AvaloniaFact]
     public void FocusCommandBoxAndSelectAll_FocusesAndSelectsAll()
     {
         // Arrange

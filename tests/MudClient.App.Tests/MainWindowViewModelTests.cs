@@ -108,6 +108,28 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.True(_vm.IsKilleropediaOpen);
     }
 
+    [Fact]
+    public void OpenHelpCommand_OpensHelpAndClosesKilleropedia()
+    {
+        _vm.IsKilleropediaOpen = true;
+
+        _vm.OpenHelpCommand.Execute(null);
+
+        Assert.True(_vm.IsHelpOpen);
+        Assert.False(_vm.IsKilleropediaOpen);
+    }
+
+    [Fact]
+    public void OpenKilleropediaCommand_ClosesHelp()
+    {
+        _vm.IsHelpOpen = true;
+
+        _vm.OpenKilleropediaCommand.Execute(null);
+
+        Assert.True(_vm.IsKilleropediaOpen);
+        Assert.False(_vm.IsHelpOpen);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
