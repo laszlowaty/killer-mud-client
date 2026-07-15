@@ -1,4 +1,4 @@
 interface:
   display_name: "Mapa"
-  short_description: "Edytuj mapy z eksportów kalibratora"
-  default_prompt: "Użyj $mapa, aby poprawić obraz krainy na podstawie najnowszego eksportu kalibratora."
+  short_description: "Generuj pergaminowe mapy z eksportów kalibratora"
+  default_prompt: "Użyj $mapa, aby przerysować krainę z najnowszego eksportu kalibratora w stylu średniowiecznego atlasu na pergaminie."

@@ -15,8 +15,18 @@ try {
     @{
         imageFile = 'arras.png'
         layerName = 'Arras'
+        generationPrompt = 'Forest city around a stone temple.'
         isBlankCanvas = $false
-        rooms = @()
+        rooms = @(
+            @{
+                roomId = 42
+                vnum = '1001'
+                name = 'Droga przy kaplicy'
+                sector = 'droga'
+                x = 10
+                y = 20
+            }
+        )
         markers = @()
         roomOffsets = @()
         imageElements = @(
@@ -39,6 +49,8 @@ try {
     if (-not (Test-Path -LiteralPath $result.compositePng)) { throw 'compositePng was not returned.' }
     if (@($result.imageElements).Count -ne 1) { throw 'imageElements were not returned.' }
     if ($result.imageElements[0].id -ne 'temple-1') { throw 'Unexpected image element.' }
+    if ($result.generationPrompt -ne 'Forest city around a stone temple.') { throw 'generationPrompt was not returned.' }
+    if ($result.rooms[0].sector -ne 'droga') { throw 'Room sector was not returned.' }
 
     [IO.File]::WriteAllBytes((Join-Path $exports 'arras-legacy.png'), [byte[]]@(1))
     @{
@@ -55,6 +67,7 @@ try {
     if ($legacy.hasManualComposition) { throw 'Legacy export was incorrectly marked as a manual composition.' }
     if ($null -ne $legacy.compositePng) { throw 'Legacy export unexpectedly returned compositePng.' }
     if (@($legacy.imageElements).Count -ne 0) { throw 'Legacy export unexpectedly returned imageElements.' }
+    if ($legacy.generationPrompt -ne '') { throw 'Legacy export unexpectedly returned generationPrompt.' }
 
     Write-Output 'find-latest-export: PASS'
 }

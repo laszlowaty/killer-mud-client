@@ -58,6 +58,7 @@ $imageElements = @(@($latest.Data.imageElements) | Where-Object { $null -ne $_ }
     calibrationJson = if (Test-Path $calibration) { $calibration } else { $null }
     manifest = Join-Path $locations 'manifest.json'
     layerName = $latest.Data.layerName
+    generationPrompt = [string]$latest.Data.generationPrompt
     isBlankCanvas = [bool]$latest.Data.isBlankCanvas
     rooms = @($latest.Data.rooms)
     markers = @($latest.Data.markers)
