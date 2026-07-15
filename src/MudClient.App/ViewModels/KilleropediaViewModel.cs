@@ -22,6 +22,7 @@ public sealed class KilleropediaViewModel : ObservableObject
     private string _selectedBookClass = "Wszystkie";
     private BookEntry? _selectedBook;
     private bool _isConnected;
+    private WorldMapRegion? _selectedWorldMapRegion;
     private bool _isBookRefreshRunning;
     private string _bookRefreshStatus = string.Empty;
     private DateTimeOffset? _booksGeneratedAtUtc;
@@ -47,6 +48,16 @@ public sealed class KilleropediaViewModel : ObservableObject
             teacher => teacher?.HasRoomLocation == true && _showTeacherOnMap is not null);
         ApplyTeacherFilter();
         LoadBookCatalog();
+        _selectedWorldMapRegion = WorldMapRegions.FirstOrDefault();
+    }
+
+    public IReadOnlyList<WorldMapRegion> WorldMapRegions { get; } =
+        [new WorldMapRegion("Stary Kontynent", "old-continent-overview.png")];
+
+    public WorldMapRegion? SelectedWorldMapRegion
+    {
+        get => _selectedWorldMapRegion;
+        set => SetProperty(ref _selectedWorldMapRegion, value);
     }
 
     public ObservableCollection<TeacherEntry> FilteredTeachers { get; } = [];
