@@ -21,6 +21,7 @@ namespace MudClient.App.Controls;
 internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHitTest
 {
     private const double ExtentWidthPadding = 8;
+    private const double MouseWheelScrollLines = 4;
 
     private static readonly ImmutableSolidColorBrush DefaultForeground =
         new(Color.FromRgb(215, 221, 230));
@@ -158,6 +159,40 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             _hasSelection = false;
             InvalidateVisual();
         }
+    }
+
+    public bool SelectAndReveal(long globalLine, int startCharacter, int length)
+    {
+        var buffer = _buffer;
+        if (buffer is null
+            || globalLine < buffer.FirstGlobalIndex
+            || globalLine >= buffer.FirstGlobalIndex + buffer.Count)
+        {
+            return false;
+        }
+
+        var lineIndex = checked((int)(globalLine - buffer.FirstGlobalIndex));
+        var line = buffer[lineIndex];
+        var start = Math.Clamp(startCharacter, 0, line.Length);
+        var end = Math.Clamp(start + length, start, line.Length);
+
+        _anchorLine = globalLine;
+        _anchorChar = start;
+        _caretLine = globalLine;
+        _caretChar = end;
+        _hasSelection = end > start;
+
+        EnsureHeightIndex(buffer);
+        var lineTop = PrefixHeight(buffer, lineIndex);
+        var lineHeight = GetLayout(line).Height;
+        SetIndexedHeight(globalLine, lineHeight);
+        _offset = ClampOffset(new Vector(
+            _offset.X,
+            lineTop - Math.Max(0, (_viewport.Height - lineHeight) / 2)));
+
+        _scrollInvalidated?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+        return _hasSelection;
     }
 
     public string? GetSelectedText()
@@ -352,7 +387,9 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
     bool ILogicalScrollable.IsLogicalScrollEnabled => true;
 
-    Size ILogicalScrollable.ScrollSize => new(_charWidth * 4, _lineHeight);
+    Size ILogicalScrollable.ScrollSize => new(
+        _charWidth * 4,
+        _lineHeight * MouseWheelScrollLines);
 
     Size ILogicalScrollable.PageScrollSize => _viewport;
 

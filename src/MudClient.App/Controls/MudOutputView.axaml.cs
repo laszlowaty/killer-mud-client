@@ -15,7 +15,8 @@ namespace MudClient.App.Controls;
 /// (a ring of at most <see cref="MaximumLines"/> lines) and rendered by two virtualized
 /// <see cref="OutputPaneControl"/> panes: a scrollback pane and, while the user is scrolled
 /// up, a live tail pane pinned to the bottom. Appending is O(chunk) regardless of how much
-/// scrollback has accumulated, so multi-hour sessions stay responsive.
+/// scrollback has accumulated, so multi-hour sessions stay responsive. Search works directly
+/// on the shared ring buffer and reveals matches through the virtualized scrollback pane.
 /// </summary>
 public partial class MudOutputView : UserControl
 {
@@ -78,7 +79,10 @@ public partial class MudOutputView : UserControl
     private readonly OutputPaneControl _liveTailPane;
     private readonly Grid _splitBar;
     private readonly Grid _grid;
+    private readonly TextBox _searchBox;
     private bool _isSplitMode;
+    private string _searchQuery = string.Empty;
+    private OutputMatch? _selectedSearchMatch;
 
     // Applying a font change invalidates every cached line layout, so dragging the size
     // slider (which fires a change per pixel) would otherwise re-lay-out the panes dozens
@@ -96,6 +100,8 @@ public partial class MudOutputView : UserControl
             ?? throw new InvalidOperationException("SplitBar not found.");
         _grid = this.FindControl<Grid>("OutputGrid")
             ?? throw new InvalidOperationException("OutputGrid not found.");
+        _searchBox = this.FindControl<TextBox>("SearchBox")
+            ?? throw new InvalidOperationException("SearchBox not found.");
 
         _scrollbackPane = new OutputPaneControl { Buffer = _buffer, PinToBottom = true };
         _scrollbackScroller.Content = _scrollbackPane;
@@ -228,6 +234,103 @@ public partial class MudOutputView : UserControl
         SetSplitMode(false);
     }
 
+    private void SearchBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
+    {
+        Search(_searchBox.Text ?? string.Empty, SearchDirection.Initial);
+    }
+
+    private void SearchBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key == Key.Escape)
+        {
+            _searchBox.Clear();
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (eventArgs.Key != Key.Enter)
+        {
+            return;
+        }
+
+        var direction = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            ? SearchDirection.Newer
+            : SearchDirection.Older;
+        Search(_searchBox.Text ?? string.Empty, direction);
+        eventArgs.Handled = true;
+    }
+
+    internal bool Search(string query, bool newer = false) =>
+        Search(query, newer ? SearchDirection.Newer : SearchDirection.Older);
+
+    internal string? SelectedSearchText => _scrollbackPane.GetSelectedText();
+
+    internal long? SelectedSearchGlobalLine => _selectedSearchMatch?.GlobalLine;
+
+    private bool Search(string query, SearchDirection direction)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            _searchQuery = string.Empty;
+            _selectedSearchMatch = null;
+            _scrollbackPane.ClearSelection();
+            return false;
+        }
+
+        var matches = FindMatches(query);
+        if (matches.Count == 0)
+        {
+            _searchQuery = query;
+            _selectedSearchMatch = null;
+            _scrollbackPane.ClearSelection();
+            return false;
+        }
+
+        var currentIndex = string.Equals(_searchQuery, query, StringComparison.OrdinalIgnoreCase)
+            && _selectedSearchMatch is { } current
+            ? matches.IndexOf(current)
+            : -1;
+
+        var matchIndex = direction switch
+        {
+            SearchDirection.Newer when currentIndex >= 0 => (currentIndex + 1) % matches.Count,
+            SearchDirection.Older when currentIndex >= 0 => (currentIndex - 1 + matches.Count) % matches.Count,
+            _ => matches.Count - 1
+        };
+
+        var match = matches[matchIndex];
+        _searchQuery = query;
+        _selectedSearchMatch = match;
+        SetSplitMode(true);
+        return _scrollbackPane.SelectAndReveal(match.GlobalLine, match.StartCharacter, match.Length);
+    }
+
+    private List<OutputMatch> FindMatches(string query)
+    {
+        var matches = new List<OutputMatch>();
+        for (var lineIndex = 0; lineIndex < _buffer.Count; lineIndex++)
+        {
+            var text = _buffer[lineIndex].Text;
+            var start = 0;
+            while (start <= text.Length - query.Length)
+            {
+                var matchIndex = text.IndexOf(query, start, StringComparison.OrdinalIgnoreCase);
+                if (matchIndex < 0)
+                {
+                    break;
+                }
+
+                matches.Add(new OutputMatch(
+                    _buffer.FirstGlobalIndex + lineIndex,
+                    matchIndex,
+                    query.Length));
+                start = matchIndex + Math.Max(1, query.Length);
+            }
+        }
+
+        return matches;
+    }
+
     private void Output_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
         if (!_isSplitMode
@@ -311,4 +414,13 @@ public partial class MudOutputView : UserControl
     {
         AvaloniaXamlLoader.Load(this);
     }
+
+    private enum SearchDirection
+    {
+        Initial,
+        Older,
+        Newer
+    }
+
+    private readonly record struct OutputMatch(long GlobalLine, int StartCharacter, int Length);
 }
