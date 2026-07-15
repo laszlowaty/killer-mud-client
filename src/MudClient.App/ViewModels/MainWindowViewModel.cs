@@ -146,6 +146,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private int? _latestMaximumMovement;
     private IReadOnlyList<MemorizedSpell> _latestMemorizedSpells = [];
     private bool _autowalkRecoveringMovement;
+    private bool _autowalkRecoveringPosition;
     private int? _autowalkOpeningStep;
     private bool _autowalkWaitingForGate;
     private bool _autowalkGateCommandsSent;
@@ -1749,7 +1750,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
         PaintRoute(path, 0);
-        _ = SendTriggeredCommandAsync("stand");
+        if (!AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition))
+        {
+            _ = SendTriggeredCommandAsync("stand");
+        }
+
         SendAutowalkStep();
     }
 
@@ -1799,6 +1804,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void ResetAutowalkTransientState()
     {
         _autowalkRecoveringMovement = false;
+        _autowalkRecoveringPosition = false;
         _autowalkOpeningStep = null;
         _autowalkWaitingForGate = false;
         _autowalkGateCommandsSent = false;
@@ -1813,8 +1819,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        if (_autowalkWaitingForGate || _autowalkRecoveringMovement)
+        if (_autowalkWaitingForGate || _autowalkRecoveringMovement ||
+            _autowalkRecoveringPosition || _autowalkPausedForCombat)
         {
+            return;
+        }
+
+        if (AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition))
+        {
+            BeginAutowalkStandRecovery();
             return;
         }
 
@@ -1846,6 +1859,31 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var openCommand = TryGetOpenCommand(exit);
         _autowalkOpeningStep = openCommand is null ? null : _autowalkStep;
         _ = SendAutowalkCommandsAsync(openCommand, moveCommand, _autowalkCts.Token);
+    }
+
+    private void BeginAutowalkStandRecovery()
+    {
+        if (_autowalkRecoveringPosition || _autowalkPath is null ||
+            _autowalkStep >= _autowalkPath.Steps.Count)
+        {
+            return;
+        }
+
+        _autowalkRecoveringPosition = true;
+        AutowalkStatusText = $"Postać siedzi — wstaję i wznawiam trasę do „{_autowalkTargetName}”.";
+        _ = StandForAutowalkAsync(_autowalkCts.Token);
+    }
+
+    private async Task StandForAutowalkAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SendTriggeredCommandAsync("stand", cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Stopping or replacing the autowalk also cancels the stand command.
+        }
     }
 
     private async Task RecoverMovementAndContinueAsync(
@@ -3855,21 +3893,36 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
-    /// Records the latest GMCP position and, when it crosses into or out of the
-    /// "fighting" state, pauses or resumes an active autowalk. Runs on the
-    /// network thread; the autowalk nudges are posted to the UI thread.
+    /// Records the latest GMCP position and pauses or recovers an active
+    /// autowalk after combat or a knockdown. Runs on the network thread; the
+    /// autowalk nudges are posted to the UI thread.
     /// </summary>
     private void UpdateCharacterPosition(string position)
     {
         var wasFighting = AutowalkRecoveryPolicy.IsCombatPosition(_latestCharacterPosition);
+        var wasSitting = AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition);
+        var wasStanding = AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition);
         var nowFighting = AutowalkRecoveryPolicy.IsCombatPosition(position);
+        var nowSitting = AutowalkRecoveryPolicy.IsSittingPosition(position);
+        var nowStanding = AutowalkRecoveryPolicy.IsStandingPosition(position);
         _latestCharacterPosition = position;
 
         if (nowFighting && !wasFighting)
         {
             OnAutowalkCombatStarted();
         }
-        else if (wasFighting && !nowFighting)
+
+        if (nowSitting && !wasSitting)
+        {
+            OnAutowalkSitting();
+        }
+
+        if (nowStanding && !wasStanding)
+        {
+            OnAutowalkStanding();
+        }
+
+        if (wasFighting && !nowFighting && !nowSitting)
         {
             OnAutowalkCombatEnded();
         }
@@ -3892,8 +3945,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>
     /// Resumes a walk that a fight put on hold. The walk stalled because no room
-    /// change arrived during combat, so the pending step is re-sent (after a
-    /// stand, in case combat left the character sitting or resting).
+    /// change arrived during combat, so the pending step is re-sent.
     /// </summary>
     private void OnAutowalkCombatEnded()
     {
@@ -3907,9 +3959,37 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             _autowalkPausedForCombat = false;
             AutowalkStatusText = $"Walka skończona — wracam na trasę do „{_autowalkTargetName}”.";
-            _ = SendTriggeredCommandAsync("stand");
+            if (!AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition))
+            {
+                _ = SendTriggeredCommandAsync("stand");
+            }
+
             SendAutowalkStep();
         });
+    }
+
+    private void OnAutowalkSitting()
+    {
+        Dispatcher.UIThread.Post(BeginAutowalkStandRecovery);
+    }
+
+    private void OnAutowalkStanding()
+    {
+        Dispatcher.UIThread.Post(HandleAutowalkStanding);
+    }
+
+    private void HandleAutowalkStanding()
+    {
+        if (!_autowalkRecoveringPosition || _autowalkPath is null ||
+            _autowalkStep >= _autowalkPath.Steps.Count)
+        {
+            return;
+        }
+
+        _autowalkRecoveringPosition = false;
+        _autowalkPausedForCombat = false;
+        AutowalkStatusText = $"Postać wstała — wracam na trasę do „{_autowalkTargetName}”.";
+        SendAutowalkStep();
     }
 
     private void TryAutoAssist()

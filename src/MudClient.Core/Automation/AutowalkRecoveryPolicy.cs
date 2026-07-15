@@ -34,6 +34,14 @@ public static class AutowalkRecoveryPolicy
     public static bool IsCombatPosition(string? position) =>
         string.Equals(position, "fighting", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>True when GMCP reports that movement requires standing up first.</summary>
+    public static bool IsSittingPosition(string? position) =>
+        string.Equals(position, "sitting", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when GMCP confirms that the character can resume walking.</summary>
+    public static bool IsStandingPosition(string? position) =>
+        string.Equals(position, "standing", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the spell is memorized and ready to cast.</summary>
     public static bool HasMemorizedSpell(IReadOnlyList<MemorizedSpell> memorizedSpells, string name) =>
         memorizedSpells.Any(spell =>

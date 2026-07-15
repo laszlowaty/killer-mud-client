@@ -81,15 +81,19 @@ public sealed class CharacterStateResolverTests
         Assert.Equal("blur", spell.Name);
     }
 
-    [Fact]
-    public void Process_PositionPrefix_IsNormalizedCaseInsensitively()
+    [Theory]
+    [InlineData("POS_FIGHTING", "fighting")]
+    [InlineData("POS_SITTING", "sitting")]
+    public void Process_PositionPrefix_IsNormalizedCaseInsensitively(string rawPosition, string expected)
     {
         CharacterConditionUpdate? update = null;
         _resolver.ConditionChanged += u => update = u;
 
-        _resolver.Process(new GmcpMessage("Char.Condition", """{ "position": "POS_FIGHTING" }"""));
+        _resolver.Process(new GmcpMessage(
+            "Char.Condition",
+            $$"""{ "position": "{{rawPosition}}" }"""));
 
-        Assert.Equal("fighting", update!.Position);
+        Assert.Equal(expected, update!.Position);
     }
 
     [Fact]

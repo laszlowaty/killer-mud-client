@@ -77,4 +77,35 @@ public sealed class AutowalkRecoveryPolicyTests
     {
         Assert.False(AutowalkRecoveryPolicy.IsCombatPosition(position));
     }
+
+    [Theory]
+    [InlineData("sitting")]
+    [InlineData("Sitting")]
+    [InlineData("SITTING")]
+    public void IsSittingPosition_RecognizesSitting(string position)
+    {
+        Assert.True(AutowalkRecoveryPolicy.IsSittingPosition(position));
+    }
+
+    [Theory]
+    [InlineData("standing")]
+    [InlineData("fighting")]
+    [InlineData("resting")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void IsSittingPosition_RejectsOtherPositions(string? position)
+    {
+        Assert.False(AutowalkRecoveryPolicy.IsSittingPosition(position));
+    }
+
+    [Theory]
+    [InlineData("standing", true)]
+    [InlineData("Standing", true)]
+    [InlineData("sitting", false)]
+    [InlineData("fighting", false)]
+    [InlineData(null, false)]
+    public void IsStandingPosition_RecognizesOnlyStanding(string? position, bool expected)
+    {
+        Assert.Equal(expected, AutowalkRecoveryPolicy.IsStandingPosition(position));
+    }
 }

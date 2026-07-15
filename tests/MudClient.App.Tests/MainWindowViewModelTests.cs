@@ -2919,6 +2919,40 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void SendAutowalkStep_WhileSitting_WaitsForStandingConfirmation()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "sitting");
+
+        typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
+
+        var recoveringField = typeof(MainWindowViewModel).GetField("_autowalkRecoveringPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        Assert.True((bool)recoveringField.GetValue(_vm)!);
+        Assert.Contains("wstaję", _vm.AutowalkStatusText);
+
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
+        typeof(MainWindowViewModel).GetMethod("HandleAutowalkStanding",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, null);
+
+        Assert.False((bool)recoveringField.GetValue(_vm)!);
+        Assert.Contains("Idę do", _vm.AutowalkStatusText);
+    }
+
+    [Fact]
     public void OnMapRoomDoubleClicked_NoVnum_ShowsErrorToast()
     {
         // Arrange: a room with no vnum

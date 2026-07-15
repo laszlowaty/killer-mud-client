@@ -204,7 +204,7 @@ Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum p
 
 ### Odzyskiwanie ruchu i zamknięte bramy w autowalku
 
-Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka 30 sekund i wznawia trasę. Zatrzymanie autowalku anuluje oczekiwanie.
+Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka 30 sekund i wznawia trasę. Gdy GMCP `Char.Condition` zgłosi `position: POS_SITTING`, autowalk wysyła `stand` i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
 
 Jeżeli próba otwarcia bramy kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
 
