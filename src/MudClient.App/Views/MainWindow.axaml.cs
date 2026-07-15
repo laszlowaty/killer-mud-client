@@ -17,6 +17,8 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
 
+    public Exception? DeferredSettingsImportError { get; init; }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -69,6 +71,10 @@ public partial class MainWindow : Window
             // Auto-connect happens after the user picks a profile
             // (MainWindowViewModel.ActivateProfile).
             await _viewModel.InitializeAsync();
+            if (DeferredSettingsImportError is not null)
+            {
+                _viewModel.ReportSettingsImportError(DeferredSettingsImportError);
+            }
         }
         catch (Exception exception)
         {

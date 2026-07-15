@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Dock.Settings;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
 
@@ -30,9 +31,23 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var settingsService = new AppSettingsService();
+            Exception? importException = null;
+            try
+            {
+                new SettingsBackupService(settingsService.DirectoryPath).ApplyPendingImport();
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                // The restore service rolls back the original directory before propagating an error.
+                // Keep the application usable and surface the failure in the normal startup error UI.
+                importException = exception;
+            }
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = new MainWindowViewModel(settingsService: settingsService),
+                DeferredSettingsImportError = importException,
             };
         }
 

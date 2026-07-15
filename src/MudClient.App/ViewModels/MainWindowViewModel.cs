@@ -102,6 +102,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AppSettings _settings;
     private bool _settingsLoaded;
 
+    public string SettingsDirectory => _settingsService.DirectoryPath;
+
     // --- New alias/trigger form ---
     private string _newRuleName = string.Empty;
     private string _newRuleType = "alias";
@@ -3814,6 +3816,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         StartupErrorDetails = rootCause.Message;
         AddToast("Wystąpił błąd uruchamiania interfejsu.", "error");
         EmitSystem(rootCause.Message, 31);
+    }
+
+    public void ReportSettingsImportError(Exception exception)
+    {
+        var rootCause = exception.GetBaseException();
+        StartupErrorMessage = "Nie udało się zastosować importu ustawień.";
+        StartupErrorDetails = rootCause.Message;
+        AddToast("Nie udało się zaimportować ustawień.", "error");
+        EmitSystem($"Import ustawień: {rootCause.Message}", 31);
     }
 
     private void ClearStartupError()

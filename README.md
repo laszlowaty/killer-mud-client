@@ -143,6 +143,10 @@ Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull
 
 Po uruchomieniu aplikacji wpisz host i port na górnym pasku, następnie kliknij **Połącz**. Możesz też utworzyć konto (host, port, login, hasło) — klient zaloguje się automatycznie.
 
+## Kopia i import ustawień
+
+Panel **Ustawienia** pozwala wyeksportować do ZIP cały katalog danych aplikacji (`%AppData%\KillerMudClient`), łącznie z ustawieniami, profilami, automatyzacją, zapisanym układem i pozostałymi danymi. Import jest najpierw sprawdzany i przygotowywany, po czym klient automatycznie uruchamia się ponownie i zastępuje cały obecny katalog zawartością kopii.
+
 ## Struktura
 
 ```text
