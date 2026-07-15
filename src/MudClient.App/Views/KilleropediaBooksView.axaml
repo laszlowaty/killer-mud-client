@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:b="using:MudClient.App.Behaviors"
              x:Class="MudClient.App.Views.KilleropediaBooksView"
              x:DataType="vm:KilleropediaViewModel"
              x:Name="Root">
@@ -60,7 +61,8 @@
               <Border Padding="10,7" Margin="0,1" CornerRadius="3">
                 <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <TextBlock Grid.Row="0" Grid.Column="0"
-                             Text="{Binding Name}"
+                             b:SearchHighlight.Text="{Binding Name}"
+                             b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).BookSearchText}"
                              FontWeight="SemiBold"
                              TextTrimming="CharacterEllipsis" />
                   <TextBlock Grid.Row="0" Grid.Column="1"
@@ -68,7 +70,8 @@
                              Text="{Binding Vnum, StringFormat='vnum {0}'}" />
                   <TextBlock Grid.Row="1" Grid.Column="0"
                              Classes="mud-faint"
-                             Text="{Binding ClassesText}"
+                             b:SearchHighlight.Text="{Binding ClassesText}"
+                             b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).BookSearchText}"
                              TextTrimming="CharacterEllipsis" />
                   <TextBlock Grid.Row="1" Grid.Column="1"
                              Classes="mud-faint"
@@ -96,7 +99,9 @@
             <Border Classes="mud-inset" Padding="10">
               <StackPanel Spacing="4">
                 <TextBlock Classes="mud-heading" Text="PROFESJE" />
-                <TextBlock Text="{Binding ClassesText}" TextWrapping="Wrap" />
+                <TextBlock b:SearchHighlight.Text="{Binding ClassesText}"
+                           b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).BookSearchText}"
+                           TextWrapping="Wrap" />
               </StackPanel>
             </Border>
 
@@ -110,7 +115,8 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
-                    <TextBlock Text="{Binding}" />
+                    <TextBlock b:SearchHighlight.Text="{Binding}"
+                               b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).BookSearchText}" />
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -124,7 +130,9 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Classes="mud-inset" Padding="9,6" Margin="0,1">
-                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                    <TextBlock b:SearchHighlight.Text="{Binding}"
+                               b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).BookSearchText}"
+                               TextWrapping="Wrap" />
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

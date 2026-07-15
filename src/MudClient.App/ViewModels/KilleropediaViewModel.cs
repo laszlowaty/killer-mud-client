@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MudClient.App.Models;
@@ -296,24 +294,5 @@ public sealed class KilleropediaViewModel : ObservableObject
         OnPropertyChanged(nameof(FilteredBookCountText));
     }
 
-    private static string Normalize(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        var decomposed = value.ToLowerInvariant().Normalize(NormalizationForm.FormD);
-        var result = new StringBuilder(decomposed.Length);
-        foreach (var character in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
-            {
-                // Unlike the remaining Polish diacritics, ł does not decompose in FormD.
-                result.Append(character == 'ł' ? 'l' : character);
-            }
-        }
-
-        return result.ToString().Normalize(NormalizationForm.FormC);
-    }
+    private static string Normalize(string? value) => SearchText.Normalize(value);
 }
