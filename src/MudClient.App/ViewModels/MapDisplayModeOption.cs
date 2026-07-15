@@ -6,8 +6,7 @@ public sealed record MapDisplayModeOption(MapDisplayMode Mode, string Label)
 {
     public static readonly IReadOnlyList<MapDisplayModeOption> All =
     [
-        new(MapDisplayMode.Standard, "Domyślna"),
-        new(MapDisplayMode.Terrain, "Teren (bez tła)"),
+        new(MapDisplayMode.Procedural, "Proceduralna"),
         new(MapDisplayMode.Simple, "Prosta"),
     ];
 

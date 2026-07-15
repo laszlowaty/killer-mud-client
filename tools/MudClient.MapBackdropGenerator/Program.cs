@@ -144,7 +144,8 @@ static ManifestEntry RenderLayer(
 
             var toX = (int)Math.Round((target.X - minX) * scale);
             var toY = (int)Math.Round((maxY - target.Y) * scale);
-            DrawLine(overlay, width, height, fromX, fromY, toX, toY, 118, 112, 94, 235);
+            DrawThickLine(overlay, width, height, fromX, fromY, toX, toY, 55, 45, 32, 205, radius: 1);
+            DrawLine(overlay, width, height, fromX, fromY, toX, toY, 226, 208, 162, 235);
         }
     }
 
@@ -153,7 +154,8 @@ static ManifestEntry RenderLayer(
         var x = (int)Math.Round((room.X - minX) * scale);
         var y = (int)Math.Round((maxY - room.Y) * scale);
         var color = Palette.MarkerFor(room.Sector, room.Name);
-        FillRect(overlay, width, height, x - 1, y - 1, 3, 3, color.R, color.G, color.B, 255);
+        FillRect(overlay, width, height, x - 1, y - 1, 3, 3, 55, 45, 32, 235);
+        SetPixel(overlay, width, x, y, color.R, color.G, color.B, 255);
     }
 
     var zName = layer.Z.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture).Replace('-', 'm').Replace('.', '_');
@@ -272,6 +274,25 @@ static void DrawLine(byte[] pixels, int width, int height, int x0, int y0, int x
     }
 }
 
+static void DrawThickLine(
+    byte[] pixels,
+    int width,
+    int height,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    byte r,
+    byte g,
+    byte b,
+    byte a,
+    int radius)
+{
+    for (var offsetY = -radius; offsetY <= radius; offsetY++)
+    for (var offsetX = -radius; offsetX <= radius; offsetX++)
+        DrawLine(pixels, width, height, x0 + offsetX, y0 + offsetY, x1 + offsetX, y1 + offsetY, r, g, b, a);
+}
+
 static void FillRect(byte[] pixels, int width, int height, int x, int y, int rectWidth, int rectHeight, byte r, byte g, byte b, byte a)
 {
     for (var py = Math.Max(y, 0); py < Math.Min(y + rectHeight, height); py++)
@@ -332,7 +353,7 @@ static class Palette
     public static Rgb MarkerFor(string sector, string? roomName = null)
     {
         var color = Colors[IndexFor(sector, roomName)];
-        return new Rgb(Clamp(color.R + 75), Clamp(color.G + 75), Clamp(color.B + 65));
+        return new Rgb(Clamp(color.R + 100), Clamp(color.G + 90), Clamp(color.B + 75));
     }
 
     private static byte Clamp(int value) => (byte)Math.Clamp(value, 0, 255);

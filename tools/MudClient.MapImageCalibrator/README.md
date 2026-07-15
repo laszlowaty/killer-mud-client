@@ -1,21 +1,26 @@
 # MudClient.MapImageCalibrator
 
-Lokalne narzędzie Avalonia do dopasowywania ilustracji lokacji do współrzędnych mapy oraz ręcznego składania obrazu z edytowalnych elementów.
+Lokalne narzędzie Avalonia do przygotowywania projektów Nortantis na podstawie roomów z `world-map.json`.
 
-## Edycja elementów obrazu
+## Workflow
 
-- Lewa paleta zawiera domyślne tekstury pobrane z `Assets/Map/Sectors`.
-- Dodatkowe pliki PNG można umieszczać w `Assets/Map/EditorAssets`. Nazwy podkatalogów tworzą kategorie palety.
-- Elementy przeciąga się z palety na obraz. Tryb `Edytuj elementy` pozwala je wybierać i przesuwać.
-- Panel właściwości zmienia położenie, szerokość, wysokość, obrót, krycie i kolejność nakładania.
-- `Ctrl+D` duplikuje element, `Delete` usuwa, `Ctrl+Z` cofa, a `Ctrl+Y` ponawia.
+1. Wybierz atlas/obszar i poziom Z.
+2. Wybierz roomy pojedynczo, prostokątem, lassem albo przez wyszukiwanie vnum/nazwy.
+3. Podaj nazwę projektu i kliknij `Utwórz pusty .nort i overlay`.
 
-Elementy są zapisywane w pliku `*.calibration.json`; źródłowy PNG nie jest nadpisywany. `Eksportuj gotowy PNG` tworzy spłaszczony obraz w `Locations/CalibrationExports`, bez siatki roomów, zaznaczenia i markerów. Klient nadal używa zwykłych plików PNG z `Locations/manifest.json`.
+Narzędzie zapisuje:
 
-`Eksportuj pakiet dla AI` zapisuje trzy powiązane pliki: JSON z markerami i elementami, PNG roboczy z roomami oraz `*-composite.png` bez nakładek. Skill `/mapa` używa composite jako dokładnej bazy kompozycji, oryginalnego obrazu jako wzorca stylu i PNG roboczego wyłącznie do interpretacji roomów oraz markerów.
+- `tools/Nortantis/Projects/<nazwa>.nort` — nowy projekt bez ręcznych ikon, tekstów i dróg,
+- `tools/Nortantis/Overlays/<nazwa>-rooms.png` — przezroczysty overlay zawierający wyłącznie wybrane roomy i połączenia między nimi.
+
+Projekt ma overlay od razu włączony. Zaznaczona sieć zajmuje 90% dostępnego obszaru, pozostawiając co najmniej 5% marginesu z każdej strony.
+
+Eksporter używa istniejącego, poprawnego pliku `.nort` z `tools/Nortantis/Projects` jako bazowych ustawień zgodnych z aktualną wersją Nortantis. Preferowanym szablonem jest `old-continent.nort`.
 
 Uruchomienie z katalogu repozytorium:
 
 ```powershell
 tools\MudClient.MapImageCalibrator\run.bat
 ```
+
+Narzędzie nie modyfikuje `world-map.json` ani assetów aplikacji.

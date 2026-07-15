@@ -49,7 +49,6 @@ public sealed class WorldMapControl : Control
     private readonly Dictionary<int, TerrainStyle> _terrainStyles = [];
     private readonly Dictionary<int, bool> _routeSectors = [];
     private readonly Dictionary<int, FormattedText> _collisionBadges = [];
-    private readonly Dictionary<double, (IBrush Horizontal, IBrush Vertical)> _edgeFadeMasks = [];
 
     private MapIndex? _mapIndex;
     private MapSettings _settings = MapSettings.CreateDefault();
@@ -64,7 +63,6 @@ public sealed class WorldMapControl : Control
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private MapDisplayMode _displayMode;
     private bool _isSimpleMap;
-    private bool _isTerrainMap;
 
     private double _cameraX;
     private double _cameraY;
@@ -192,7 +190,6 @@ public sealed class WorldMapControl : Control
             {
                 _displayMode = value;
                 _isSimpleMap = value == MapDisplayMode.Simple;
-                _isTerrainMap = value == MapDisplayMode.Terrain;
                 RequestInvalidateVisual();
             }
         }
@@ -616,7 +613,7 @@ public sealed class WorldMapControl : Control
         var roomsWithOffsets = GetVisibleRooms().ToList();
         var roomLookup = roomsWithOffsets.ToDictionary(r => r.Room.Id, r => r.Offset);
 
-        if (!_isSimpleMap && (_isTerrainMap || _textureCache?.HasLocationBackdrops(_areaId, _z) != true))
+        if (!_isSimpleMap)
         {
             DrawTerrain(context, roomsWithOffsets, roomLookup);
         }
@@ -663,8 +660,7 @@ public sealed class WorldMapControl : Control
             return false;
         }
 
-        var hasLocationBackdrop = !_isTerrainMap && _textureCache?.HasLocationBackdrops(_areaId, _z) == true;
-        if (!hasLocationBackdrop && _textureCache?.GetBackgroundTexture() is { } texture)
+        if (_textureCache?.GetBackgroundTexture() is { } texture)
         {
             var sourceWidth = texture.PixelSize.Width;
             var sourceHeight = texture.PixelSize.Height;
@@ -705,17 +701,9 @@ public sealed class WorldMapControl : Control
         var topLeft = WorldToScreen(minX, maxY);
         var bottomRight = WorldToScreen(maxX, minY);
         var destination = new Rect(topLeft, bottomRight);
-        if (!hasLocationBackdrop)
+        using (context.PushOpacity(_zoom < OverviewZoomThreshold ? 0.74 : 0.5))
         {
-            using (context.PushOpacity(_zoom < OverviewZoomThreshold ? 0.74 : 0.5))
-            {
-                context.DrawImage(backdrop.Terrain, sourceRect, destination);
-            }
-        }
-
-        if (!_isTerrainMap)
-        {
-            DrawLocationBackdrops(context, visible);
+            context.DrawImage(backdrop.Terrain, sourceRect, destination);
         }
 
         if (_zoom < OverviewZoomThreshold)
@@ -725,83 +713,6 @@ public sealed class WorldMapControl : Control
 
         context.FillRectangle(new SolidColorBrush(Color.FromArgb(34, 5, 9, 7)), bounds);
         return true;
-    }
-
-    private void DrawLocationBackdrops(DrawingContext context, Rect visible)
-    {
-        if (_textureCache is null)
-        {
-            return;
-        }
-
-        foreach (var backdrop in _textureCache.GetLocationBackdrops(_areaId, _z))
-        {
-            var minX = Math.Max(visible.X, backdrop.MinX);
-            var maxX = Math.Min(visible.Right, backdrop.MaxX);
-            var minY = Math.Max(visible.Y, backdrop.MinY);
-            var maxY = Math.Min(visible.Bottom, backdrop.MaxY);
-            if (minX >= maxX || minY >= maxY)
-            {
-                continue;
-            }
-
-            var imageWidth = backdrop.Image.PixelSize.Width;
-            var imageHeight = backdrop.Image.PixelSize.Height;
-            var source = new Rect(
-                (minX - backdrop.MinX) / (backdrop.MaxX - backdrop.MinX) * imageWidth,
-                (backdrop.MaxY - maxY) / (backdrop.MaxY - backdrop.MinY) * imageHeight,
-                (maxX - minX) / (backdrop.MaxX - backdrop.MinX) * imageWidth,
-                (maxY - minY) / (backdrop.MaxY - backdrop.MinY) * imageHeight);
-            var destination = new Rect(WorldToScreen(minX, maxY), WorldToScreen(maxX, minY));
-            var fullDestination = new Rect(
-                WorldToScreen(backdrop.MinX, backdrop.MaxY),
-                WorldToScreen(backdrop.MaxX, backdrop.MinY));
-
-            using (context.PushOpacity(backdrop.Opacity))
-            {
-                if (backdrop.EdgeFade > 0)
-                {
-                    var masks = GetEdgeFadeMasks(backdrop.EdgeFade);
-                    using var horizontalMask = context.PushOpacityMask(masks.Horizontal, fullDestination);
-                    using var verticalMask = context.PushOpacityMask(masks.Vertical, fullDestination);
-                    context.DrawImage(backdrop.Image, source, destination);
-                    continue;
-                }
-
-                context.DrawImage(backdrop.Image, source, destination);
-            }
-        }
-    }
-
-    private (IBrush Horizontal, IBrush Vertical) GetEdgeFadeMasks(double fade)
-    {
-        if (_edgeFadeMasks.TryGetValue(fade, out var cached))
-        {
-            return cached;
-        }
-
-        static GradientStops Stops(double edge) =>
-        [
-            new GradientStop(Colors.Transparent, 0),
-            new GradientStop(Colors.White, edge),
-            new GradientStop(Colors.White, 1 - edge),
-            new GradientStop(Colors.Transparent, 1),
-        ];
-
-        var horizontal = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-            GradientStops = Stops(fade),
-        };
-        var vertical = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-            GradientStops = Stops(fade),
-        };
-
-        return _edgeFadeMasks[fade] = (horizontal, vertical);
     }
 
     private void DrawTerrain(

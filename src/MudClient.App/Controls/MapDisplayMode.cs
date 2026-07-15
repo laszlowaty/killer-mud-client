@@ -2,7 +2,6 @@ namespace MudClient.App.Controls;
 
 public enum MapDisplayMode
 {
-    Standard,
-    Terrain,
+    Procedural,
     Simple,
 }

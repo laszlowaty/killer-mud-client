@@ -154,13 +154,17 @@ public sealed class MapViewModelTests
     }
 
     [Fact]
-    public void SelectedDisplayMode_DefaultsToStandardAndRaisesPropertyChangedWhenChanged()
+    public void SelectedDisplayMode_DefaultsToProceduralAndRaisesPropertyChangedWhenChanged()
     {
         using var vm = CreateViewModel();
         var changedProperties = new List<string?>();
         vm.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
-        Assert.Equal(MudClient.App.Controls.MapDisplayMode.Standard, vm.SelectedDisplayMode.Mode);
+        Assert.Collection(
+            vm.DisplayModes,
+            mode => Assert.Equal(MudClient.App.Controls.MapDisplayMode.Procedural, mode.Mode),
+            mode => Assert.Equal(MudClient.App.Controls.MapDisplayMode.Simple, mode.Mode));
+        Assert.Equal(MudClient.App.Controls.MapDisplayMode.Procedural, vm.SelectedDisplayMode.Mode);
 
         vm.SelectedDisplayMode = vm.DisplayModes.First(m => m.Mode == MudClient.App.Controls.MapDisplayMode.Simple);
 
