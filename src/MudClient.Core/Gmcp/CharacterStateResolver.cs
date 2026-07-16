@@ -38,7 +38,8 @@ public sealed record CharacterGroupMember(
 /// <summary>Full group state from Char.Group GMCP.</summary>
 public sealed record CharacterGroupUpdate(
     string? Leader,
-    IReadOnlyList<CharacterGroupMember> Members);
+    IReadOnlyList<CharacterGroupMember> Members,
+    string? UnavailableReason = null);
 
 /// <summary>A single memorized spell slot from Char.MemSpell GMCP.</summary>
 public sealed record MemorizedSpell(
@@ -136,6 +137,12 @@ public sealed class CharacterStateResolver
                     MemSpellsChanged?.Invoke(ParseMemSpells(root));
                 }
 
+                return;
+            }
+
+            if (isGroup && root.ValueKind == JsonValueKind.Array)
+            {
+                ParseUnavailableGroup(root);
                 return;
             }
 
@@ -356,6 +363,12 @@ public sealed class CharacterStateResolver
 
     private void ParseGroup(JsonElement root)
     {
+        if (GetString(root, "unavailable")?.Trim() is { Length: > 0 } unavailableReason)
+        {
+            GroupChanged?.Invoke(new CharacterGroupUpdate(null, [], unavailableReason));
+            return;
+        }
+
         // A valid group message must have a "members" array. Anything else
         // (missing field or non-array value) is malformed and silently ignored.
         if (!root.TryGetProperty("members", out var membersElement)
@@ -407,6 +420,23 @@ public sealed class CharacterStateResolver
         }
 
         GroupChanged?.Invoke(new CharacterGroupUpdate(leader, members));
+    }
+
+    private void ParseUnavailableGroup(JsonElement root)
+    {
+        foreach (var element in root.EnumerateArray())
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (GetString(element, "unavailable")?.Trim() is { Length: > 0 } unavailableReason)
+            {
+                GroupChanged?.Invoke(new CharacterGroupUpdate(null, [], unavailableReason));
+                return;
+            }
+        }
     }
 
     // ========================================================================

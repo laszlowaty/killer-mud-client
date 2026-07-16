@@ -104,6 +104,54 @@ public sealed class MapViewModelTests
         Assert.Contains(nameof(MapViewModel.SelectedRoomIcon), changedProperties);
     }
 
+    [Fact]
+    public void LordGotoSelectedRoomCommand_RequiresLordModeAndNumericVnum()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = CreateSampleRoom();
+
+        Assert.False(vm.LordGotoSelectedRoomCommand.CanExecute(null));
+
+        vm.LordModeEnabled = true;
+
+        Assert.True(vm.LordGotoSelectedRoomCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void LordGotoSelectedRoomCommand_RaisesOneRequestForSelectedRoom()
+    {
+        using var vm = CreateViewModel();
+        var room = CreateSampleRoom();
+        var requests = new List<MapRoom>();
+        vm.LordGotoRequested += requests.Add;
+        vm.SelectedRoom = room;
+        vm.LordModeEnabled = true;
+
+        vm.LordGotoSelectedRoomCommand.Execute(null);
+
+        Assert.Equal([room], requests);
+        Assert.Equal("Goto: Test Room [100]", vm.LordGotoMenuHeader);
+    }
+
+    [Fact]
+    public void LordGotoSelectedRoomCommand_RejectsNonNumericVnum()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = new MapRoom
+        {
+            Id = 9,
+            AreaId = 1,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement("100\ngoto 200"),
+            },
+        };
+        vm.LordModeEnabled = true;
+
+        Assert.False(vm.LordGotoSelectedRoomCommand.CanExecute(null));
+    }
+
     // ====================================================================
     // SelectedRoomIcon – expression logic
     // ====================================================================
@@ -246,6 +294,20 @@ public sealed class MapViewModelTests
         vm.SelectedZ = 0.0;
 
         Assert.True(vm.FollowPlayer);
+    }
+
+    [Fact]
+    public void SelectedZIndex_TransientMinusOne_DoesNotReplaceMapLevel()
+    {
+        using var vm = CreateViewModel();
+        vm.ZLevels.Add(0);
+        vm.ZLevels.Add(5);
+        vm.SelectedZ = 5;
+
+        vm.SelectedZIndex = -1;
+
+        Assert.Equal(5, vm.SelectedZ);
+        Assert.Equal(1, vm.SelectedZIndex);
     }
 
     // ====================================================================

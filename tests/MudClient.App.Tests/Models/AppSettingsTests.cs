@@ -56,6 +56,12 @@ public sealed class AppSettingsTests
         Assert.False(new AppSettings().GroupOrdersEnabled);
     }
 
+    [Fact]
+    public void Constructor_LordModeIsDisabledByDefault()
+    {
+        Assert.False(new AppSettings().LordModeEnabled);
+    }
+
     // ====================================================================
     // Property round-trip
     // ====================================================================

@@ -38,7 +38,9 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private string? _currentSectorName;
     private bool _followPlayer = true;
+    private bool _lordModeEnabled;
     private MapDisplayModeOption _selectedDisplayMode;
+    private readonly RelayCommand _lordGotoSelectedRoomCommand;
 
     public MapViewModel(string appBaseDirectory, GmcpLocationResolver locationResolver)
     {
@@ -55,6 +57,9 @@ public sealed class MapViewModel : ObservableObject, IDisposable
 
         ReloadCommand = new AsyncRelayCommand(InitializeAsync);
         CenterCommand = new RelayCommand(RequestCenterOnCurrentRoom);
+        _lordGotoSelectedRoomCommand = new RelayCommand(
+            RequestLordGotoSelectedRoom,
+            CanLordGotoSelectedRoom);
     }
 
     public event Action? CenterOnCurrentRoomRequested;
@@ -64,6 +69,10 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     /// <summary>Raised by the view when the user double-clicks a room on the map.</summary>
     public event Action<MapRoom>? RoomDoubleClicked;
 
+    public event Action<MapRoom>? LordGotoRequested;
+
+    public event Action<bool>? LordModeChanged;
+
     public ObservableCollection<MapArea> Areas { get; } = [];
 
     public ObservableCollection<double> ZLevels { get; } = [];
@@ -71,6 +80,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ReloadCommand { get; }
 
     public IRelayCommand CenterCommand { get; }
+
+    public IRelayCommand LordGotoSelectedRoomCommand => _lordGotoSelectedRoomCommand;
 
     public MapIndex? MapIndex
     {
@@ -153,7 +164,25 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedZ, value))
             {
+                OnPropertyChanged(nameof(SelectedZIndex));
                 FollowPlayer = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Index projection for the Z-level ComboBox. Avalonia temporarily selects -1 while
+    /// the level list is rebuilt after an area change; unlike SelectedItem, that transition
+    /// does not require converting null to <see cref="double"/>.
+    /// </summary>
+    public int SelectedZIndex
+    {
+        get => ZLevels.IndexOf(SelectedZ);
+        set
+        {
+            if (value >= 0 && value < ZLevels.Count)
+            {
+                SelectedZ = ZLevels[value];
             }
         }
     }
@@ -172,6 +201,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _selectedRoom, value))
             {
                 OnPropertyChanged(nameof(SelectedRoomIcon));
+                OnPropertyChanged(nameof(LordGotoMenuHeader));
+                _lordGotoSelectedRoomCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -184,6 +215,39 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     }
 
     public void NotifyRoomDoubleClicked(MapRoom room) => RoomDoubleClicked?.Invoke(room);
+
+    public bool LordModeEnabled
+    {
+        get => _lordModeEnabled;
+        set
+        {
+            if (!SetProperty(ref _lordModeEnabled, value))
+            {
+                return;
+            }
+
+            _lordGotoSelectedRoomCommand.NotifyCanExecuteChanged();
+            LordModeChanged?.Invoke(value);
+        }
+    }
+
+    public string LordGotoMenuHeader => SelectedRoom is { } room
+        ? $"Goto: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
+        : "Goto";
+
+    private bool CanLordGotoSelectedRoom() =>
+        LordModeEnabled && IsSafeVnum(SelectedRoom?.Vnum);
+
+    private void RequestLordGotoSelectedRoom()
+    {
+        if (SelectedRoom is { } room && CanLordGotoSelectedRoom())
+        {
+            LordGotoRequested?.Invoke(room);
+        }
+    }
+
+    private static bool IsSafeVnum(string? vnum) =>
+        !string.IsNullOrWhiteSpace(vnum) && vnum.All(char.IsAsciiDigit);
 
     public Bitmap? SelectedRoomIcon =>
         RoomImages?.GetFullImage(SelectedRoom?.Vnum)
@@ -341,6 +405,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         {
             SelectedZ = ZLevels[0];
         }
+
+        OnPropertyChanged(nameof(SelectedZIndex));
     }
 
     /// <summary>
@@ -367,6 +433,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
             _selectedZ = ZLevels[0];
             OnPropertyChanged(nameof(SelectedZ));
         }
+
+        OnPropertyChanged(nameof(SelectedZIndex));
     }
 
     /// <summary>
@@ -387,7 +455,10 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     /// </summary>
     private void SetSelectedZInternal(double z)
     {
-        SetProperty(ref _selectedZ, z, nameof(SelectedZ));
+        if (SetProperty(ref _selectedZ, z, nameof(SelectedZ)))
+        {
+            OnPropertyChanged(nameof(SelectedZIndex));
+        }
     }
 
     private void FocusFirstRoom(MapArea area)

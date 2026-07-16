@@ -851,6 +851,22 @@ public sealed class CharacterStateResolverTests
     }
 
     [Theory]
+    [InlineData("[{\"unavailable\":\"Dane tylko dla lordów.\"}]")]
+    [InlineData("{\"unavailable\":\"Dane tylko dla lordów.\"}")]
+    public void Process_CharGroup_Unavailable_RaisesEmptyUpdateWithReason(string json)
+    {
+        CharacterGroupUpdate? update = null;
+        _resolver.GroupChanged += value => update = value;
+
+        _resolver.Process(new GmcpMessage("Char.Group", json));
+
+        Assert.NotNull(update);
+        Assert.Null(update!.Leader);
+        Assert.Empty(update.Members);
+        Assert.Equal("Dane tylko dla lordów.", update.UnavailableReason);
+    }
+
+    [Theory]
     [InlineData("Char.Group", """{"leader":"","members":[]}""")]
     [InlineData("Char.Group", """{"leader":null,"members":[]}""")]
     [InlineData("Char.Group", """{"leader":"   ","members":[]}""")]

@@ -354,6 +354,17 @@ public sealed class WorldMapControl : Control
 
         var point = e.GetCurrentPoint(this);
 
+        if (point.Properties.IsRightButtonPressed)
+        {
+            if (HitTestRoom(point.Position) is { } contextRoom)
+            {
+                SelectedRoom = contextRoom;
+                RoomClicked?.Invoke(contextRoom);
+            }
+
+            return;
+        }
+
         if (point.Properties.IsLeftButtonPressed && e.ClickCount == 2)
         {
             if (HitTestRoom(point.Position) is { } doubleClicked)

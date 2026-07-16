@@ -284,11 +284,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.ConnectionError += OnConnectionError;
         _session.ConnectionClosed += OnConnectionClosed;
 
-        Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver);
+        Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver)
+        {
+            LordModeEnabled = _settings.LordModeEnabled,
+        };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
         _roomExits.ExitsChanged += OnRoomExitsChanged;
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
+        Map.LordGotoRequested += OnLordGotoRequested;
+        Map.LordModeChanged += OnMapLordModeChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
         _dockLayoutService = dockLayoutService ?? new DockLayoutService();
@@ -982,6 +987,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool LordModeEnabled
+    {
+        get => _settings.LordModeEnabled;
+        set
+        {
+            if (_settings.LordModeEnabled == value)
+            {
+                return;
+            }
+
+            _settings.LordModeEnabled = value;
+            Map.LordModeEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public RelayCommand ResetOutputFontCommand => new(() =>
     {
         OutputFontFamily = AppSettings.DefaultOutputFontFamily;
@@ -1664,6 +1686,28 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnMapRoomDoubleClicked(MapRoom room)
     {
         PreviewRouteToRoom(room);
+    }
+
+    private void OnLordGotoRequested(MapRoom room)
+    {
+        if (!LordModeEnabled || string.IsNullOrWhiteSpace(room.Vnum) || !room.Vnum.All(char.IsAsciiDigit))
+        {
+            return;
+        }
+
+        QueueTriggeredCommands([$"goto {room.Vnum}"]);
+    }
+
+    private void OnMapLordModeChanged(bool enabled)
+    {
+        if (_settings.LordModeEnabled == enabled)
+        {
+            return;
+        }
+
+        _settings.LordModeEnabled = enabled;
+        OnPropertyChanged(nameof(LordModeEnabled));
+        SaveSettings();
     }
 
     private void PreviewRouteToRoom(MapRoom room)
@@ -3055,6 +3099,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // --- Group members (mock) ---
     public ObservableCollection<GroupMember> Group { get; } = [];
 
+    public string GroupEmptyMessage { get; private set; } = "Brak członków drużyny.";
+
     public ObservableCollection<MemSpellCircle> MemSpells { get; } = [];
 
     // --- Automation rules (mock) ---
@@ -4432,6 +4478,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         TryAutoAssist();
         Dispatcher.UIThread.Post(() =>
         {
+            GroupEmptyMessage = string.IsNullOrWhiteSpace(update.UnavailableReason)
+                ? "Brak członków drużyny."
+                : update.UnavailableReason;
+            OnPropertyChanged(nameof(GroupEmptyMessage));
             Map.UpdateGroupMembers(update.Members, _latestCharacterName);
             Group.Clear();
             foreach (var member in update.Members)
@@ -4496,6 +4546,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Group.Clear();
                 foreach (var member in update.Members)
                 {
+                    if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
+                        continue;
                     var roomDisplay = ResolveRoomDisplay(member.Room);
                     Group.Add(GroupMember.FromCore(member, roomDisplay));
                 }
@@ -4567,7 +4619,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnConnectionClosed()
     {
         _bookRefreshCts?.Cancel();
-        Dispatcher.UIThread.Post(() => IsConnected = false);
+        Dispatcher.UIThread.Post(() =>
+        {
+            IsConnected = false;
+            ClearLiveGroupState();
+        });
     }
 
     private void OnConnectionError(Exception exception)
@@ -4575,8 +4631,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
+            ClearLiveGroupState();
             EmitSystem(exception.Message, 31);
         });
+    }
+
+    private void ClearLiveGroupState()
+    {
+        _latestGroupUpdate = null;
+        Group.Clear();
+        Map.UpdateGroupMembers([], _latestCharacterName);
+        GroupEmptyMessage = "Brak członków drużyny.";
+        OnPropertyChanged(nameof(GroupEmptyMessage));
     }
 
     private void EmitSystem(string text, int ansiColor)
@@ -4739,6 +4805,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _locationResolver.LocationChanged -= OnAutowalkLocationChanged;
         _roomExits.ExitsChanged -= OnRoomExitsChanged;
         Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
+        Map.LordGotoRequested -= OnLordGotoRequested;
+        Map.LordModeChanged -= OnMapLordModeChanged;
 
         _autowalkCts.Cancel();
         _bookRefreshCts?.Cancel();

@@ -8,7 +8,7 @@
   <ScrollViewer>
     <StackPanel Spacing="2" Margin="12">
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Brak członków drużyny."
+                 Text="{Binding GroupEmptyMessage}"
                  IsVisible="{Binding !Group.Count}" />
       <ItemsControl ItemsSource="{Binding Group}">
         <ItemsControl.ItemTemplate>

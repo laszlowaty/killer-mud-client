@@ -1400,6 +1400,17 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.NotEmpty(delegateObj.GetInvocationList());
     }
 
+    [Fact]
+    public void LordMode_ChangedFromMap_PersistsAndUpdatesMainViewModel()
+    {
+        Assert.False(_vm.LordModeEnabled);
+
+        _vm.Map.LordModeEnabled = true;
+
+        Assert.True(_vm.LordModeEnabled);
+        Assert.True(new AppSettingsService(_tempDir).Load().LordModeEnabled);
+    }
+
     // ====================================================================
     // Char.Group → Group collection (simulated handler)
     //

@@ -13,7 +13,8 @@
     <Border Grid.Row="0" Classes="mud-bar" Padding="10,6">
       <WrapPanel>
 
-        <Button Content="Mapa ▾"
+        <Button x:Name="MapMenuButton"
+                Content="Mapa ▾"
                 Padding="10,5"
                 VerticalAlignment="Center"
                 Margin="0,0,8,4">
@@ -21,7 +22,8 @@
             <Flyout Placement="BottomEdgeAlignedLeft">
               <StackPanel Spacing="6" MinWidth="230">
                 <TextBlock Classes="mud-heading" Text="OBSZAR" />
-                <ComboBox ItemsSource="{Binding Areas}"
+                <ComboBox x:Name="AreaSelector"
+                          ItemsSource="{Binding Areas}"
                           SelectedItem="{Binding SelectedArea}"
                           HorizontalAlignment="Stretch">
                   <ComboBox.ItemTemplate>
@@ -31,8 +33,9 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
                 <TextBlock Classes="mud-heading" Text="POZIOM Z" Margin="0,4,0,0" />
-                <ComboBox ItemsSource="{Binding ZLevels}"
-                          SelectedItem="{Binding SelectedZ}"
+                <ComboBox x:Name="ZSelector"
+                          ItemsSource="{Binding ZLevels}"
+                          SelectedIndex="{Binding SelectedZIndex, Mode=TwoWay}"
                           HorizontalAlignment="Stretch" />
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
@@ -42,6 +45,9 @@
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Left"
                         Padding="10,6" />
+                <ToggleSwitch Content="Tryb lorda"
+                              IsChecked="{Binding LordModeEnabled}"
+                              ToolTip.Tip="Udostępnia polecenie goto w menu prawego przycisku mapy." />
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
                         Margin="0,4" />
@@ -65,7 +71,15 @@
         <controls:WorldMapControl x:Name="MapControl"
                                   WidgetFontFamily="{DynamicResource WidgetFontFamilyResource}"
                                   WidgetFontSize="{DynamicResource WidgetFontSizeResource}"
-                                  WidgetFontWeight="{DynamicResource WidgetFontWeightResource}" />
+                                  WidgetFontWeight="{DynamicResource WidgetFontWeightResource}">
+          <controls:WorldMapControl.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="{Binding LordGotoMenuHeader}"
+                        Command="{Binding LordGotoSelectedRoomCommand}"
+                        IsVisible="{Binding LordModeEnabled}" />
+            </ContextMenu>
+          </controls:WorldMapControl.ContextMenu>
+        </controls:WorldMapControl>
 
         <!-- Loading overlay -->
         <Border Background="#CC101010"

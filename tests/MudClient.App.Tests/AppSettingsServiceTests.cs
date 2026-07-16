@@ -132,6 +132,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             OutputWordWrap = false,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
+            LordModeEnabled = true,
             TelnetColorScheme = "Colorblind",
         };
 
@@ -148,6 +149,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.False(loaded.OutputWordWrap);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
+        Assert.True(loaded.LordModeEnabled);
         Assert.Equal("Colorblind", loaded.TelnetColorScheme);
     }
 
