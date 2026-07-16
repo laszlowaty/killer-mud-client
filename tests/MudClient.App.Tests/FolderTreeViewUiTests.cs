@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.Services;
@@ -127,6 +128,58 @@ public sealed class FolderTreeViewUiTests
 
         Assert.Empty(viewModel.Folders);
         Assert.Null(viewModel.StartupErrorMessage);
+
+        window.Close();
+        await viewModel.DisposeAsync();
+        Directory.Delete(directory, recursive: true);
+    }
+
+    [AvaloniaFact]
+    public async Task FolderHeaderAndExpanderGutter_ToggleExpansion()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_FolderExpand_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(
+            new ProfileService(directory),
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        viewModel.CreateFolderCommand.Execute(FolderKind.Timers);
+        var folder = Assert.Single(viewModel.Folders);
+
+        var window = new Window
+        {
+            Width = 500,
+            Height = 700,
+            Content = new AutomationPanelView { DataContext = viewModel },
+        };
+
+        window.Show();
+        window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var folderRow = window.GetLogicalDescendants().OfType<Border>().First(border =>
+            border.Classes.Contains("mud-folder-row")
+            && border.DataContext is FolderTreeNode { Folder: { } candidate }
+            && ReferenceEquals(candidate, folder));
+        var itemCount = folderRow.GetLogicalDescendants().OfType<TextBlock>().First(text =>
+            Equals(text.Text, "0"));
+        var treeItem = window.GetVisualDescendants().OfType<TreeViewItem>().First(item =>
+            item.DataContext is FolderTreeNode { Folder: { } candidate }
+            && ReferenceEquals(candidate, folder));
+        var expanderGutter = treeItem.GetVisualDescendants().OfType<Panel>().First(panel =>
+            panel.Name == "PART_ExpandCollapseChevronContainer");
+
+        Assert.NotNull(expanderGutter.Background);
+
+        expanderGutter.RaiseEvent(new TappedEventArgs(InputElement.TappedEvent, null!));
+        Assert.False(folder.IsExpanded);
+
+        itemCount.RaiseEvent(new TappedEventArgs(InputElement.TappedEvent, null!));
+        Assert.True(folder.IsExpanded);
+
+        var nameBox = folderRow.GetLogicalDescendants().OfType<TextBox>().Single();
+        Assert.True(FolderTreeView.IsInteractiveFolderRowSource(nameBox, treeItem));
+        Assert.True(folder.IsExpanded);
 
         window.Close();
         await viewModel.DisposeAsync();

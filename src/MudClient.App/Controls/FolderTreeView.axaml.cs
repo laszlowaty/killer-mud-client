@@ -175,6 +175,38 @@ public partial class FolderTreeView : UserControl
         }
     }
 
+    private void Tree_OnTapped(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is not Visual source)
+        {
+            return;
+        }
+
+        var treeItem = source as TreeViewItem
+                       ?? source.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+        if (treeItem?.DataContext is not FolderTreeNode { IsFolder: true, Folder: { } folder }
+            || IsInteractiveFolderRowSource(source, treeItem))
+        {
+            return;
+        }
+
+        folder.IsExpanded = !folder.IsExpanded;
+        e.Handled = true;
+    }
+
+    internal static bool IsInteractiveFolderRowSource(object? source, Control row)
+    {
+        if (source is not Visual visual)
+        {
+            return false;
+        }
+
+        return visual is Button or TextBox
+               || visual.GetVisualAncestors()
+                   .TakeWhile(ancestor => !ReferenceEquals(ancestor, row))
+                   .Any(ancestor => ancestor is Button or TextBox);
+    }
+
     private void Node_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control { DataContext: FolderTreeNode node } &&
