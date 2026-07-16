@@ -79,7 +79,6 @@ public partial class MudOutputView : UserControl
     private readonly OutputPaneControl _liveTailPane;
     private readonly Grid _splitBar;
     private readonly Grid _grid;
-    private readonly TextBox _searchBox;
     private bool _isSplitMode;
     private string _searchQuery = string.Empty;
     private OutputMatch? _selectedSearchMatch;
@@ -100,9 +99,6 @@ public partial class MudOutputView : UserControl
             ?? throw new InvalidOperationException("SplitBar not found.");
         _grid = this.FindControl<Grid>("OutputGrid")
             ?? throw new InvalidOperationException("OutputGrid not found.");
-        _searchBox = this.FindControl<TextBox>("SearchBox")
-            ?? throw new InvalidOperationException("SearchBox not found.");
-
         _scrollbackPane = new OutputPaneControl { Buffer = _buffer, PinToBottom = true };
         _scrollbackScroller.Content = _scrollbackPane;
 
@@ -234,31 +230,7 @@ public partial class MudOutputView : UserControl
         SetSplitMode(false);
     }
 
-    private void SearchBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
-    {
-        Search(_searchBox.Text ?? string.Empty, SearchDirection.Initial);
-    }
-
-    private void SearchBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
-    {
-        if (eventArgs.Key == Key.Escape)
-        {
-            _searchBox.Clear();
-            eventArgs.Handled = true;
-            return;
-        }
-
-        if (eventArgs.Key != Key.Enter)
-        {
-            return;
-        }
-
-        var direction = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift)
-            ? SearchDirection.Newer
-            : SearchDirection.Older;
-        Search(_searchBox.Text ?? string.Empty, direction);
-        eventArgs.Handled = true;
-    }
+    internal bool UpdateSearch(string query) => Search(query, SearchDirection.Initial);
 
     internal bool Search(string query, bool newer = false) =>
         Search(query, newer ? SearchDirection.Newer : SearchDirection.Older);

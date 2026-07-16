@@ -88,14 +88,22 @@
 
     <!-- Command bar -->
     <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"
                  Classes="terminal-input"
                  Text="{Binding CommandText}"
                  PlaceholderText="Wpisz komendę i naciśnij Enter…"
                  KeyDown="CommandBox_OnKeyDown" />
-        <Button Grid.Column="1"
+        <TextBox Grid.Column="1"
+                 x:Name="SearchBox"
+                 Width="190"
+                 MinHeight="30"
+                 PlaceholderText="Search..."
+                 ToolTip.Tip="Szukaj w terminalu (Enter: starsze, Shift+Enter: nowsze)"
+                 TextChanged="SearchBox_OnTextChanged"
+                 KeyDown="SearchBox_OnKeyDown" />
+        <Button Grid.Column="2"
                 Content="➤ Wyślij"
                 Padding="20,7"
                 Command="{Binding SendCommandCommand}"

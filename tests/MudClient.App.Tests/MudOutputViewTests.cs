@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using MudClient.App.Controls;
+using MudClient.App.Views.Panels;
 using Xunit;
 
 namespace MudClient.App.Tests;
@@ -13,16 +14,18 @@ namespace MudClient.App.Tests;
 public sealed class MudOutputViewTests
 {
     [AvaloniaFact]
-    public void SearchBox_IsAvailableInBottomRightCorner()
+    public void SearchBox_IsOnRightSideOfTerminalInput()
     {
-        var output = new MudOutputView();
-        var searchBox = output.FindControl<TextBox>("SearchBox");
+        var terminal = new TerminalPanelView();
+        var commandBox = terminal.FindControl<TextBox>("CommandBox");
+        var searchBox = terminal.FindControl<TextBox>("SearchBox");
 
+        Assert.NotNull(commandBox);
         Assert.NotNull(searchBox);
         Assert.Equal("Search...", searchBox!.PlaceholderText);
-        var searchBorder = Assert.IsType<Border>(searchBox.Parent);
-        Assert.Equal(HorizontalAlignment.Right, searchBorder.HorizontalAlignment);
-        Assert.Equal(VerticalAlignment.Bottom, searchBorder.VerticalAlignment);
+        Assert.Same(commandBox!.Parent, searchBox.Parent);
+        Assert.Equal(0, Grid.GetColumn(commandBox));
+        Assert.Equal(1, Grid.GetColumn(searchBox));
     }
 
     [AvaloniaFact]

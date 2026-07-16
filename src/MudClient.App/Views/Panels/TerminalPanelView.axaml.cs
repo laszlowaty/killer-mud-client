@@ -220,6 +220,39 @@ public sealed partial class TerminalPanelView : UserControl
         }
     }
 
+    private void SearchBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
+    {
+        if (sender is TextBox searchBox)
+        {
+            _mudOutput.UpdateSearch(searchBox.Text ?? string.Empty);
+        }
+    }
+
+    private void SearchBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (sender is not TextBox searchBox)
+        {
+            return;
+        }
+
+        if (eventArgs.Key == Key.Escape)
+        {
+            searchBox.Clear();
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (eventArgs.Key != Key.Enter)
+        {
+            return;
+        }
+
+        _mudOutput.Search(
+            searchBox.Text ?? string.Empty,
+            newer: eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift));
+        eventArgs.Handled = true;
+    }
+
     private void HandlePostSend()
     {
         FocusCommandBoxAndSelectAll();

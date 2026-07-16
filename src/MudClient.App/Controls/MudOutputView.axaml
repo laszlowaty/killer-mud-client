@@ -44,21 +44,6 @@
                     HorizontalScrollBarVisibility="Auto"
                     VerticalScrollBarVisibility="Auto" />
 
-      <Border Grid.RowSpan="3"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Bottom"
-              Margin="0,0,18,10"
-              Padding="4"
-              CornerRadius="4"
-              Background="{StaticResource MudBrushVoid}">
-        <TextBox x:Name="SearchBox"
-                 Width="190"
-                 MinHeight="30"
-                 PlaceholderText="Search..."
-                 ToolTip.Tip="Szukaj w terminalu (Enter: starsze, Shift+Enter: nowsze)"
-                 TextChanged="SearchBox_OnTextChanged"
-                 KeyDown="SearchBox_OnKeyDown" />
-      </Border>
     </Grid>
   </Border>
 </UserControl>
