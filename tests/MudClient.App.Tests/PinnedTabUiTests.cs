@@ -51,7 +51,22 @@ public sealed class PinnedTabUiTests : IDisposable
     private MainWindowViewModel CreateViewModel() => new(
         new ProfileService(_tempDirectory),
         new AppSettingsService(_tempDirectory),
-        new DockLayoutService(_tempDirectory));
+        new DockLayoutService(_tempDirectory),
+        layoutPresetService: new LayoutPresetService(_tempDirectory));
+
+    private static DockLayoutSnapshot CreateSnapshotWithPins(
+        params (string ToolId, Alignment Edge)[] pins)
+    {
+        var factory = new MudDockFactory(new object(), new object());
+        var layout = factory.CreateLayout();
+        factory.InitLayout(layout);
+        foreach (var (toolId, edge) in pins)
+        {
+            factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == toolId), edge);
+        }
+
+        return factory.Snapshot(layout);
+    }
 
     private MainWindow ShowWindow(MainWindowViewModel viewModel)
     {
@@ -270,6 +285,102 @@ public sealed class PinnedTabUiTests : IDisposable
         Assert.All(pinItems, p => Assert.True(
             p.IsEffectivelyVisible && p.Bounds.Width > 0 && p.Bounds.Height > 0,
             $"Tab {(p.DataContext as PanelTool)?.Id} not rendered: vis={p.IsEffectivelyVisible} bounds={p.Bounds}"));
+    }
+
+    [AvaloniaFact]
+    public void RapidPresetChanges_RenderFinalPinsAndIgnoreOldFactoryCallbacks()
+    {
+        Directory.CreateDirectory(_tempDirectory);
+        var presetService = new LayoutPresetService(_tempDirectory);
+        presetService.Save(new[]
+        {
+            new LayoutPreset
+            {
+                Name = "A",
+                Snapshot = CreateSnapshotWithPins(
+                    ("Gmcp", Alignment.Left),
+                    ("Notes", Alignment.Top)),
+            },
+            new LayoutPreset
+            {
+                Name = "B",
+                Snapshot = CreateSnapshotWithPins(("Autowalk", Alignment.Right)),
+            },
+        });
+        var viewModel = new MainWindowViewModel(
+            new ProfileService(_tempDirectory),
+            new AppSettingsService(_tempDirectory),
+            new DockLayoutService(_tempDirectory),
+            layoutPresetService: presetService);
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("A");
+        var firstFactory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        viewModel.ApplyLayoutCommand.Execute("B");
+        var secondFactory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        viewModel.ApplyLayoutCommand.Execute("A");
+        var finalFactory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+
+        Assert.NotSame(firstFactory, secondFactory);
+        Assert.NotSame(secondFactory, finalFactory);
+        firstFactory.OnDockableClosed(firstFactory.AllTools.First(tool => tool.Id == "Gmcp"));
+        Assert.Empty(viewModel.HiddenPanels);
+
+        PumpUntil(window, () => RenderedPinItems(window).Count == 2);
+
+        var renderedIds = RenderedPinItems(window)
+            .Select(control => Assert.IsType<PanelTool>(control.DataContext).Id)
+            .ToHashSet();
+        Assert.Equal(new HashSet<string> { "Gmcp", "Notes" }, renderedIds);
+        Assert.Contains(
+            viewModel.Layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Gmcp");
+        Assert.Contains(
+            viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Notes");
+        Assert.Empty(viewModel.HiddenPanels);
+    }
+
+    [AvaloniaFact]
+    public void SaveAndLoadLayout_PreservesPinnedTabsOnAllEdges()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Gmcp"), Alignment.Left);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Autowalk"), Alignment.Right);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Automation"), Alignment.Top);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Notes"), Alignment.Bottom);
+        viewModel.NewLayoutName = "boczne";
+        viewModel.SaveLayoutCommand.Execute(null);
+
+        viewModel.ApplyLayoutCommand.Execute("DEFAULT");
+        viewModel.ApplyLayoutCommand.Execute("boczne");
+        PumpUntil(window, () => RenderedPinItems(window).Count == 4);
+
+        Assert.Contains(
+            viewModel.Layout.LeftPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Gmcp");
+        Assert.Contains(
+            viewModel.Layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Autowalk");
+        Assert.Contains(
+            viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Automation");
+        Assert.Contains(
+            viewModel.Layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Notes");
+        Assert.Equal(
+            new HashSet<string> { "Gmcp", "Autowalk", "Automation", "Notes" },
+            RenderedPinItems(window)
+                .Select(control => Assert.IsType<PanelTool>(control.DataContext).Id)
+                .ToHashSet());
+        Assert.Empty(viewModel.HiddenPanels);
     }
 
     [AvaloniaFact]

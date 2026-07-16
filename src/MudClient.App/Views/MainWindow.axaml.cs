@@ -6,7 +6,9 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using System.ComponentModel;
 using MudClient.App.Controls;
+using MudClient.App.Docking;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
 
@@ -16,6 +18,7 @@ public partial class MainWindow : Window
 {
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
+    private CancellationTokenSource? _pinnedPanelAuditCts;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
 
@@ -28,14 +31,7 @@ public partial class MainWindow : Window
         Opened += OnOpened;
         Activated += OnWindowActivated;
         Dispatcher.UIThread.UnhandledException += OnDispatcherUnhandledException;
-        DataContextChanged += (_, _) =>
-        {
-            _viewModel = DataContext as MainWindowViewModel;
-            // Pinned edge tabs use fixed proportions of the live dock area: one third of its
-            // width at the sides and half its height at the top/bottom. The view supplies the
-            // dimensions because the UI-agnostic factory cannot see the rendered DockControl.
-            _viewModel?.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
-        };
+        DataContextChanged += OnDataContextChanged;
 
         // Safety net: when a dock drag ends (drop or cancel, anywhere in the window),
         // reclaim any panel the drag pipeline dropped on the floor so it reappears in
@@ -97,6 +93,9 @@ public partial class MainWindow : Window
 
     private void OnWindowActivated(object? sender, EventArgs e)
     {
+        // A layout applied while minimized is audited once the Dock visual tree is visible again.
+        SchedulePinnedPanelAudit();
+
         // When the window becomes active while the command box still holds focus,
         // mark the terminal so that the first keystroke replaces the existing
         // command text instead of appending to it. If no TextBox or a non-terminal
@@ -114,6 +113,84 @@ public partial class MainWindow : Window
     private void Close_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         Close();
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs eventArgs)
+    {
+        if (_viewModel is not null)
+        {
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
+        _viewModel = DataContext as MainWindowViewModel;
+        if (_viewModel is not null)
+        {
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            // Pinned edge tabs use fixed proportions of the live dock area: one third of its
+            // width at the sides and half its height at the top/bottom. The view supplies the
+            // dimensions because the UI-agnostic factory cannot see the rendered DockControl.
+            _viewModel.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
+            SchedulePinnedPanelAudit();
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.Layout))
+        {
+            SchedulePinnedPanelAudit();
+        }
+    }
+
+    /// <summary>
+    /// Debounces rapid preset changes and checks the final Dock visual tree only after rendering
+    /// has settled. A pinned model entry without a corresponding visible edge tab is recoverable
+    /// from the "Panele" menu instead of remaining a permanently invisible ghost.
+    /// </summary>
+    private void SchedulePinnedPanelAudit()
+    {
+        _pinnedPanelAuditCts?.Cancel();
+        _pinnedPanelAuditCts?.Dispose();
+        _pinnedPanelAuditCts = new CancellationTokenSource();
+        _ = AuditPinnedPanelsAfterRenderAsync(_pinnedPanelAuditCts.Token);
+    }
+
+    private async Task AuditPinnedPanelsAfterRenderAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_viewModel is null
+                    || _mainDock?.Layout != _viewModel.Layout
+                    || !IsVisible
+                    || WindowState == WindowState.Minimized
+                    || _mainDock.Bounds is not { Width: > 0, Height: > 0 })
+                {
+                    return;
+                }
+
+                var renderedPanels = _mainDock.GetVisualDescendants()
+                    .OfType<Dock.Avalonia.Controls.ToolPinItemControl>()
+                    .Where(control => control.IsEffectivelyVisible
+                                      && control.Bounds is { Width: > 0, Height: > 0 })
+                    .Select(control => control.DataContext)
+                    .OfType<PanelTool>()
+                    .ToHashSet();
+                _viewModel.ReclaimUnrenderedPinnedPanels(renderedPanels);
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // A newer layout superseded this audit, or the window is closing.
+        }
+        catch (Exception exception)
+        {
+            // Keep failures in this fire-and-forget recovery path observable.
+            _viewModel?.ReportStartupError(exception);
+        }
     }
 
     private async void DeleteProfile_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -262,8 +339,13 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs eventArgs)
     {
+        _pinnedPanelAuditCts?.Cancel();
+        _pinnedPanelAuditCts?.Dispose();
+        _pinnedPanelAuditCts = null;
+
         if (_viewModel is not null)
         {
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _ = _viewModel.DisposeAsync();
         }
 

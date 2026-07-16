@@ -69,7 +69,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
 
-    private readonly MudDockFactory _dockFactory;
+    private MudDockFactory _dockFactory;
     private readonly DockLayoutService _dockLayoutService;
     private readonly LayoutPresetService _layoutPresetService;
     private readonly List<LayoutPreset> _layoutPresets;
@@ -188,7 +188,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AppSettingsService? settingsService = null,
         DockLayoutService? dockLayoutService = null,
         BookCatalogStore? bookCatalogStore = null,
-        BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null)
+        BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
+        LayoutPresetService? layoutPresetService = null)
     {
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
@@ -291,7 +292,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _dockFactory.TryApplySnapshot(Layout, savedLayout);
         }
 
-        _dockFactory.HiddenTools.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HiddenPanels));
+        _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
             if (tool is not null)
@@ -300,7 +301,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
         });
 
-        _layoutPresetService = new LayoutPresetService();
+        _layoutPresetService = layoutPresetService ?? new LayoutPresetService();
         _layoutPresets = _layoutPresetService.Load();
         RefreshAvailableLayouts();
         ApplyLayoutCommand = new RelayCommand<string>(ApplyLayout);
@@ -357,6 +358,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// non-dock chrome like the top bar) are moved to <see cref="HiddenPanels"/> for restore.</summary>
     public void ReclaimLostPanels() => _dockFactory.ReclaimLostTools(Layout);
 
+    /// <summary>
+    /// Moves pinned tools whose edge tabs did not materialize in the live Dock visual tree to the
+    /// restore menu. The view calls this only after the replacement layout has had time to render.
+    /// </summary>
+    public void ReclaimUnrenderedPinnedPanels(IReadOnlyCollection<PanelTool> renderedPanels) =>
+        _dockFactory.ReclaimUnrenderedPinnedTools(Layout, renderedPanels);
+
     /// <summary>Layout entries offered in the "Układ" menu: built-in DEFAULT first, then saved presets.</summary>
     public ObservableCollection<LayoutMenuItem> AvailableLayouts { get; } = new();
 
@@ -395,8 +403,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        // The default is always regenerated fresh so newly-added panels are included.
-        var fresh = _dockFactory.ResetToDefault();
+        // A DockControl can finish detaching the previous tree after this method returns. Give
+        // every replacement tree its own factory so late close/unpin callbacks from the old tree
+        // cannot mutate the new root, tool registry, or "Panele" collection.
+        var previousFactory = _dockFactory;
+        var replacementFactory = new MudDockFactory(Map, this)
+        {
+            PinnedPreviewSizeProvider = previousFactory.PinnedPreviewSizeProvider,
+        };
+        var fresh = replacementFactory.CreateLayout();
+        replacementFactory.InitLayout(fresh);
 
         if (!string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
         {
@@ -406,19 +422,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 return;
             }
 
-            if (!_dockFactory.TryApplySnapshot(fresh, preset.Snapshot))
+            if (!replacementFactory.TryApplySnapshot(fresh, preset.Snapshot))
             {
                 // Snapshot no longer matches the current set of panels (e.g. after an update).
                 AddToast($"Układ „{name}” jest nieaktualny — wczytano DEFAULT.", "warning");
             }
         }
 
+        previousFactory.HiddenTools.CollectionChanged -= OnHiddenToolsChanged;
+        _dockFactory = replacementFactory;
+        _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
         Layout = fresh;
         OnPropertyChanged(nameof(HiddenPanels));
 
         // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
         UpdateBuffsToolTitle();
     }
+
+    private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        OnPropertyChanged(nameof(HiddenPanels));
 
     private void SaveLayout()
     {

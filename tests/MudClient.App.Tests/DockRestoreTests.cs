@@ -199,6 +199,107 @@ public sealed class DockRestoreTests
         Assert.Equal("Top", Assert.Single(factory2.Snapshot(layout2).PinnedTools).Edge);
     }
 
+    [Fact]
+    public void PinnedSideTab_WithEmptyOwnerIdFromOlderPreset_RestoresOnRecordedEdge()
+    {
+        var factory1 = CreateFactory(out var layout1);
+        factory1.PinToolToEdge(GetTool(factory1, "Gmcp"), Alignment.Left);
+        var snapshot = factory1.Snapshot(layout1);
+        var pin = Assert.Single(snapshot.PinnedTools);
+
+        // Real drag/drop layouts contain anonymous ProportionalDocks and older snapshots stored
+        // OwnerId="" for an anonymous ToolDock. The generic id lookup then selected this wrong
+        // container and PinDockable silently failed.
+        snapshot.Root!.Id = string.Empty;
+        pin.OwnerId = string.Empty;
+
+        var factory2 = CreateFactory(out var layout2);
+        Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
+
+        Assert.Contains(
+            layout2.LeftPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == "Gmcp");
+        Assert.DoesNotContain(factory2.AllTools.First(tool => tool.Id == "Gmcp"), factory2.HiddenTools);
+    }
+
+    [Theory]
+    [InlineData(Alignment.Left)]
+    [InlineData(Alignment.Right)]
+    [InlineData(Alignment.Top)]
+    [InlineData(Alignment.Bottom)]
+    public void ExpandedPinnedPreview_RoundTripsThroughSnapshot(Alignment edge)
+    {
+        var factory1 = CreateFactory(out var layout1);
+        var tool = GetTool(factory1, "Gmcp");
+        factory1.PinToolToEdge(tool, edge);
+        ((IFactory)factory1).TogglePreviewPinnedDockable(tool);
+
+        var snapshot = factory1.Snapshot(layout1);
+        var pin = Assert.Single(snapshot.PinnedTools);
+        Assert.Equal(edge.ToString(), pin.Edge);
+
+        var factory2 = CreateFactory(out var layout2);
+        Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
+
+        var restoredEdge = edge switch
+        {
+            Alignment.Left => layout2.LeftPinnedDockables,
+            Alignment.Right => layout2.RightPinnedDockables,
+            Alignment.Top => layout2.TopPinnedDockables,
+            _ => layout2.BottomPinnedDockables,
+        };
+        Assert.Contains(restoredEdge ?? Enumerable.Empty<IDockable>(), dockable => dockable.Id == "Gmcp");
+    }
+
+    [Fact]
+    public void PinnedBottomTool_RestoresWhenSnapshotHasNoToolDock()
+    {
+        var factory = CreateFactory(out var layout);
+        var pinnedId = "Gmcp";
+        var snapshot = new DockLayoutSnapshot
+        {
+            Root = new DockNodeSnapshot { Kind = "Splitter", Id = "OnlySplitter" },
+            HiddenToolIds = factory.AllTools
+                .Select(tool => tool.Id!)
+                .Where(id => id != pinnedId)
+                .ToList(),
+            PinnedTools =
+            [
+                new PinnedToolSnapshot
+                {
+                    Id = pinnedId,
+                    OwnerId = null,
+                    Edge = Alignment.Bottom.ToString(),
+                },
+            ],
+        };
+
+        Assert.True(factory.TryApplySnapshot(layout, snapshot));
+
+        Assert.Contains(
+            layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == pinnedId);
+        Assert.DoesNotContain(factory.AllTools.First(tool => tool.Id == pinnedId), factory.HiddenTools);
+    }
+
+    [Fact]
+    public void Snapshot_WithNoVisibleRootChild_RemainsLoadable()
+    {
+        var factory1 = CreateFactory(out var layout1);
+        layout1.VisibleDockables!.Clear();
+        foreach (var tool in factory1.AllTools)
+        {
+            factory1.HiddenTools.Add(tool);
+        }
+
+        var snapshot = factory1.Snapshot(layout1);
+        Assert.NotNull(snapshot.Root);
+
+        var factory2 = CreateFactory(out var layout2);
+        Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
+        Assert.Equal(factory2.AllTools.Count, factory2.HiddenTools.Count);
+    }
+
     private static IDockable? FindIn(IDock dock, string id) =>
         (dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
         .Select(child => child.Id == id ? child : child is IDock nested ? FindIn(nested, id) : null)
@@ -239,6 +340,42 @@ public sealed class DockRestoreTests
 
         Assert.Empty(factory.HiddenTools);
         Assert.Contains(layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
+    }
+
+    [Fact]
+    public void ReclaimUnrenderedPinnedTools_MovesGhostPinToHiddenTools()
+    {
+        var factory = CreateFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+        factory.PinToolToEdge(tool, Alignment.Top);
+
+        factory.ReclaimUnrenderedPinnedTools(layout, Array.Empty<PanelTool>());
+
+        Assert.Contains(tool, factory.HiddenTools);
+        Assert.DoesNotContain(
+            layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => ReferenceEquals(dockable, tool));
+
+        factory.RestoreToTopEdge(tool);
+        Assert.DoesNotContain(tool, factory.HiddenTools);
+        Assert.Contains(
+            layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => ReferenceEquals(dockable, tool));
+    }
+
+    [Fact]
+    public void ReclaimUnrenderedPinnedTools_LeavesRenderedPinAlone()
+    {
+        var factory = CreateFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+        factory.PinToolToEdge(tool, Alignment.Right);
+
+        factory.ReclaimUnrenderedPinnedTools(layout, new[] { tool });
+
+        Assert.Empty(factory.HiddenTools);
+        Assert.Contains(
+            layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => ReferenceEquals(dockable, tool));
     }
 
     [Fact]

@@ -497,6 +497,32 @@ public sealed class MudDockFactory : Factory, IFactory
         }
     }
 
+    /// <summary>
+    /// Recovers a model-level pinned entry for which Dock failed to create a visible edge tab.
+    /// Such a tool is technically reachable through a root pinned collection, so the ordinary
+    /// <see cref="ReclaimLostTools"/> pass deliberately leaves it alone. Once the view confirms
+    /// that the tab did not render, close it through Dock's normal pipeline and expose it in the
+    /// "Panele" restore menu.
+    /// </summary>
+    public void ReclaimUnrenderedPinnedTools(
+        IRootDock root, IReadOnlyCollection<PanelTool> renderedTools)
+    {
+        var rendered = renderedTools.ToHashSet();
+        var missing = AllTools
+            .Where(tool => IsPinned(root, tool) && !rendered.Contains(tool))
+            .ToList();
+
+        foreach (var tool in missing)
+        {
+            CloseDockable(tool);
+            RemovePinnedEntries(tool);
+            if (!HiddenTools.Contains(tool))
+            {
+                HiddenTools.Add(tool);
+            }
+        }
+    }
+
     private static bool IsPinned(IRootDock root, PanelTool tool) =>
         new[]
         {
@@ -564,7 +590,7 @@ public sealed class MudDockFactory : Factory, IFactory
         dock.VisibleDockables?.Any(child =>
             ReferenceEquals(child, sought) || child is IDock nested && ContainsDockable(nested, sought)) == true;
 
-    private static IDock? FindFirstToolDock(IDock dock)
+    private static ToolDock? FindFirstToolDock(IDock dock)
     {
         foreach (var child in dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
         {
@@ -598,13 +624,17 @@ public sealed class MudDockFactory : Factory, IFactory
         var rootChild = root.VisibleDockables?.FirstOrDefault();
         return new DockLayoutSnapshot
         {
-            Root = rootChild is null ? null : BuildNode(rootChild),
+            // Dock may remove the last empty container when every tool is hidden or pinned.
+            // Keep the snapshot loadable; pinned restoration will create a staging ToolDock.
+            Root = rootChild is null
+                ? new DockNodeSnapshot { Kind = "Splitter", Id = "EmptyLayoutPlaceholder" }
+                : BuildNode(rootChild),
             HiddenToolIds = HiddenTools.Select(t => t.Id!).ToList(),
             PinnedTools = PinnedTools(root),
         };
     }
 
-    private static List<PinnedToolSnapshot> PinnedTools(IRootDock root)
+    private List<PinnedToolSnapshot> PinnedTools(IRootDock root)
     {
         var edges = new[]
         {
@@ -616,12 +646,24 @@ public sealed class MudDockFactory : Factory, IFactory
 
         return edges
             .Where(e => e.Item2 is not null)
-            .SelectMany(e => e.Item2!.OfType<PanelTool>().Select(tool => new PinnedToolSnapshot
+            // Dock can wrap an auto-hidden tool in a temporary preview dock. Persist the actual
+            // panel rather than assuming every root pinned entry is directly a PanelTool.
+            .SelectMany(e => e.Item2!.SelectMany(DescendantTools).Select(tool =>
             {
-                Id = tool.Id!,
-                OwnerId = (tool.Owner as IDock)?.Id,
-                Edge = e.Item1.ToString(),
+                var owner = tool.Owner as ToolDock
+                    ?? tool.OriginalOwner as ToolDock
+                    ?? (_lastOwners.TryGetValue(tool, out var rememberedOwner) ? rememberedOwner : null);
+                return new PinnedToolSnapshot
+                {
+                    Id = tool.Id!,
+                    // Anonymous docks are common after drag/drop. An empty id cannot identify
+                    // their type on restore and used to resolve to an unrelated ProportionalDock.
+                    OwnerId = string.IsNullOrWhiteSpace(owner?.Id) ? null : owner.Id,
+                    Edge = e.Item1.ToString(),
+                };
             }))
+            .GroupBy(pin => pin.Id)
+            .Select(group => group.First())
             .ToList();
     }
 
@@ -684,6 +726,7 @@ public sealed class MudDockFactory : Factory, IFactory
     private void RestorePinnedTools(
         IRootDock root, List<PinnedToolSnapshot> pinnedTools, Dictionary<string, PanelTool> toolsById)
     {
+        ToolDock? fallbackOwner = null;
         foreach (var pin in pinnedTools)
         {
             if (!toolsById.TryGetValue(pin.Id, out var tool))
@@ -691,12 +734,14 @@ public sealed class MudDockFactory : Factory, IFactory
                 continue;
             }
 
-            var owner = (pin.OwnerId is not null ? FindDockById(root, pin.OwnerId) : null)
-                ?? FindFirstToolDock(root);
-            if (owner is null)
-            {
-                continue;
-            }
+            // Only a ToolDock is a valid staging owner for PinDockable. Older snapshots may
+            // contain OwnerId="" from an anonymous dock; treating that as a generic dock id can
+            // select an anonymous ProportionalDock and silently lose the side tab.
+            var owner = (!string.IsNullOrWhiteSpace(pin.OwnerId)
+                    ? FindToolDockById(root, pin.OwnerId)
+                    : null)
+                ?? FindFirstToolDock(root)
+                ?? (fallbackOwner ??= CreatePinnedRestoreDock(root));
 
             AddDockable(owner, tool);
 
@@ -714,16 +759,34 @@ public sealed class MudDockFactory : Factory, IFactory
         }
     }
 
-    private static IDock? FindDockById(IDock dock, string id)
+    /// <summary>
+    /// A valid snapshot can contain only hidden and pinned tools, leaving no ToolDock in its
+    /// visible tree. Dock still needs a real ToolDock as the staging owner for PinDockable; using
+    /// the root directly makes the operation a silent no-op.
+    /// </summary>
+    private ToolDock CreatePinnedRestoreDock(IRootDock root)
     {
-        if (string.Equals(dock.Id, id, StringComparison.Ordinal))
+        var owner = new ToolDock
         {
-            return dock;
+            Id = "PinnedRestorePane",
+            Alignment = Alignment.Left,
+            Proportion = 0.2,
+            VisibleDockables = CreateList<IDockable>(),
+        };
+        AddDockable(root, owner);
+        return owner;
+    }
+
+    private static ToolDock? FindToolDockById(IDock dock, string id)
+    {
+        if (dock is ToolDock toolDock && string.Equals(toolDock.Id, id, StringComparison.Ordinal))
+        {
+            return toolDock;
         }
 
         foreach (var child in dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
         {
-            if (child is IDock nested && FindDockById(nested, id) is { } found)
+            if (child is IDock nested && FindToolDockById(nested, id) is { } found)
             {
                 return found;
             }
