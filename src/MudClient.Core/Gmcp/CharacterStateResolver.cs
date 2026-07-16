@@ -272,7 +272,9 @@ public sealed class CharacterStateResolver
                            && negProp.ValueKind == JsonValueKind.True;
 
             var ending = element.TryGetProperty("ending", out var endProp)
-                         && endProp.ValueKind == JsonValueKind.True;
+                         && (endProp.ValueKind == JsonValueKind.True
+                             || endProp.ValueKind == JsonValueKind.String
+                             && string.Equals(endProp.GetString(), "!", StringComparison.Ordinal));
 
             var extraValue = ParseExtraValue(element, "extraValue");
 

@@ -393,6 +393,21 @@ public sealed class CharacterStateResolverTests
     }
 
     [Fact]
+    public void Process_CharAffects_ExclamationMarkEnding_IsEnding()
+    {
+        IReadOnlyList<CharacterAffect>? affects = null;
+        _resolver.AffectsChanged += a => affects = a;
+
+        _resolver.Process(new GmcpMessage(
+            "Char.Affects",
+            """[{"name":"Test","desc":"","ending":"!"},{"name":"Test2","desc":"","ending":""}]"""));
+
+        Assert.NotNull(affects);
+        Assert.True(affects![0].Ending);
+        Assert.False(affects[1].Ending);
+    }
+
+    [Fact]
     public void Process_CharAffects_BooleanNegativeOnlyWhenTrue()
     {
         IReadOnlyList<CharacterAffect>? affects = null;
