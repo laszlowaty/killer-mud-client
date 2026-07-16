@@ -1179,22 +1179,47 @@ public sealed class WorldMapControl : Control
                 room.Coordinates.X + roomOffset.X * 0.6,
                 room.Coordinates.Y + roomOffset.Y * 0.6);
 
+            var labelFontSize = Math.Max(9, WidgetFontSize - 2);
+            var labelTypeface = new Typeface(WidgetFontFamily, FontStyle.Normal, FontWeight.Bold);
+            var labelBottom = center.Y - Math.Max(_settings.RoomSize * _zoom / 2, 5) - 5;
+
             for (var index = 0; index < markers.Length; index++)
             {
                 var marker = markers[index];
-                var x = center.X + (index - (markers.Length - 1) / 2d) * 14;
-                var y = center.Y - Math.Max(_settings.RoomSize * _zoom / 2, 5) - 9;
                 var brush = marker.IsLeader ? Brushes.Gold : Brushes.DeepSkyBlue;
-                context.DrawEllipse(Brushes.Black, new Pen(brush, 2), new Point(x, y), 6, 6);
-
-                var initial = new FormattedText(
-                    marker.Name[..1].ToUpperInvariant(),
+                var name = new FormattedText(
+                    marker.Name,
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
-                    new Typeface(WidgetFontFamily, FontStyle.Normal, FontWeight.Bold),
-                    Math.Max(8, WidgetFontSize - 3),
+                    labelTypeface,
+                    labelFontSize,
                     brush);
-                context.DrawText(initial, new Point(x - initial.Width / 2, y - initial.Height / 2));
+
+                const double markerRadius = 4;
+                const double horizontalPadding = 4;
+                const double markerGap = 4;
+                var labelHeight = Math.Max(14, name.Height + 4);
+                var labelWidth = horizontalPadding + markerRadius * 2 + markerGap + name.Width + horizontalPadding;
+                var labelRect = new Rect(
+                    center.X - labelWidth / 2,
+                    labelBottom - (index + 1) * (labelHeight + 2),
+                    labelWidth,
+                    labelHeight);
+
+                context.DrawRectangle(
+                    new SolidColorBrush(Color.FromArgb(220, 5, 8, 12)),
+                    new Pen(brush, 1),
+                    labelRect);
+
+                var markerCenter = new Point(
+                    labelRect.X + horizontalPadding + markerRadius,
+                    labelRect.Center.Y);
+                context.DrawEllipse(brush, null, markerCenter, markerRadius, markerRadius);
+                context.DrawText(
+                    name,
+                    new Point(
+                        markerCenter.X + markerRadius + markerGap,
+                        labelRect.Y + (labelRect.Height - name.Height) / 2));
             }
         }
     }
