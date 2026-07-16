@@ -88,7 +88,15 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add Directory.Build.props
             git commit -m "chore: bump version to $VERSION"
-            git push origin main
+            if ! git push origin main; then
+              LOCAL_HEAD=$(git rev-parse HEAD)
+              REMOTE_HEAD=$(git ls-remote origin refs/heads/main | awk '{print $1}')
+              if [ "$REMOTE_HEAD" != "$LOCAL_HEAD" ]; then
+                echo "::error::Push main nie powiódł się, a origin/main wskazuje na inny commit ($REMOTE_HEAD)."
+                exit 1
+              fi
+              echo "::notice::origin/main wskazuje już na $LOCAL_HEAD — kontynuuję wydanie."
+            fi
           fi
 
           git config user.name  "github-actions[bot]"
