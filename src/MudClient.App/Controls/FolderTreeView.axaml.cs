@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
@@ -22,6 +23,9 @@ namespace MudClient.App.Controls;
 /// </summary>
 public partial class FolderTreeView : UserControl
 {
+    private const double AutoScrollEdgeSize = 48;
+    private const double AutoScrollMaxStep = 24;
+
     private readonly HashSet<string> _pendingRenames = [];
 
     public static readonly StyledProperty<IEnumerable?> NodesProperty =
@@ -212,8 +216,57 @@ public partial class FolderTreeView : UserControl
 
     private void Node_OnDragOver(object? sender, DragEventArgs e)
     {
+        AutoScroll(e);
         e.DragEffects = CanDropOn(sender) ? DragDropEffects.Move : DragDropEffects.None;
         e.Handled = true;
+    }
+
+    private void AutoScroll(DragEventArgs e)
+    {
+        var scrollViewer = this.GetVisualAncestors().OfType<ScrollViewer>().FirstOrDefault();
+        if (scrollViewer is null)
+        {
+            return;
+        }
+
+        var offset = scrollViewer.Offset;
+        var nextOffset = CalculateAutoScrollOffset(
+            e.GetPosition(scrollViewer).Y,
+            scrollViewer.Viewport.Height,
+            offset.Y,
+            scrollViewer.Extent.Height);
+
+        if (!double.IsNaN(nextOffset) && Math.Abs(nextOffset - offset.Y) > double.Epsilon)
+        {
+            scrollViewer.Offset = new Vector(offset.X, nextOffset);
+        }
+    }
+
+    internal static double CalculateAutoScrollOffset(
+        double pointerY,
+        double viewportHeight,
+        double currentOffset,
+        double extentHeight)
+    {
+        if (viewportHeight <= 0 || extentHeight <= viewportHeight)
+        {
+            return Math.Clamp(currentOffset, 0, Math.Max(0, extentHeight - viewportHeight));
+        }
+
+        double step = 0;
+        if (pointerY < AutoScrollEdgeSize)
+        {
+            step = -AutoScrollMaxStep * Math.Clamp((AutoScrollEdgeSize - pointerY) / AutoScrollEdgeSize, 0, 1);
+        }
+        else if (pointerY > viewportHeight - AutoScrollEdgeSize)
+        {
+            step = AutoScrollMaxStep * Math.Clamp(
+                (pointerY - (viewportHeight - AutoScrollEdgeSize)) / AutoScrollEdgeSize,
+                0,
+                1);
+        }
+
+        return Math.Clamp(currentOffset + step, 0, extentHeight - viewportHeight);
     }
 
     private void Node_OnDrop(object? sender, DragEventArgs e)

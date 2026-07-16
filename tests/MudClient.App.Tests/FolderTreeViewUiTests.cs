@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -16,6 +17,29 @@ namespace MudClient.App.Tests;
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class FolderTreeViewUiTests
 {
+    [Theory]
+    [InlineData(0, 300, 100, 1000, 76)]
+    [InlineData(24, 300, 100, 1000, 88)]
+    [InlineData(48, 300, 100, 1000, 100)]
+    [InlineData(252, 300, 100, 1000, 100)]
+    [InlineData(276, 300, 100, 1000, 112)]
+    [InlineData(300, 300, 100, 1000, 124)]
+    [InlineData(0, 300, 10, 1000, 0)]
+    [InlineData(300, 300, 690, 1000, 700)]
+    public void AutoScrollOffset_RespondsToEdgesAndStaysWithinScrollRange(
+        double pointerY,
+        double viewportHeight,
+        double currentOffset,
+        double extentHeight,
+        double expectedOffset)
+    {
+        Assert.Equal(expectedOffset, FolderTreeView.CalculateAutoScrollOffset(
+            pointerY,
+            viewportHeight,
+            currentOffset,
+            extentHeight));
+    }
+
     [AvaloniaFact]
     public async Task AutomationPanel_UsesFocusedTabsWithLocalPrimaryActionsAndTeamAutomation()
     {
