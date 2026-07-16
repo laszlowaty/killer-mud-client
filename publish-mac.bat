@@ -81,6 +81,12 @@ for %%R in (osx-arm64 osx-x64) do (
     if exist "!OUTDIR!\%APP_NAME%" del "!OUTDIR!\%APP_NAME%"
     ren "!OUTDIR!\MudClient.App" "%APP_NAME%"
     if errorlevel 1 exit /b 1
+
+    rem ---- Pozostaw tylko koncowy plik wykonywalny ----
+    for %%F in ("!OUTDIR!\*") do (
+        if /i not "%%~nxF"=="%APP_NAME%" del /q "%%~fF"
+    )
+    for /d %%D in ("!OUTDIR!\*") do rmdir /s /q "%%~fD"
 )
 
 echo.

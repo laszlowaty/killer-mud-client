@@ -82,6 +82,12 @@ if exist "%OUTDIR%\MudClient.App.exe" (
     ren "%OUTDIR%\MudClient.App.exe" "%APP_NAME%.exe"
 )
 
+rem ---- Single-file publish moze pozostawic natywne symbole PDB zaleznosci ----
+for %%F in ("%OUTDIR%\*") do (
+    if /i not "%%~nxF"=="%APP_NAME%.exe" del /q "%%~fF"
+)
+for /d %%D in ("%OUTDIR%\*") do rmdir /s /q "%%~fD"
+
 echo.
 echo ============================================================
 echo  Publish successful.

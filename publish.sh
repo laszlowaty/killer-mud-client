@@ -64,6 +64,12 @@ if [ -f "$OUTDIR/MudClient.App.exe" ]; then
   mv "$OUTDIR/MudClient.App.exe" "$OUTDIR/$APP_NAME.exe"
 fi
 
+# Single-file publish can leave native debug symbols from dependencies behind.
+find "$OUTDIR" -mindepth 1 -maxdepth 1 \
+  ! -name "$APP_NAME" \
+  ! -name "$APP_NAME.exe" \
+  -exec rm -rf -- {} +
+
 chmod +x "$OUTDIR/$APP_NAME" 2>/dev/null || true
 
 echo ""

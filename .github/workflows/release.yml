@@ -123,11 +123,11 @@ jobs:
               -p:Version="$FULL_VERSION"
             if [ -f "$OUT/MudClient.App.exe" ]; then
               mv "$OUT/MudClient.App.exe" "$OUT/$NAME.exe"
-              (cd "$OUT" && zip -r "$GITHUB_WORKSPACE/artifacts/KillerMudClient-$FULL_VERSION-$RID.zip" .)
+              (cd "$OUT" && zip "$GITHUB_WORKSPACE/artifacts/KillerMudClient-$FULL_VERSION-$RID.zip" "$NAME.exe")
             else
               mv "$OUT/MudClient.App" "$OUT/$NAME"
               chmod +x "$OUT/$NAME"
-              tar -czf "artifacts/KillerMudClient-$FULL_VERSION-$RID.tar.gz" -C "$OUT" .
+              tar -czf "artifacts/KillerMudClient-$FULL_VERSION-$RID.tar.gz" -C "$OUT" "$NAME"
             fi
           }
 
