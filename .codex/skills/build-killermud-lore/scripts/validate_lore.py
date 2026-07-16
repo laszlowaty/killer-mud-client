@@ -25,6 +25,52 @@ REQUIRED_BY_TYPE = {
     "source": {"path", "sourceTier", "active", "encoding"},
     "article": {"entityId", "category", "title", "summary", "sections", "relatedIds", "visibility", "spoilerLevel", "mapReferences"},
 }
+ALLOWED_CLAIM_PREDICATES = {
+    "attacked",
+    "contains_named_peak",
+    "current_function",
+    "current_use",
+    "divine_domain",
+    "economic_character",
+    "foundation_account",
+    "historical_function",
+    "is_application_map_region",
+    "local_role",
+    "local_status",
+    "local_use",
+    "office",
+    "patron_deity",
+    "population_character",
+    "regional_influence",
+    "regional_scale",
+    "religious_institution",
+    "religious_symbol",
+    "role",
+    "settlement_character",
+    "settlement_layout",
+    "strategic_function",
+    "terrain",
+    "urban_character",
+    "winter_state",
+    "worship_teaching",
+}
+ALLOWED_RELATION_PREDICATES = {
+    "adjacent_to",
+    "based_in",
+    "commands",
+    "connected_by_road",
+    "contains_on_application_map",
+    "flows_through",
+    "founded_by_account",
+    "founded_by_tradition",
+    "governs",
+    "hosts",
+    "north_of",
+    "occupied_by",
+    "resides_in",
+    "worships",
+}
+ALLOWED_ARTICLE_CATEGORIES = {"city", "landmark", "region", "settlement"}
 
 
 def require(record: dict[str, Any], fields: set[str], location: str) -> list[str]:
@@ -49,6 +95,21 @@ def validate_record(record: Any, location: str) -> list[str]:
     if record["status"] not in ALLOWED_STATUSES:
         errors.append(f"{location}: invalid status '{record['status']}'")
     errors.extend(require(record, REQUIRED_BY_TYPE[record_type], location))
+    if record_type == "claim" and record.get("predicate") not in ALLOWED_CLAIM_PREDICATES:
+        errors.append(
+            f"{location}: unsupported claim predicate '{record.get('predicate')}'; "
+            "add an explicit Polish Killeropedia label before accepting it"
+        )
+    if record_type == "relation" and record.get("predicate") not in ALLOWED_RELATION_PREDICATES:
+        errors.append(
+            f"{location}: unsupported relation predicate '{record.get('predicate')}'; "
+            "add explicit Polish forward and inverse Killeropedia labels before accepting it"
+        )
+    if record_type == "article" and record.get("category") not in ALLOWED_ARTICLE_CATEGORIES:
+        errors.append(
+            f"{location}: unsupported article category '{record.get('category')}'; "
+            "add explicit Polish Markdown and Killeropedia labels before accepting it"
+        )
     for index, source_ref in enumerate(record.get("sourceRefs", [])):
         if not isinstance(source_ref, dict):
             errors.append(f"{location}: sourceRefs[{index}] must be an object")

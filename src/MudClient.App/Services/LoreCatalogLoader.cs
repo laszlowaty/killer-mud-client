@@ -231,7 +231,7 @@ internal static class LoreCatalogLoader
         ("entity", "culture" or "people" or "language") => "Ludy i kultury",
         ("event", _) => "Wydarzenia",
         ("narrative", _) => "Legendy i wierzenia",
-        ("article", "city" or "region") => "Miejsca",
+        ("article", "city" or "settlement" or "landmark" or "region") => "Miejsca",
         _ => "Pozostałe",
     };
 
@@ -242,6 +242,7 @@ internal static class LoreCatalogLoader
         ("entity", "landmark") => "Miejsce",
         ("entity", "region") => "Region",
         ("entity", "continent") => "Kontynent",
+        ("entity", "world") => "Świat",
         ("entity", "character") => "Postać",
         ("entity", "organization") => "Organizacja",
         ("entity", "deity") => "Bóstwo",
@@ -254,7 +255,11 @@ internal static class LoreCatalogLoader
         ("narrative", "myth") => "Mit",
         ("narrative", "belief") => "Wierzenie",
         ("narrative", "artifact-legend") => "Legenda artefaktu",
-        _ => kind.Replace('-', ' '),
+        ("narrative", "prophecy") => "Proroctwo",
+        ("narrative", "folktale") => "Podanie ludowe",
+        ("narrative", "rumor") => "Plotka",
+        ("narrative", "other") => "Inna opowieść",
+        _ => "Inny typ",
     };
 
     private static string StatusLabel(string status) => status switch
@@ -262,7 +267,7 @@ internal static class LoreCatalogLoader
         "canonical" => "Kanoniczne",
         "reviewed" => "Zweryfikowane",
         "extracted" => "Wydobyte ze źródeł",
-        _ => status,
+        _ => "Stan roboczy",
     };
 
     private static string TruthLabel(string? truthStatus) => truthStatus switch
@@ -289,7 +294,22 @@ internal static class LoreCatalogLoader
         "divine_domain" => "Domena",
         "attacked" => "Atak",
         "is_application_map_region" => "Region mapy klienta",
-        _ => predicate.Replace('_', ' '),
+        "contains_named_peak" => "Szczyt pasma",
+        "current_use" => "Obecne wykorzystanie",
+        "foundation_account" => "Przekaz o założeniu",
+        "local_role" => "Rola lokalna",
+        "local_status" => "Status lokalny",
+        "local_use" => "Lokalne wykorzystanie",
+        "patron_deity" => "Bóstwo opiekuńcze",
+        "regional_scale" => "Skala regionalna",
+        "religious_symbol" => "Symbol religijny",
+        "role" => "Rola",
+        "settlement_character" => "Charakter osady",
+        "settlement_layout" => "Układ osady",
+        "strategic_function" => "Znaczenie strategiczne",
+        "terrain" => "Ukształtowanie terenu",
+        "winter_state" => "Warunki zimowe",
+        _ => "Inna właściwość",
     };
 
     private static string RelationLabel(string predicate, bool inverse) => (predicate, inverse) switch
@@ -311,7 +331,16 @@ internal static class LoreCatalogLoader
         ("worships", true) => "Czczone w",
         ("founded_by_tradition", false) => "Według tradycji założone przez",
         ("founded_by_tradition", true) => "Według tradycji założył",
-        _ => predicate.Replace('_', ' '),
+        ("adjacent_to", _) => "Sąsiaduje z",
+        ("based_in", false) => "Działa w",
+        ("based_in", true) => "Siedziba organizacji",
+        ("founded_by_account", false) => "Według przekazu założone przez",
+        ("founded_by_account", true) => "Według przekazu założył",
+        ("occupied_by", false) => "Zajmowane przez",
+        ("occupied_by", true) => "Zajmuje",
+        ("resides_in", false) => "Mieszka w",
+        ("resides_in", true) => "Miejsce zamieszkania",
+        _ => "Powiązane",
     };
 
     private static string FactQualifier(string truth, string evidence, string confidence)

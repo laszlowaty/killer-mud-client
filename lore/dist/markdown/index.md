@@ -10,7 +10,7 @@ Czytelny katalog artykułów generowany z kanonicznych rekordów JSONL.
 - [Carrallak](carrallak.md) — Tłoczne miasto handlu, nauki, wielu kultów i silnie obecnej straży miejskiej.
 - [Krasnoludzka Forteca](dwarven-fortress.md) — Dawna cytadela przekształcona w krasnoludzkie miasto kupieckie, którego tożsamość kształtują kamień, straż i kulty wojennych dobroczyńców.
 
-## Landmark
+## Miejsca
 
 - [Góry Zatokowe](gulf-mountains.md) — Niewielki masyw bezpośrednio na północ od Carrallak, z górą Kallerh, kanionami, zalesionymi stokami i samotnią Everyha.
 - [Warownia Grazla](grazl-stronghold.md) — Podziemna krasnoludzka warownia daleko na północ od Carrallak, obecnie będąca bazą duergarskich łowców i handlarzy niewolników.
@@ -20,7 +20,7 @@ Czytelny katalog artykułów generowany z kanonicznych rekordów JSONL.
 
 - [Stary Kontynent: Arras, Carrallak i Krasnoludzka Forteca](old-continent-core.md) — Rdzeń Starego Kontynentu tworzą trzy duże ośrodki połączone dalekimi traktami: handlowe Arras, tłoczne Carrallak i kupiecka Krasnoludzka Forteca.
 
-## Settlement
+## Osady
 
 - [Easterial i okolice](easterial.md) — Spokojne północne miasteczko rybackie nad Dinneshere, otoczone śnieżnymi pustkowiami, górskimi lasami i szlakiem ku przełęczy Faldhar.
 - [Rybia Łuska](fish-scale-village.md) — Mała wioska rybacka na północ od Gór Zatokowych, skupiona wokół portu, magazynu rybnego i wspólnej przestrzeni między chatami.

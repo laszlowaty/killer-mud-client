@@ -255,6 +255,15 @@ public sealed class KilleropediaTests : IDisposable
 
         var gulfMountains = Assert.Single(catalog.Entries, entry => entry.Id == "place:gulf-mountains");
         Assert.Contains(gulfMountains.Links, link => link.TargetId == "place:fish-scale-village");
+        Assert.Contains(gulfMountains.Facts, fact => fact.Label == "Szczyt pasma");
+        var easterialCharacter = Assert.Single(easterial.Facts, fact => fact.Label == "Charakter osady");
+        Assert.DoesNotContain("settlement", easterialCharacter.Label, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(
+            catalog.Entries.SelectMany(entry => entry.Facts).Select(fact => fact.Label),
+            label => label.Contains('_'));
+        Assert.DoesNotContain(
+            catalog.Entries.SelectMany(entry => entry.Links).Select(link => link.RelationText),
+            label => label.Contains('_'));
         Assert.Single(catalog.Entries, entry => entry.Id == "place:island-of-the-mad");
         Assert.Single(catalog.Entries, entry => entry.Id == "place:grazl-stronghold");
     }

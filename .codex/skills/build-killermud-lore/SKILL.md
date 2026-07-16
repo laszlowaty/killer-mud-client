@@ -11,8 +11,9 @@ Build the canonical dataset in `lore/` from sources in `tools/KillerMUD`. Do not
 
 1. Read [references/source-map.md](references/source-map.md) before parsing KillerMUD files.
 2. Read [references/lore-contract.md](references/lore-contract.md) before writing records.
-3. Use `lore/schema/lore-record.schema.json` as the canonical record contract.
-4. Preserve the source checkout commit in `lore/manifest.json`.
+3. Read [references/presentation-language.md](references/presentation-language.md) before writing player-facing text or introducing a predicate.
+4. Use `lore/schema/lore-record.schema.json` as the canonical record contract.
+5. Preserve the source checkout commit in `lore/manifest.json`.
 
 ## Build in bounded batches
 
@@ -25,7 +26,8 @@ Build the canonical dataset in `lore/` from sources in `tools/KillerMUD`. Do not
 7. Create or update an `article` record only after its underlying entities and claims exist.
 8. Leave new records as `draft`, `extracted`, or `reviewed`; use `canonical` only after resolving conflicts or explicitly accepting them as competing accounts.
 9. Check for duplicate IDs and malformed JSONL before finishing.
-10. Regenerate all derived views after every accepted canonical change so existing application and Markdown content stays synchronized.
+10. Keep technical identifiers out of player-facing prose. Write presentation text in Polish and use only predicates with explicit Polish labels listed in the presentation-language contract.
+11. Regenerate all derived views after every accepted canonical change so existing application and Markdown content stays synchronized.
 
 Validate the canonical store:
 

@@ -94,6 +94,28 @@ class ExportLoreMarkdownTests(unittest.TestCase):
         self.assertFalse((self.output_dir / "b.md").exists())
         self.assertEqual("Ręczna notatka\n", (self.output_dir / "manual.md").read_text(encoding="utf-8"))
 
+    def test_index_uses_polish_category_headings(self) -> None:
+        landmark_article = article("article:a", "place:a", "Miejsce A", [])
+        landmark_article["category"] = "landmark"
+        settlement_article = article("article:b", "place:b", "Osada B", [])
+        settlement_article["category"] = "settlement"
+        self.write_records(
+            [
+                entity("place:a", "Miejsce A"),
+                landmark_article,
+                entity("place:b", "Osada B"),
+                settlement_article,
+            ]
+        )
+
+        EXPORTER.export_markdown(self.lore_root, self.output_dir)
+
+        index = (self.output_dir / "index.md").read_text(encoding="utf-8")
+        self.assertIn("## Miejsca", index)
+        self.assertIn("## Osady", index)
+        self.assertNotIn("## Landmark", index)
+        self.assertNotIn("## Settlement", index)
+
 
 if __name__ == "__main__":
     unittest.main()

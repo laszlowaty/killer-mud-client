@@ -33,6 +33,10 @@ When the source world changes, update the existing record with the same ID if th
 - `source`: reusable source-file metadata.
 - `article`: curated presentation record compiled for KillerMudClient.
 
+## Presentation language
+
+Keep schema identifiers and predicates stable, lowercase, and machine-facing. Write authored player-facing text in Polish and never derive a visible label by expanding an English identifier. Follow [presentation-language.md](presentation-language.md) for the complete field boundary and approved-predicate workflow.
+
 ## Evidence model
 
 Keep these axes independent:

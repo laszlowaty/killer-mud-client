@@ -16,7 +16,9 @@ GENERATED_NOTICE = "<!-- Generated from lore/records/*.jsonl. Do not edit this f
 SAFE_FILE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 CATEGORY_LABELS = {
     "city": "Miasta",
+    "landmark": "Miejsca",
     "region": "Regiony",
+    "settlement": "Osady",
 }
 
 
@@ -138,7 +140,7 @@ def render_index(articles: list[dict[str, Any]], filenames: dict[str, str]) -> s
         if category != current_category:
             if current_category is not None:
                 lines.append("")
-            heading = CATEGORY_LABELS.get(category, category.replace("-", " ").capitalize())
+            heading = CATEGORY_LABELS.get(category, "Pozostałe")
             lines.extend([f"## {heading}", ""])
             current_category = category
         lines.append(f"- [{article['title']}]({filenames[article['id']]}) — {article['summary']}")
