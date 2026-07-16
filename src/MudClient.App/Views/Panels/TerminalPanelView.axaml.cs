@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -240,35 +239,4 @@ public sealed partial class TerminalPanelView : UserControl
         _commandBox.CaretIndex = _commandBox.Text?.Length ?? 0;
     }
 
-    private void LogFilter_OnClick(object? sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is ToggleButton clicked)
-        {
-            if (clicked.Parent is StackPanel panel)
-            {
-                foreach (var child in panel.Children)
-                {
-                    if (child is ToggleButton other && !ReferenceEquals(other, clicked))
-                    {
-                        other.IsChecked = false;
-                    }
-                }
-            }
-
-            clicked.IsChecked = true;
-
-            if (_viewModel is not null && clicked.Tag is string tag)
-            {
-                var index = tag switch
-                {
-                    "all" => 0,
-                    "combat" => 1,
-                    "chat" => 2,
-                    "system" => 3,
-                    _ => 0,
-                };
-                _viewModel.SelectedLogTab = index;
-            }
-        }
-    }
 }

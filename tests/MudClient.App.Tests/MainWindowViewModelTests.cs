@@ -50,13 +50,6 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
 
     [Fact]
-    public void Constructor_PopulatesMockLogFilters()
-    {
-        Assert.NotEmpty(_vm.LogFilters);
-        Assert.Contains(_vm.LogFilters, f => f.Key == "all");
-    }
-
-    [Fact]
     public void Constructor_StartsWithNoPeopleInRoom()
     {
         // Room occupants come live from Room.People GMCP.
@@ -704,7 +697,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
-    // SelectedRightTab / SelectedLogTab properties
+    // SelectedRightTab property
     // ====================================================================
 
     [Fact]
@@ -718,19 +711,6 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     {
         _vm.SelectedRightTab = 2;
         Assert.Equal(2, _vm.SelectedRightTab);
-    }
-
-    [Fact]
-    public void SelectedLogTab_DefaultsToZero()
-    {
-        Assert.Equal(0, _vm.SelectedLogTab);
-    }
-
-    [Fact]
-    public void SelectedLogTab_IsSettable()
-    {
-        _vm.SelectedLogTab = 1;
-        Assert.Equal(1, _vm.SelectedLogTab);
     }
 
     // ====================================================================

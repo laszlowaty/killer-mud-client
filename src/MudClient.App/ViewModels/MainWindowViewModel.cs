@@ -90,7 +90,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
     private int _selectedRightTab;
-    private int _selectedLogTab;
     private string _newNoteTitle = string.Empty;
     private string _newNoteContent = string.Empty;
     private bool _newNoteIsGlobal;
@@ -615,12 +614,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _selectedRightTab;
         set => SetProperty(ref _selectedRightTab, value);
-    }
-
-    public int SelectedLogTab
-    {
-        get => _selectedLogTab;
-        set => SetProperty(ref _selectedLogTab, value);
     }
 
     public string NewNoteTitle
@@ -2914,9 +2907,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand<string> ExaminePersonCommand { get; }
     public IRelayCommand<string> KillPersonCommand { get; }
 
-    // --- Log filter tabs ---
-    public ObservableCollection<LogFilter> LogFilters { get; } = [];
-
     // --- Character vitals (mock) ---
     public CharacterVitals Vitals { get; } = new();
 
@@ -4539,12 +4529,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void PopulateMockData()
     {
-        // Log filter tabs
-        foreach (var filter in Models.LogFilters.Defaults)
-        {
-            LogFilters.Add(filter);
-        }
-
         // Status effects are populated live from Char.Affects GMCP.
 
         // Group members are populated live from Char.Group GMCP.
