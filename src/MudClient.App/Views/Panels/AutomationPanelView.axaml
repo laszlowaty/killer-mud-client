@@ -3,6 +3,7 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
              xmlns:controls="using:MudClient.App.Controls"
+             x:Name="AutomationRoot"
              x:Class="MudClient.App.Views.Panels.AutomationPanelView"
              x:DataType="vm:MainWindowViewModel">
   <UserControl.Resources>
@@ -212,7 +213,7 @@
                                MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
-                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=AutomationRoot}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
@@ -265,7 +266,7 @@
                                MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
-                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=AutomationRoot}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
@@ -318,7 +319,7 @@
                                MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
                                CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
                                RenameFolderCommand="{Binding RenameFolderCommand}"
-                               DeleteFolderCommand="{Binding DeleteFolderCommand}"
+                               DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=AutomationRoot}"
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 

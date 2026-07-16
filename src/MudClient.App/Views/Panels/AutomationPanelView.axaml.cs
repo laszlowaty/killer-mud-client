@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.Input;
 using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.Services;
@@ -24,9 +25,12 @@ public sealed partial class AutomationPanelView : UserControl
 
     public AutomationPanelView()
     {
+        ConfirmDeleteFolderCommand = new AsyncRelayCommand<FolderNode>(ConfirmDeleteFolderAsync);
         InitializeComponent();
         DataContextChanged += (_, _) => _viewModel = DataContext as MainWindowViewModel;
     }
+
+    public IAsyncRelayCommand<FolderNode> ConfirmDeleteFolderCommand { get; }
 
     private void EditTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
@@ -99,6 +103,30 @@ public sealed partial class AutomationPanelView : UserControl
         finally
         {
             button.IsEnabled = true;
+        }
+    }
+
+    private async Task ConfirmDeleteFolderAsync(FolderNode? folder)
+    {
+        if (folder is null ||
+            _viewModel is null ||
+            TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return;
+        }
+
+        var itemType = folder.Kind switch
+        {
+            FolderKind.Timers => "folder timerów",
+            FolderKind.Aliases => "folder aliasów",
+            FolderKind.Triggers => "folder triggerów",
+            _ => "folder",
+        };
+
+        if (await ConfirmDeletionAsync(owner, itemType, folder.Name) &&
+            _viewModel.DeleteFolderCommand.CanExecute(folder))
+        {
+            _viewModel.DeleteFolderCommand.Execute(folder);
         }
     }
 

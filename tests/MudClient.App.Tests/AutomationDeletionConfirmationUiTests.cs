@@ -145,6 +145,73 @@ public sealed class AutomationDeletionConfirmationUiTests
         Directory.Delete(directory, recursive: true);
     }
 
+    [AvaloniaFact]
+    public async Task DeleteFolders_RequireConfirmation_ForTimersAliasesAndTriggers()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_FolderDeleteConfirmation_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(
+            new ProfileService(directory),
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var folderDefinitions = new[]
+        {
+            (Kind: FolderKind.Timers, Name: "Cykliczne"),
+            (Kind: FolderKind.Aliases, Name: "Skróty"),
+            (Kind: FolderKind.Triggers, Name: "Reakcje"),
+        };
+        foreach (var definition in folderDefinitions)
+        {
+            viewModel.CreateFolderCommand.Execute(definition.Kind);
+            viewModel.Folders[^1].Name = definition.Name;
+        }
+        var folders = viewModel.Folders.ToArray();
+
+        var confirmations = new Queue<bool>([false, true, false, true, false, true]);
+        var prompts = new List<(string Type, string Name)>();
+        var panel = new AutomationPanelView
+        {
+            DataContext = viewModel,
+            ConfirmDeletionAsync = (_, itemType, itemName) =>
+            {
+                prompts.Add((itemType, itemName));
+                return Task.FromResult(confirmations.Dequeue());
+            },
+        };
+        var window = new Window { Width = 520, Height = 720, Content = panel };
+
+        window.Show();
+        for (var index = 0; index < folders.Length; index++)
+        {
+            viewModel.SelectedAutomationTabIndex = index;
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.UpdateLayout();
+
+            var folder = folders[index];
+            var deleteButton = window.GetLogicalDescendants().OfType<Button>().First(button =>
+                button.DataContext is FolderTreeNode { Folder: { } candidate } &&
+                ReferenceEquals(candidate, folder) &&
+                Equals(button.Content, "Usuń"));
+            Assert.Same(panel.ConfirmDeleteFolderCommand, deleteButton.Command);
+
+            await panel.ConfirmDeleteFolderCommand.ExecuteAsync(folder);
+            Assert.Contains(folder, viewModel.Folders);
+            await panel.ConfirmDeleteFolderCommand.ExecuteAsync(folder);
+            Assert.DoesNotContain(folder, viewModel.Folders);
+        }
+
+        Assert.Equal(
+            [("folder timerów", "Cykliczne"), ("folder timerów", "Cykliczne"),
+             ("folder aliasów", "Skróty"), ("folder aliasów", "Skróty"),
+             ("folder triggerów", "Reakcje"), ("folder triggerów", "Reakcje")],
+            prompts);
+
+        window.Close();
+        await viewModel.DisposeAsync();
+        Directory.Delete(directory, recursive: true);
+    }
+
     private static Task VerifyConfirmationAsync(
         Window window,
         MainWindowViewModel viewModel,

@@ -86,11 +86,16 @@ public sealed class FolderTreeViewUiTests
         var viewModel = new MainWindowViewModel(new ProfileService(directory), new AppSettingsService(directory));
         viewModel.CreateFolderCommand.Execute(FolderKind.Timers);
 
+        var panel = new AutomationPanelView
+        {
+            DataContext = viewModel,
+            ConfirmDeletionAsync = (_, _, _) => Task.FromResult(true),
+        };
         var window = new Window
         {
             Width = 500,
             Height = 700,
-            Content = new AutomationPanelView { DataContext = viewModel },
+            Content = panel,
         };
         window.Show();
         window.UpdateLayout();
@@ -112,13 +117,13 @@ public sealed class FolderTreeViewUiTests
                                  Equals(b.Content, "Usuń"));
         Assert.NotNull(deleteButton);
 
-        // The RelativeSource command binding and the {Binding Folder} parameter
-        // binding must both resolve against the FolderTreeView / node.
-        Assert.NotNull(deleteButton!.Command);
+        // The panel confirmation command and the {Binding Folder} parameter
+        // binding must both resolve against the panel / node.
+        Assert.Same(panel.ConfirmDeleteFolderCommand, deleteButton!.Command);
         var folder = Assert.IsType<FolderNode>(deleteButton.CommandParameter);
         Assert.True(deleteButton.Command!.CanExecute(folder));
 
-        deleteButton.Command.Execute(folder);
+        await panel.ConfirmDeleteFolderCommand.ExecuteAsync(folder);
 
         Assert.Empty(viewModel.Folders);
         Assert.Null(viewModel.StartupErrorMessage);
