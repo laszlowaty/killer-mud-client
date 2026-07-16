@@ -5,7 +5,9 @@
 Snapshot pobrano 2026-07-13 z gałęzi `master`, commit
 `0ddd219829f72072f18d8aa98fc9975ea7b33b54`. Dodatkowe, ręcznie przekazane wpisy
 są scalane w `Services/TeacherCatalogLoader.cs`; loader pomija identyczne oferty,
-żeby nie dublować danych obecnych już w bazie.
+żeby nie dublować danych obecnych już w bazie. Ręcznie przekazane triki nauczycieli
+są przechowywane osobno od umiejętności razem z szansą i ceną nauki oraz scalane
+z nauczycielami po vnum moba.
 
 `books.json` jest wbudowanym snapshotem katalogu ksiąg wygenerowanym komendami `booklist`.
 Widok najpierw szuka `killeropedia-books.json` w katalogu ustawień aplikacji, a bez niego

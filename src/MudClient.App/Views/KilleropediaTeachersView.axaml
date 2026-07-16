@@ -10,7 +10,7 @@
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
       <TextBox Grid.Column="0"
                Text="{Binding TeacherSearchText, UpdateSourceTrigger=PropertyChanged}"
-               PlaceholderText="Szukaj po nauczycielu, umiejętności, klasie, krainie lub vnum..." />
+               PlaceholderText="Szukaj po nauczycielu, umiejętności, triku, klasie, krainie lub vnum..." />
       <TextBlock Grid.Column="1"
                  Classes="mud-faint"
                  Text="{Binding FilteredTeacherCountText}"
@@ -40,7 +40,7 @@
                              TextTrimming="CharacterEllipsis" />
                   <TextBlock Grid.Row="1" Grid.Column="1"
                              Classes="mud-faint"
-                             Text="{Binding SkillCountText}" />
+                             Text="{Binding OfferingCountText}" />
                 </Grid>
               </Border>
             </DataTemplate>
@@ -51,7 +51,7 @@
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
       <Border Grid.Column="2" Classes="mud-section" Padding="16">
-        <ScrollViewer>
+        <ScrollViewer Classes="killeropedia-content-scroll">
           <StackPanel Spacing="12" DataContext="{Binding SelectedTeacher}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <StackPanel Grid.Column="0" Spacing="3">
@@ -78,29 +78,59 @@
               </StackPanel>
             </Border>
 
-            <TextBlock Classes="mud-heading" Text="UMIEJĘTNOŚCI" />
-            <Grid ColumnDefinitions="2*,80,70,80" ColumnSpacing="8" Margin="8,0">
-              <TextBlock Grid.Column="0" Classes="mud-faint" Text="Nazwa" />
-              <TextBlock Grid.Column="1" Classes="mud-faint" Text="Zakres" />
-              <TextBlock Grid.Column="2" Classes="mud-faint" Text="Cena" />
-              <TextBlock Grid.Column="3" Classes="mud-faint" Text="Wymaga" />
-            </Grid>
-            <ItemsControl ItemsSource="{Binding Skills}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:TeacherSkillEntry">
-                  <Border Classes="mud-inset" Padding="8,6" Margin="0,1">
-                    <Grid ColumnDefinitions="2*,80,70,80" ColumnSpacing="8">
-                      <TextBlock Grid.Column="0"
-                                 b:SearchHighlight.Text="{Binding Name}"
-                                 b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).TeacherSearchText}" />
-                      <TextBlock Grid.Column="1" Text="{Binding RangeText}" />
-                      <TextBlock Grid.Column="2" Text="{Binding PriceText}" />
-                      <TextBlock Grid.Column="3" Text="{Binding RequirementText}" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <TabControl x:Name="TeacherOfferingTabs" Classes="mud-subtabs">
+              <TabItem Header="Umiejętności">
+                <StackPanel Spacing="6" Margin="0,8,0,0">
+                  <Grid ColumnDefinitions="2*,80,70,80" ColumnSpacing="8" Margin="8,0">
+                    <TextBlock Grid.Column="0" Classes="mud-faint" Text="Nazwa" />
+                    <TextBlock Grid.Column="1" Classes="mud-faint" Text="Zakres" />
+                    <TextBlock Grid.Column="2" Classes="mud-faint" Text="Cena" />
+                    <TextBlock Grid.Column="3" Classes="mud-faint" Text="Wymaga" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Skills}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="models:TeacherSkillEntry">
+                        <Border Classes="mud-inset" Padding="8,6" Margin="0,1">
+                          <Grid ColumnDefinitions="2*,80,70,80" ColumnSpacing="8">
+                            <TextBlock Grid.Column="0"
+                                       b:SearchHighlight.Text="{Binding Name}"
+                                       b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).TeacherSearchText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding RangeText}" />
+                            <TextBlock Grid.Column="2" Text="{Binding PriceText}" />
+                            <TextBlock Grid.Column="3" Text="{Binding RequirementText}" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </TabItem>
+
+              <TabItem Header="Triki">
+                <StackPanel Spacing="6" Margin="0,8,0,0">
+                  <Grid ColumnDefinitions="*,120,100" ColumnSpacing="8" Margin="8,0">
+                    <TextBlock Grid.Column="0" Classes="mud-faint" Text="Nazwa" />
+                    <TextBlock Grid.Column="1" Classes="mud-faint" Text="Szansa nauki" />
+                    <TextBlock Grid.Column="2" Classes="mud-faint" Text="Cena" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Tricks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="models:TeacherTrickEntry">
+                        <Border Classes="mud-inset" Padding="8,6" Margin="0,1">
+                          <Grid ColumnDefinitions="*,120,100" ColumnSpacing="8">
+                            <TextBlock Grid.Column="0"
+                                       b:SearchHighlight.Text="{Binding Name}"
+                                       b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).TeacherSearchText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding LearnChanceText}" />
+                            <TextBlock Grid.Column="2" Text="{Binding PriceText}" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </TabItem>
+            </TabControl>
           </StackPanel>
         </ScrollViewer>
       </Border>

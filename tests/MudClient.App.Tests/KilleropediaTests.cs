@@ -31,7 +31,7 @@ public sealed class KilleropediaTests : IDisposable
     {
         var teachers = TeacherCatalogLoader.Load();
 
-        Assert.Equal(150, teachers.Count);
+        Assert.Equal(151, teachers.Count);
         Assert.Equal(1892, teachers.Sum(teacher => teacher.Skills.Count));
 
         var renegade = Assert.Single(teachers, teacher => teacher.MobVnum == "19216");
@@ -64,6 +64,50 @@ public sealed class KilleropediaTests : IDisposable
     }
 
     [Fact]
+    public void Catalog_ImportsTeacherTricksWithLearnChanceAndPrice()
+    {
+        var teachers = TeacherCatalogLoader.Load();
+        (string MobVnum, string Name, int LearnChance, int Price)[] expected =
+        [
+            ("1354", "vertical kick", 25, 5000),
+            ("1354", "staff swirl", 23, 5250),
+            ("27577", "entwine", 20, 8000),
+            ("27577", "weapon wrench", 23, 9000),
+            ("27662", "riposte", 19, 11000),
+            ("6611", "cyclone", 18, 7500),
+            ("6199", "flabbergast", 12, 3700),
+            ("6460", "dragon strike", 16, 10000),
+            ("6460", "glorious impale", 16, 8188),
+            ("28598", "decapitation", 11, 6000),
+            ("10952", "thundering whack", 18, 7450),
+            ("17938", "strucking wallop", 19, 7111),
+            ("16601", "shove", 35, 5900),
+            ("16601", "thigh jab", 25, 6666),
+            ("4507", "bleed", 21, 7878),
+            ("43911", "ravaging orb", 23, 8000),
+            ("40342", "crushing mace", 25, 6543),
+            ("33013", "thousandslayer", 21, 8765),
+            ("33013", "divine impact", 15, 7240),
+            ("923", "divine impact", 15, 7240),
+            ("14961", "lethal blow", 5, 25000),
+            ("14961", "thigh jab", 10, 5000),
+        ];
+
+        Assert.Equal(expected.Length, teachers.Sum(teacher => teacher.Tricks.Count));
+        foreach (var item in expected)
+        {
+            var teacher = Assert.Single(teachers, teacher => teacher.MobVnum == item.MobVnum);
+            Assert.Contains(
+                new TeacherTrickEntry(item.Name, item.LearnChance, item.Price),
+                teacher.Tricks);
+        }
+
+        var keredel = Assert.Single(teachers, teacher => teacher.MobVnum == "1354");
+        Assert.Equal("Jedzący mnich Keredel", keredel.Name);
+        Assert.False(keredel.HasRoomLocation);
+    }
+
+    [Fact]
     public void TeacherSearch_MatchesDiacriticsSkillsAndVnum()
     {
         var viewModel = CreateViewModel();
@@ -75,6 +119,10 @@ public sealed class KilleropediaTests : IDisposable
         var della = Assert.Single(viewModel.FilteredTeachers);
         Assert.Equal("Druidka Della", della.Name);
         Assert.Same(della, viewModel.SelectedTeacher);
+
+        viewModel.TeacherSearchText = "33013 thousandslayer";
+        var trickTeacher = Assert.Single(viewModel.FilteredTeachers);
+        Assert.Equal("Władca mroku", trickTeacher.Name);
     }
 
     [Fact]
@@ -107,11 +155,22 @@ public sealed class KilleropediaTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();
-        Assert.Equal(150, list.ItemCount);
+        Assert.Equal(151, list.ItemCount);
         Assert.NotNull(viewModel.SelectedTeacher);
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
             text => text.Text == viewModel.SelectedTeacher.Name);
+
+        var offeringTabs = view.FindControl<TabControl>("TeacherOfferingTabs");
+        Assert.NotNull(offeringTabs);
+        Assert.Equal(2, offeringTabs!.ItemCount);
+        Assert.Equal("Umiejętności", Assert.IsType<TabItem>(offeringTabs.Items[0]).Header);
+        Assert.Equal("Triki", Assert.IsType<TabItem>(offeringTabs.Items[1]).Header);
+
+        var detailsScroller = Assert.Single(
+            view.GetVisualDescendants().OfType<ScrollViewer>(),
+            scroller => scroller.Classes.Contains("killeropedia-content-scroll"));
+        Assert.Equal(14, detailsScroller.Padding.Right);
 
         window.Close();
     }
@@ -164,6 +223,11 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
             text => text.Text == "druidzki notatnik");
+
+        var detailsScroller = Assert.Single(
+            view.GetVisualDescendants().OfType<ScrollViewer>(),
+            scroller => scroller.Classes.Contains("killeropedia-content-scroll"));
+        Assert.Equal(14, detailsScroller.Padding.Right);
 
         window.Close();
     }

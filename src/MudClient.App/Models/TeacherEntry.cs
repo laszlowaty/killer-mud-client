@@ -14,6 +14,16 @@ public sealed record TeacherSkillEntry(
     public string RequirementText => $"od {RequiredSkill}";
 }
 
+public sealed record TeacherTrickEntry(
+    string Name,
+    int LearnChance,
+    int Price)
+{
+    public string LearnChanceText => $"{LearnChance}%";
+
+    public string PriceText => $"{Price} $";
+}
+
 public sealed record TeacherEntry(
     string MobVnum,
     string Name,
@@ -21,7 +31,8 @@ public sealed record TeacherEntry(
     string? Area,
     string? RoomVnum,
     IReadOnlyList<string> Classes,
-    IReadOnlyList<TeacherSkillEntry> Skills)
+    IReadOnlyList<TeacherSkillEntry> Skills,
+    IReadOnlyList<TeacherTrickEntry> Tricks)
 {
     public string LocationText => string.IsNullOrWhiteSpace(Area) ? Region : Area;
 
@@ -35,5 +46,5 @@ public sealed record TeacherEntry(
 
     public string ClassesText => Classes.Count == 0 ? "brak danych" : string.Join(", ", Classes);
 
-    public string SkillCountText => $"{Skills.Count} umiejętności";
+    public string OfferingCountText => $"{Skills.Count} umiejętności · {Tricks.Count} trików";
 }

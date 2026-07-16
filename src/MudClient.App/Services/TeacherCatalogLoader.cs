@@ -40,6 +40,7 @@ internal static class TeacherCatalogLoader
                     supplement.Area,
                     null,
                     supplement.Classes.ToList(),
+                    [],
                     []);
                 teachers.Add(supplement.MobVnum, teacher);
             }
@@ -54,6 +55,32 @@ internal static class TeacherCatalogLoader
             if (!teacher.Skills.Contains(skill))
             {
                 teacher.Skills.Add(skill);
+            }
+        }
+
+        foreach (var supplement in TrickSupplements)
+        {
+            if (!teachers.TryGetValue(supplement.MobVnum, out var teacher))
+            {
+                teacher = new MutableTeacher(
+                    supplement.MobVnum,
+                    supplement.TeacherName,
+                    "brak danych",
+                    null,
+                    null,
+                    [],
+                    [],
+                    []);
+                teachers.Add(supplement.MobVnum, teacher);
+            }
+
+            var trick = new TeacherTrickEntry(
+                supplement.TrickName,
+                supplement.LearnChance,
+                supplement.Price);
+            if (!teacher.Tricks.Contains(trick))
+            {
+                teacher.Tricks.Add(trick);
             }
         }
 
@@ -88,7 +115,8 @@ internal static class TeacherCatalogLoader
         string? area,
         string? roomVnum,
         List<string> classes,
-        List<TeacherSkillEntry> skills)
+        List<TeacherSkillEntry> skills,
+        List<TeacherTrickEntry> tricks)
     {
         public string MobVnum { get; } = mobVnum;
         public string Name { get; } = name;
@@ -97,6 +125,7 @@ internal static class TeacherCatalogLoader
         public string? RoomVnum { get; } = roomVnum;
         public List<string> Classes { get; } = classes;
         public List<TeacherSkillEntry> Skills { get; } = skills;
+        public List<TeacherTrickEntry> Tricks { get; } = tricks;
 
         public static MutableTeacher FromSource(string mobVnum, TeacherDto source) => new(
             mobVnum,
@@ -115,7 +144,8 @@ internal static class TeacherCatalogLoader
                 skill.Min,
                 skill.Max,
                 skill.ReqSkill,
-                skill.Price)).ToList());
+                skill.Price)).ToList(),
+            []);
 
         public TeacherEntry ToEntry() => new(
             MobVnum,
@@ -124,7 +154,8 @@ internal static class TeacherCatalogLoader
             Area,
             RoomVnum,
             Classes,
-            Skills.OrderBy(skill => skill.Name, StringComparer.OrdinalIgnoreCase).ToArray());
+            Skills.OrderBy(skill => skill.Name, StringComparer.OrdinalIgnoreCase).ToArray(),
+            Tricks.OrderBy(trick => trick.Name, StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     private sealed record TeacherSupplement(
@@ -151,6 +182,47 @@ internal static class TeacherCatalogLoader
         string region,
         params string[] classes) =>
         new(skill, min, max, price, required, mobVnum, teacher, area, region, classes);
+
+    private sealed record TrickSupplement(
+        string MobVnum,
+        string TeacherName,
+        string TrickName,
+        int LearnChance,
+        int Price);
+
+    private static TrickSupplement T(
+        string mobVnum,
+        string teacher,
+        string trick,
+        int learnChance,
+        int price) =>
+        new(mobVnum, teacher, trick, learnChance, price);
+
+    private static readonly TrickSupplement[] TrickSupplements =
+    [
+        T("1354", "Jedzący mnich Keredel", "vertical kick", 25, 5000),
+        T("1354", "Jedzący mnich Keredel", "staff swirl", 23, 5250),
+        T("27577", "Instruktor drow", "entwine", 20, 8000),
+        T("27577", "Instruktor drow", "weapon wrench", 23, 9000),
+        T("27662", "Kapral Ordalys", "riposte", 19, 11000),
+        T("6611", "Wielki półogr Haghburg", "cyclone", 18, 7500),
+        T("6199", "Zbrojmistrz garnizonu", "flabbergast", 12, 3700),
+        T("6460", "Mistrz Moran", "dragon strike", 16, 10000),
+        T("6460", "Mistrz Moran", "glorious impale", 16, 8188),
+        T("28598", "Oprawca", "decapitation", 11, 6000),
+        T("10952", "Uwolniona dusza starożytnego paladyna", "thundering whack", 18, 7450),
+        T("17938", "Mistrz barbarzyński", "strucking wallop", 19, 7111),
+        T("16601", "Tankartez", "shove", 35, 5900),
+        T("16601", "Tankartez", "thigh jab", 25, 6666),
+        T("4507", "Mistrz Gregor", "bleed", 21, 7878),
+        T("43911", "Stary śnieżny troll", "ravaging orb", 23, 8000),
+        T("40342", "Paladyn Marteg", "crushing mace", 25, 6543),
+        T("33013", "Władca mroku", "thousandslayer", 21, 8765),
+        T("33013", "Władca mroku", "divine impact", 15, 7240),
+        T("923", "Federmel ev Kenrah", "divine impact", 15, 7240),
+        T("14961", "Snat", "lethal blow", 5, 25000),
+        T("14961", "Snat", "thigh jab", 10, 5000),
+    ];
 
     // Entries supplied separately from the MudletScripts kbase snapshot.
     private static readonly TeacherSupplement[] Supplements =

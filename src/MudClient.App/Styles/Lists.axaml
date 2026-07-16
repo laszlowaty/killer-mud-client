@@ -19,6 +19,11 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
+  <!-- Keep overlay scrollbars away from the last column in Killeropedia details. -->
+  <Style Selector="ScrollViewer.killeropedia-content-scroll">
+    <Setter Property="Padding" Value="0,0,14,0" />
+  </Style>
+
   <Style Selector="ComboBox">
     <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />

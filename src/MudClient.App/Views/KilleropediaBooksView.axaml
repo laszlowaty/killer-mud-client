@@ -86,7 +86,7 @@
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
       <Border Grid.Column="2" Classes="mud-section" Padding="16">
-        <ScrollViewer>
+        <ScrollViewer Classes="killeropedia-content-scroll">
           <StackPanel Spacing="12" DataContext="{Binding SelectedBook}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Grid.Column="0" Classes="mud-heading-lg" Text="{Binding Name}" />
