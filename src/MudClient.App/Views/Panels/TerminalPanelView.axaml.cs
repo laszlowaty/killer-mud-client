@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.ViewModels;
@@ -19,6 +20,7 @@ public sealed partial class TerminalPanelView : UserControl
 
     private readonly MudOutputView _mudOutput;
     private readonly TextBox _commandBox;
+    private readonly DispatcherTimer _timerCountdownRefresh;
     private MainWindowViewModel? _viewModel;
     private bool _isViewModelSubscribed;
     private int _historyIndex = -1;
@@ -31,6 +33,11 @@ public sealed partial class TerminalPanelView : UserControl
             ?? throw new InvalidOperationException("MudOutput not found.");
         _commandBox = this.FindControl<TextBox>("CommandBox")
             ?? throw new InvalidOperationException("CommandBox not found.");
+        _timerCountdownRefresh = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100),
+        };
+        _timerCountdownRefresh.Tick += RefreshTimerCountdowns;
 
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += OnAttachedToVisualTree;
@@ -81,6 +88,7 @@ public sealed partial class TerminalPanelView : UserControl
     {
         UnsubscribeFromViewModel();
         _viewModel = DataContext as MainWindowViewModel;
+        RefreshTimerCountdowns(this, EventArgs.Empty);
 
         if (this.IsAttachedToVisualTree())
         {
@@ -92,14 +100,31 @@ public sealed partial class TerminalPanelView : UserControl
     {
         Current = this;
         SubscribeToViewModel();
+        RefreshTimerCountdowns(this, EventArgs.Empty);
+        _timerCountdownRefresh.Start();
     }
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs eventArgs)
     {
         UnsubscribeFromViewModel();
+        _timerCountdownRefresh.Stop();
         if (ReferenceEquals(Current, this))
         {
             Current = null;
+        }
+    }
+
+    private void RefreshTimerCountdowns(object? sender, EventArgs eventArgs)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var timer in _viewModel.Timers)
+        {
+            timer.RefreshCountdown(now);
         }
     }
 

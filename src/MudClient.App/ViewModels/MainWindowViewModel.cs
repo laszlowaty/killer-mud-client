@@ -1444,27 +1444,52 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (interval <= TimeSpan.Zero)
         {
             entry.IsEnabled = false;
+            entry.ClearNextActivation();
             AddToast($"Timer „{entry.Name}” ma nieprawidłowy interwał.", "error");
             return;
         }
 
         var commands = entry.GetCommands(CommandStackingSeparator);
+        var now = DateTimeOffset.UtcNow;
+        entry.ScheduleNextActivation(now + interval, now);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
-            if (!IsConnected || _bookRefreshCts is not null)
+            if (IsConnected && _bookRefreshCts is null)
             {
-                return;
+                foreach (var command in commands)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await _session.SendCommandAsync(command);
+                }
             }
 
-            foreach (var command in commands)
+            var nextIntervalStartedAt = DateTimeOffset.UtcNow;
+            Dispatcher.UIThread.Post(() =>
             {
-                token.ThrowIfCancellationRequested();
-                await _session.SendCommandAsync(command);
-            }
+                if (!token.IsCancellationRequested && entry.IsEnabled)
+                {
+                    entry.ScheduleNextActivation(
+                        nextIntervalStartedAt + interval,
+                        nextIntervalStartedAt);
+                }
+            });
         });
     }
 
-    private void StopTimer(TimerEntry entry) => _timers.Cancel(TimerKey(entry));
+    private void StopTimer(TimerEntry entry)
+    {
+        _timers.Cancel(TimerKey(entry));
+        entry.ClearNextActivation();
+    }
+
+    private void CancelAllTimers()
+    {
+        _timers.CancelAll();
+        foreach (var entry in Timers)
+        {
+            entry.ClearNextActivation();
+        }
+    }
 
     private void SyncAllTimers()
     {
@@ -2592,7 +2617,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         SaveActiveProfile();
-        _timers.CancelAll();
+        CancelAllTimers();
         SelectedProfileName = ActiveProfileName;
         ActiveProfileName = null;
         _activeProfilePassword = string.Empty;
@@ -2669,7 +2694,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RebuildRuleViews();
         RebuildFolderTrees();
         ApplyAutomation();
-        _timers.CancelAll();
+        CancelAllTimers();
         SyncAllTimers();
         AddToast($"Konto „{profile.Name}” aktywne.", "info");
         ProfileActivated?.Invoke(profile.Name);
@@ -3491,7 +3516,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         else if (kind is FolderKind.Timers)
         {
-            _timers.CancelAll();
+            CancelAllTimers();
             SyncAllTimers();
         }
 

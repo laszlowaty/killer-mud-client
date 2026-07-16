@@ -16,13 +16,34 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
     private bool _isEnabled;
     private bool _isGlobal;
     private string? _folderId;
+    private DateTimeOffset? _nextActivationAt;
+    private string _remainingText = string.Empty;
 
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
 
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            if (SetProperty(ref _name, value))
+            {
+                OnPropertyChanged(nameof(ShortName));
+            }
+        }
+    }
+
+    /// <summary>Compact timer name used by the terminal countdown overlay.</summary>
+    public string ShortName
+    {
+        get
+        {
+            const int maximumLength = 12;
+            var trimmed = Name.Trim();
+            return trimmed.Length <= maximumLength
+                ? trimmed
+                : $"{trimmed[..(maximumLength - 1)]}…";
+        }
     }
 
     public int Minutes
@@ -64,6 +85,13 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
 
     public string StatusText => IsEnabled ? "WŁĄCZONY" : "WYŁĄCZONY";
 
+    /// <summary>Formatted time remaining until the next activation.</summary>
+    public string RemainingText
+    {
+        get => _remainingText;
+        private set => SetProperty(ref _remainingText, value);
+    }
+
     /// <summary>True = shared by all profiles (stored in the global file).</summary>
     public bool IsGlobal
     {
@@ -93,6 +121,47 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
             if (Milliseconds > 0) parts.Add($"{Milliseconds} ms");
             return parts.Count > 0 ? string.Join(" ", parts) : "brak interwału";
         }
+    }
+
+    internal void ScheduleNextActivation(DateTimeOffset activationAt, DateTimeOffset now)
+    {
+        _nextActivationAt = activationAt;
+        RefreshCountdown(now);
+    }
+
+    internal void ClearNextActivation()
+    {
+        _nextActivationAt = null;
+        RemainingText = string.Empty;
+    }
+
+    internal void RefreshCountdown(DateTimeOffset now)
+    {
+        if (!IsEnabled || _nextActivationAt is not { } activationAt)
+        {
+            RemainingText = string.Empty;
+            return;
+        }
+
+        RemainingText = FormatRemaining(activationAt - now);
+    }
+
+    internal static string FormatRemaining(TimeSpan remaining)
+    {
+        var totalMilliseconds = Math.Max(0, remaining.TotalMilliseconds);
+        if (totalMilliseconds < 10_000)
+        {
+            var tenths = Math.Ceiling(totalMilliseconds / 100);
+            return $"{tenths / 10:0.0} s";
+        }
+
+        var totalSeconds = (long)Math.Ceiling(totalMilliseconds / 1000);
+        if (totalSeconds < 3600)
+        {
+            return $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
+        }
+
+        return $"{totalSeconds / 3600}:{totalSeconds / 60 % 60:00}:{totalSeconds % 60:00}";
     }
 
     /// <summary>

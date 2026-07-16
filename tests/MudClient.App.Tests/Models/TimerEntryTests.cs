@@ -4,6 +4,40 @@ namespace MudClient.App.Tests.Models;
 
 public sealed class TimerEntryTests
 {
+    [Theory]
+    [InlineData("Leczenie grupowe", "Leczenie gr…")]
+    [InlineData("  mana  ", "mana")]
+    public void ShortName_TrimsAndAbbreviatesLongNames(string name, string expected)
+    {
+        var timer = new TimerEntry { Name = name };
+
+        Assert.Equal(expected, timer.ShortName);
+    }
+
+    [Theory]
+    [InlineData(0, "0.0 s")]
+    [InlineData(999, "1.0 s")]
+    [InlineData(9_901, "10.0 s")]
+    [InlineData(10_001, "00:11")]
+    [InlineData(65_001, "01:06")]
+    [InlineData(3_665_001, "1:01:06")]
+    public void FormatRemaining_UsesReadablePrecision(double milliseconds, string expected)
+    {
+        Assert.Equal(expected, TimerEntry.FormatRemaining(TimeSpan.FromMilliseconds(milliseconds)));
+    }
+
+    [Fact]
+    public void RefreshCountdown_UpdatesAgainstScheduledActivation()
+    {
+        var now = new DateTimeOffset(2026, 7, 16, 12, 0, 0, TimeSpan.Zero);
+        var timer = new TimerEntry { IsEnabled = true };
+        timer.ScheduleNextActivation(now.AddSeconds(15), now);
+
+        timer.RefreshCountdown(now.AddSeconds(5.25));
+
+        Assert.Equal("9.8 s", timer.RemainingText);
+    }
+
     // ====================================================================
     // GetCommands() no-arg — newline-only split (backward compat)
     // ====================================================================

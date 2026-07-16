@@ -494,10 +494,12 @@ public sealed class ProfileTests : IDisposable
         var entry = Assert.Single(vm.Timers);
         vm.ToggleTimerCommand.Execute(entry);
         Assert.True(entry.IsEnabled);
+        Assert.NotEmpty(entry.RemainingText);
         Assert.True(service.Load("Eowina")!.Timers.Single().IsEnabled);
 
         vm.ToggleTimerCommand.Execute(entry);
         Assert.False(entry.IsEnabled);
+        Assert.Empty(entry.RemainingText);
         Assert.False(service.Load("Eowina")!.Timers.Single().IsEnabled);
     }
 
