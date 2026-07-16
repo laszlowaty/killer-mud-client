@@ -95,6 +95,11 @@ Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/id
 
 Gotowe paczki (self-contained, jeden plik wykonywalny, bez instalacji) są na [stronie projektu](https://laszlowaty.github.io/killer-mud-client/) oraz w [GitHub Releases](https://github.com/laszlowaty/killer-mud-client/releases): `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64`.
 
+Po uruchomieniu aplikacja nieblokująco sprawdza publiczne wydania GitHub. Gdy jest
+dostępna nowsza wersja (również beta), w górnym pasku pojawia się powiadomienie
+z odnośnikami do pobrania właściwego wydania i pełnej listy zmian. Brak sieci nie
+wpływa na uruchamianie ani korzystanie z klienta.
+
 Na macOS binarka nie jest podpisana — po rozpakowaniu:
 
 ```bash

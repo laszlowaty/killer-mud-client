@@ -69,6 +69,7 @@ public partial class MainWindow : Window
             // Auto-connect happens after the user picks a profile
             // (MainWindowViewModel.ActivateProfile).
             await _viewModel.InitializeAsync();
+            _viewModel.StartUpdateCheck();
             if (DeferredSettingsImportError is not null)
             {
                 _viewModel.ReportSettingsImportError(DeferredSettingsImportError);

@@ -158,6 +158,39 @@
           </StackPanel>
         </Grid>
 
+        <!-- Available release: persistent until explicitly dismissed. -->
+        <Border Classes="mud-section"
+                BorderBrush="{StaticResource MudBrushGold}"
+                BorderThickness="1"
+                CornerRadius="3"
+                Padding="8,4"
+                IsVisible="{Binding IsUpdateAvailable}">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding UpdateNotificationText}"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource MudBrushGoldBright}"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Content="Pobierz"
+                    Command="{Binding OpenUpdateReleaseCommand}"
+                    FontSize="11"
+                    Padding="8,3" />
+            <Button Grid.Column="2"
+                    Content="Lista zmian"
+                    Command="{Binding OpenChangelogCommand}"
+                    FontSize="11"
+                    Padding="8,3" />
+            <Button Grid.Column="3"
+                    Classes="mud-small"
+                    Content="✕"
+                    Command="{Binding DismissUpdateCommand}"
+                    ToolTip.Tip="Ukryj powiadomienie do następnego uruchomienia"
+                    Padding="6,2" />
+          </Grid>
+        </Border>
+
         <!-- Row B: toasts (clipped so they never overlap) -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
 

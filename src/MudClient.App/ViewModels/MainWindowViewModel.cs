@@ -68,6 +68,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
+    private readonly IUpdateCheckService _updateCheckService;
+    private readonly IExternalLinkService _externalLinkService;
+    private CancellationTokenSource? _updateCheckCts;
+    private Task? _updateCheckTask;
 
     private MudDockFactory _dockFactory;
     private readonly DockLayoutService _dockLayoutService;
@@ -86,6 +90,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _startupErrorDetails;
     private bool _isKilleropediaOpen;
     private bool _isHelpOpen;
+    private AvailableUpdate? _availableUpdate;
 
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
@@ -189,7 +194,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DockLayoutService? dockLayoutService = null,
         BookCatalogStore? bookCatalogStore = null,
         BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
-        LayoutPresetService? layoutPresetService = null)
+        LayoutPresetService? layoutPresetService = null,
+        IUpdateCheckService? updateCheckService = null,
+        IExternalLinkService? externalLinkService = null)
     {
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
@@ -198,6 +205,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             DeveloperFeatures.BookCatalogOutputPath
             ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"));
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
+        _updateCheckService = updateCheckService ?? new UpdateCheckService();
+        _externalLinkService = externalLinkService ?? new ExternalLinkService();
         Killeropedia = new KilleropediaViewModel(
             TeacherCatalogLoader.Load(),
             _bookCatalogStore,
@@ -317,6 +326,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             IsKilleropediaOpen = false;
             IsHelpOpen = true;
         });
+        OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
+        OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
+        DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
 
         PopulateMockData();
 
@@ -377,6 +389,31 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand OpenKilleropediaCommand { get; }
 
     public IRelayCommand OpenHelpCommand { get; }
+
+    public IRelayCommand OpenUpdateReleaseCommand { get; }
+
+    public IRelayCommand OpenChangelogCommand { get; }
+
+    public IRelayCommand DismissUpdateCommand { get; }
+
+    public AvailableUpdate? AvailableUpdate
+    {
+        get => _availableUpdate;
+        private set
+        {
+            if (SetProperty(ref _availableUpdate, value))
+            {
+                OnPropertyChanged(nameof(IsUpdateAvailable));
+                OnPropertyChanged(nameof(UpdateNotificationText));
+            }
+        }
+    }
+
+    public bool IsUpdateAvailable => AvailableUpdate is not null;
+
+    public string UpdateNotificationText => AvailableUpdate is { } update
+        ? $"Dostępna jest wersja {update.Version}{(update.IsPrerelease ? " (beta)" : string.Empty)}."
+        : string.Empty;
 
     /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
     public string NewLayoutName
@@ -494,6 +531,54 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         ClearStartupError();
         await Map.InitializeAsync(cancellationToken);
+    }
+
+    public void StartUpdateCheck()
+    {
+        if (_updateCheckTask is not null)
+        {
+            return;
+        }
+
+        _updateCheckCts = new CancellationTokenSource();
+        _updateCheckTask = CheckForUpdateAsync(_updateCheckCts.Token);
+    }
+
+    internal Task? ActiveUpdateCheck => _updateCheckTask;
+
+    private async Task CheckForUpdateAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            AvailableUpdate = await _updateCheckService.CheckForUpdateAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Closing the application cancels the optional background check.
+        }
+        catch (Exception)
+        {
+            // Update discovery is best-effort. Network, remote-data and platform failures must not
+            // interrupt startup or distract the user from the MUD session. The next launch retries.
+        }
+    }
+
+    private void OpenExternalLink(Uri? uri)
+    {
+        if (uri is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _externalLinkService.Open(uri);
+        }
+        catch (Exception exception)
+        {
+            // Opening an external page is user-requested, so report platform/browser failures.
+            AddToast($"Nie udało się otworzyć linku: {exception.Message}", "error");
+        }
     }
 
     public event Action<string>? OutputReceived;
@@ -4610,6 +4695,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         SaveActiveProfile();
+
+        _updateCheckCts?.Cancel();
+        if (_updateCheckTask is not null)
+        {
+            try
+            {
+                await _updateCheckTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // The optional background check was cancelled during shutdown.
+            }
+        }
+
+        _updateCheckCts?.Dispose();
 
         try
         {
