@@ -242,13 +242,16 @@ public sealed class KilleropediaTests : IDisposable
     {
         var catalog = CreateLoreCatalog();
 
-        Assert.Equal(33, catalog.Entries.Count);
+        Assert.Equal(43, catalog.Entries.Count);
         var arras = Assert.Single(catalog.Entries, entry => entry.Id == "place:arras");
         Assert.Equal("Arras", arras.Name);
         Assert.Contains(arras.Sections, section => section.Title == "Władze i instytucje");
         Assert.Contains(arras.Links, link => link.TargetId == "place:carrallak");
         Assert.Contains(arras.Links, link => link.TargetId == "character:khabar-of-podgorze");
         Assert.Contains(arras.Sources, source => source.DisplayText.Contains("arras.are", StringComparison.Ordinal));
+
+        var easterial = Assert.Single(catalog.Entries, entry => entry.Id == "place:easterial");
+        Assert.Contains(easterial.Links, link => link.TargetId == "place:dinneshere-lake");
     }
 
     [Fact]
@@ -279,7 +282,7 @@ public sealed class KilleropediaTests : IDisposable
 
         var catalog = LoreCatalogLoader.Load(_directory);
 
-        Assert.Equal(33, catalog.Entries.Count);
+        Assert.Equal(43, catalog.Entries.Count);
         Assert.Equal("katalog wbudowany", catalog.SourceText);
         Assert.Contains("Nie udało się wczytać", catalog.Warning);
     }

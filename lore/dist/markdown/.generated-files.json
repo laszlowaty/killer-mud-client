@@ -3,12 +3,14 @@
     "article:arras",
     "article:carrallak",
     "article:dwarven-fortress",
-    "article:old-continent-core"
+    "article:old-continent-core",
+    "article:easterial"
   ],
   "files": [
     "arras.md",
     "carrallak.md",
     "dwarven-fortress.md",
+    "easterial.md",
     "index.md",
     "old-continent-core.md"
   ],

@@ -8,3 +8,9 @@
 {"schemaVersion":1,"recordType":"source","id":"source:carrwiez-area","status":"reviewed","name":"Wieża koło Carrallak","path":"area/carrwiez.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
 {"schemaVersion":1,"recordType":"source","id":"source:dwarfs-area","status":"reviewed","name":"Krasnoludzka Forteca","path":"area/dwarfs.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
 {"schemaVersion":1,"recordType":"source","id":"source:gorykras-area","status":"reviewed","name":"Góry na zachód od Fortecy","path":"area/gorykras.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:ehaveni-area","status":"reviewed","name":"Easterial I","path":"area/ehaveni.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:ehavenii-area","status":"reviewed","name":"Easterial II","path":"area/ehavenii.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:zaspy1-area","status":"reviewed","name":"Śnieżne Zaspy","path":"area/zaspy1.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:eastbarb-area","status":"reviewed","name":"Osada barbarzyńców i tundra nad Dinneshere","path":"area/eastbarb.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:gorsklas-area","status":"reviewed","name":"Górskie Lasy","path":"area/gorsklas.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:traktfal-area","status":"reviewed","name":"Trakt Faldharski","path":"area/traktfal.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}

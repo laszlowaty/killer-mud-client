@@ -13,3 +13,7 @@ Czytelny katalog artykułów generowany z kanonicznych rekordów JSONL.
 ## Regiony
 
 - [Stary Kontynent: Arras, Carrallak i Krasnoludzka Forteca](old-continent-core.md) — Rdzeń Starego Kontynentu tworzą trzy duże ośrodki połączone dalekimi traktami: handlowe Arras, tłoczne Carrallak i kupiecka Krasnoludzka Forteca.
+
+## Settlement
+
+- [Easterial i okolice](easterial.md) — Spokojne północne miasteczko rybackie nad Dinneshere, otoczone śnieżnymi pustkowiami, górskimi lasami i szlakiem ku przełęczy Faldhar.
