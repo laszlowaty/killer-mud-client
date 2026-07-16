@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -15,6 +16,27 @@ namespace MudClient.App.Tests;
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class LordModeMapUiTests
 {
+    [AvaloniaFact]
+    public void LowerLevelShadow_SelectsOnlyExactPreviousZLevel()
+    {
+        var currentRoom = CreateRoom(1, areaId: 1, x: 8, z: 1);
+        var unrelatedRoom = CreateRoom(2, areaId: 1, x: 0, z: -1);
+        var lowerRoom = CreateRoom(3, areaId: 1, x: 0, z: 0);
+        var map = new WorldMapControl
+        {
+            AreaId = 1,
+            Z = 1,
+            DisplayMode = MapDisplayMode.Simple,
+            MapIndex = CreateIndex(currentRoom, unrelatedRoom, lowerRoom),
+        };
+        map.Measure(new Size(320, 240));
+        map.Arrange(new Rect(0, 0, 320, 240));
+
+        var shadowRoom = Assert.Single(map.GetLowerLevelShadowRooms()).Room;
+
+        Assert.Equal(lowerRoom.Id, shadowRoom.Id);
+    }
+
     [AvaloniaFact]
     public void AreaChange_WithoutConnection_KeepsZSelectionTyped()
     {
@@ -130,4 +152,27 @@ public sealed class LordModeMapUiTests
             },
         ],
     };
+
+    private static MapRoom CreateRoom(int id, int areaId, double x, double z) => new()
+    {
+        Id = id,
+        AreaId = areaId,
+        Name = $"Pokój {id}",
+        Coordinates = new MapCoordinates(x, 0, z),
+    };
+
+    private static MapIndex CreateIndex(params MapRoom[] rooms) =>
+        new(new MapDocument
+        {
+            Areas =
+            [
+                new MapArea
+                {
+                    Id = 1,
+                    Name = "Obszar",
+                    Rooms = rooms,
+                },
+            ],
+        });
+
 }

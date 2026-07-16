@@ -40,6 +40,7 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 
 - interaktywna mapa świata (17 obszarów, ~25 000 pokoi) renderowana własną kontrolką Avalonia, z biomowymi podkładami graficznymi, zoomem względem kursora i widokiem strategicznym przy dużym oddaleniu,
 - śledzenie pozycji postaci przez GMCP (`Room.Info`); każda zmiana lokacji ponownie włącza tryb śledzenia i centruje mapę na aktualnym pokoju,
+- miękki, półprzezroczysty cień pokojów i połączeń z poziomu `z-1`, ułatwiający orientację między piętrami,
 - znaczniki z imionami członków drużyny na mapie na podstawie pokojów z GMCP `Char.Group` (złoty znacznik oznacza lidera),
 - opcjonalny **Tryb lorda** w menu mapy udostępnia pod prawym przyciskiem pokoju polecenie `goto <vnum>`; uprawnienia do wykonania komendy nadal weryfikuje serwer,
 - pathfinding i automatyczne chodzenie po kliknięciu pokoju, także przez przejścia między poziomami `z`, z politykami odzyskiwania: odpoczynek/`refresh` przy niskim `mv` oraz obsługa zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).

@@ -42,6 +42,17 @@ public sealed class WorldMapControl : Control
 
     private static readonly Pen RoutePen = new(Brushes.Orange, 3.5) { LineCap = PenLineCap.Round };
     private static readonly Pen RouteTargetPen = new(Brushes.Orange, 3);
+    private static readonly IBrush LowerLevelRoomBrush =
+        new SolidColorBrush(Color.FromArgb(90, 24, 28, 31));
+    private static readonly Pen LowerLevelRoomPen =
+        new(new SolidColorBrush(Color.FromArgb(105, 104, 110, 114)), 1.4);
+    private static readonly Pen LowerLevelExitPen =
+        new(new SolidColorBrush(Color.FromArgb(105, 76, 82, 86)), 2)
+        {
+            LineCap = PenLineCap.Round,
+        };
+    private static readonly IEffect LowerLevelBlurEffect = new ImmutableBlurEffect(2.4);
+    private static readonly Vector LowerLevelShadowOffset = new(3, 3);
     private static readonly Dictionary<int, MapOffset> EmptyOffsets = [];
 
     private readonly CollisionLayoutService _collisionLayout = new();
@@ -552,7 +563,12 @@ public sealed class WorldMapControl : Control
         return best;
     }
 
-    private IEnumerable<(MapRoom Room, MapOffset Offset)> GetVisibleRooms()
+    private IEnumerable<(MapRoom Room, MapOffset Offset)> GetVisibleRooms() =>
+        GetVisibleRooms(_z, includeExpandedGroups: true);
+
+    private IEnumerable<(MapRoom Room, MapOffset Offset)> GetVisibleRooms(
+        double z,
+        bool includeExpandedGroups)
     {
         if (_mapIndex is null)
         {
@@ -564,7 +580,7 @@ public sealed class WorldMapControl : Control
 
         var rooms = _mapIndex.GetRoomsInBounds(
             _areaId,
-            _z,
+            z,
             bounds.X - margin,
             bounds.Y - margin,
             bounds.X + bounds.Width + margin,
@@ -580,8 +596,9 @@ public sealed class WorldMapControl : Control
                 continue;
             }
 
-            var isExpanded = _expandedGroups.Contains(group.Cell) ||
-                (_currentRoom is not null && group.Rooms.Any(r => r.Id == _currentRoom.Id));
+            var isExpanded = includeExpandedGroups &&
+                (_expandedGroups.Contains(group.Cell) ||
+                    (_currentRoom is not null && group.Rooms.Any(r => r.Id == _currentRoom.Id)));
 
             if (!isExpanded)
             {
@@ -629,6 +646,7 @@ public sealed class WorldMapControl : Control
             DrawTerrain(context, roomsWithOffsets, roomLookup);
         }
 
+        DrawLowerLevelShadow(context);
         DrawExits(context, roomsWithOffsets, roomLookup);
         DrawRooms(context, roomsWithOffsets);
         DrawRoute(context, roomLookup);
@@ -1049,6 +1067,74 @@ public sealed class WorldMapControl : Control
                 }
             }
         }
+    }
+
+    private void DrawLowerLevelShadow(DrawingContext context)
+    {
+        var mapIndex = _mapIndex;
+        if (mapIndex is null)
+        {
+            return;
+        }
+
+        var rooms = GetLowerLevelShadowRooms();
+        if (rooms.Count == 0)
+        {
+            return;
+        }
+
+        var lowerZ = _z - 1;
+        var offsets = rooms.ToDictionary(item => item.Room.Id, item => item.Offset);
+        var drawnExits = new HashSet<(int, int)>();
+        using var shadowEffect = context.PushEffect(LowerLevelBlurEffect, Bounds);
+
+        foreach (var (room, offset) in rooms)
+        {
+            foreach (var exit in room.Exits)
+            {
+                if (!mapIndex.RoomsById.TryGetValue(exit.ExitId, out var target) ||
+                    target.AreaId != _areaId || target.Coordinates.Z != lowerZ)
+                {
+                    continue;
+                }
+
+                var edgeKey = room.Id < target.Id ? (room.Id, target.Id) : (target.Id, room.Id);
+                if (!drawnExits.Add(edgeKey))
+                {
+                    continue;
+                }
+
+                var targetOffset = offsets.GetValueOrDefault(target.Id, MapOffset.Zero);
+                var from = WorldToScreen(
+                    room.Coordinates.X + offset.X * 0.6,
+                    room.Coordinates.Y + offset.Y * 0.6) + LowerLevelShadowOffset;
+                var to = WorldToScreen(
+                    target.Coordinates.X + targetOffset.X * 0.6,
+                    target.Coordinates.Y + targetOffset.Y * 0.6) + LowerLevelShadowOffset;
+                context.DrawLine(LowerLevelExitPen, from, to);
+            }
+        }
+
+        var roomSize = Math.Max(_settings.RoomSize * _zoom, 2);
+        foreach (var (room, offset) in rooms)
+        {
+            var center = WorldToScreen(
+                room.Coordinates.X + offset.X * 0.6,
+                room.Coordinates.Y + offset.Y * 0.6) + LowerLevelShadowOffset;
+            var rect = new Rect(center.X - roomSize / 2, center.Y - roomSize / 2, roomSize, roomSize);
+            context.DrawRectangle(LowerLevelRoomBrush, LowerLevelRoomPen, rect);
+        }
+    }
+
+    internal IReadOnlyList<(MapRoom Room, MapOffset Offset)> GetLowerLevelShadowRooms()
+    {
+        var lowerZ = _z - 1;
+        if (_mapIndex is null || !_mapIndex.RoomsByAreaAndZ.ContainsKey((_areaId, lowerZ)))
+        {
+            return [];
+        }
+
+        return GetVisibleRooms(lowerZ, includeExpandedGroups: false).ToList();
     }
 
     private void DrawRooms(DrawingContext context, List<(MapRoom Room, MapOffset Offset)> rooms)
