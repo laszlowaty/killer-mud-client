@@ -6,6 +6,14 @@ namespace MudClient.Core.Tests;
 public sealed class AutowalkRecoveryPolicyTests
 {
     [Fact]
+    public void GetGateOpeningCommands_KnocksBeforeOtherAttempts()
+    {
+        Assert.Equal(
+            ["zapukaj", "pull", "pociagnij", "uderz"],
+            AutowalkRecoveryPolicy.GetGateOpeningCommands());
+    }
+
+    [Fact]
     public void GetLowMovementAction_AtTenPercent_UsesMemorizedRefresh()
     {
         var spells = new[]

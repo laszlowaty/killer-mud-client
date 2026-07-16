@@ -4087,7 +4087,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         try
         {
-            foreach (var command in new[] { "zapukaj", "pull", "uderz" })
+            foreach (var command in AutowalkRecoveryPolicy.GetGateOpeningCommands())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await SendTriggeredCommandAsync(command, cancellationToken);

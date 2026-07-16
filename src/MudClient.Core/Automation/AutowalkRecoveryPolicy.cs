@@ -14,6 +14,10 @@ public enum LowMovementAction
 /// <summary>Pure autowalk recovery decisions based on the latest GMCP state and MUD lines.</summary>
 public static class AutowalkRecoveryPolicy
 {
+    /// <summary>Commands tried in order when autowalk encounters a locked gate.</summary>
+    public static IReadOnlyList<string> GetGateOpeningCommands() =>
+        ["zapukaj", "pull", "pociagnij", "uderz"];
+
     public static LowMovementAction GetLowMovementAction(
         int? movement,
         int? maximumMovement,
