@@ -14,3 +14,7 @@
 {"schemaVersion":1,"recordType":"source","id":"source:eastbarb-area","status":"reviewed","name":"Osada barbarzyńców i tundra nad Dinneshere","path":"area/eastbarb.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
 {"schemaVersion":1,"recordType":"source","id":"source:gorsklas-area","status":"reviewed","name":"Górskie Lasy","path":"area/gorsklas.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
 {"schemaVersion":1,"recordType":"source","id":"source:traktfal-area","status":"reviewed","name":"Trakt Faldharski","path":"area/traktfal.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:carrgory-area","status":"reviewed","name":"Góry Zatokowe","path":"area/carrgory.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:dablah-area","status":"reviewed","name":"Wioska rybacka Rybia Łuska","path":"area/dablah.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:oblakani-area","status":"reviewed","name":"Wyspa Obłąkanych","path":"area/oblakani.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}
+{"schemaVersion":1,"recordType":"source","id":"source:warownia-area","status":"reviewed","name":"Warownia Grazla","path":"area/warownia.are","sourceTier":"active-player-facing","active":true,"encoding":"ISO-8859-2"}

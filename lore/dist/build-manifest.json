@@ -1,12 +1,12 @@
 {
-  "canonicalSha256": "1f8e772268b6141d98aac8d1208e3bda4dd85457a896d9f3fd041965c0000e23",
-  "catalogSha256": "6a0cb7b355d30648a907c952f063df562e2130017d61c67d86d18cedd7556a21",
+  "canonicalSha256": "e27a0b05ec4f921cb874ffc212863bd0522e4ab2d790c86ab223af70b2c60de8",
+  "catalogSha256": "3a4f247601c93ac11554088463632e94ea046c56103c76036c1deca226c2ee56",
   "counts": {
-    "articles": 5,
-    "canonicalRecords": 127,
-    "markdownArticles": 5,
-    "navigableRecords": 43,
-    "relations": 27,
+    "articles": 9,
+    "canonicalRecords": 164,
+    "markdownArticles": 9,
+    "navigableRecords": 51,
+    "relations": 38,
     "staleMarkdownRemoved": 0
   },
   "datasetId": "killermud-world-lore",
@@ -14,7 +14,7 @@
     "applicationCatalog": "lore-catalog.json.gz",
     "humanReadableIndex": "markdown/index.md"
   },
-  "generatedAt": "2026-07-16T12:36:19.263115+00:00",
+  "generatedAt": "2026-07-16T14:16:43.993077+00:00",
   "schemaVersion": 1,
   "sourceCommit": "60af6d4dd21bb41164812607790ddbafd9b6f751"
 }

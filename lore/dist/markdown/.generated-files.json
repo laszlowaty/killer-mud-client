@@ -3,15 +3,23 @@
     "article:arras",
     "article:carrallak",
     "article:dwarven-fortress",
+    "article:gulf-mountains",
+    "article:grazl-stronghold",
+    "article:island-of-the-mad",
     "article:old-continent-core",
-    "article:easterial"
+    "article:easterial",
+    "article:fish-scale-village"
   ],
   "files": [
     "arras.md",
     "carrallak.md",
     "dwarven-fortress.md",
     "easterial.md",
+    "fish-scale-village.md",
+    "grazl-stronghold.md",
+    "gulf-mountains.md",
     "index.md",
+    "island-of-the-mad.md",
     "old-continent-core.md"
   ],
   "generator": "build-killermud-lore/export_lore_markdown.py",
