@@ -202,15 +202,34 @@ xattr -dr com.apple.quarantine .</pre>
 </footer>
 
 <script>
-  // Uzupełnia linki pobierania na podstawie najnowszego wydania z API GitHuba.
+  // Pokazuje wersję z lokalnego changeloga nawet po wyczerpaniu limitu API GitHuba.
   (async () => {
+    const versionNote = document.getElementById('version-note');
+    const downloadButton = document.getElementById('btn-download');
+    const showVersion = (tag, date) => {
+      versionNote.textContent = 'Najnowsza wersja: ' + tag + (date ? ' (' + date + ')' : '');
+      downloadButton.textContent = '⬇ Pobierz ' + tag;
+    };
+
+    try {
+      const changelogResponse = await fetch('changelog.html');
+      if (changelogResponse.ok) {
+        const changelog = new DOMParser().parseFromString(await changelogResponse.text(), 'text/html');
+        const latestRelease = changelog.querySelector('.release');
+        const tag = latestRelease?.querySelector('h2 a')?.textContent.trim();
+        const date = latestRelease?.querySelector('.date')?.textContent.trim();
+        if (tag) showVersion(tag, date);
+      }
+    } catch {
+      // Lokalny fallback jest opcjonalny; API poniżej nadal może uzupełnić stronę.
+    }
+
+    // API podmienia ogólne linki na bezpośrednie odnośniki do paczek.
     try {
       const res = await fetch('https://api.github.com/repos/laszlowaty/killer-mud-client/releases/latest');
       if (!res.ok) return;
       const rel = await res.json();
-      document.getElementById('version-note').textContent =
-        'Najnowsza wersja: ' + rel.tag_name + ' (' + new Date(rel.published_at).toLocaleDateString('pl-PL') + ')';
-      document.getElementById('btn-download').textContent = '⬇ Pobierz ' + rel.tag_name;
+      showVersion(rel.tag_name, new Date(rel.published_at).toLocaleDateString('pl-PL'));
       for (const rid of ['win-x64', 'linux-x64', 'osx-arm64', 'osx-x64']) {
         const asset = rel.assets.find(a => a.name.includes(rid));
         if (asset) {
@@ -218,7 +237,9 @@ xattr -dr com.apple.quarantine .</pre>
           el.innerHTML = '<a href="' + asset.browser_download_url + '">' + asset.name + '</a>';
         }
       }
-    } catch (e) { /* linki statyczne zostają */ }
+    } catch {
+      // Wersja z changeloga i statyczne linki pozostają użytecznym fallbackiem.
+    }
   })();
 </script>
 
