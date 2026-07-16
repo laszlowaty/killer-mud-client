@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://killermud.local/schema/lore-record.schema.json",
+  "title": "KillerMUD Lore Record",
+  "type": "object",
+  "required": ["schemaVersion", "recordType", "id", "status"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordType": {
+      "enum": ["entity", "event", "narrative", "claim", "relation", "constraint", "style-profile", "source", "article"]
+    },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9:-]*$" },
+    "status": { "enum": ["draft", "extracted", "reviewed", "canonical", "deprecated"] },
+    "name": { "type": "string", "minLength": 1 },
+    "aliases": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "domains": {
+      "type": "array",
+      "items": { "enum": ["world", "geography", "politics", "history", "religion", "legends", "artifacts", "peoples", "organizations", "characters"] },
+      "uniqueItems": true
+    },
+    "summary": { "type": "string" },
+    "description": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "visibility": { "enum": ["public", "discovered", "secret", "builder-only"] },
+    "spoilerLevel": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceRef" } },
+    "entityType": {
+      "enum": ["world", "continent", "region", "city", "settlement", "landmark", "organization", "character", "deity", "culture", "people", "language", "artifact", "other"]
+    },
+    "attributes": { "type": "object" },
+    "mapReferences": { "$ref": "#/$defs/mapReferences" },
+    "eventType": { "type": "string" },
+    "time": { "$ref": "#/$defs/time" },
+    "participantIds": { "$ref": "#/$defs/idArray" },
+    "locationIds": { "$ref": "#/$defs/idArray" },
+    "claimIds": { "$ref": "#/$defs/idArray" },
+    "narrativeType": { "enum": ["legend", "myth", "prophecy", "folktale", "artifact-legend", "belief", "rumor", "other"] },
+    "relatedEntityIds": { "$ref": "#/$defs/idArray" },
+    "subjectId": { "type": "string" },
+    "predicate": { "type": "string", "minLength": 1 },
+    "value": {},
+    "targetId": { "type": "string" },
+    "direction": { "type": "string" },
+    "evidenceStatus": { "enum": ["explicit", "inferred", "disputed"] },
+    "truthStatus": { "enum": ["accepted", "rumor", "belief", "legend", "unknown"] },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "scopeIds": { "$ref": "#/$defs/idArray" },
+    "severity": { "enum": ["hard", "soft", "theme", "unknown"] },
+    "rule": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string" },
+    "architecture": { "type": "array", "items": { "type": "string" } },
+    "namingPatterns": { "type": "array", "items": { "type": "string" } },
+    "dominantThemes": { "type": "array", "items": { "type": "string" } },
+    "commonFactionIds": { "$ref": "#/$defs/idArray" },
+    "religiousInfluenceIds": { "$ref": "#/$defs/idArray" },
+    "avoid": { "type": "array", "items": { "type": "string" } },
+    "path": { "type": "string" },
+    "sourceTier": { "$ref": "#/$defs/sourceTier" },
+    "active": { "type": "boolean" },
+    "encoding": { "type": "string" },
+    "entityId": { "type": "string" },
+    "category": { "type": "string" },
+    "title": { "type": "string" },
+    "sections": { "type": "array", "items": { "$ref": "#/$defs/articleSection" } },
+    "relatedIds": { "$ref": "#/$defs/idArray" }
+  },
+  "allOf": [
+    { "if": { "properties": { "recordType": { "const": "entity" } } }, "then": { "required": ["name", "entityType", "domains", "summary", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "event" } } }, "then": { "required": ["name", "eventType", "domains", "summary", "time", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "narrative" } } }, "then": { "required": ["name", "narrativeType", "truthStatus", "summary", "relatedEntityIds", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "claim" } } }, "then": { "required": ["subjectId", "predicate", "value", "evidenceStatus", "truthStatus", "confidence", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "relation" } } }, "then": { "required": ["subjectId", "predicate", "targetId", "confidence", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "constraint" } } }, "then": { "required": ["scopeIds", "severity", "rule", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "style-profile" } } }, "then": { "required": ["name", "scopeIds", "sourceRefs"] } },
+    { "if": { "properties": { "recordType": { "const": "source" } } }, "then": { "required": ["path", "sourceTier", "active", "encoding"] } },
+    { "if": { "properties": { "recordType": { "const": "article" } } }, "then": { "required": ["entityId", "category", "title", "summary", "sections", "relatedIds", "visibility", "spoilerLevel", "mapReferences"] } }
+  ],
+  "$defs": {
+    "idArray": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "sourceTier": { "enum": ["active-player-facing", "active-structured", "implementation", "runtime-or-log", "inactive-or-archival"] },
+    "sourceRef": {
+      "type": "object",
+      "required": ["file", "sourceTier"],
+      "properties": {
+        "file": { "type": "string" },
+        "sourceTier": { "$ref": "#/$defs/sourceTier" },
+        "section": { "type": "string" },
+        "vnum": { "type": ["integer", "string"] },
+        "field": { "type": "string" },
+        "keyword": { "type": "string" },
+        "perspective": { "enum": ["world-narrator", "help", "room-description", "npc", "inscription", "artifact-description", "builder-comment", "runtime-log", "implementation"] },
+        "excerpt": { "type": "string" }
+      }
+    },
+    "mapReferences": {
+      "type": "object",
+      "properties": {
+        "regionId": { "type": ["string", "null"] },
+        "areaFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "roomVnums": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "required": ["areaFiles", "roomVnums"]
+    },
+    "time": {
+      "type": "object",
+      "required": ["kind", "precision"],
+      "properties": {
+        "kind": { "enum": ["exact", "range", "relative", "era", "unknown"] },
+        "label": { "type": "string" },
+        "start": { "type": ["string", "integer", "null"] },
+        "end": { "type": ["string", "integer", "null"] },
+        "precision": { "enum": ["exact", "approximate", "relative", "unknown"] }
+      }
+    },
+    "articleSection": {
+      "type": "object",
+      "required": ["type", "title", "content"],
+      "properties": {
+        "type": { "enum": ["overview", "geography", "politics", "history", "religion", "legends", "artifacts", "peoples", "organizations", "characters"] },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceRef" } }
+      }
+    }
+  }
+}

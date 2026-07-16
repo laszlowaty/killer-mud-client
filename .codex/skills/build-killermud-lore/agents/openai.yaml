@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build KillerMUD Lore"
+  short_description: "Builds canonical lore and readable Markdown"
+  default_prompt: "Use $build-killermud-lore to update one bounded KillerMUD lore subject and refresh its generated views."

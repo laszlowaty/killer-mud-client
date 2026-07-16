@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze KillerMUD Religion"
+  short_description: "Analyzes deities cults and beliefs"
+  default_prompt: "Use $analyze-killermud-religion to analyze a KillerMUD deity cult or religious conflict."

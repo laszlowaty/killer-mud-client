@@ -15,3 +15,10 @@ czyta snapshot z paczki. Deweloperski proces odświeżania
 zapisuje kompletny plik dopiero po poprawnym pobraniu list pięciu profesji i szczegółów
 wszystkich unikalnych vnum, więc anulowanie, timeout lub rozłączenie nie nadpisuje
 poprzedniego katalogu częściowymi danymi.
+
+`lore-catalog.json.gz` jest generowany z kanonicznych rekordów w katalogu `lore/`
+poleceniem `python .codex/skills/build-killermud-lore/scripts/build_lore_outputs.py`.
+Killeropedia używa tego katalogu do wyszukiwania i nawigacji między miejscami,
+postaciami, organizacjami, bóstwami, artefaktami, wydarzeniami i legendami. Plik
+`%AppData%/KillerMudClient/Data/lore-catalog.json.gz` zastępuje kopię wbudowaną,
+dzięki czemu aktualizacja lore nie wymaga ponownej kompilacji klienta.

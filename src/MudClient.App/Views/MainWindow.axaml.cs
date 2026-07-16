@@ -59,7 +59,8 @@ public partial class MainWindow : Window
 
     private async void OnOpened(object? sender, EventArgs eventArgs)
     {
-        if (_viewModel is null)
+        var viewModel = _viewModel;
+        if (viewModel is null)
         {
             return;
         }
@@ -68,16 +69,16 @@ public partial class MainWindow : Window
         {
             // Auto-connect happens after the user picks a profile
             // (MainWindowViewModel.ActivateProfile).
-            await _viewModel.InitializeAsync();
-            _viewModel.StartUpdateCheck();
+            await viewModel.InitializeAsync();
+            viewModel.StartUpdateCheck();
             if (DeferredSettingsImportError is not null)
             {
-                _viewModel.ReportSettingsImportError(DeferredSettingsImportError);
+                viewModel.ReportSettingsImportError(DeferredSettingsImportError);
             }
         }
         catch (Exception exception)
         {
-            _viewModel.ReportStartupError(exception);
+            viewModel.ReportStartupError(exception);
         }
     }
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze KillerMUD History"
+  short_description: "Analyzes events and chronology in KillerMUD"
+  default_prompt: "Use $analyze-killermud-history to analyze the history of a selected KillerMUD place or conflict."

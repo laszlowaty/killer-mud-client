@@ -260,6 +260,10 @@
             <views:KilleropediaBooksView Margin="0,12,0,0"
                                          DataContext="{Binding Killeropedia}" />
           </TabItem>
+          <TabItem Header="Świat i lore">
+            <views:KilleropediaLoreView Margin="0,12,0,0"
+                                        DataContext="{Binding Killeropedia}" />
+          </TabItem>
           <TabItem Header="Mapa Świata">
             <views:KilleropediaWorldMapView Margin="0,12,0,0"
                                             DataContext="{Binding Killeropedia}" />

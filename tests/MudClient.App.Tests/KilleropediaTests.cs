@@ -135,7 +135,8 @@ public sealed class KilleropediaTests : IDisposable
             teachers,
             CreateBookStore(),
             null,
-            teacher => requestedTeacher = teacher);
+            teacher => requestedTeacher = teacher,
+            CreateLoreCatalog());
 
         Assert.True(viewModel.ShowTeacherOnMapCommand.CanExecute(mappedTeacher));
         viewModel.ShowTeacherOnMapCommand.Execute(mappedTeacher);
@@ -202,7 +203,11 @@ public sealed class KilleropediaTests : IDisposable
                 },
             ],
         }, TestContext.Current.CancellationToken);
-        var viewModel = new KilleropediaViewModel(TeacherCatalogLoader.Load(), store, null);
+        var viewModel = new KilleropediaViewModel(
+            TeacherCatalogLoader.Load(),
+            store,
+            null,
+            loreCatalog: CreateLoreCatalog());
         viewModel.BookSearchText = "zeerith force";
         Assert.Equal(16818, Assert.Single(viewModel.FilteredBooks).Vnum);
 
@@ -232,8 +237,89 @@ public sealed class KilleropediaTests : IDisposable
         window.Close();
     }
 
+    [Fact]
+    public void LoreCatalog_LoadsArticlesRecordsAndClickableRelations()
+    {
+        var catalog = CreateLoreCatalog();
+
+        Assert.Equal(33, catalog.Entries.Count);
+        var arras = Assert.Single(catalog.Entries, entry => entry.Id == "place:arras");
+        Assert.Equal("Arras", arras.Name);
+        Assert.Contains(arras.Sections, section => section.Title == "Władze i instytucje");
+        Assert.Contains(arras.Links, link => link.TargetId == "place:carrallak");
+        Assert.Contains(arras.Links, link => link.TargetId == "character:khabar-of-podgorze");
+        Assert.Contains(arras.Sources, source => source.DisplayText.Contains("arras.are", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void LoreSearch_MatchesWithoutDiacriticsAndNavigatesRelations()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.LoreSearchText = "zalozyciela arras";
+        Assert.Contains(viewModel.FilteredLoreEntries, entry => entry.Id == "character:innsoniel");
+
+        viewModel.LoreSearchText = string.Empty;
+        viewModel.SelectedLoreCategory = "Miejsca";
+        var arras = Assert.Single(viewModel.FilteredLoreEntries, entry => entry.Id == "place:arras");
+        var khabarLink = Assert.Single(arras.Links, link => link.TargetId == "character:khabar-of-podgorze");
+
+        viewModel.NavigateLoreCommand.Execute(khabarLink);
+
+        Assert.Equal("Wszystkie", viewModel.SelectedLoreCategory);
+        Assert.Equal("character:khabar-of-podgorze", viewModel.SelectedLoreEntry?.Id);
+    }
+
+    [Fact]
+    public void LoreCatalog_InvalidExternalOverrideFallsBackToEmbeddedCatalog()
+    {
+        var dataDirectory = Path.Combine(_directory, "Data");
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(Path.Combine(dataDirectory, "lore-catalog.json.gz"), "uszkodzony katalog");
+
+        var catalog = LoreCatalogLoader.Load(_directory);
+
+        Assert.Equal(33, catalog.Entries.Count);
+        Assert.Equal("katalog wbudowany", catalog.SourceText);
+        Assert.Contains("Nie udało się wczytać", catalog.Warning);
+    }
+
+    [AvaloniaFact]
+    public void LoreView_RendersCatalogDetailsAndClickableRelations()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.LoreSearchText = "Arras";
+        var view = new KilleropediaLoreView { DataContext = viewModel };
+        var window = new Window { Width = 1100, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var list = Assert.Single(view.GetVisualDescendants().OfType<ListBox>());
+        Assert.True(list.ItemCount > 0);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == "Arras");
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<Button>(),
+            button => button.Command == viewModel.NavigateLoreCommand);
+
+        var detailsScroller = Assert.Single(
+            view.GetVisualDescendants().OfType<ScrollViewer>(),
+            scroller => scroller.Classes.Contains("killeropedia-content-scroll"));
+        Assert.Equal(14, detailsScroller.Padding.Right);
+
+        window.Close();
+    }
+
     private KilleropediaViewModel CreateViewModel() =>
-        new(TeacherCatalogLoader.Load(), CreateBookStore(), null);
+        new(
+            TeacherCatalogLoader.Load(),
+            CreateBookStore(),
+            null,
+            loreCatalog: CreateLoreCatalog());
+
+    private static LoreCatalogData CreateLoreCatalog() => LoreCatalogLoader.LoadEmbedded();
 
     private BookCatalogStore CreateBookStore() =>
         new(Path.Combine(_directory, "killeropedia-books.json"));

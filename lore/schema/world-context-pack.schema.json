@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://killermud.local/schema/world-context-pack.schema.json",
+  "title": "KillerMUD WorldContextPack",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "purpose", "anchor", "selection", "placement", "hardConstraints", "softConstraints", "themes", "styleProfiles", "claims", "geography", "politics", "religion", "history", "legends", "artifacts", "peoples", "unresolvedConflicts", "openLoreGaps", "sourceRefs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string" },
+    "purpose": { "const": "generate-area" },
+    "anchor": {
+      "type": "object",
+      "required": ["entityId", "requestedPlacement", "connectionRoomVnums"],
+      "properties": {
+        "entityId": { "type": "string" },
+        "requestedPlacement": { "type": ["string", "null"] },
+        "connectionRoomVnums": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "required": ["domains", "relationRadius", "maxRecords", "recordCount"],
+      "properties": {
+        "domains": { "type": "array", "items": { "type": "string" } },
+        "relationRadius": { "type": "integer", "minimum": 0 },
+        "maxRecords": { "type": "integer", "minimum": 1 },
+        "recordCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "placement": {
+      "type": "object",
+      "required": ["regionIds", "nearEntityIds", "relations", "openQuestions"],
+      "properties": {
+        "regionIds": { "type": "array", "items": { "type": "string" } },
+        "nearEntityIds": { "type": "array", "items": { "type": "string" } },
+        "relations": { "type": "array", "items": { "$ref": "#/$defs/contextItem" } },
+        "openQuestions": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "hardConstraints": { "$ref": "#/$defs/contextItems" },
+    "softConstraints": { "$ref": "#/$defs/contextItems" },
+    "themes": { "$ref": "#/$defs/contextItems" },
+    "styleProfiles": { "$ref": "#/$defs/contextItems" },
+    "claims": { "$ref": "#/$defs/contextItems" },
+    "geography": { "$ref": "#/$defs/contextItems" },
+    "politics": { "$ref": "#/$defs/contextItems" },
+    "religion": { "$ref": "#/$defs/contextItems" },
+    "history": { "$ref": "#/$defs/contextItems" },
+    "legends": { "$ref": "#/$defs/contextItems" },
+    "artifacts": { "$ref": "#/$defs/contextItems" },
+    "peoples": { "$ref": "#/$defs/contextItems" },
+    "unresolvedConflicts": { "$ref": "#/$defs/contextItems" },
+    "openLoreGaps": { "$ref": "#/$defs/contextItems" },
+    "sourceRefs": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "contextItem": {
+      "type": "object",
+      "required": ["id", "recordType"],
+      "properties": {
+        "id": { "type": "string" },
+        "recordType": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "contextItems": { "type": "array", "items": { "$ref": "#/$defs/contextItem" } }
+  }
+}

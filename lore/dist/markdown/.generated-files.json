@@ -1,0 +1,17 @@
+{
+  "articleIds": [
+    "article:arras",
+    "article:carrallak",
+    "article:dwarven-fortress",
+    "article:old-continent-core"
+  ],
+  "files": [
+    "arras.md",
+    "carrallak.md",
+    "dwarven-fortress.md",
+    "index.md",
+    "old-continent-core.md"
+  ],
+  "generator": "build-killermud-lore/export_lore_markdown.py",
+  "schemaVersion": 1
+}

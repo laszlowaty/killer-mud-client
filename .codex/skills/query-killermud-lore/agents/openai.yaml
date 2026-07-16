@@ -1,0 +1,4 @@
+interface:
+  display_name: "Query KillerMUD Lore"
+  short_description: "Searches selected KillerMUD lore records"
+  default_prompt: "Use $query-killermud-lore to find lore about Arras without loading the full dataset."

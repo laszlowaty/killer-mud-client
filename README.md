@@ -123,6 +123,13 @@ dotnet test
 dotnet run --project src/MudClient.App
 ```
 
+Na Windows pełną walidację najlepiej uruchamiać przez `./verify.ps1` albo
+`verify.bat`. Skrypt buduje rozwiązanie i uruchamia oba projekty testowe osobno
+w `artifacts/verify`, wykrywa zawieszone procesy testowe korzystające z tego
+katalogu i domyślnie usuwa wszystkie artefakty w bloku `finally`. Przełącznik
+`-KeepArtifacts` pozostawia wyniki do diagnostyki; kolejne uruchomienie skryptu
+i tak wyczyści je przed rozpoczęciem pracy.
+
 W VS Code możesz również nacisnąć `F5` albo uruchomić zadanie `run`. Skróty: `.\run.ps1` / `.\run.bat` (Windows), `./run.sh` (Linux/macOS).
 
 ### Publikacja lokalna

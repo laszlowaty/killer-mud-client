@@ -9,6 +9,8 @@ namespace MudClient.App.ViewModels;
 public sealed class KilleropediaViewModel : ObservableObject
 {
     private readonly IReadOnlyList<TeacherEntry> _allTeachers;
+    private readonly IReadOnlyList<LoreEntry> _allLoreEntries;
+    private readonly IReadOnlyDictionary<string, LoreEntry> _loreById;
     private readonly BookCatalogStore _bookCatalogStore;
     private readonly Func<Task>? _refreshBooksAsync;
     private readonly Action<TeacherEntry>? _showTeacherOnMap;
@@ -24,9 +26,15 @@ public sealed class KilleropediaViewModel : ObservableObject
     private bool _isBookRefreshRunning;
     private string _bookRefreshStatus = string.Empty;
     private DateTimeOffset? _booksGeneratedAtUtc;
+    private string _loreSearchText = string.Empty;
+    private string _selectedLoreCategory = "Wszystkie";
+    private LoreEntry? _selectedLoreEntry;
+    private readonly DateTimeOffset? _loreGeneratedAtUtc;
+    private readonly string _loreSourceText;
+    private readonly string? _loreWarning;
 
     public KilleropediaViewModel()
-        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null, null)
+        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null, null, null)
     {
     }
 
@@ -34,18 +42,33 @@ public sealed class KilleropediaViewModel : ObservableObject
         IReadOnlyList<TeacherEntry> teachers,
         BookCatalogStore bookCatalogStore,
         Func<Task>? refreshBooksAsync,
-        Action<TeacherEntry>? showTeacherOnMap = null)
+        Action<TeacherEntry>? showTeacherOnMap = null,
+        LoreCatalogData? loreCatalog = null)
     {
         _allTeachers = teachers;
         _bookCatalogStore = bookCatalogStore;
         _refreshBooksAsync = refreshBooksAsync;
         _showTeacherOnMap = showTeacherOnMap;
+        var resolvedLoreCatalog = loreCatalog ?? LoreCatalogLoader.Load();
+        _allLoreEntries = resolvedLoreCatalog.Entries;
+        _loreById = _allLoreEntries.ToDictionary(entry => entry.Id, StringComparer.Ordinal);
+        _loreGeneratedAtUtc = resolvedLoreCatalog.GeneratedAtUtc;
+        _loreSourceText = resolvedLoreCatalog.SourceText;
+        _loreWarning = resolvedLoreCatalog.Warning;
+        AvailableLoreCategories = [
+            "Wszystkie",
+            .. _allLoreEntries.Select(entry => entry.Category).Distinct(StringComparer.Ordinal),
+        ];
         _refreshBooksCommand = new AsyncRelayCommand(RefreshBooksAsync, CanRefreshBooks);
         ShowTeacherOnMapCommand = new RelayCommand<TeacherEntry>(
             ShowTeacherOnMap,
             teacher => teacher?.HasRoomLocation == true && _showTeacherOnMap is not null);
+        NavigateLoreCommand = new RelayCommand<LoreLink>(
+            NavigateLore,
+            link => link is not null && _loreById.ContainsKey(link.TargetId));
         ApplyTeacherFilter();
         LoadBookCatalog();
+        ApplyLoreFilter();
         _selectedWorldMapRegion = WorldMapRegions.FirstOrDefault();
     }
 
@@ -59,6 +82,63 @@ public sealed class KilleropediaViewModel : ObservableObject
     }
 
     public ObservableCollection<TeacherEntry> FilteredTeachers { get; } = [];
+
+    public ObservableCollection<LoreEntry> FilteredLoreEntries { get; } = [];
+
+    public IReadOnlyList<string> AvailableLoreCategories { get; }
+
+    public string LoreSearchText
+    {
+        get => _loreSearchText;
+        set
+        {
+            if (SetProperty(ref _loreSearchText, value))
+            {
+                ApplyLoreFilter();
+            }
+        }
+    }
+
+    public string SelectedLoreCategory
+    {
+        get => _selectedLoreCategory;
+        set
+        {
+            if (SetProperty(ref _selectedLoreCategory, value))
+            {
+                ApplyLoreFilter();
+            }
+        }
+    }
+
+    public LoreEntry? SelectedLoreEntry
+    {
+        get => _selectedLoreEntry;
+        set => SetProperty(ref _selectedLoreEntry, value);
+    }
+
+    public IRelayCommand<LoreLink> NavigateLoreCommand { get; }
+
+    public string FilteredLoreCountText => $"Hasła: {FilteredLoreEntries.Count} z {_allLoreEntries.Count}";
+
+    public bool HasLore => _allLoreEntries.Count > 0;
+
+    public bool HasNoLoreResults => FilteredLoreEntries.Count == 0;
+
+    public string LoreCatalogStatusText
+    {
+        get
+        {
+            var generated = _loreGeneratedAtUtc is null
+                ? "data nieznana"
+                : _loreGeneratedAtUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+            return $"Katalog: {generated} · {_loreSourceText}";
+        }
+    }
+
+    public string LoreCatalogWarning => _loreWarning ?? string.Empty;
+
+    public bool HasLoreCatalogWarning => !string.IsNullOrWhiteSpace(_loreWarning);
 
     public string TeacherSearchText
     {
@@ -219,6 +299,54 @@ public sealed class KilleropediaViewModel : ObservableObject
         SelectedTeacher = FilteredTeachers.FirstOrDefault(teacher => teacher.MobVnum == previousId)
             ?? FilteredTeachers.FirstOrDefault();
         OnPropertyChanged(nameof(FilteredTeacherCountText));
+    }
+
+    private void ApplyLoreFilter()
+    {
+        var tokens = Normalize(LoreSearchText)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var previousId = SelectedLoreEntry?.Id;
+
+        FilteredLoreEntries.Clear();
+        foreach (var entry in _allLoreEntries)
+        {
+            if (!string.Equals(SelectedLoreCategory, "Wszystkie", StringComparison.Ordinal)
+                && !string.Equals(entry.Category, SelectedLoreCategory, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var haystack = Normalize(entry.SearchableText);
+            if (tokens.All(haystack.Contains))
+            {
+                FilteredLoreEntries.Add(entry);
+            }
+        }
+
+        SelectedLoreEntry = FilteredLoreEntries.FirstOrDefault(entry => entry.Id == previousId)
+            ?? FilteredLoreEntries.FirstOrDefault();
+        OnPropertyChanged(nameof(FilteredLoreCountText));
+        OnPropertyChanged(nameof(HasNoLoreResults));
+    }
+
+    private void NavigateLore(LoreLink? link)
+    {
+        if (link is null || !_loreById.TryGetValue(link.TargetId, out var target))
+        {
+            return;
+        }
+
+        if (!string.Equals(SelectedLoreCategory, "Wszystkie", StringComparison.Ordinal))
+        {
+            SelectedLoreCategory = "Wszystkie";
+        }
+
+        if (!string.IsNullOrWhiteSpace(LoreSearchText))
+        {
+            LoreSearchText = string.Empty;
+        }
+
+        SelectedLoreEntry = target;
     }
 
     private async Task RefreshBooksAsync()

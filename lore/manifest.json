@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "killermud-world-lore",
+  "language": "pl",
+  "sourceRepository": {
+    "url": "https://github.com/iworks/KillerMUD.git",
+    "commit": "60af6d4dd21bb41164812607790ddbafd9b6f751",
+    "encoding": "ISO-8859-2"
+  },
+  "recordSchema": "schema/lore-record.schema.json",
+  "recordFiles": [
+    "records/places.jsonl",
+    "records/organizations.jsonl",
+    "records/characters.jsonl",
+    "records/deities.jsonl",
+    "records/artifacts.jsonl",
+    "records/events.jsonl",
+    "records/narratives.jsonl",
+    "records/claims.jsonl",
+    "records/relations.jsonl",
+    "records/constraints.jsonl",
+    "records/style-profiles.jsonl",
+    "records/sources.jsonl",
+    "records/articles.jsonl"
+  ],
+  "outputContracts": {
+    "applicationCatalogSchema": "schema/lore-catalog.schema.json",
+    "worldContextPackSchema": "schema/world-context-pack.schema.json",
+    "humanReadableMarkdownDirectory": "dist/markdown"
+  }
+}

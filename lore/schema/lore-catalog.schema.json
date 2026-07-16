@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://killermud.local/schema/lore-catalog.schema.json",
+  "title": "KillerMudClient Lore Catalog",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "entries", "records", "relations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "entityId", "category", "title", "summary", "sections", "relatedIds", "mapReferences", "visibility", "spoilerLevel", "tags"],
+        "properties": {
+          "id": { "type": "string" },
+          "entityId": { "type": "string" },
+          "category": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "sections": { "type": "array", "items": { "type": "object" } },
+          "relatedIds": { "type": "array", "items": { "type": "string" } },
+          "mapReferences": { "type": "object" },
+          "visibility": { "enum": ["public", "discovered", "secret", "builder-only"] },
+          "spoilerLevel": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "recordType", "kind", "name", "aliases", "summary", "description", "domains", "tags", "status", "truthStatus", "time", "mapReferences", "sourceRefs", "relatedIds", "facts"],
+        "properties": {
+          "id": { "type": "string" },
+          "recordType": { "enum": ["entity", "event", "narrative"] },
+          "kind": { "type": "string" },
+          "name": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "string" },
+          "description": { "type": "string" },
+          "domains": { "type": "array", "items": { "type": "string" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "status": { "enum": ["extracted", "reviewed", "canonical"] },
+          "truthStatus": { "type": ["string", "null"] },
+          "time": { "type": ["object", "null"] },
+          "mapReferences": { "type": "object" },
+          "sourceRefs": { "type": "array", "items": { "type": "object" } },
+          "relatedIds": { "type": "array", "items": { "type": "string" } },
+          "facts": { "type": "array", "items": { "type": "object" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "subjectId", "predicate", "targetId", "direction", "evidenceStatus", "truthStatus", "confidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "subjectId": { "type": "string" },
+          "predicate": { "type": "string" },
+          "targetId": { "type": "string" },
+          "direction": { "type": ["string", "null"] },
+          "evidenceStatus": { "type": ["string", "null"] },
+          "truthStatus": { "type": ["string", "null"] },
+          "confidence": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

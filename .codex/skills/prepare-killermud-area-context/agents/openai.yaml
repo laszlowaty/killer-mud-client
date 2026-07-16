@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare KillerMUD Area Context"
+  short_description: "Builds context packs for future area generation"
+  default_prompt: "Use $prepare-killermud-area-context to prepare a WorldContextPack for a future area near Arras."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze KillerMUD Politics"
+  short_description: "Analyzes political and geographic relations"
+  default_prompt: "Use $analyze-killermud-politics to analyze the powers and settlements around a selected region."

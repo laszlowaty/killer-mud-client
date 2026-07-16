@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze KillerMUD Legends"
+  short_description: "Analyzes legends myths and artifacts"
+  default_prompt: "Use $analyze-killermud-legends to analyze legends connected to a KillerMUD artifact."
