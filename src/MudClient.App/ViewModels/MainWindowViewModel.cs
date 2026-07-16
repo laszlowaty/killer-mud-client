@@ -1459,7 +1459,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 foreach (var command in commands)
                 {
                     token.ThrowIfCancellationRequested();
-                    await _session.SendCommandAsync(command);
+                    Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
+                    await _session.SendCommandAsync(command, token);
                 }
             }
 
@@ -3699,7 +3700,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             foreach (var command in commands)
             {
-                EmitSystem($"> {command}", 90);
+                EmitCommandEcho(command);
 
                 try
                 {
@@ -4186,7 +4187,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         string command,
         CancellationToken cancellationToken = default)
     {
-        Dispatcher.UIThread.Post(() => EmitSystem($"> {command}", 90));
+        Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
 
         try
         {
@@ -4475,6 +4476,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         OutputReceived?.Invoke($"\u001b[{ansiColor}m{text}\u001b[0m\n");
     }
+
+    // Manual/alias, trigger and timer paths use the same terminal echo so automated
+    // commands remain visible even when the MUD does not echo client input.
+    private void EmitCommandEcho(string command) => EmitSystem($"> {command}", 90);
 
     private bool CanRefreshBookCatalog() =>
         DeveloperFeatures.EnableBookCatalogRefreshButton

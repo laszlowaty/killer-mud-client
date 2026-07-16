@@ -973,6 +973,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         AddLookAlias();
         SetIsConnected(true);
         _vm.CommandText = "l";
+        var output = new List<string>();
+        _vm.OutputReceived += output.Add;
 
         // Act
         await _vm.SendCommandCommand.ExecuteAsync(null);
@@ -982,6 +984,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.NotEmpty(_vm.CommandHistory);
         Assert.Contains("l", _vm.CommandHistory);
         Assert.DoesNotContain("look", _vm.CommandHistory);
+        Assert.Contains(output, line => line.Contains("> look", StringComparison.Ordinal));
     }
 
     [Fact]
