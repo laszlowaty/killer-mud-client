@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
@@ -8,6 +9,8 @@ namespace MudClient.App.Views.Panels;
 public sealed partial class AutowalkPanelView : UserControl
 {
     private MainWindowViewModel? _viewModel;
+    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
+        DeleteConfirmationDialog.ShowAsync;
 
     public AutowalkPanelView()
     {
@@ -45,13 +48,29 @@ public sealed partial class AutowalkPanelView : UserControl
         }
     }
 
-    private void DeleteLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void DeleteLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is Button button &&
             button.DataContext is AutowalkLocation location &&
             _viewModel is not null)
         {
-            _viewModel.DeleteLocationCommand.Execute(location);
+            if (TopLevel.GetTopLevel(this) is not Window owner)
+            {
+                return;
+            }
+
+            button.IsEnabled = false;
+            try
+            {
+                if (await ConfirmDeletionAsync(owner, "cel autowalk", location.Name))
+                {
+                    _viewModel.DeleteLocationCommand.Execute(location);
+                }
+            }
+            finally
+            {
+                button.IsEnabled = true;
+            }
         }
     }
 }

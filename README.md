@@ -17,7 +17,7 @@ Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [kill
 - połączenie TCP z MUD-em, stanowa obsługa protokołu Telnet,
 - negocjacja `GMCP`, `NAWS`, `TTYPE`, `EOR` i `SUPPRESS-GO-AHEAD`,
 - MCCP2 (kompresja zlib): dekompresja włączana dokładnie na granicy `IAC SB 86 IAC SE`; bajty odebrane po znaczniku w tym samym odczycie TCP trafiają do dekompresora, a zakończenie strumienia zlib przez serwer przywraca odczyt bez kompresji,
-- konta z hasłem szyfrowanym DPAPI (Windows, per użytkownik) i automatycznym logowaniem; profil JSON nigdy nie zawiera hasła w postaci jawnej.
+- konta z hasłem szyfrowanym DPAPI (Windows, per użytkownik) i automatycznym logowaniem; profil JSON nigdy nie zawiera hasła w postaci jawnej, a usunięcie profilu wymaga potwierdzenia.
 
 ### Terminal
 
@@ -42,6 +42,7 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 - śledzenie pozycji postaci przez GMCP (`Room.Info`); każda zmiana lokacji ponownie włącza tryb śledzenia i centruje mapę na aktualnym pokoju,
 - znaczniki członków drużyny na mapie na podstawie pokojów z GMCP `Char.Group` (złoty znacznik oznacza lidera),
 - pathfinding i automatyczne chodzenie po kliknięciu pokoju, także przez przejścia między poziomami `z`, z politykami odzyskiwania: odpoczynek/`refresh` przy niskim `mv` oraz obsługa zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).
+- zapisane cele autowalk można usuwać dopiero po potwierdzeniu operacji.
 
 ### Panele postaci (GMCP)
 
@@ -83,7 +84,7 @@ Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/id
 
 ### Automatyzacja
 
-- **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy,
+- **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy; usunięcie pojedynczego wpisu wymaga potwierdzenia,
 - **Foldery** — timery, aliasy, triggery, cele autowalk i notatki można układać w zagnieżdżonych folderach metodą drag&drop; folder obsługuje grupowe usuwanie, globalność oraz włączanie/wyłączanie tam, gdzie ma to zastosowanie,
 - **Import i eksport** — pojedyncze aliasy, triggery i timery oraz całe drzewa ich folderów można przenosić w wersjonowanym formacie JSON; podczas importu identyfikatory folderów są bezpiecznie mapowane na nowe,
 - **Autoassist** — opcjonalne wysłanie `as`, gdy GMCP wskaże walczącego członka drużyny w bieżącym pokoju; komenda jest ponawiana, jeśli postać przestanie walczyć, a członek drużyny nadal walczy,

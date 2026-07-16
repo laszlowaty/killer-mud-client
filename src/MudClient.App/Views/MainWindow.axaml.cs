@@ -16,6 +16,8 @@ public partial class MainWindow : Window
 {
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
+    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
+        DeleteConfirmationDialog.ShowAsync;
 
     public Exception? DeferredSettingsImportError { get; init; }
 
@@ -112,6 +114,27 @@ public partial class MainWindow : Window
     private void Close_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         Close();
+    }
+
+    private async void DeleteProfile_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { DataContext: string profileName } button || _viewModel is null)
+        {
+            return;
+        }
+
+        button.IsEnabled = false;
+        try
+        {
+            if (await ConfirmDeletionAsync(this, "profil", profileName))
+            {
+                _viewModel.DeleteProfileCommand.Execute(profileName);
+            }
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
     }
 
     /// <summary>

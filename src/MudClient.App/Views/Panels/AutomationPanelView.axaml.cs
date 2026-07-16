@@ -14,6 +14,8 @@ public sealed partial class AutomationPanelView : UserControl
 {
     private MainWindowViewModel? _viewModel;
     private readonly AutomationTransferService _transferService = new();
+    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
+        DeleteConfirmationDialog.ShowAsync;
     private static readonly FilePickerFileType JsonFileType = new("JSON")
     {
         Patterns = ["*.json"],
@@ -46,13 +48,14 @@ public sealed partial class AutomationPanelView : UserControl
         }
     }
 
-    private void DeleteTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void DeleteTimer_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is Button button &&
             button.DataContext is TimerEntry timer &&
             _viewModel is not null)
         {
-            _viewModel.DeleteTimerCommand.Execute(timer);
+            await ConfirmAndDeleteAsync(button, "timer", timer.Name, () =>
+                _viewModel.DeleteTimerCommand.Execute(timer));
         }
     }
 
@@ -66,13 +69,36 @@ public sealed partial class AutomationPanelView : UserControl
         }
     }
 
-    private void DeleteRule_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void DeleteRule_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is Button button &&
             button.DataContext is AutomationRuleEntry rule &&
             _viewModel is not null)
         {
-            _viewModel.DeleteRuleCommand.Execute(rule);
+            var itemType = rule.Type == "alias" ? "alias" : "trigger";
+            await ConfirmAndDeleteAsync(button, itemType, rule.Name, () =>
+                _viewModel.DeleteRuleCommand.Execute(rule));
+        }
+    }
+
+    private async Task ConfirmAndDeleteAsync(Button button, string itemType, string itemName, Action delete)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return;
+        }
+
+        button.IsEnabled = false;
+        try
+        {
+            if (await ConfirmDeletionAsync(owner, itemType, itemName))
+            {
+                delete();
+            }
+        }
+        finally
+        {
+            button.IsEnabled = true;
         }
     }
 

@@ -349,8 +349,7 @@
                           FontSize="12"
                           Padding="6,2"
                           VerticalAlignment="Center"
-                          Command="{Binding $parent[Window].DataContext.DeleteProfileCommand}"
-                          CommandParameter="{Binding}"
+                          Click="DeleteProfile_OnClick"
                           ToolTip.Tip="Usuń konto (bezpowrotnie kasuje plik konta)" />
                 </Grid>
               </DataTemplate>
