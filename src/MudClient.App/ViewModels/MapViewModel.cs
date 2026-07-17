@@ -39,6 +39,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private string? _currentSectorName;
     private bool _followPlayer = true;
     private bool _lordModeEnabled;
+    private bool _showGroupMembersAsNumbers;
     private MapDisplayModeOption _selectedDisplayMode;
     private readonly RelayCommand _lordGotoSelectedRoomCommand;
 
@@ -72,6 +73,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     public event Action<MapRoom>? LordGotoRequested;
 
     public event Action<bool>? LordModeChanged;
+
+    public event Action<bool>? GroupMarkerDisplayChanged;
 
     public ObservableCollection<MapArea> Areas { get; } = [];
 
@@ -231,6 +234,18 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool ShowGroupMembersAsNumbers
+    {
+        get => _showGroupMembersAsNumbers;
+        set
+        {
+            if (SetProperty(ref _showGroupMembersAsNumbers, value))
+            {
+                GroupMarkerDisplayChanged?.Invoke(value);
+            }
+        }
+    }
+
     public string LordGotoMenuHeader => SelectedRoom is { } room
         ? $"Goto: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
         : "Goto";
@@ -291,11 +306,16 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         }
 
         GroupMarkers = _groupMembers
-            .Select(member => (Member: member, Room: string.IsNullOrWhiteSpace(member.Room)
+            .Select((member, index) => (Member: member, Number: index + 1,
+                Room: string.IsNullOrWhiteSpace(member.Room)
                 ? null
                 : MapIndex.FindFirstRoomByVnum(member.Room)))
             .Where(item => item.Room is not null)
-            .Select(item => new GroupMapMarker(item.Member.Name, item.Member.IsLeader, item.Room!))
+            .Select(item => new GroupMapMarker(
+                item.Member.Name,
+                item.Member.IsLeader,
+                item.Room!,
+                item.Number))
             .ToArray();
     }
 

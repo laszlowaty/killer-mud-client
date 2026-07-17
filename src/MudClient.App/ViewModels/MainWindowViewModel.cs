@@ -289,6 +289,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver)
         {
             LordModeEnabled = _settings.LordModeEnabled,
+            ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
         };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
@@ -296,6 +297,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
         Map.LordGotoRequested += OnLordGotoRequested;
         Map.LordModeChanged += OnMapLordModeChanged;
+        Map.GroupMarkerDisplayChanged += OnMapGroupMarkerDisplayChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
         _dockLayoutService = dockLayoutService ?? new DockLayoutService();
@@ -1728,6 +1730,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _settings.LordModeEnabled = enabled;
         OnPropertyChanged(nameof(LordModeEnabled));
+        SaveSettings();
+    }
+
+    private void OnMapGroupMarkerDisplayChanged(bool showAsNumbers)
+    {
+        if (_settings.ShowGroupMembersAsNumbers == showAsNumbers)
+        {
+            return;
+        }
+
+        _settings.ShowGroupMembersAsNumbers = showAsNumbers;
         SaveSettings();
     }
 
@@ -4828,6 +4841,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
         Map.LordGotoRequested -= OnLordGotoRequested;
         Map.LordModeChanged -= OnMapLordModeChanged;
+        Map.GroupMarkerDisplayChanged -= OnMapGroupMarkerDisplayChanged;
 
         _autowalkCts.Cancel();
         _bookRefreshCts?.Cancel();

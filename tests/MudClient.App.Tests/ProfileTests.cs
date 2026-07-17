@@ -299,6 +299,17 @@ public sealed class ProfileTests : IDisposable
         Assert.True(settingsService.Load().ClearCommandInputAfterSend);
     }
 
+    [Fact]
+    public async Task Vm_ChangingGroupMarkerDisplay_PersistsToSettings()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.Map.ShowGroupMembersAsNumbers = true;
+
+        Assert.True(settingsService.Load().ShowGroupMembersAsNumbers);
+    }
+
     // ====================================================================
     // MainWindowViewModel profile flow
     // ====================================================================

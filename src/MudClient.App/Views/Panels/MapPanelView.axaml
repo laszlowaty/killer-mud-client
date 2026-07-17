@@ -48,6 +48,9 @@
                 <ToggleSwitch Content="Tryb lorda"
                               IsChecked="{Binding LordModeEnabled}"
                               ToolTip.Tip="Udostępnia polecenie goto w menu prawego przycisku mapy." />
+                <ToggleSwitch Content="Członkowie grupy jako cyfry"
+                              IsChecked="{Binding ShowGroupMembersAsNumbers}"
+                              ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
                         Margin="0,4" />

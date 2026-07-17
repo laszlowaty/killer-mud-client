@@ -134,6 +134,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             ClearCommandInputAfterSend = true,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
+            ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
             TelnetColorScheme = "Colorblind",
         };
@@ -152,6 +153,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(loaded.ClearCommandInputAfterSend);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
+        Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);
         Assert.Equal("Colorblind", loaded.TelnetColorScheme);
     }

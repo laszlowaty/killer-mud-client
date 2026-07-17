@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
@@ -79,6 +80,45 @@ public sealed class LordModeMapUiTests
             Assert.Equal(0, viewModel.SelectedZIndex);
             Assert.Equal(0, zSelector.SelectedIndex);
             Assert.Equal(5d, Assert.IsType<double>(zSelector.SelectedItem));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void MapOptions_NumberedGroupMembersToggleUpdatesRenderer()
+    {
+        using var viewModel = new MapViewModel(AppContext.BaseDirectory, new GmcpLocationResolver());
+        var panel = new MapPanelView { DataContext = viewModel };
+        var window = new Window { Width = 800, Height = 600, Content = panel };
+
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            var mapMenuButton = panel.FindControl<Button>("MapMenuButton");
+            Assert.NotNull(mapMenuButton);
+            Assert.NotNull(mapMenuButton.Flyout);
+            mapMenuButton.Flyout.ShowAt(mapMenuButton);
+            Dispatcher.UIThread.RunJobs();
+
+            var toggle = Assert.Single(
+                window.GetVisualDescendants().OfType<ToggleSwitch>(),
+                item => item.Content?.ToString() == "Członkowie grupy jako cyfry");
+            var map = panel.FindControl<WorldMapControl>("MapControl");
+            Assert.NotNull(map);
+            Assert.False(toggle.IsChecked);
+            Assert.False(map.ShowGroupMembersAsNumbers);
+
+            viewModel.ShowGroupMembersAsNumbers = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(toggle.IsChecked);
+            Assert.True(map.ShowGroupMembersAsNumbers);
         }
         finally
         {

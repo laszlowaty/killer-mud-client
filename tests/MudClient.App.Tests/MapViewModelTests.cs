@@ -810,8 +810,29 @@ public sealed class MapViewModelTests
 
         var marker = Assert.Single(vm.GroupMarkers);
         Assert.Equal("Companion", marker.Name);
+        Assert.Equal(1, marker.Number);
+        Assert.Equal("Companion", marker.GetLabel(showAsNumber: false));
+        Assert.Equal("1", marker.GetLabel(showAsNumber: true));
         Assert.True(marker.IsLeader);
         Assert.Equal("100", marker.Room.Vnum);
+    }
+
+    [Fact]
+    public void UpdateGroupMembers_NumberingPreservesGroupOrderWhenRoomCannotBeResolved()
+    {
+        using var vm = CreateViewModel();
+        SetMapIndex(vm, CreateSampleIndex());
+
+        vm.UpdateGroupMembers(
+        [
+            CreateGroupMember("Unknown", "999"),
+            CreateGroupMember("Companion", "100"),
+        ], "Hero");
+
+        var marker = Assert.Single(vm.GroupMarkers);
+        Assert.Equal("Companion", marker.Name);
+        Assert.Equal(2, marker.Number);
+        Assert.Equal("2", marker.GetLabel(showAsNumber: true));
     }
 
     [Fact]

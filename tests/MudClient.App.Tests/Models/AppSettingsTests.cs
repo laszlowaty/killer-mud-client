@@ -63,6 +63,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_NumberedGroupMapMarkersAreDisabledByDefault()
+    {
+        Assert.False(new AppSettings().ShowGroupMembersAsNumbers);
+    }
+
+    [Fact]
     public void Constructor_LordModeIsDisabledByDefault()
     {
         Assert.False(new AppSettings().LordModeEnabled);

@@ -72,6 +72,7 @@ public sealed class WorldMapControl : Control
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _route;
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
+    private bool _showGroupMembersAsNumbers;
     private MapDisplayMode _displayMode;
     private bool _isSimpleMap;
 
@@ -1069,6 +1070,19 @@ public sealed class WorldMapControl : Control
         }
     }
 
+    public bool ShowGroupMembersAsNumbers
+    {
+        get => _showGroupMembersAsNumbers;
+        set
+        {
+            if (_showGroupMembersAsNumbers != value)
+            {
+                _showGroupMembersAsNumbers = value;
+                RequestInvalidateVisual();
+            }
+        }
+    }
+
     private void DrawLowerLevelShadow(DrawingContext context)
     {
         var mapIndex = _mapIndex;
@@ -1274,7 +1288,7 @@ public sealed class WorldMapControl : Control
                 var marker = markers[index];
                 var brush = marker.IsLeader ? Brushes.Gold : Brushes.DeepSkyBlue;
                 var name = new FormattedText(
-                    marker.Name,
+                    marker.GetLabel(_showGroupMembersAsNumbers),
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     labelTypeface,

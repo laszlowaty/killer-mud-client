@@ -56,6 +56,9 @@ public sealed class AppSettings
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 
+    /// <summary>Uses stable group-order numbers instead of member names on map markers.</summary>
+    public bool ShowGroupMembersAsNumbers { get; set; }
+
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; }
 }
