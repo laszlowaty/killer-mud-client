@@ -19,6 +19,22 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
     private MainWindowViewModel? _viewModel;
 
     [AvaloniaFact]
+    public void MainWindow_ShowsDiscordButtonInTopBar()
+    {
+        _viewModel = new MainWindowViewModel(
+            settingsService: new AppSettingsService(_tempDirectory));
+        _window = new MainWindow { DataContext = _viewModel };
+        _window.Show();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        _window.UpdateLayout();
+
+        Assert.Contains(
+            _window.GetVisualDescendants().OfType<Button>(),
+            button => button.IsEffectivelyVisible && button.Content?.ToString() == "discord");
+    }
+
+    [AvaloniaFact]
     public async Task AvailableUpdate_ShowsPersistentBannerWithActions()
     {
         var update = new AvailableUpdate(

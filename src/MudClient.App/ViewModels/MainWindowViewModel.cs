@@ -20,6 +20,8 @@ namespace MudClient.App.ViewModels;
 
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
+    private static readonly Uri DiscordInviteUri = new("https://discord.gg/6NRnxZeMTC");
+
     private readonly MudSession _session = new();
     private readonly AliasEngine _aliases = new();
     private readonly TriggerEngine _triggers = new();
@@ -331,6 +333,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             IsKilleropediaOpen = false;
             IsHelpOpen = true;
         });
+        OpenDiscordCommand = new RelayCommand(() => OpenExternalLink(DiscordInviteUri));
         OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
         OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
         DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
@@ -394,6 +397,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IRelayCommand OpenKilleropediaCommand { get; }
 
     public IRelayCommand OpenHelpCommand { get; }
+
+    public IRelayCommand OpenDiscordCommand { get; }
 
     public IRelayCommand OpenUpdateReleaseCommand { get; }
 

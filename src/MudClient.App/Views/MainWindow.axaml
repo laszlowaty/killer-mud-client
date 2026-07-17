@@ -66,6 +66,12 @@
                     Padding="10,3"
                     VerticalAlignment="Center"
                     ToolTip.Tip="Otwórz killeropedię" />
+            <Button Content="discord"
+                    Command="{Binding OpenDiscordCommand}"
+                    FontSize="11"
+                    Padding="10,3"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Otwórz Discord Killer MUD" />
             <Button Content="Pomoc"
                     Command="{Binding OpenHelpCommand}"
                     FontSize="11"

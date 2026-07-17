@@ -40,6 +40,21 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
         Assert.False(_viewModel.IsUpdateAvailable);
     }
 
+    [Fact]
+    public void OpenDiscordCommand_OpensKillerMudInvite()
+    {
+        var links = new RecordingExternalLinkService();
+        _viewModel = new MainWindowViewModel(
+            settingsService: new AppSettingsService(_tempDirectory),
+            externalLinkService: links);
+
+        _viewModel.OpenDiscordCommand.Execute(null);
+
+        Assert.Equal(
+            new Uri("https://discord.gg/6NRnxZeMTC"),
+            Assert.Single(links.OpenedUris));
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_viewModel is not null)
