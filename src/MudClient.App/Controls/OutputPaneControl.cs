@@ -860,6 +860,11 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
             return cached.Height;
         }
 
+        if (!_wordWrap)
+        {
+            return _lineHeight;
+        }
+
         if (_viewport.Width <= 0 || _charWidth <= 0)
         {
             return _lineHeight;

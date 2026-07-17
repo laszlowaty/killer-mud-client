@@ -36,6 +36,26 @@ public sealed class OutputPanePerformanceTests
     }
 
     [AvaloniaFact]
+    public void NoWrap_LongLinesKeepSingleRowHeight()
+    {
+        var longLines = new OutputBuffer(100);
+        var emptyLines = new OutputBuffer(100);
+        for (var i = 0; i < 50; i++)
+        {
+            longLines.Append(new string('x', 500), default);
+            longLines.CompleteLine();
+            emptyLines.CompleteLine();
+        }
+
+        var longLinesPane = new OutputPaneControl { Buffer = longLines, WordWrap = false };
+        var emptyLinesPane = new OutputPaneControl { Buffer = emptyLines, WordWrap = false };
+        longLinesPane.Arrange(new Rect(0, 0, 160, 240));
+        emptyLinesPane.Arrange(new Rect(0, 0, 160, 240));
+
+        Assert.Equal(emptyLinesPane.Extent.Height, longLinesPane.Extent.Height);
+    }
+
+    [AvaloniaFact]
     public void HiddenLiveTail_DoesNotRecalculateUntilSplitIsShown()
     {
         var output = new MudOutputView();
