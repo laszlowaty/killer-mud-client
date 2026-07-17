@@ -35,6 +35,9 @@ public sealed class AppSettings
     /// <summary>Wraps long MUD output lines to the terminal width.</summary>
     public bool OutputWordWrap { get; set; } = true;
 
+    /// <summary>Clears the terminal command input after a manually submitted command.</summary>
+    public bool ClearCommandInputAfterSend { get; set; }
+
     /// <summary>Palette used for the standard 16 ANSI colors (including indices 0-15).</summary>
     public string TelnetColorScheme { get; set; } = DefaultTelnetColorScheme;
 

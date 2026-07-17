@@ -311,6 +311,27 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Equal(-1, GetHistoryIndex(panel));
     }
 
+    [AvaloniaFact]
+    public void HandlePostSend_WithClearingEnabled_ClearsTextAndResetsHistoryIndex()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.ClearCommandInputAfterSend = true;
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        commandBox.Text = "look north";
+        SetHistoryIndex(panel, 2);
+
+        InvokeHandlePostSend(panel);
+
+        Assert.True(commandBox.IsFocused);
+        Assert.Equal(string.Empty, commandBox.Text);
+        Assert.Equal(string.Empty, viewModel.CommandText);
+        Assert.Equal(-1, GetHistoryIndex(panel));
+    }
+
     // ==================================================================
     // Window_OnPointerPressed — redirect to command box
     // ==================================================================
@@ -871,11 +892,11 @@ public sealed class MainWindowClickTests : IDisposable
     }
 
     // ==================================================================
-    // OnWindowActivated — only marks when command box is focused
+    // OnWindowActivated — selects after the OS restores the command-box caret
     // ==================================================================
 
     [AvaloniaFact]
-    public void OnWindowActivated_WithCommandBoxFocused_SetsMark()
+    public void OnWindowActivated_BeforeCommandBoxFocusIsRestored_SelectsAllAfterRestoration()
     {
         // Arrange
         var viewModel = CreateViewModel();
@@ -885,15 +906,25 @@ public sealed class MainWindowClickTests : IDisposable
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
-        commandBox.Focus();
-        Assert.True(commandBox.IsFocused);
+        commandBox.Text = "look north";
+        window.Focus();
+        Assert.False(commandBox.IsFocused);
+        commandBox.SelectionStart = commandBox.Text.Length;
+        commandBox.SelectionEnd = commandBox.Text.Length;
         Assert.False(GetShouldSelectAllOnNextInput(panel));
 
-        // Act: simulate window activation while command box holds focus.
+        // Act: Activated arrives before Avalonia restores logical focus to the input.
         InvokeOnWindowActivated(window);
+        commandBox.Focus();
+        Assert.True(commandBox.IsFocused);
+        commandBox.SelectionStart = commandBox.Text.Length;
+        commandBox.SelectionEnd = commandBox.Text.Length;
+        Dispatcher.UIThread.RunJobs();
 
-        // Assert: mark is set so the first keystroke selects all.
-        Assert.True(GetShouldSelectAllOnNextInput(panel));
+        // Assert: the deferred selection wins over caret restoration.
+        Assert.Equal(0, commandBox.SelectionStart);
+        Assert.Equal("look north".Length, commandBox.SelectionEnd);
+        Assert.False(GetShouldSelectAllOnNextInput(panel));
     }
 
     [AvaloniaFact]

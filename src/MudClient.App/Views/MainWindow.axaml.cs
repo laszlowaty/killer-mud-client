@@ -98,17 +98,21 @@ public partial class MainWindow : Window
         // A layout applied while minimized is audited once the Dock visual tree is visible again.
         SchedulePinnedPanelAudit();
 
-        // When the window becomes active while the command box still holds focus,
-        // mark the terminal so that the first keystroke replaces the existing
-        // command text instead of appending to it. If no TextBox or a non-terminal
-        // TextBox holds focus, do not set the mark — a stale flag would otherwise
-        // hijack the command box after the user typed elsewhere.
+        // During Activated, Avalonia may not have restored logical focus yet, so do
+        // not inspect FocusManager here. Queue the check after input/focus handling;
+        // selecting synchronously is either skipped or overwritten by caret restore.
         var terminal = TerminalPanelView.Current;
-        if (terminal is not null &&
-            FocusManager?.GetFocusedElement() is TextBox focusedBox &&
-            terminal.IsCommandBox(focusedBox))
+        if (terminal is not null)
         {
-            terminal.MarkForSelectAllOnNextInput();
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (ReferenceEquals(TerminalPanelView.Current, terminal) &&
+                    FocusManager?.GetFocusedElement() is TextBox currentBox &&
+                    terminal.IsCommandBox(currentBox))
+                {
+                    terminal.SelectAllCommandText();
+                }
+            }, DispatcherPriority.Background);
         }
     }
 

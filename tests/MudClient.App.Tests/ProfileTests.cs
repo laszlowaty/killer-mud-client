@@ -288,6 +288,17 @@ public sealed class ProfileTests : IDisposable
         Assert.False(settingsService.Load().OutputWordWrap);
     }
 
+    [Fact]
+    public async Task Vm_ChangingClearCommandInputAfterSend_PersistsToSettings()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.ClearCommandInputAfterSend = true;
+
+        Assert.True(settingsService.Load().ClearCommandInputAfterSend);
+    }
+
     // ====================================================================
     // MainWindowViewModel profile flow
     // ====================================================================

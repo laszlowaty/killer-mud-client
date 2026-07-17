@@ -911,6 +911,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool ClearCommandInputAfterSend
+    {
+        get => _settings.ClearCommandInputAfterSend;
+        set
+        {
+            if (_settings.ClearCommandInputAfterSend == value)
+            {
+                return;
+            }
+
+            _settings.ClearCommandInputAfterSend = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public string TelnetColorScheme
     {
         get => _settings.TelnetColorScheme;

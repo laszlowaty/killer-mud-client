@@ -40,6 +40,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(AppSettings.DefaultWidgetFontFamily, settings.WidgetFontFamily);
         Assert.Equal(AppSettings.DefaultWidgetFontSize, settings.WidgetFontSize);
         Assert.True(settings.OutputWordWrap);
+        Assert.False(settings.ClearCommandInputAfterSend);
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
     }
 
@@ -130,6 +131,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             WidgetFontSize = 15,
             WidgetFontBold = true,
             OutputWordWrap = false,
+            ClearCommandInputAfterSend = true,
             AutoAssistEnabled = true,
             GroupOrdersEnabled = true,
             LordModeEnabled = true,
@@ -147,6 +149,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(15, loaded.WidgetFontSize);
         Assert.True(loaded.WidgetFontBold);
         Assert.False(loaded.OutputWordWrap);
+        Assert.True(loaded.ClearCommandInputAfterSend);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.True(loaded.GroupOrdersEnabled);
         Assert.True(loaded.LordModeEnabled);

@@ -45,6 +45,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_ClearCommandInputAfterSendIsDisabledByDefault()
+    {
+        Assert.False(new AppSettings().ClearCommandInputAfterSend);
+    }
+
+    [Fact]
     public void Constructor_AutoAssistIsDisabledByDefault()
     {
         Assert.False(new AppSettings().AutoAssistEnabled);

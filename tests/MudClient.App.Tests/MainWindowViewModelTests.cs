@@ -840,7 +840,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
 
     [Fact]
-    public async Task SendCommand_PreservesOriginalTextAfterSend()
+    public async Task SendCommand_WithClearingDisabled_PreservesOriginalTextAfterSend()
     {
         // Arrange: simulate connected so the command can execute
         SetIsConnected(true);

@@ -174,6 +174,12 @@ public sealed partial class TerminalPanelView : UserControl
     public void FocusCommandBoxAndSelectAll()
     {
         _commandBox.Focus();
+        SelectAllCommandText();
+    }
+
+    /// <summary>Selects the command text without changing the currently focused control.</summary>
+    public void SelectAllCommandText()
+    {
         _commandBox.SelectAll();
         _shouldSelectAllOnNextInput = false;
     }
@@ -255,7 +261,18 @@ public sealed partial class TerminalPanelView : UserControl
 
     private void HandlePostSend()
     {
-        FocusCommandBoxAndSelectAll();
+        if (_viewModel?.ClearCommandInputAfterSend == true)
+        {
+            _viewModel.CommandText = string.Empty;
+            _commandBox.Clear();
+            _commandBox.Focus();
+            _shouldSelectAllOnNextInput = false;
+        }
+        else
+        {
+            FocusCommandBoxAndSelectAll();
+        }
+
         _historyIndex = -1;
     }
 

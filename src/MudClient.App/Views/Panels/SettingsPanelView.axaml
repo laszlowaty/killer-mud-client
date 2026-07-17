@@ -130,6 +130,9 @@
       <Border Classes="mud-section" Padding="10">
         <StackPanel Spacing="10">
 
+          <CheckBox Content="Czyść pole komendy po wysłaniu"
+                    IsChecked="{Binding ClearCommandInputAfterSend}" />
+
           <StackPanel Spacing="3">
             <TextBlock Classes="mud-faint" Text="Separator składania komend" />
             <TextBox Text="{Binding CommandStackingSeparator}"
