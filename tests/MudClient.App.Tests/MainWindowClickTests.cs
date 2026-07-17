@@ -382,6 +382,39 @@ public sealed class MainWindowClickTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void PointerPressed_WithRightButton_DoesNotFocusCommandBox()
+    {
+        var viewModel = CreateViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var panel = GetPanel(window);
+        var commandBox = GetCommandBox(panel);
+        Assert.False(commandBox.IsFocused);
+
+        var pointer = new Avalonia.Input.Pointer(
+            Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, isPrimary: true);
+        var properties = new PointerPointProperties(
+            RawInputModifiers.RightMouseButton,
+            PointerUpdateKind.RightButtonPressed);
+        var rootGrid = (Control)window.Content!;
+        var args = new PointerPressedEventArgs(
+            rootGrid,
+            pointer,
+            window,
+            new Point(0, 0),
+            0UL,
+            properties,
+            KeyModifiers.None,
+            clickCount: 1);
+
+        rootGrid.RaiseEvent(args);
+
+        Assert.False(commandBox.IsFocused);
+    }
+
+    [AvaloniaFact]
     public void PointerPressed_OnButton_FindAncestorOfType_ExcludesButton()
     {
         // Validates exclusion logic directly: a Button ancestor causes

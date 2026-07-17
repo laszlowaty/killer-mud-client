@@ -3,6 +3,7 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.GroupPanelView"
+             x:Name="GroupPanel"
              x:DataType="vm:MainWindowViewModel">
   <!-- Group (live from Char.Group GMCP) -->
   <ScrollViewer>
@@ -10,10 +11,25 @@
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="{Binding GroupEmptyMessage}"
                  IsVisible="{Binding !Group.Count}" />
-      <ItemsControl ItemsSource="{Binding Group}">
+      <ItemsControl x:Name="GroupMembersList" ItemsSource="{Binding Group}">
+        <ItemsControl.ContextMenu>
+          <ContextMenu x:Name="GroupContextMenu" x:DataType="models:GroupMember"
+                       Opened="GroupContextMenu_OnOpened"
+                       Closed="GroupContextMenu_OnClosed">
+            <MenuItem Header="goto room"
+                      Command="{Binding #GroupPanel.DataContext.LordGotoGroupRoomCommand}"
+                      CommandParameter="{Binding}"
+                      IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
+            <MenuItem Header="{Binding Name, StringFormat='goto {0}'}"
+                      Command="{Binding #GroupPanel.DataContext.LordGotoGroupMemberCommand}"
+                      CommandParameter="{Binding}"
+                      IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
+          </ContextMenu>
+        </ItemsControl.ContextMenu>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:GroupMember">
-            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+            <Border Classes="mud-section" Padding="6,4" Margin="0,1"
+                    ContextRequested="GroupMember_OnContextRequested">
               <StackPanel Spacing="2">
                 <!-- Row 1: leader marker + name + NPC marker -->
                 <StackPanel Orientation="Horizontal" Spacing="4">

@@ -4,11 +4,15 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
+using MudClient.App.Models;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
+using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
 using Xunit;
 
@@ -174,6 +178,86 @@ public sealed class LordModeMapUiTests
         finally
         {
             window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task GroupContextMenu_ExposesRoomAndCharacterGotoOnlyInLordMode()
+    {
+        var settingsDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "KillerMudClient_GroupLordUiTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(settingsDirectory);
+        await using var viewModel = new MainWindowViewModel(
+            settingsService: new AppSettingsService(settingsDirectory));
+        var member = GroupMember.FromCore(new CharacterGroupMember(
+            "Aragorn", "standing", "bez ran", 7, "wypoczęty", 4, null,
+            false, "6017", false));
+        viewModel.Group.Add(member);
+
+        var panel = new GroupPanelView { DataContext = viewModel };
+        var window = new Window { Width = 360, Height = 300, Content = panel };
+
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+
+            var memberBorder = Assert.Single(
+                panel.GetVisualDescendants().OfType<Border>(),
+                border => ReferenceEquals(border.DataContext, member));
+            memberBorder.RaiseEvent(new ContextRequestedEventArgs
+            {
+                RoutedEvent = InputElement.ContextRequestedEvent,
+            });
+
+            var groupMembersList = panel.FindControl<ItemsControl>("GroupMembersList");
+            Assert.NotNull(groupMembersList);
+            var contextMenu = Assert.IsType<ContextMenu>(groupMembersList.ContextMenu);
+            Assert.Same(member, contextMenu.DataContext);
+            contextMenu.Open(groupMembersList);
+            Dispatcher.UIThread.RunJobs();
+
+            var menuItems = contextMenu.Items.OfType<MenuItem>().ToArray();
+            Assert.Equal(2, menuItems.Length);
+            Assert.All(menuItems, item => Assert.False(item.IsVisible));
+
+            viewModel.LordModeEnabled = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.All(menuItems, item => Assert.True(item.IsVisible));
+            Assert.Equal("goto room", menuItems[0].Header);
+            Assert.Equal("goto Aragorn", menuItems[1].Header);
+            Assert.Same(member, menuItems[0].CommandParameter);
+            Assert.Same(member, menuItems[1].CommandParameter);
+            Assert.Same(viewModel.LordGotoGroupRoomCommand, menuItems[0].Command);
+            Assert.Same(viewModel.LordGotoGroupMemberCommand, menuItems[1].Command);
+
+            var refreshedGroup = new CharacterGroupUpdate("Aragorn",
+            [
+                new CharacterGroupMember(
+                    "Aragorn", "standing", "lekko ranny", 6, "wypoczęty", 4, null,
+                    false, "6017", false),
+            ]);
+            typeof(MainWindowViewModel)
+                .GetField("_latestGroupUpdate", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(viewModel, refreshedGroup);
+            viewModel.RefreshVisibleGroup(refreshedGroup);
+
+            Assert.True(contextMenu.IsOpen);
+            Assert.Same(member, Assert.Single(viewModel.Group));
+
+            contextMenu.Close();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("lekko ranny", Assert.Single(viewModel.Group).HpText);
+        }
+        finally
+        {
+            window.Close();
+            Directory.Delete(settingsDirectory, recursive: true);
         }
     }
 

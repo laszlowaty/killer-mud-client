@@ -242,7 +242,13 @@ public partial class MainWindow : Window
     private void Window_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
         // Clicking anywhere on the window should drop focus straight into the command line,
-        // unless the click is meant for another interactive control.
+        // unless the click is meant for another interactive control. Right-clicks must keep
+        // their current focus so context menus are not immediately dismissed.
+        if (eventArgs.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.RightButtonPressed)
+        {
+            return;
+        }
+
         var terminal = TerminalPanelView.Current;
         if (terminal is null || eventArgs.Source is not Visual visual)
         {

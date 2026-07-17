@@ -1411,6 +1411,38 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.True(new AppSettingsService(_tempDir).Load().LordModeEnabled);
     }
 
+    [Fact]
+    public void LordGroupGotoCommands_RequireLordModeAndBuildExpectedTargets()
+    {
+        var member = GroupMember.FromCore(new CharacterGroupMember(
+            "Aragorn", "standing", "bez ran", 7, "wypoczęty", 4, null,
+            false, "6017", false));
+
+        Assert.False(_vm.LordGotoGroupRoomCommand.CanExecute(member));
+        Assert.False(_vm.LordGotoGroupMemberCommand.CanExecute(member));
+
+        _vm.LordModeEnabled = true;
+
+        Assert.True(_vm.LordGotoGroupRoomCommand.CanExecute(member));
+        Assert.True(_vm.LordGotoGroupMemberCommand.CanExecute(member));
+        Assert.Equal("goto 6017", MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
+        Assert.Equal("goto Aragorn", MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
+    }
+
+    [Fact]
+    public void LordGroupGotoCommands_RejectUnsafeGmcpTargets()
+    {
+        var member = new GroupMember(
+            "Aragorn\nshutdown", false, "standing", "bez ran", 7,
+            "wypoczęty", 4, null, false, "6017\nshutdown", "?");
+        _vm.LordModeEnabled = true;
+
+        Assert.False(_vm.LordGotoGroupRoomCommand.CanExecute(member));
+        Assert.False(_vm.LordGotoGroupMemberCommand.CanExecute(member));
+        Assert.Null(MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
+        Assert.Null(MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
+    }
+
     // ====================================================================
     // Char.Group → Group collection (simulated handler)
     //

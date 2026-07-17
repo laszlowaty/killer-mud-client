@@ -62,6 +62,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _acceptingTriggerTasks = true;
 
     private CharacterGroupUpdate? _latestGroupUpdate;
+    private bool _isGroupContextMenuOpen;
     private IReadOnlyList<RoomPerson> _latestRoomPeople = [];
     private string? _latestCharacterName;
     private string? _latestCharacterPosition;
@@ -228,6 +229,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
         ExaminePersonCommand = new RelayCommand<string>(ExecuteExaminePerson);
         KillPersonCommand = new RelayCommand<string>(ExecuteKillPerson);
+        LordGotoGroupRoomCommand = new RelayCommand<GroupMember>(
+            ExecuteLordGotoGroupRoom,
+            CanExecuteLordGotoGroupRoom);
+        LordGotoGroupMemberCommand = new RelayCommand<GroupMember>(
+            ExecuteLordGotoGroupMember,
+            CanExecuteLordGotoGroupMember);
         SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
         CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
@@ -1023,6 +1030,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _settings.LordModeEnabled = value;
             Map.LordModeEnabled = value;
             OnPropertyChanged();
+            LordGotoGroupRoomCommand.NotifyCanExecuteChanged();
+            LordGotoGroupMemberCommand.NotifyCanExecuteChanged();
             SaveSettings();
         }
     }
@@ -1730,6 +1739,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _settings.LordModeEnabled = enabled;
         OnPropertyChanged(nameof(LordModeEnabled));
+        LordGotoGroupRoomCommand.NotifyCanExecuteChanged();
+        LordGotoGroupMemberCommand.NotifyCanExecuteChanged();
         SaveSettings();
     }
 
@@ -3117,6 +3128,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand<string> ExaminePersonCommand { get; }
     public IRelayCommand<string> KillPersonCommand { get; }
+    public RelayCommand<GroupMember> LordGotoGroupRoomCommand { get; }
+    public RelayCommand<GroupMember> LordGotoGroupMemberCommand { get; }
 
     // --- Character vitals (mock) ---
     public CharacterVitals Vitals { get; } = new();
@@ -3921,6 +3934,40 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private bool CanExecuteLordGotoGroupRoom(GroupMember? member) =>
+        LordModeEnabled && BuildLordGotoGroupRoomCommand(member) is not null;
+
+    private void ExecuteLordGotoGroupRoom(GroupMember? member)
+    {
+        if (CanExecuteLordGotoGroupRoom(member) && BuildLordGotoGroupRoomCommand(member) is { } command)
+        {
+            QueueTriggeredCommands([command]);
+        }
+    }
+
+    private bool CanExecuteLordGotoGroupMember(GroupMember? member) =>
+        LordModeEnabled && BuildLordGotoGroupMemberCommand(member) is not null;
+
+    private void ExecuteLordGotoGroupMember(GroupMember? member)
+    {
+        if (CanExecuteLordGotoGroupMember(member) && BuildLordGotoGroupMemberCommand(member) is { } command)
+        {
+            QueueTriggeredCommands([command]);
+        }
+    }
+
+    internal static string? BuildLordGotoGroupRoomCommand(GroupMember? member) =>
+        IsSafeVnum(member?.Room) ? $"goto {member!.Room}" : null;
+
+    internal static string? BuildLordGotoGroupMemberCommand(GroupMember? member) =>
+        IsSafeCharacterName(member?.Name) ? $"goto {member!.Name}" : null;
+
+    private static bool IsSafeVnum(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && value.All(char.IsAsciiDigit);
+
+    private static bool IsSafeCharacterName(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && value.All(character => char.IsLetter(character) || character is '-' or '\'');
+
     private void AddNote()
     {
         if (string.IsNullOrWhiteSpace(NewNoteTitle))
@@ -4517,15 +4564,42 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 : update.UnavailableReason;
             OnPropertyChanged(nameof(GroupEmptyMessage));
             Map.UpdateGroupMembers(update.Members, _latestCharacterName);
-            Group.Clear();
-            foreach (var member in update.Members)
-            {
-                if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var roomDisplay = ResolveRoomDisplay(member.Room);
-                Group.Add(GroupMember.FromCore(member, roomDisplay));
-            }
+            RefreshVisibleGroup(update);
         });
+    }
+
+    internal void SetGroupContextMenuOpen(bool isOpen)
+    {
+        if (_isGroupContextMenuOpen == isOpen)
+        {
+            return;
+        }
+
+        _isGroupContextMenuOpen = isOpen;
+        if (!isOpen && _latestGroupUpdate is { } update)
+        {
+            RefreshVisibleGroup(update);
+        }
+    }
+
+    internal void RefreshVisibleGroup(CharacterGroupUpdate update)
+    {
+        if (_isGroupContextMenuOpen)
+        {
+            return;
+        }
+
+        Group.Clear();
+        foreach (var member in update.Members)
+        {
+            if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var roomDisplay = ResolveRoomDisplay(member.Room);
+            Group.Add(GroupMember.FromCore(member, roomDisplay));
+        }
     }
 
     private void OnMemSpellsChanged(IReadOnlyList<MemorizedSpell> spells)
@@ -4577,14 +4651,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Dispatcher.UIThread.Post(() =>
             {
                 Map.UpdateGroupMembers(update.Members, _latestCharacterName);
-                Group.Clear();
-                foreach (var member in update.Members)
-                {
-                    if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    var roomDisplay = ResolveRoomDisplay(member.Room);
-                    Group.Add(GroupMember.FromCore(member, roomDisplay));
-                }
+                RefreshVisibleGroup(update);
             });
         }
     }
