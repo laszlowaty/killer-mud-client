@@ -80,6 +80,9 @@ public sealed class ProfileTests : IDisposable
         var profile = new ProfileData
         {
             Name = "Gandalf",
+            Login = "gandalf_szary",
+            Host = "mud.example.org",
+            Port = 4444,
             Notes = [new ProfileNote { Title = "T", Content = "C", CreatedAt = "2026-01-01 10:00" }],
             Rules = [new ProfileRule { Name = "R", Type = "alias", Pattern = "^l$", Action = "look", IsEnabled = true }],
         };
@@ -89,6 +92,9 @@ public sealed class ProfileTests : IDisposable
 
         Assert.NotNull(loaded);
         Assert.Equal("Gandalf", loaded!.Name);
+        Assert.Equal("gandalf_szary", loaded.Login);
+        Assert.Equal("mud.example.org", loaded.Host);
+        Assert.Equal(4444, loaded.Port);
         var note = Assert.Single(loaded.Notes);
         Assert.Equal("T", note.Title);
         var rule = Assert.Single(loaded.Rules);
@@ -348,6 +354,74 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("Legolas", vm.ActiveProfileName);
         Assert.Contains("Legolas", vm.AvailableProfiles);
         Assert.True(service.Exists("Legolas"));
+    }
+
+    [Fact]
+    public async Task Vm_CreateProfile_PersistsSeparateLoginAndEndpoint()
+    {
+        var service = CreateService();
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService())
+        {
+            NewProfileName = "Łucznik",
+            NewProfileLogin = "Legolas",
+            NewProfileHost = "mud.example.org",
+            NewProfilePort = 4444,
+        };
+
+        vm.CreateProfileCommand.Execute(null);
+
+        var stored = Assert.IsType<ProfileData>(service.Load("Łucznik"));
+        Assert.Equal("Łucznik", vm.ActiveProfileName);
+        Assert.Equal("Legolas", stored.Login);
+        Assert.Equal("mud.example.org", stored.Host);
+        Assert.Equal(4444, stored.Port);
+        Assert.Equal("mud.example.org", vm.Host);
+        Assert.Equal(4444, vm.Port);
+    }
+
+    [Fact]
+    public async Task Vm_SelectProfile_LoadsAndUpdatesPerAccountEndpoint()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Mag",
+            Login = "Gandalf",
+            Host = "first.example.org",
+            Port = 4001,
+        });
+
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Mag";
+
+        Assert.Equal("Gandalf", vm.SelectedProfileLogin);
+        Assert.Equal("first.example.org", vm.Host);
+        Assert.Equal(4001, vm.Port);
+
+        vm.SelectedProfileLogin = "Mithrandir";
+        vm.Host = "second.example.org";
+        vm.Port = 5005;
+        vm.SelectProfileCommand.Execute(null);
+
+        var stored = Assert.IsType<ProfileData>(service.Load("Mag"));
+        Assert.Equal("Mithrandir", stored.Login);
+        Assert.Equal("second.example.org", stored.Host);
+        Assert.Equal(5005, stored.Port);
+    }
+
+    [Fact]
+    public async Task Vm_SelectLegacyProfile_UsesNameAsLoginAndDefaultEndpoint()
+    {
+        var service = CreateService();
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(Path.Combine(_directory, "StareKonto.json"), """{"Name":"StareKonto"}""");
+
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "StareKonto";
+
+        Assert.Equal("StareKonto", vm.SelectedProfileLogin);
+        Assert.Equal("killer-mud.pl", vm.Host);
+        Assert.Equal(4004, vm.Port);
     }
 
     [Fact]

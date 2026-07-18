@@ -149,9 +149,11 @@
             </Button>
           </StackPanel>
 
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-            <TextBox Text="{Binding Host}" PlaceholderText="host" MinWidth="120" Width="130" />
-            <TextBox Text="{Binding Port}" PlaceholderText="port" MinWidth="55" Width="60" />
+          <StackPanel x:Name="ConnectionActions"
+                      Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="8"
+                      VerticalAlignment="Center">
             <Button Content="Połącz" Command="{Binding ConnectCommand}" Padding="12,6" />
             <Button Classes="mud-danger" Content="Rozłącz" Command="{Binding DisconnectCommand}" Padding="12,6" />
             <TextBlock Text="{Binding StatusText}"
@@ -340,12 +342,13 @@
           Background="#B0080A0B">
       <Border HorizontalAlignment="Center"
               VerticalAlignment="Center"
-              Width="460"
+              Width="520"
               Classes="mud-panel"
               BorderBrush="{StaticResource MudBrushGoldBright}"
               BorderThickness="1"
               Padding="24">
-        <StackPanel Spacing="14">
+        <ScrollViewer MaxHeight="620" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="10">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
             <TextBlock Grid.Column="0" Text="⚔" FontSize="28" Foreground="{StaticResource MudBrushGoldBright}" />
             <StackPanel Grid.Column="1">
@@ -364,7 +367,7 @@
           <ListBox x:Name="ProfileListBox"
                    ItemsSource="{Binding AvailableProfiles}"
                    SelectedItem="{Binding SelectedProfileName}"
-                   MaxHeight="220"
+                   MaxHeight="120"
                    Background="Transparent"
                    IsVisible="{Binding HasProfiles}"
                    DoubleTapped="ProfileList_OnDoubleTapped">
@@ -405,12 +408,38 @@
                      Text="Brak zapisanych kont — utwórz pierwsze poniżej."
                      IsVisible="{Binding !HasProfiles}" />
 
-          <TextBox Text="{Binding SelectedProfilePassword}"
-                   PasswordChar="●"
-                   PlaceholderText="Zmień hasło wybranego konta (opcjonalnie)"
-                   IsVisible="{Binding HasProfiles}"
-                   KeyDown="SelectProfileField_OnKeyDown"
-                   ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
+          <StackPanel x:Name="ProfileServerFields"
+                      Spacing="6"
+                      IsVisible="{Binding HasProfiles}">
+            <TextBlock Text="Ustawienia wybranego konta"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource MudBrushParchmentDim}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <TextBox Grid.Column="0"
+                       Text="{Binding SelectedProfileLogin}"
+                       PlaceholderText="Login MUD"
+                       KeyDown="SelectProfileField_OnKeyDown" />
+              <TextBox Grid.Column="1"
+                       Text="{Binding SelectedProfilePassword}"
+                       PasswordChar="●"
+                       PlaceholderText="Nowe hasło (opcjonalnie)"
+                       KeyDown="SelectProfileField_OnKeyDown"
+                       ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
+            </Grid>
+            <Grid ColumnDefinitions="*,110" ColumnSpacing="8">
+              <TextBox Grid.Column="0"
+                       Text="{Binding Host}"
+                       PlaceholderText="host"
+                       KeyDown="SelectProfileField_OnKeyDown"
+                       ToolTip.Tip="Adres serwera MUD dla wybranego konta" />
+              <TextBox Grid.Column="1"
+                       Text="{Binding Port}"
+                       PlaceholderText="port"
+                       KeyDown="SelectProfileField_OnKeyDown"
+                       ToolTip.Tip="Port serwera dla wybranego konta (1–65535)" />
+            </Grid>
+          </StackPanel>
 
           <Button Content="Wybierz konto"
                   Command="{Binding SelectProfileCommand}"
@@ -423,11 +452,32 @@
 
           <TextBlock Classes="mud-faint"
                      TextWrapping="Wrap"
-                     Text="Nowe konto — przy pierwszym połączeniu klient sam utworzy postać na MUD-zie (nazwa, hasło i potwierdzenie)." />
+                     Text="Nowe konto — jego lokalna nazwa może być inna niż login wysyłany do MUD-a." />
 
-          <TextBox Text="{Binding NewProfileName}"
-                   PlaceholderText="Nazwa konta"
-                   KeyDown="CreateProfileField_OnKeyDown" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <TextBox Grid.Column="0"
+                     Text="{Binding NewProfileName}"
+                     PlaceholderText="Nazwa konta w aplikacji"
+                     KeyDown="CreateProfileField_OnKeyDown" />
+            <TextBox Grid.Column="1"
+                     Text="{Binding NewProfileLogin}"
+                     PlaceholderText="Login MUD"
+                     KeyDown="CreateProfileField_OnKeyDown"
+                     ToolTip.Tip="Puste pole użyje nazwy konta jako loginu." />
+          </Grid>
+
+          <Grid x:Name="NewProfileServerFields" ColumnDefinitions="*,110" ColumnSpacing="8">
+            <TextBox Grid.Column="0"
+                     Text="{Binding NewProfileHost}"
+                     PlaceholderText="host"
+                     KeyDown="CreateProfileField_OnKeyDown"
+                     ToolTip.Tip="Adres serwera MUD dla nowego konta" />
+            <TextBox Grid.Column="1"
+                     Text="{Binding NewProfilePort}"
+                     PlaceholderText="port"
+                     KeyDown="CreateProfileField_OnKeyDown"
+                     ToolTip.Tip="Port serwera dla nowego konta (1–65535)" />
+          </Grid>
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBox Grid.Column="0"
@@ -440,7 +490,8 @@
                     Command="{Binding CreateProfileCommand}"
                     Padding="16,7" />
           </Grid>
-        </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
       </Border>
     </Grid>
 

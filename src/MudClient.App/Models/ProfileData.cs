@@ -5,7 +5,17 @@ namespace MudClient.App.Models;
 /// </summary>
 public sealed class ProfileData
 {
+    /// <summary>Local account label used in the picker and as the profile file name.</summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>MUD login sent to the server; empty in legacy files means <see cref="Name"/>.</summary>
+    public string Login { get; set; } = string.Empty;
+
+    /// <summary>Server address used by this account.</summary>
+    public string Host { get; set; } = "killer-mud.pl";
+
+    /// <summary>Server port used by this account.</summary>
+    public int Port { get; set; } = 4004;
 
     /// <summary>Account password encrypted with DPAPI (base64); empty = no password stored.</summary>
     public string EncryptedPassword { get; set; } = string.Empty;
@@ -13,7 +23,7 @@ public sealed class ProfileData
     /// <summary>
     /// True for a freshly created account that has never been registered on the
     /// MUD. On the first connection the client sends the character-creation
-    /// sequence (name, "t", password, password, space) instead of a plain login;
+    /// sequence (login, "t", password, password, space) instead of a plain login;
     /// the flag is cleared afterwards so later logins send only name + password.
     /// </summary>
     public bool NeedsRegistration { get; set; }

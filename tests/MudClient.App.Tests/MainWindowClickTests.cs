@@ -874,7 +874,7 @@ public sealed class MainWindowClickTests : IDisposable
         var hostBox = window
             .GetVisualDescendants()
             .OfType<TextBox>()
-            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host" && t.IsEffectivelyVisible);
         Assert.NotNull(hostBox);
 
         // Act / Assert: IsCommandBox returns false for it.
@@ -975,7 +975,7 @@ public sealed class MainWindowClickTests : IDisposable
         var hostBox = window
             .GetVisualDescendants()
             .OfType<TextBox>()
-            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host" && t.IsEffectivelyVisible);
         Assert.NotNull(hostBox);
         hostBox.Focus();
         Assert.True(hostBox.IsFocused);
@@ -1008,7 +1008,7 @@ public sealed class MainWindowClickTests : IDisposable
         var hostBox = window
             .GetVisualDescendants()
             .OfType<TextBox>()
-            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host");
+            .FirstOrDefault(t => t.Name is null && t.PlaceholderText == "host" && t.IsEffectivelyVisible);
         Assert.NotNull(hostBox);
         hostBox.Focus();
         Assert.True(hostBox.IsFocused);

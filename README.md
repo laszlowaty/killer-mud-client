@@ -156,7 +156,7 @@ Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull
 
 ## Gdzie wpisać adres MUD-a
 
-Po uruchomieniu aplikacji wpisz host i port na górnym pasku, następnie kliknij **Połącz**. Możesz też utworzyć konto (host, port, login, hasło) — klient zaloguje się automatycznie.
+Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każde konto ma własny host, port i login MUD-a oraz niezależną lokalną nazwę widoczną w aplikacji. Po wyborze konta klient łączy się i loguje automatycznie; parametry istniejącego konta można zmienić na tym samym ekranie przed połączeniem.
 
 ## Kopia i import ustawień
 

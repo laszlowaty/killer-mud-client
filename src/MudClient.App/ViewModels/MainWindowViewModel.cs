@@ -177,8 +177,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     // --- Profiles ---
     private string? _activeProfileName;
+    private string _activeProfileLogin = string.Empty;
     private string? _selectedProfileName;
+    private string _selectedProfileLogin = string.Empty;
     private string _newProfileName = string.Empty;
+    private string _newProfileLogin = string.Empty;
+    private string _newProfileHost = "killer-mud.pl";
+    private int _newProfilePort = 4004;
     private string _newProfilePassword = string.Empty;
     private string _selectedProfilePassword = string.Empty;
 
@@ -2723,9 +2728,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (SetProperty(ref _selectedProfileName, value))
             {
+                LoadSelectedProfileEndpoint(value);
                 SelectProfileCommand.NotifyCanExecuteChanged();
             }
         }
+    }
+
+    public string SelectedProfileLogin
+    {
+        get => _selectedProfileLogin;
+        set => SetProperty(ref _selectedProfileLogin, value);
     }
 
     /// <summary>Password for the account being created in the picker.</summary>
@@ -2757,6 +2769,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public string NewProfileLogin
+    {
+        get => _newProfileLogin;
+        set => SetProperty(ref _newProfileLogin, value);
+    }
+
+    public string NewProfileHost
+    {
+        get => _newProfileHost;
+        set => SetProperty(ref _newProfileHost, value);
+    }
+
+    public int NewProfilePort
+    {
+        get => _newProfilePort;
+        set => SetProperty(ref _newProfilePort, value);
+    }
+
+    private void LoadSelectedProfileEndpoint(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || _profiles.Load(name) is not { } profile)
+        {
+            SelectedProfileLogin = string.Empty;
+            Host = "killer-mud.pl";
+            Port = 4004;
+            return;
+        }
+
+        SelectedProfileLogin = ResolveProfileLogin(profile);
+        Host = ResolveProfileHost(profile);
+        Port = ResolveProfilePort(profile);
+    }
+
     private void SelectProfile()
     {
         var name = SelectedProfileName?.Trim();
@@ -2766,16 +2811,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         var profile = _profiles.Load(name) ?? new ProfileData { Name = name };
+        profile.Login = string.IsNullOrWhiteSpace(SelectedProfileLogin)
+            ? name
+            : SelectedProfileLogin.Trim();
+        profile.Host = Host.Trim();
+        profile.Port = Port;
 
         // A password typed in the picker replaces the stored one.
         var typedPassword = SelectedProfilePassword;
         if (!string.IsNullOrEmpty(typedPassword))
         {
             profile.EncryptedPassword = PasswordProtector.Protect(typedPassword);
-            _profiles.Save(profile);
             SelectedProfilePassword = string.Empty;
         }
 
+        _profiles.Save(profile);
         ActivateProfile(profile);
     }
 
@@ -2798,6 +2848,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var profile = new ProfileData
         {
             Name = name,
+            Login = string.IsNullOrWhiteSpace(NewProfileLogin) ? name : NewProfileLogin.Trim(),
+            Host = NewProfileHost.Trim(),
+            Port = NewProfilePort,
             EncryptedPassword = PasswordProtector.Protect(NewProfilePassword),
             NeedsRegistration = true,
             Rules =
@@ -2821,6 +2874,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         NewProfileName = string.Empty;
+        NewProfileLogin = string.Empty;
         NewProfilePassword = string.Empty;
         ActivateProfile(profile);
     }
@@ -2862,6 +2916,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         CancelAllTimers();
         SelectedProfileName = ActiveProfileName;
         ActiveProfileName = null;
+        _activeProfileLogin = string.Empty;
         _activeProfilePassword = string.Empty;
         _activeProfileNeedsRegistration = false;
     }
@@ -2930,6 +2985,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _activeProfilePassword = PasswordProtector.Unprotect(profile.EncryptedPassword);
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
+        _activeProfileLogin = ResolveProfileLogin(profile);
+        Host = ResolveProfileHost(profile);
+        Port = ResolveProfilePort(profile);
 
         ActiveProfileName = profile.Name;
         _suppressTreeRebuild = false;
@@ -2941,6 +2999,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddToast($"Konto „{profile.Name}” aktywne.", "info");
         ProfileActivated?.Invoke(profile.Name);
     }
+
+    private static string ResolveProfileLogin(ProfileData profile) =>
+        string.IsNullOrWhiteSpace(profile.Login) ? profile.Name : profile.Login.Trim();
+
+    private static string ResolveProfileHost(ProfileData profile) =>
+        string.IsNullOrWhiteSpace(profile.Host) ? "killer-mud.pl" : profile.Host.Trim();
+
+    private static int ResolveProfilePort(ProfileData profile) =>
+        profile.Port is >= 1 and <= 65535 ? profile.Port : 4004;
 
     /// <summary>Appends entries from the shared global store to the working collections.</summary>
     private void LoadGlobalEntries()
@@ -3104,6 +3171,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var profile = new ProfileData
         {
             Name = ActiveProfileName,
+            Login = _activeProfileLogin,
+            Host = Host.Trim(),
+            Port = Port,
             Notes = Notes.Where(n => !n.IsGlobal).Select(ToProfileNote).ToList(),
             Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
@@ -3851,8 +3921,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// </summary>
     private async Task AutoLoginAsync()
     {
-        var name = ActiveProfileName;
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrEmpty(_activeProfilePassword))
+        var login = _activeProfileLogin;
+        if (string.IsNullOrWhiteSpace(login) || string.IsNullOrEmpty(_activeProfilePassword))
         {
             return;
         }
@@ -3867,7 +3937,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             // single space skips the intro screen. This runs only once — the
             // flag is cleared and persisted so later logins use the plain
             // name + password sequence below.
-            await _session.SendCommandAsync(name);
+            await _session.SendCommandAsync(login);
             await Task.Delay(500);
             await _session.SendCommandAsync("t");
             await Task.Delay(500);
@@ -3879,14 +3949,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             _activeProfileNeedsRegistration = false;
             SaveActiveProfile();
-            EmitSystem($"Utworzono i zalogowano nową postać {name}.", 36);
+            EmitSystem($"Utworzono i zalogowano nową postać {login}.", 36);
             return;
         }
 
-        await _session.SendCommandAsync(name);
+        await _session.SendCommandAsync(login);
         await Task.Delay(500);
         await _session.SendCommandAsync(_activeProfilePassword);
-        EmitSystem($"Zalogowano automatycznie jako {name}.", 36);
+        EmitSystem($"Zalogowano automatycznie jako {login}.", 36);
     }
 
     private async Task DisconnectAsync()
