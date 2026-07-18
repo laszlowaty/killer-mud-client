@@ -306,7 +306,7 @@
                     <TextBlock Grid.Column="0" Text="/idz &lt;cel&gt;" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="Rozpoczyna marsz do zapisanej lokacji o podanej nazwie." />
+                               Text="Rozpoczyna marsz do członka grupy widocznego przez GMCP albo do zapisanej lokacji o podanej nazwie." />
                   </Grid>
                 </Border>
 

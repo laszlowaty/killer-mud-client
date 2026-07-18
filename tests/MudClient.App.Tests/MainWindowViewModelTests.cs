@@ -3193,6 +3193,59 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Contains("Mapa nie jest załadowana", toast.Text);
     }
 
+    [Fact]
+    public void TryHandleAutowalkCommand_GroupMember_RecognizesLatestGmcpUpdate()
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Aragorn", "6017", isLeader: true),
+            CreateCharacterGroupMember("Gimli", "7007")
+        ]));
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/idz gImLi");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+        Assert.DoesNotContain("Nie znam lokacji", toast.Text);
+    }
+
+    [Fact]
+    public void BuildGroupMemberAutowalkTarget_UsesMemberNameAndRoomFromGmcp()
+    {
+        var target = _vm.BuildGroupMemberAutowalkTarget(
+            CreateCharacterGroupMember("Gimli", "7007"));
+
+        Assert.NotNull(target);
+        Assert.Equal("Gimli", target!.Name);
+        Assert.Equal("7007", target.Vnum);
+        Assert.Equal("pokój 7007", target.RoomName);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_GroupMemberWithoutRoom_ShowsGmcpPositionError()
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Gimli", null)
+        ]));
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/idz Gimli");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Brak pozycji GMCP", toast.Text);
+        Assert.Contains("Gimli", toast.Text);
+    }
+
+    private static CharacterGroupMember CreateCharacterGroupMember(
+        string name,
+        string? room,
+        bool isLeader = false) =>
+        new(name, null, "zdrowy", null, "wypoczęty", null, null, false, room, isLeader);
+
     // ====================================================================
     // Autowalk — resuming an interrupted journey with a bare /idz
     //

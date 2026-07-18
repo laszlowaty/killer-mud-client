@@ -2412,7 +2412,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Handles chat-bar commands: /idz &lt;nazwa&gt; and /stop. Returns true when consumed.</summary>
+    /// <summary>Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt; and /stop. Returns true when consumed.</summary>
     private bool TryHandleAutowalkCommand(string command)
     {
         if (string.Equals(command, "/stop", StringComparison.OrdinalIgnoreCase))
@@ -2434,6 +2434,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return true;
         }
 
+        var groupMember = _latestGroupUpdate?.Members.FirstOrDefault(
+            member => string.Equals(member.Name, argument, StringComparison.OrdinalIgnoreCase));
+        if (groupMember is not null)
+        {
+            var groupTarget = BuildGroupMemberAutowalkTarget(groupMember);
+            if (groupTarget is null)
+            {
+                AddToast($"Brak pozycji GMCP członka grupy „{groupMember.Name}”.", "error");
+                return true;
+            }
+
+            StartAutowalk(groupTarget);
+            return true;
+        }
+
         var entry = Locations.FirstOrDefault(
             l => string.Equals(l.Name, argument, StringComparison.OrdinalIgnoreCase));
         if (entry is null)
@@ -2445,6 +2460,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         StartAutowalk(entry);
         return true;
     }
+
+    internal AutowalkLocation? BuildGroupMemberAutowalkTarget(CharacterGroupMember member) =>
+        string.IsNullOrWhiteSpace(member.Room)
+            ? null
+            : new AutowalkLocation(member.Name, member.Room, ResolveRoomDisplay(member.Room));
 
     // ========================================================================
     // Death marks (last 10 death locations, hard-coded server-line trigger)

@@ -106,7 +106,7 @@
           <CheckBox IsChecked="{Binding NewLocationIsGlobal}"
                     Content="Globalna — wspólna dla wszystkich kont" />
           <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                     Text="Do zapisanej lokacji dojdziesz przyciskiem IDŹ albo komendą /idz &lt;nazwa&gt;. Komenda /stop przerywa marsz." />
+                     Text="Do członka grupy lub zapisanej lokacji dojdziesz komendą /idz &lt;nazwa&gt;. Przycisk IDŹ prowadzi do wybranej lokacji, a /stop przerywa marsz." />
         </StackPanel>
       </Expander>
 
