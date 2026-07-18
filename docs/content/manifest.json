@@ -8,6 +8,12 @@
       "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-map-2026.07.18.1/map-2026.07.18.1.zip",
       "size": 34930920,
       "sha256": "eb29f048f5941ca90716c2c9d45924d9be32573c3848d41d44d48fc78f6770f9"
+    },
+    "killeropedia": {
+      "version": "2026.07.18.1",
+      "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-killeropedia-2026.07.18.1/killeropedia-2026.07.18.1.zip",
+      "size": 43674,
+      "sha256": "fa2a5bfb7dc8388ca15b7cbed5dc514e3980e40de524cd1e5ec4dfb6f95f2d32"
     }
   }
 }
