@@ -12,24 +12,23 @@
                  Text="{Binding GroupEmptyMessage}"
                  IsVisible="{Binding !Group.Count}" />
       <ItemsControl x:Name="GroupMembersList" ItemsSource="{Binding Group}">
-        <ItemsControl.ContextMenu>
-          <ContextMenu x:Name="GroupContextMenu" x:DataType="models:GroupMember"
-                       Opened="GroupContextMenu_OnOpened"
-                       Closed="GroupContextMenu_OnClosed">
-            <MenuItem Header="goto room"
-                      Command="{Binding #GroupPanel.DataContext.LordGotoGroupRoomCommand}"
-                      CommandParameter="{Binding}"
-                      IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
-            <MenuItem Header="{Binding Name, StringFormat='goto {0}'}"
-                      Command="{Binding #GroupPanel.DataContext.LordGotoGroupMemberCommand}"
-                      CommandParameter="{Binding}"
-                      IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
-          </ContextMenu>
-        </ItemsControl.ContextMenu>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:GroupMember">
-            <Border Classes="mud-section" Padding="6,4" Margin="0,1"
-                    ContextRequested="GroupMember_OnContextRequested">
+            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+              <Border.ContextMenu>
+                <ContextMenu x:DataType="models:GroupMember"
+                             Opened="GroupContextMenu_OnOpened"
+                             Closed="GroupContextMenu_OnClosed">
+                  <MenuItem Header="goto room"
+                            Command="{Binding #GroupPanel.DataContext.LordGotoGroupRoomCommand}"
+                            CommandParameter="{Binding}"
+                            IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
+                  <MenuItem Header="{Binding Name, StringFormat='goto {0}'}"
+                            Command="{Binding #GroupPanel.DataContext.LordGotoGroupMemberCommand}"
+                            CommandParameter="{Binding}"
+                            IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
+                </ContextMenu>
+              </Border.ContextMenu>
               <StackPanel Spacing="2">
                 <!-- Row 1: leader marker + name + NPC marker -->
                 <StackPanel Orientation="Horizontal" Spacing="4">

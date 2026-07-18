@@ -4,7 +4,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
-using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
@@ -208,18 +207,15 @@ public sealed class LordModeMapUiTests
             var memberBorder = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
                 border => ReferenceEquals(border.DataContext, member));
-            memberBorder.RaiseEvent(new ContextRequestedEventArgs
-            {
-                RoutedEvent = InputElement.ContextRequestedEvent,
-            });
-
             var groupMembersList = panel.FindControl<ItemsControl>("GroupMembersList");
             Assert.NotNull(groupMembersList);
-            var contextMenu = Assert.IsType<ContextMenu>(groupMembersList.ContextMenu);
-            Assert.Same(member, contextMenu.DataContext);
-            contextMenu.Open(groupMembersList);
+            Assert.Null(groupMembersList.ContextMenu);
+
+            var contextMenu = Assert.IsType<ContextMenu>(memberBorder.ContextMenu);
+            contextMenu.Open(memberBorder);
             Dispatcher.UIThread.RunJobs();
 
+            Assert.Same(member, contextMenu.DataContext);
             var menuItems = contextMenu.Items.OfType<MenuItem>().ToArray();
             Assert.Equal(2, menuItems.Length);
             Assert.All(menuItems, item => Assert.False(item.IsVisible));
