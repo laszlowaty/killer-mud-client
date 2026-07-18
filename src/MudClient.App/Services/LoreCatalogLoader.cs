@@ -17,6 +17,12 @@ internal static class LoreCatalogLoader
 
     internal static LoreCatalogData Load(Stream stream, string sourceText) => Parse(stream, sourceText, null);
 
+    internal static LoreCatalogData LoadFile(string path)
+    {
+        using var file = File.OpenRead(path);
+        return Parse(file, path, null);
+    }
+
     internal static LoreCatalogData LoadEmbedded()
     {
         using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)

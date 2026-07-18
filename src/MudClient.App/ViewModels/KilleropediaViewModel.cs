@@ -43,7 +43,8 @@ public sealed class KilleropediaViewModel : ObservableObject
         BookCatalogStore bookCatalogStore,
         Func<Task>? refreshBooksAsync,
         Action<TeacherEntry>? showTeacherOnMap = null,
-        LoreCatalogData? loreCatalog = null)
+        LoreCatalogData? loreCatalog = null,
+        string? mapDirectory = null)
     {
         _allTeachers = teachers;
         _bookCatalogStore = bookCatalogStore;
@@ -60,6 +61,7 @@ public sealed class KilleropediaViewModel : ObservableObject
             .. _allLoreEntries.Select(entry => entry.Category).Distinct(StringComparer.Ordinal),
         ];
         _refreshBooksCommand = new AsyncRelayCommand(RefreshBooksAsync, CanRefreshBooks);
+        WorldMapRegions = [new WorldMapRegion("Stary Kontynent", "old-continent-overview.png", mapDirectory)];
         ShowTeacherOnMapCommand = new RelayCommand<TeacherEntry>(
             ShowTeacherOnMap,
             teacher => teacher?.HasRoomLocation == true && _showTeacherOnMap is not null);
@@ -72,8 +74,7 @@ public sealed class KilleropediaViewModel : ObservableObject
         _selectedWorldMapRegion = WorldMapRegions.FirstOrDefault();
     }
 
-    public IReadOnlyList<WorldMapRegion> WorldMapRegions { get; } =
-        [new WorldMapRegion("Stary Kontynent", "old-continent-overview.png")];
+    public IReadOnlyList<WorldMapRegion> WorldMapRegions { get; }
 
     public WorldMapRegion? SelectedWorldMapRegion
     {

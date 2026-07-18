@@ -27,7 +27,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AliasEngine _aliases = new();
     private readonly TriggerEngine _triggers = new();
     private readonly MudTimerService _timers = new();
-    private readonly BookCatalogStore _bookCatalogStore;
+    private BookCatalogStore _bookCatalogStore;
+    private readonly bool _usesCustomBookCatalogStore;
     private readonly BookCatalogRefreshCoordinator _bookCatalogRefreshCoordinator;
     private readonly GmcpLocationResolver _locationResolver = new();
     private readonly RoomExitsResolver _roomExits = new();
@@ -73,9 +74,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
     private readonly IUpdateCheckService _updateCheckService;
+    private readonly IContentUpdateService _contentUpdateService;
     private readonly IExternalLinkService _externalLinkService;
     private CancellationTokenSource? _updateCheckCts;
     private Task? _updateCheckTask;
+    private CancellationTokenSource? _contentUpdateCts;
+    private Task? _contentUpdateCheckTask;
 
     private MudDockFactory _dockFactory;
     private readonly DockLayoutService _dockLayoutService;
@@ -97,6 +101,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _isKilleropediaOpen;
     private bool _isHelpOpen;
     private AvailableUpdate? _availableUpdate;
+    private ContentUpdateAvailability? _availableContentUpdate;
+    private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
+    private bool _isContentUpdateBusy;
 
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
@@ -207,22 +214,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
         LayoutPresetService? layoutPresetService = null,
         IUpdateCheckService? updateCheckService = null,
-        IExternalLinkService? externalLinkService = null)
+        IExternalLinkService? externalLinkService = null,
+        IContentUpdateService? contentUpdateService = null)
     {
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
-        _bookCatalogStore = bookCatalogStore ?? new BookCatalogStore(
-            DeveloperFeatures.BookCatalogOutputPath
-            ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"));
+        _usesCustomBookCatalogStore = bookCatalogStore is not null;
+        _bookCatalogStore = bookCatalogStore ?? CreateBookCatalogStore();
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
         _updateCheckService = updateCheckService ?? new UpdateCheckService();
+        _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
-        Killeropedia = new KilleropediaViewModel(
-            TeacherCatalogLoader.Load(),
-            _bookCatalogStore,
-            RefreshBookCatalogAsync,
-            ShowTeacherOnMap);
+        Killeropedia = CreateKilleropediaViewModel();
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Notes.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
@@ -302,7 +306,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.ConnectionError += OnConnectionError;
         _session.ConnectionClosed += OnConnectionClosed;
 
-        Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver)
+        Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver, _settingsService.DirectoryPath)
         {
             LordModeEnabled = _settings.LordModeEnabled,
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
@@ -355,6 +359,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
         OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
         DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
+        CheckContentUpdatesCommand = new AsyncRelayCommand(
+            cancellationToken => CheckContentUpdatesAsync(reportErrors: true, cancellationToken),
+            () => !IsContentUpdateBusy);
+        InstallContentUpdateCommand = new AsyncRelayCommand(
+            InstallContentUpdateAsync,
+            () => AvailableContentUpdate is not null && !IsContentUpdateBusy);
 
         PopulateMockData();
 
@@ -373,7 +383,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public MapViewModel Map { get; }
 
-    public KilleropediaViewModel Killeropedia { get; }
+    private KilleropediaViewModel _killeropedia = null!;
+
+    public KilleropediaViewModel Killeropedia
+    {
+        get => _killeropedia;
+        private set => SetProperty(ref _killeropedia, value);
+    }
 
     public IRootDock Layout
     {
@@ -426,6 +442,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand DismissUpdateCommand { get; }
 
+    public IAsyncRelayCommand CheckContentUpdatesCommand { get; }
+
+    public IAsyncRelayCommand InstallContentUpdateCommand { get; }
+
     public AvailableUpdate? AvailableUpdate
     {
         get => _availableUpdate;
@@ -443,6 +463,45 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public string UpdateNotificationText => AvailableUpdate is { } update
         ? $"Dostępna jest wersja {update.Version}{(update.IsPrerelease ? " (beta)" : string.Empty)}."
+        : string.Empty;
+
+    public ContentUpdateAvailability? AvailableContentUpdate
+    {
+        get => _availableContentUpdate;
+        private set
+        {
+            if (SetProperty(ref _availableContentUpdate, value))
+            {
+                OnPropertyChanged(nameof(IsContentUpdateAvailable));
+                OnPropertyChanged(nameof(ContentUpdateDescription));
+                InstallContentUpdateCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsContentUpdateAvailable => AvailableContentUpdate is not null;
+
+    public bool IsContentUpdateBusy
+    {
+        get => _isContentUpdateBusy;
+        private set
+        {
+            if (SetProperty(ref _isContentUpdateBusy, value))
+            {
+                CheckContentUpdatesCommand.NotifyCanExecuteChanged();
+                InstallContentUpdateCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string ContentUpdateStatus
+    {
+        get => _contentUpdateStatus;
+        private set => SetProperty(ref _contentUpdateStatus, value);
+    }
+
+    public string ContentUpdateDescription => AvailableContentUpdate is { } update
+        ? $"{ComponentNames(update.Components)} · {FormatBytes(update.DownloadSize)}"
         : string.Empty;
 
     /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
@@ -572,9 +631,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _updateCheckCts = new CancellationTokenSource();
         _updateCheckTask = CheckForUpdateAsync(_updateCheckCts.Token);
+
+        _contentUpdateCts = new CancellationTokenSource();
+        _contentUpdateCheckTask = CheckContentUpdatesAsync(
+            reportErrors: false,
+            _contentUpdateCts.Token);
     }
 
     internal Task? ActiveUpdateCheck => _updateCheckTask;
+
+    internal Task? ActiveContentUpdateCheck => _contentUpdateCheckTask;
 
     private async Task CheckForUpdateAsync(CancellationToken cancellationToken)
     {
@@ -592,6 +658,171 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             // interrupt startup or distract the user from the MUD session. The next launch retries.
         }
     }
+
+    private async Task CheckContentUpdatesAsync(bool reportErrors, CancellationToken cancellationToken)
+    {
+        if (IsContentUpdateBusy)
+        {
+            return;
+        }
+
+        IsContentUpdateBusy = true;
+        ContentUpdateStatus = "Sprawdzanie aktualizacji danych…";
+        try
+        {
+            AvailableContentUpdate = await _contentUpdateService.CheckForUpdateAsync(cancellationToken);
+            ContentUpdateStatus = AvailableContentUpdate is null
+                ? "Mapa i Killeropedia są aktualne."
+                : $"Dostępna aktualizacja: {ContentUpdateDescription}.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            ContentUpdateStatus = "Sprawdzanie aktualizacji anulowano.";
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+            or IOException
+            or UnauthorizedAccessException
+            or InvalidDataException
+            or System.Text.Json.JsonException)
+        {
+            if (reportErrors)
+            {
+                ContentUpdateStatus = $"Nie udało się sprawdzić aktualizacji: {exception.Message}";
+            }
+            else
+            {
+                ContentUpdateStatus = "Nie udało się sprawdzić aktualizacji danych. Spróbuj później w ustawieniach.";
+            }
+        }
+        finally
+        {
+            IsContentUpdateBusy = false;
+        }
+    }
+
+    private async Task InstallContentUpdateAsync(CancellationToken commandCancellationToken)
+    {
+        var update = AvailableContentUpdate;
+        if (update is null || IsContentUpdateBusy)
+        {
+            return;
+        }
+
+        IsContentUpdateBusy = true;
+        using var linkedCancellation = _contentUpdateCts is null
+            ? CancellationTokenSource.CreateLinkedTokenSource(commandCancellationToken)
+            : CancellationTokenSource.CreateLinkedTokenSource(
+                commandCancellationToken,
+                _contentUpdateCts.Token);
+        var cancellationToken = linkedCancellation.Token;
+        var progress = new Progress<ContentUpdateProgress>(value =>
+        {
+            var percent = value.TotalBytes == 0
+                ? 0
+                : (int)Math.Clamp(value.BytesReceived * 100 / value.TotalBytes, 0, 100);
+            ContentUpdateStatus = $"Pobieranie {ComponentDisplayName(value.ComponentName)}: {percent}%";
+        });
+        try
+        {
+            var result = await _contentUpdateService.InstallAsync(
+                update,
+                progress,
+                cancellationToken);
+
+            ContentUpdateStatus = "Przeładowywanie mapy i Killeropedii…";
+            await Map.InitializeAsync(cancellationToken);
+            if (!_usesCustomBookCatalogStore)
+            {
+                _bookCatalogStore = CreateBookCatalogStore();
+            }
+
+            Killeropedia = CreateKilleropediaViewModel();
+            AvailableContentUpdate = null;
+            ContentUpdateStatus = $"Zainstalowano dane {result.Release}.";
+            AddToast("Mapa i Killeropedia zostały zaktualizowane.", "info");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            ContentUpdateStatus = "Aktualizację danych anulowano.";
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+            or IOException
+            or UnauthorizedAccessException
+            or InvalidDataException
+            or System.Text.Json.JsonException)
+        {
+            ContentUpdateStatus = $"Aktualizacja nie powiodła się: {exception.Message}";
+            AddToast("Nie udało się zaktualizować danych. Poprzednia wersja pozostaje aktywna.", "error");
+        }
+        finally
+        {
+            IsContentUpdateBusy = false;
+        }
+    }
+
+    private BookCatalogStore CreateBookCatalogStore()
+    {
+        var downloadedDirectory = new ContentPathResolver(_settingsService.DirectoryPath)
+            .GetActiveDirectory("killeropedia");
+        return new BookCatalogStore(
+            DeveloperFeatures.BookCatalogOutputPath
+            ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"),
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "books.json"));
+    }
+
+    private KilleropediaViewModel CreateKilleropediaViewModel()
+    {
+        var downloadedDirectory = new ContentPathResolver(_settingsService.DirectoryPath)
+            .GetActiveDirectory("killeropedia");
+        var teachers = TeacherCatalogLoader.Load(
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "teachers.json.gz"));
+        var lore = LoadLoreCatalog(downloadedDirectory);
+        return new KilleropediaViewModel(
+            teachers,
+            _bookCatalogStore,
+            RefreshBookCatalogAsync,
+            ShowTeacherOnMap,
+            lore,
+            new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"));
+    }
+
+    private LoreCatalogData LoadLoreCatalog(string? downloadedDirectory)
+    {
+        if (downloadedDirectory is not null)
+        {
+            var path = Path.Combine(downloadedDirectory, "lore-catalog.json.gz");
+            try
+            {
+                if (File.Exists(path))
+                {
+                    return LoreCatalogLoader.LoadFile(path);
+                }
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or InvalidDataException
+                or System.Text.Json.JsonException)
+            {
+                // A damaged downloaded override falls back to the legacy override or embedded catalog.
+            }
+        }
+
+        return LoreCatalogLoader.Load(_settingsService.DirectoryPath);
+    }
+
+    private static string ComponentNames(IReadOnlyList<ContentComponentUpdate> components) =>
+        string.Join(" i ", components.Select(component => ComponentDisplayName(component.Name)));
+
+    private static string ComponentDisplayName(string name) => name.ToLowerInvariant() switch
+    {
+        "map" => "mapa",
+        "killeropedia" => "Killeropedia",
+        _ => name,
+    };
+
+    private static string FormatBytes(long bytes) => bytes >= 1024 * 1024
+        ? $"{bytes / (1024d * 1024d):0.#} MB"
+        : $"{Math.Max(1, bytes / 1024d):0.#} KB";
 
     private void OpenExternalLink(Uri? uri)
     {
@@ -5010,6 +5241,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SaveActiveProfile();
 
         _updateCheckCts?.Cancel();
+        _contentUpdateCts?.Cancel();
+        CheckContentUpdatesCommand.Cancel();
+        InstallContentUpdateCommand.Cancel();
         if (_updateCheckTask is not null)
         {
             try
@@ -5023,6 +5257,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         _updateCheckCts?.Dispose();
+        if (_contentUpdateCheckTask is not null)
+        {
+            try
+            {
+                await _contentUpdateCheckTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // The optional content check was cancelled during shutdown.
+            }
+        }
+
+        foreach (var contentTask in new[]
+                 {
+                     CheckContentUpdatesCommand.ExecutionTask,
+                     InstallContentUpdateCommand.ExecutionTask,
+                 }.Where(task => task is not null))
+        {
+            try
+            {
+                await contentTask!;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the window closes during a manual content operation.
+            }
+        }
+        _contentUpdateCts?.Dispose();
 
         try
         {

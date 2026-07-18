@@ -14,15 +14,47 @@ internal static class TeacherCatalogLoader
 
     public static IReadOnlyList<TeacherEntry> Load() => Catalog.Value;
 
+    public static IReadOnlyList<TeacherEntry> Load(string? externalPath)
+    {
+        if (string.IsNullOrWhiteSpace(externalPath) || !File.Exists(externalPath))
+        {
+            return Load();
+        }
+
+        try
+        {
+            return LoadFile(externalPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidDataException
+            or JsonException)
+        {
+            // Downloaded catalogs are optional. The embedded snapshot keeps Killeropedia usable.
+            return Load();
+        }
+    }
+
+    internal static IReadOnlyList<TeacherEntry> LoadFile(string path)
+    {
+        using var file = File.OpenRead(path);
+        return Parse(file, $"pobrana baza nauczycieli: {path}");
+    }
+
     private static IReadOnlyList<TeacherEntry> LoadCore()
     {
         using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
             ?? throw new InvalidOperationException($"Brak osadzonej bazy nauczycieli: {ResourceName}.");
-        using var gzip = new GZipStream(resource, CompressionMode.Decompress);
+        return Parse(resource, "osadzona baza nauczycieli");
+    }
+
+    private static IReadOnlyList<TeacherEntry> Parse(Stream stream, string sourceText)
+    {
+        using var gzip = new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
         var source = JsonSerializer.Deserialize<Dictionary<string, TeacherDto>>(
             gzip,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            ?? throw new InvalidDataException("Osadzona baza nauczycieli jest pusta.");
+            ?? throw new InvalidDataException($"{sourceText} jest pusta.");
 
         var teachers = source.ToDictionary(
             pair => pair.Key,

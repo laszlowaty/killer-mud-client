@@ -22,3 +22,16 @@ Killeropedia używa tego katalogu do wyszukiwania i nawigacji między miejscami,
 postaciami, organizacjami, bóstwami, artefaktami, wydarzeniami i legendami. Plik
 `%AppData%/KillerMudClient/Data/lore-catalog.json.gz` zastępuje kopię wbudowaną,
 dzięki czemu aktualizacja lore nie wymaga ponownej kompilacji klienta.
+
+## Aktualizacje danych aplikacji
+
+Aplikacja sprawdza publiczny `docs/content/manifest.json` i może pobrać osobne
+paczki mapy oraz Killeropedii bez aktualizacji pliku wykonywalnego. Zweryfikowane
+paczki trafiają do `%AppData%/KillerMudClient/Content/<komponent>/<wersja-hash>`,
+a `Content/active.json` wskazuje aktywną wersję. Przełączenie następuje dopiero po
+sprawdzeniu rozmiaru, SHA-256, bezpiecznym rozpakowaniu i sparsowaniu danych.
+Brak albo uszkodzenie pobranej wersji powoduje użycie danych dostarczonych z aplikacją.
+
+Lokalny `killeropedia-books.json`, utworzony przez odświeżenie książek z MUD-a,
+ma pierwszeństwo przed pobranym bazowym `books.json` i nie jest nadpisywany.
+Publikowanie paczek wykonuje workflow `.github/workflows/content-release.yml`.

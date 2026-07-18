@@ -15,13 +15,15 @@ public sealed class BookCatalogStore
     };
 
     private readonly string _path;
+    private readonly string? _fallbackPath;
 
-    public BookCatalogStore(string? path = null)
+    public BookCatalogStore(string? path = null, string? fallbackPath = null)
     {
         _path = path ?? System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "KillerMudClient",
             "killeropedia-books.json");
+        _fallbackPath = fallbackPath;
     }
 
     public string Path => _path;
@@ -34,6 +36,21 @@ public sealed class BookCatalogStore
             {
                 using var file = File.OpenRead(_path);
                 return Deserialize(file);
+            }
+
+            if (!string.IsNullOrWhiteSpace(_fallbackPath) && File.Exists(_fallbackPath))
+            {
+                try
+                {
+                    using var downloaded = File.OpenRead(_fallbackPath);
+                    return Deserialize(downloaded);
+                }
+                catch (Exception exception) when (exception is IOException
+                    or UnauthorizedAccessException
+                    or JsonException)
+                {
+                    // A downloaded base catalog is optional; preserve the embedded fallback.
+                }
             }
 
             using var embedded = Assembly.GetExecutingAssembly().GetManifestResourceStream(EmbeddedResourceName)

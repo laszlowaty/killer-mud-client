@@ -146,6 +146,32 @@
         </StackPanel>
       </Border>
 
+      <TextBlock Classes="mud-heading" Text="DANE GRY" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Mapa i cała Killeropedia mogą być aktualizowane bez pobierania nowego pliku aplikacji. Pobrane dane są przechowywane w katalogu ustawień." />
+          <TextBlock Text="{Binding ContentUpdateStatus}"
+                     TextWrapping="Wrap" />
+          <TextBlock Classes="mud-faint"
+                     Text="{Binding ContentUpdateDescription}"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding IsContentUpdateAvailable}" />
+          <ProgressBar IsIndeterminate="True"
+                       Height="4"
+                       IsVisible="{Binding IsContentUpdateBusy}" />
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="Sprawdź aktualizacje"
+                    Command="{Binding CheckContentUpdatesCommand}"
+                    Classes="mud-small" />
+            <Button Content="Aktualizuj wszystko"
+                    Command="{Binding InstallContentUpdateCommand}"
+                    Classes="mud-small"
+                    IsVisible="{Binding IsContentUpdateAvailable}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <TextBlock Classes="mud-heading" Text="KOPIA USTAWIEŃ" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10">
         <StackPanel Spacing="10">

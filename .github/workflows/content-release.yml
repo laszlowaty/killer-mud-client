@@ -1,0 +1,155 @@
+name: Aktualizacja mapy i Killeropedii
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Aktualizowany składnik'
+        required: true
+        type: choice
+        options:
+          - map
+          - killeropedia
+      version:
+        description: 'Wersja danych, np. 2026.07.18.1'
+        required: true
+        type: string
+      min_app_version:
+        description: 'Najstarsza zgodna wersja aplikacji'
+        required: true
+        default: '0.5.8'
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: content-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate input
+        env:
+          CONTENT_VERSION: ${{ inputs.version }}
+          MIN_APP_VERSION: ${{ inputs.min_app_version }}
+        run: |
+          set -euo pipefail
+          [[ "$CONTENT_VERSION" =~ ^[0-9A-Za-z._-]+$ ]] || { echo "::error::Nieprawidłowa wersja danych"; exit 1; }
+          [[ "$MIN_APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || { echo "::error::Nieprawidłowa wersja aplikacji"; exit 1; }
+
+      - name: Test
+        run: dotnet test KillerMudClient.sln --configuration Release
+
+      - name: Build content package
+        id: package
+        env:
+          COMPONENT: ${{ inputs.component }}
+          CONTENT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts staging
+          ASSET="${COMPONENT}-${CONTENT_VERSION}.zip"
+
+          if [ "$COMPONENT" = "map" ]; then
+            (cd src/MudClient.App/Assets/Map && zip -r "$GITHUB_WORKSPACE/artifacts/$ASSET" .)
+          else
+            cp lore/dist/lore-catalog.json.gz staging/lore-catalog.json.gz
+            cp src/MudClient.App/Assets/Data/teachers.json.gz staging/teachers.json.gz
+            cp src/MudClient.App/Assets/Data/books.json staging/books.json
+            (cd staging && zip "$GITHUB_WORKSPACE/artifacts/$ASSET" lore-catalog.json.gz teachers.json.gz books.json)
+          fi
+
+          SHA256=$(sha256sum "artifacts/$ASSET" | awk '{print $1}')
+          SIZE=$(stat -c '%s' "artifacts/$ASSET")
+          TAG="content-${COMPONENT}-${CONTENT_VERSION}"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Publish package in GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.package.outputs.tag }}
+          ASSET: ${{ steps.package.outputs.asset }}
+          COMPONENT: ${{ inputs.component }}
+          CONTENT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Wydanie $TAG już istnieje"
+            exit 1
+          fi
+          gh release create "$TAG" "artifacts/$ASSET" \
+            --title "Dane KillerMudClient: $COMPONENT $CONTENT_VERSION" \
+            --notes "Aktualizacja danych $COMPONENT do wersji $CONTENT_VERSION."
+
+      - name: Update public manifest
+        env:
+          COMPONENT: ${{ inputs.component }}
+          CONTENT_VERSION: ${{ inputs.version }}
+          MIN_APP_VERSION: ${{ inputs.min_app_version }}
+          ASSET: ${{ steps.package.outputs.asset }}
+          SHA256: ${{ steps.package.outputs.sha256 }}
+          SIZE: ${{ steps.package.outputs.size }}
+          TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("docs/content/manifest.json")
+          manifest = json.loads(path.read_text(encoding="utf-8"))
+          component = os.environ["COMPONENT"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          tag = os.environ["TAG"]
+          asset = os.environ["ASSET"]
+          manifest["schemaVersion"] = 1
+          manifest["release"] = os.environ["CONTENT_VERSION"]
+          requested_minimum = os.environ["MIN_APP_VERSION"]
+          current_minimum = manifest.get("minAppVersion", "0.0.0")
+          def version_key(value):
+              core = value.split("-", 1)[0]
+              return tuple(int(part) for part in core.split("."))
+          manifest["minAppVersion"] = max(
+              (current_minimum, requested_minimum),
+              key=version_key,
+          )
+          manifest.setdefault("components", {})[component] = {
+              "version": os.environ["CONTENT_VERSION"],
+              "url": f"https://github.com/{repository}/releases/download/{tag}/{asset}",
+              "size": int(os.environ["SIZE"]),
+              "sha256": os.environ["SHA256"],
+          }
+          path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/content/manifest.json
+          git commit -m "Dane: ${COMPONENT} ${CONTENT_VERSION}"
+          git push origin main
+
+  deploy-pages:
+    needs: publish
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

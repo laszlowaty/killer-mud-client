@@ -12,11 +12,13 @@ namespace MudClient.App.ViewModels;
 
 public sealed class MapViewModel : ObservableObject, IDisposable
 {
-    private readonly string _worldMapPath;
-    private readonly string _mapSettingsPath;
-    private readonly string _sectorDirectory;
-    private readonly string _sectorManifestPath;
-    private readonly string _roomImageDirectory;
+    private readonly string _packagedMapDirectory;
+    private readonly ContentPathResolver? _contentPaths;
+    private string _worldMapPath = string.Empty;
+    private string _mapSettingsPath = string.Empty;
+    private string _sectorDirectory = string.Empty;
+    private string _sectorManifestPath = string.Empty;
+    private string _roomImageDirectory = string.Empty;
     private readonly GmcpLocationResolver _locationResolver;
 
     private MapIndex? _mapIndex;
@@ -43,14 +45,14 @@ public sealed class MapViewModel : ObservableObject, IDisposable
     private MapDisplayModeOption _selectedDisplayMode;
     private readonly RelayCommand _lordGotoSelectedRoomCommand;
 
-    public MapViewModel(string appBaseDirectory, GmcpLocationResolver locationResolver)
+    public MapViewModel(
+        string appBaseDirectory,
+        GmcpLocationResolver locationResolver,
+        string? dataRoot = null)
     {
-        var mapDirectory = Path.Combine(appBaseDirectory, "Assets", "Map");
-        _worldMapPath = Path.Combine(mapDirectory, "world-map.json");
-        _mapSettingsPath = Path.Combine(mapDirectory, "map-settings.json");
-        _sectorDirectory = Path.Combine(mapDirectory, "Sectors");
-        _sectorManifestPath = Path.Combine(_sectorDirectory, "sectors.json");
-        _roomImageDirectory = Path.Combine(mapDirectory, "Rooms");
+        _packagedMapDirectory = Path.Combine(appBaseDirectory, "Assets", "Map");
+        _contentPaths = string.IsNullOrWhiteSpace(dataRoot) ? null : new ContentPathResolver(dataRoot);
+        SetMapPaths(_packagedMapDirectory);
 
         _selectedDisplayMode = MapDisplayModeOption.All[0];
         _locationResolver = locationResolver;
@@ -339,6 +341,27 @@ public sealed class MapViewModel : ObservableObject, IDisposable
 
         try
         {
+            var downloadedMapDirectory = _contentPaths?.GetActiveDirectory("map");
+            if (downloadedMapDirectory is not null)
+            {
+                try
+                {
+                    _ = await new MapLoader().LoadAsync(
+                            Path.Combine(downloadedMapDirectory, "world-map.json"),
+                            cancellation.Token)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is MapLoadException
+                    or IOException
+                    or UnauthorizedAccessException)
+                {
+                    // A damaged downloaded map must not hide the packaged fallback.
+                    System.Diagnostics.Trace.WriteLine(exception);
+                    downloadedMapDirectory = null;
+                }
+            }
+
+            SetMapPaths(downloadedMapDirectory ?? _packagedMapDirectory);
             var settingsLoader = new MapSettingsLoader();
             Settings = await settingsLoader.LoadAsync(_mapSettingsPath, cancellation.Token).ConfigureAwait(false);
 
@@ -455,6 +478,15 @@ public sealed class MapViewModel : ObservableObject, IDisposable
         }
 
         OnPropertyChanged(nameof(SelectedZIndex));
+    }
+
+    private void SetMapPaths(string mapDirectory)
+    {
+        _worldMapPath = Path.Combine(mapDirectory, "world-map.json");
+        _mapSettingsPath = Path.Combine(mapDirectory, "map-settings.json");
+        _sectorDirectory = Path.Combine(mapDirectory, "Sectors");
+        _sectorManifestPath = Path.Combine(_sectorDirectory, "sectors.json");
+        _roomImageDirectory = Path.Combine(mapDirectory, "Rooms");
     }
 
     /// <summary>
