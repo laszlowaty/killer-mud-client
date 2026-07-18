@@ -2534,17 +2534,31 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var tasks = (List<Task>)tasksField.GetValue(_vm)!;
         var lockField = GetTriggerTasksLockField();
         var lockObj = lockField.GetValue(_vm)!;
+        var tailField = GetTriggerQueueTailField();
+        var previousBatch = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        tailField.SetValue(_vm, previousBatch.Task);
 
         Assert.Empty(tasks);
 
-        // Act
-        method.Invoke(_vm, ["add-me"]);
-
-        // Assert: one task was registered
-        // (lock the list to read it, same as production code does)
-        lock (lockObj)
+        try
         {
-            Assert.Single(tasks);
+            // Act
+            method.Invoke(_vm, ["add-me"]);
+
+            // Assert while the new batch is deterministically waiting for the controlled
+            // previous task. Without this gate a fast scheduler can complete and remove the
+            // batch before the assertion, even though registration worked correctly.
+            lock (lockObj)
+            {
+                Assert.False(Assert.Single(tasks).IsCompleted);
+            }
+        }
+        finally
+        {
+            // Always unblock the queue so fixture disposal can drain the registered task,
+            // including when an assertion fails.
+            previousBatch.TrySetResult();
         }
     }
 
