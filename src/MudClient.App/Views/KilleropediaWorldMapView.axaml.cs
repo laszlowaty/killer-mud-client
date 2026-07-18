@@ -4,6 +4,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using MudClient.App.Controls;
 using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views;
@@ -21,10 +23,12 @@ public partial class KilleropediaWorldMapView : UserControl
     private KilleropediaViewModel? _viewModel;
     private string? _loadedImagePath;
     private bool _userAdjustedView;
+    private bool _transformUpdatePending;
 
     public KilleropediaWorldMapView()
     {
         InitializeComponent();
+        RenderOptions.SetBitmapInterpolationMode(MapCanvas, BitmapInterpolationMode.MediumQuality);
         MapViewport.PointerWheelChanged += OnViewportPointerWheelChanged;
         MapViewport.PointerPressed += OnViewportPointerPressed;
         MapViewport.PointerMoved += OnViewportPointerMoved;
@@ -65,19 +69,19 @@ public partial class KilleropediaWorldMapView : UserControl
             return;
         }
 
-        (MapImage.Source as Bitmap)?.Dispose();
-        MapImage.Source = null;
+        (MapCanvas.Source as Bitmap)?.Dispose();
+        MapCanvas.Source = null;
         _loadedImagePath = path;
 
         if (path is not null && File.Exists(path))
         {
             try
             {
-                MapImage.Source = new Bitmap(path);
+                MapCanvas.Source = new Bitmap(path);
             }
             catch (Exception exception) when (exception is IOException or ArgumentException)
             {
-                MapImage.Source = null;
+                MapCanvas.Source = null;
             }
         }
 
@@ -99,7 +103,7 @@ public partial class KilleropediaWorldMapView : UserControl
     {
         _userAdjustedView = false;
         var viewport = MapViewport.Bounds.Size;
-        if (MapImage.Source is not { } source || viewport.Width <= 0 || viewport.Height <= 0)
+        if (MapCanvas.Source is not { } source || viewport.Width <= 0 || viewport.Height <= 0)
         {
             _scale = 1.0;
             _offset = default;
@@ -119,7 +123,7 @@ public partial class KilleropediaWorldMapView : UserControl
     private double FitScale()
     {
         var viewport = MapViewport.Bounds.Size;
-        if (MapImage.Source is not { } source || viewport.Width <= 0 || viewport.Height <= 0)
+        if (MapCanvas.Source is not { } source || viewport.Width <= 0 || viewport.Height <= 0)
         {
             return MinScale;
         }
@@ -129,7 +133,7 @@ public partial class KilleropediaWorldMapView : UserControl
 
     private void OnViewportPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        if (MapImage.Source is null)
+        if (MapCanvas.Source is null)
         {
             return;
         }
@@ -164,13 +168,14 @@ public partial class KilleropediaWorldMapView : UserControl
 
     private void OnViewportPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (MapImage.Source is null || !e.GetCurrentPoint(MapViewport).Properties.IsLeftButtonPressed)
+        if (MapCanvas.Source is null || !e.GetCurrentPoint(MapViewport).Properties.IsLeftButtonPressed)
         {
             return;
         }
 
         _panPointerStart = e.GetPosition(MapViewport);
         _panOffsetStart = _offset;
+        RenderOptions.SetBitmapInterpolationMode(MapCanvas, BitmapInterpolationMode.LowQuality);
         e.Pointer.Capture(MapViewport);
     }
 
@@ -186,16 +191,50 @@ public partial class KilleropediaWorldMapView : UserControl
             _panOffsetStart.X + position.X - start.X,
             _panOffsetStart.Y + position.Y - start.Y);
         _userAdjustedView = true;
-        ApplyTransform();
+        ScheduleTransform();
     }
 
     private void OnViewportPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _panPointerStart = null;
+        RenderOptions.SetBitmapInterpolationMode(MapCanvas, BitmapInterpolationMode.MediumQuality);
+        ScheduleTransform();
         e.Pointer.Capture(null);
     }
 
-    private void ApplyTransform() =>
-        MapImage.RenderTransform = new MatrixTransform(
-            Matrix.CreateScale(_scale, _scale) * Matrix.CreateTranslation(_offset.X, _offset.Y));
+    /// <summary>
+    /// Coalesces high-frequency pointer events so the large map bitmap receives at
+    /// most one compositor transform update per rendered frame.
+    /// </summary>
+    internal void ScheduleTransform()
+    {
+        if (_transformUpdatePending)
+        {
+            return;
+        }
+
+        _transformUpdatePending = true;
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not null)
+        {
+            topLevel.RequestAnimationFrame(_ => FlushScheduledTransform());
+            return;
+        }
+
+        Dispatcher.UIThread.Post(FlushScheduledTransform, DispatcherPriority.Render);
+    }
+
+    private void FlushScheduledTransform()
+    {
+        _transformUpdatePending = false;
+        ApplyTransform();
+    }
+
+    internal int TransformApplyCount { get; private set; }
+
+    private void ApplyTransform()
+    {
+        MapCanvas.SetView(_scale, _offset);
+        TransformApplyCount++;
+    }
 }

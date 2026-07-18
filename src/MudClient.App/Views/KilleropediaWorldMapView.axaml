@@ -2,10 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:controls="using:MudClient.App.Controls"
              x:Class="MudClient.App.Views.KilleropediaWorldMapView"
-             x:DataType="vm:KilleropediaViewModel">
-  <Grid ColumnDefinitions="220,8,*">
-    <Border Grid.Column="0" Classes="mud-inset" Padding="6">
+             x:DataType="vm:KilleropediaViewModel"
+             Classes="killeropedia-page">
+  <Grid ColumnDefinitions="1*,3,2*">
+    <Border Grid.Column="0" Classes="mud-inset killeropedia-left-page" Padding="12">
       <Grid RowDefinitions="Auto,*" RowSpacing="8">
         <TextBlock Grid.Row="0" Classes="mud-heading" Text="REGIONY" Margin="6,4,6,0" />
         <ListBox Grid.Row="1"
@@ -22,18 +24,15 @@
 
     <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
-    <Border Grid.Column="2" Classes="mud-section" Padding="4">
+    <Border Grid.Column="2" Classes="mud-section killeropedia-right-page" Padding="10">
       <Grid RowDefinitions="*,Auto">
         <Border Grid.Row="0"
                 x:Name="MapViewport"
                 ClipToBounds="True"
                 Background="Transparent"
                 Cursor="SizeAll">
-          <Canvas>
-            <Image x:Name="MapImage"
-                   Stretch="None"
-                   RenderTransformOrigin="0%,0%" />
-          </Canvas>
+          <controls:KilleropediaMapCanvas x:Name="MapCanvas"
+                                            IsHitTestVisible="False" />
         </Border>
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,4">
           <TextBlock Grid.Column="0"
@@ -42,7 +41,7 @@
                      Text="Kółko myszy: zoom  •  Przeciągnij: przesuń" />
           <Button Grid.Column="1"
                   Content="Resetuj widok"
-                  FontSize="11"
+                  FontSize="14"
                   Padding="8,3"
                   Click="OnResetViewClick" />
         </Grid>

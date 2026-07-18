@@ -1,8 +1,10 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using MudClient.App.Models;
+using MudClient.App.Behaviors;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
@@ -155,6 +157,11 @@ public sealed class KilleropediaTests : IDisposable
         window.Show();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
+        Assert.Equal(17, view.FontSize);
+        Assert.Contains("Almendra", view.FontFamily.ToString(), StringComparison.Ordinal);
+        Assert.Equal(Avalonia.Media.FontStyle.Normal, view.FontStyle);
+        Assert.Equal(Avalonia.Media.FontWeight.Bold, view.FontWeight);
+
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();
         Assert.Equal(151, list.ItemCount);
         Assert.NotNull(viewModel.SelectedTeacher);
@@ -172,6 +179,14 @@ public sealed class KilleropediaTests : IDisposable
             view.GetVisualDescendants().OfType<ScrollViewer>(),
             scroller => scroller.Classes.Contains("killeropedia-content-scroll"));
         Assert.Equal(14, detailsScroller.Padding.Right);
+
+        var bookPages = view.GetVisualDescendants()
+            .OfType<Border>()
+            .Where(border => border.Classes.Contains("killeropedia-left-page") ||
+                             border.Classes.Contains("killeropedia-right-page"))
+            .ToArray();
+        Assert.Equal(2, bookPages.Length);
+        Assert.All(bookPages, page => Assert.IsType<Avalonia.Media.ImageBrush>(page.Background));
 
         window.Close();
     }
@@ -287,6 +302,32 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Equal("character:khabar-of-podgorze", viewModel.SelectedLoreEntry?.Id);
     }
 
+    [AvaloniaFact]
+    public void LoreText_CreatesClickableLinksForKnownEntries()
+    {
+        var viewModel = CreateViewModel();
+        var arras = Assert.Single(viewModel.LoreEntries, entry => entry.Id == "place:arras");
+        var textBlock = new TextBlock { FontSize = 18 };
+
+        LoreTextLinks.SetText(textBlock, "Z Arras trakt prowadzi do Carrallak.");
+        LoreTextLinks.SetEntries(textBlock, viewModel.LoreEntries);
+        LoreTextLinks.SetCurrentEntryId(textBlock, arras.Id);
+        LoreTextLinks.SetCommand(textBlock, viewModel.NavigateLoreCommand);
+
+        var inline = Assert.Single(textBlock.Inlines!.OfType<InlineUIContainer>());
+        Assert.Equal(Avalonia.Media.BaselineAlignment.TextBottom, inline.BaselineAlignment);
+        var button = Assert.IsType<Button>(inline.Child);
+        var label = Assert.IsType<TextBlock>(button.Content);
+        Assert.Equal(textBlock.FontSize, label.FontSize);
+        var link = Assert.IsType<LoreLink>(button.CommandParameter);
+        Assert.Equal("place:carrallak", link.TargetId);
+        Assert.Contains("killeropedia-inline-link", button.Classes);
+
+        button.Command!.Execute(button.CommandParameter);
+
+        Assert.Equal("place:carrallak", viewModel.SelectedLoreEntry?.Id);
+    }
+
     [Fact]
     public void LoreCatalog_InvalidExternalOverrideFallsBackToEmbeddedCatalog()
     {
@@ -312,14 +353,45 @@ public sealed class KilleropediaTests : IDisposable
         window.Show();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
-        var list = Assert.Single(view.GetVisualDescendants().OfType<ListBox>());
+        var searchBox = Assert.Single(view.GetVisualDescendants().OfType<TextBox>());
+        Assert.True(searchBox.Focus());
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        var searchBorder = Assert.Single(
+            searchBox.GetVisualDescendants().OfType<Border>(),
+            border => border.Name == "PART_BorderElement");
+        var searchBackground = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(searchBorder.Background);
+        Assert.Equal(Avalonia.Media.Color.Parse("#D8EBD6A8"), searchBackground.Color);
+
+        var categoryTabs = Assert.Single(
+            view.GetVisualDescendants().OfType<ListBox>(),
+            list => list.Classes.Contains("killeropedia-category-tabs"));
+        Assert.Equal(viewModel.AvailableLoreCategories.Count, categoryTabs.ItemCount);
+        Assert.DoesNotContain(view.GetVisualDescendants(), visual => visual is ComboBox);
+
+        var list = Assert.Single(
+            view.GetVisualDescendants().OfType<ListBox>(),
+            candidate => !candidate.Classes.Contains("killeropedia-category-tabs"));
         Assert.True(list.ItemCount > 0);
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
-            text => text.Text == "Arras");
+            text => text.Text == "Arras" || MudClient.App.Behaviors.SearchHighlight.GetText(text) == "Arras");
         Assert.Contains(
             view.GetVisualDescendants().OfType<Button>(),
             button => button.Command == viewModel.NavigateLoreCommand);
+        var inlineLinks = view.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Classes.Contains("killeropedia-inline-link"))
+            .ToArray();
+        Assert.NotEmpty(inlineLinks);
+        var inlineLink = inlineLinks[0];
+        Assert.Equal(new Avalonia.Thickness(0), inlineLink.BorderThickness);
+        Assert.Equal(
+            Avalonia.Media.Colors.Transparent,
+            Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(inlineLink.Background).Color);
+        var inlineLabel = Assert.IsType<TextBlock>(inlineLink.Content);
+        Assert.Equal(
+            Avalonia.Media.Color.Parse("#2C2110"),
+            Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(inlineLabel.Foreground).Color);
+        Assert.NotNull(inlineLabel.TextDecorations);
 
         var detailsScroller = Assert.Single(
             view.GetVisualDescendants().OfType<ScrollViewer>(),

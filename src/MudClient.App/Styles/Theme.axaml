@@ -8,5 +8,6 @@
   <StyleInclude Source="avares://MudClient.App/Styles/Inputs.axaml" />
   <StyleInclude Source="avares://MudClient.App/Styles/Tabs.axaml" />
   <StyleInclude Source="avares://MudClient.App/Styles/Lists.axaml" />
+  <StyleInclude Source="avares://MudClient.App/Styles/Killeropedia.axaml" />
 
 </Styles>

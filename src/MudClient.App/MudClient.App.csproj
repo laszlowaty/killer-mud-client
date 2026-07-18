@@ -9,6 +9,7 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\killer.ico" />
     <AvaloniaResource Include="Assets\Fonts\**" />
+    <AvaloniaResource Include="Assets\Killeropedia\**" />
     <EmbeddedResource Include="Assets\Data\teachers.json.gz" />
     <EmbeddedResource Include="Assets\Data\books.json" />
     <EmbeddedResource Include="..\..\lore\dist\lore-catalog.json.gz"

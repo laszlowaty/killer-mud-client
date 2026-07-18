@@ -85,6 +85,8 @@ public sealed class KilleropediaViewModel : ObservableObject
 
     public ObservableCollection<LoreEntry> FilteredLoreEntries { get; } = [];
 
+    public IReadOnlyList<LoreEntry> LoreEntries => _allLoreEntries;
+
     public IReadOnlyList<string> AvailableLoreCategories { get; }
 
     public string LoreSearchText

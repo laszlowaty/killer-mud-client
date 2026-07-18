@@ -1,0 +1,292 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <FontFamily x:Key="KilleropediaFontFamily">avares://MudClient.App/Assets/Fonts/Almendra#Almendra</FontFamily>
+    <ImageBrush x:Key="KilleropediaPaperBrush"
+                Source="avares://MudClient.App/Assets/Killeropedia/parchment-texture.png"
+                Stretch="UniformToFill" />
+    <SolidColorBrush x:Key="KilleropediaInkBrush" Color="#2C2110" />
+    <SolidColorBrush x:Key="KilleropediaInkDimBrush" Color="#6B5128" />
+    <SolidColorBrush x:Key="KilleropediaRuleBrush" Color="#71552B" Opacity="0.58" />
+    <SolidColorBrush x:Key="KilleropediaLinkBrush" Color="#6E2E1B" />
+  </Styles.Resources>
+
+  <Style Selector="Border.killeropedia-widget-frame">
+    <Setter Property="Background" Value="#11141C" />
+    <Setter Property="BorderBrush" Value="#352A22" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BoxShadow" Value="0 26 70 8 #A6000000" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+  <Style Selector="Border.killeropedia-widget-header">
+    <Setter Property="Background" Value="#17131F" />
+    <Setter Property="BorderBrush" Value="#50412D" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="18,9" />
+  </Style>
+  <Style Selector="TextBlock.killeropedia-widget-title">
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontStyle" Value="Italic" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LetterSpacing" Value="6" />
+    <Setter Property="Foreground" Value="#D0B477" />
+  </Style>
+  <Style Selector="Button.killeropedia-close">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="#806E49" />
+    <Setter Property="Foreground" Value="#D0B477" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <Style Selector="ContentPresenter.killeropedia-widget-content">
+    <Setter Property="Margin" Value="26,0,26,24" />
+  </Style>
+
+  <Style Selector="TabControl.killeropedia-book-tabs">
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem">
+    <Setter Property="Width" Value="160" />
+    <Setter Property="Height" Value="58" />
+    <Setter Property="MinWidth" Value="160" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="Padding" Value="12,10,12,17" />
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LetterSpacing" Value="1" />
+    <Setter Property="Foreground" Value="#D8C79D" />
+    <Setter Property="Clip" Value="M 0,0 L 160,0 L 160,58 L 80,47 L 0,58 Z" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem /template/ Border#PART_LayoutRoot">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-teachers /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#5B431D" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-books /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#48243B" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-lore /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#642B1D" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-map /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#24324D" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem:pointerover">
+    <Setter Property="Foreground" Value="#F1E3BC" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem:selected">
+    <Setter Property="Foreground" Value="#F4DFA8" />
+    <Setter Property="Height" Value="64" />
+  </Style>
+
+  <Style Selector=":is(UserControl).killeropedia-page">
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="Margin" Value="24,24,24,22" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBlock.mud-heading">
+    <Setter Property="Foreground" Value="#4C3714" />
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="2" />
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBlock.mud-heading-lg">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource KilleropediaFontFamily}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="27" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBlock.mud-muted">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkDimBrush}" />
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBlock.mud-faint">
+    <Setter Property="Foreground" Value="#806538" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBox">
+    <Setter Property="Background" Value="#B8E8D19B" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="CaretBrush" Value="{StaticResource KilleropediaLinkBrush}" />
+    <Setter Property="BorderBrush" Value="#9A73502A" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="FontStyle" Value="Italic" />
+    <Setter Property="SelectionBrush" Value="#5C8C5A31" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBox:focus">
+    <Setter Property="Background" Value="#D8EBD6A8" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaLinkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBox /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="#B8E8D19B" />
+    <Setter Property="BorderBrush" Value="#9A73502A" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="BoxShadow" Value="none" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="#D8EBD6A8" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaLinkBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="none" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TextBox /template/ TextBlock#PART_PlaceholderText">
+    <Setter Property="Foreground" Value="#76562D" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ComboBox">
+    <Setter Property="Background" Value="#18FFFFFF" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaRuleBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Button">
+    <Setter Property="Background" Value="#168A5B2C" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaLinkBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaRuleBrush}" />
+    <Setter Property="CornerRadius" Value="1" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Button:pointerover">
+    <Setter Property="Background" Value="#B8D5A34A" />
+    <Setter Property="Foreground" Value="#4A1D10" />
+    <Setter Property="BorderBrush" Value="#8A451D" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#B8D5A34A" />
+    <Setter Property="TextBlock.Foreground" Value="#4A1D10" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Button:pointerover TextBlock.mud-faint">
+    <Setter Property="Foreground" Value="#68411E" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Button:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#739B6A32" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <!-- InlineUIContainer is outside the normal visual-style ancestry, so these
+       class-specific rules intentionally do not depend on killeropedia-page. -->
+  <Style Selector="Button.killeropedia-inline-link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="1,0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="Button.killeropedia-inline-link /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <Style Selector="TextBlock.killeropedia-inline-link-text">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+    <Setter Property="TextDecorations" Value="Underline" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="Button.killeropedia-inline-link:pointerover">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.killeropedia-inline-link:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <Style Selector="Button.killeropedia-inline-link:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="TextBlock.Foreground" Value="{StaticResource KilleropediaInkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Border.mud-inset">
+    <Setter Property="Background" Value="#0AFFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaRuleBrush}" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Border.mud-section">
+    <Setter Property="Background" Value="#0DFFFFFF" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaRuleBrush}" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Border.killeropedia-left-page">
+    <Setter Property="Background" Value="{StaticResource KilleropediaPaperBrush}" />
+    <Setter Property="BorderBrush" Value="#8D7043" />
+    <Setter Property="BorderThickness" Value="1,1,0,1" />
+    <Setter Property="BoxShadow" Value="inset -24 0 32 -24 #8F2A1805" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page Border.killeropedia-right-page">
+    <Setter Property="Background" Value="{StaticResource KilleropediaPaperBrush}" />
+    <Setter Property="BorderBrush" Value="#8D7043" />
+    <Setter Property="BorderThickness" Value="0,1,1,1" />
+    <Setter Property="BoxShadow" Value="inset 24 0 32 -24 #8F2A1805" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page GridSplitter">
+    <Setter Property="Background" Value="#5A3C1E" />
+    <Setter Property="Opacity" Value="0.72" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBoxItem /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="#2E7A4A21" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaRuleBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="4,0,4,2" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs ListBoxItem /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs Border.killeropedia-category-tab">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs ListBoxItem:pointerover TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaLinkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs ListBoxItem:selected Border.killeropedia-category-tab">
+    <Setter Property="BorderBrush" Value="{StaticResource KilleropediaLinkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ListBox.killeropedia-category-tabs ListBoxItem:selected TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaLinkBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ScrollViewer">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TabControl">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TabControl.mud-subtabs TabItem">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaInkDimBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page TabControl.mud-subtabs TabItem:selected">
+    <Setter Property="Foreground" Value="{StaticResource KilleropediaLinkBrush}" />
+  </Style>
+  <Style Selector=":is(UserControl).killeropedia-page ScrollBar /template/ Thumb">
+    <Setter Property="Background" Value="#7C5A2B" />
+  </Style>
+
+</Styles>

@@ -20,6 +20,9 @@ public partial class LargeTabbedWidget : UserControl
     public static readonly StyledProperty<string> TitleProperty =
         AvaloniaProperty.Register<LargeTabbedWidget, string>(nameof(Title), string.Empty);
 
+    public static readonly StyledProperty<bool> IsBookStyleProperty =
+        AvaloniaProperty.Register<LargeTabbedWidget, bool>(nameof(IsBookStyle));
+
     public static readonly StyledProperty<TabControl?> TabContentProperty =
         AvaloniaProperty.Register<LargeTabbedWidget, TabControl?>(nameof(TabContent));
 
@@ -38,6 +41,12 @@ public partial class LargeTabbedWidget : UserControl
     {
         get => GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
+    }
+
+    public bool IsBookStyle
+    {
+        get => GetValue(IsBookStyleProperty);
+        set => SetValue(IsBookStyleProperty, value);
     }
 
     public TabControl? TabContent

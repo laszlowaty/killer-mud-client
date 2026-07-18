@@ -13,13 +13,17 @@ namespace MudClient.App.Behaviors;
 /// </summary>
 public static class SearchHighlight
 {
-    private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromArgb(0x8C, 0xFF, 0xC8, 0x2E));
+    private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromArgb(0xB0, 0xD5, 0xA3, 0x4A));
+    private static readonly IBrush HighlightForegroundBrush = new SolidColorBrush(Color.FromRgb(0x2C, 0x21, 0x10));
 
     public static readonly AttachedProperty<string?> TextProperty =
         AvaloniaProperty.RegisterAttached<TextBlock, string?>("Text", typeof(SearchHighlight));
 
     public static readonly AttachedProperty<string?> TermsProperty =
         AvaloniaProperty.RegisterAttached<TextBlock, string?>("Terms", typeof(SearchHighlight));
+
+    public static readonly AttachedProperty<bool> IsMatchProperty =
+        AvaloniaProperty.RegisterAttached<TextBlock, bool>("IsMatch", typeof(SearchHighlight));
 
     static SearchHighlight()
     {
@@ -35,16 +39,44 @@ public static class SearchHighlight
 
     public static void SetTerms(TextBlock element, string? value) => element.SetValue(TermsProperty, value);
 
+    public static bool GetIsMatch(TextBlock element) => element.GetValue(IsMatchProperty);
+
+    internal static void SetIsMatch(TextBlock element, bool value) => element.SetValue(IsMatchProperty, value);
+
+    internal static Run CreateHighlightedRun(TextBlock host, string text) => new(text)
+    {
+        Background = HighlightBrush,
+        Foreground = host.Foreground ?? HighlightForegroundBrush,
+        FontFamily = host.FontFamily,
+        FontSize = host.FontSize,
+        FontStyle = host.FontStyle,
+        FontWeight = FontWeight.Bold,
+        LetterSpacing = host.LetterSpacing,
+    };
+
+    internal static Run CreatePlainRun(TextBlock host, string text) => new(text)
+    {
+        Foreground = host.Foreground,
+        FontFamily = host.FontFamily,
+        FontSize = host.FontSize,
+        FontStyle = host.FontStyle,
+        FontWeight = host.FontWeight,
+        LetterSpacing = host.LetterSpacing,
+    };
+
     private static void Update(TextBlock textBlock)
     {
         var text = GetText(textBlock) ?? string.Empty;
         var ranges = SearchText.FindMatchRanges(text, GetTerms(textBlock));
         if (ranges.Count == 0)
         {
+            textBlock.SetValue(IsMatchProperty, false);
             textBlock.Inlines = null;
             textBlock.Text = text;
             return;
         }
+
+        textBlock.SetValue(IsMatchProperty, true);
 
         var inlines = new InlineCollection();
         var position = 0;
@@ -52,16 +84,16 @@ public static class SearchHighlight
         {
             if (start > position)
             {
-                inlines.Add(new Run(text[position..start]));
+                inlines.Add(CreatePlainRun(textBlock, text[position..start]));
             }
 
-            inlines.Add(new Run(text.Substring(start, length)) { Background = HighlightBrush });
+            inlines.Add(CreateHighlightedRun(textBlock, text.Substring(start, length)));
             position = start + length;
         }
 
         if (position < text.Length)
         {
-            inlines.Add(new Run(text[position..]));
+            inlines.Add(CreatePlainRun(textBlock, text[position..]));
         }
 
         textBlock.Inlines = inlines;

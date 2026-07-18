@@ -15,6 +15,7 @@
               Grid.Row="1"
               Grid.Column="1"
               Classes="mud-panel"
+              Classes.killeropedia-widget-frame="{Binding IsBookStyle, ElementName=Root}"
               BorderBrush="{StaticResource MudBrushGoldDim}"
               BorderThickness="1"
               CornerRadius="6"
@@ -22,13 +23,16 @@
         <Grid RowDefinitions="Auto,*">
           <Border Grid.Row="0"
                   Classes="mud-bar"
+                  Classes.killeropedia-widget-header="{Binding IsBookStyle, ElementName=Root}"
                   Padding="16,10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Grid.Column="0"
                          Classes="mud-heading-lg"
+                         Classes.killeropedia-widget-title="{Binding IsBookStyle, ElementName=Root}"
                          Text="{Binding Title, ElementName=Root}"
                          VerticalAlignment="Center" />
               <Button Grid.Column="1"
+                      Classes.killeropedia-close="{Binding IsBookStyle, ElementName=Root}"
                       Content="✕"
                       Padding="10,5"
                       ToolTip.Tip="Zamknij"
@@ -36,9 +40,76 @@
             </Grid>
           </Border>
 
-          <ContentPresenter Grid.Row="1"
-                            Content="{Binding TabContent, ElementName=Root}"
-                            Margin="16,10,16,16" />
+          <Grid Grid.Row="1">
+            <Grid IsVisible="{Binding IsBookStyle, ElementName=Root}"
+                  Margin="10,42,10,10"
+                  IsHitTestVisible="False">
+              <Path Margin="2,5,0,0"
+                    Stretch="Fill"
+                    Fill="#735934"
+                    Opacity="0.82"
+                    Data="M 8,4 L 70,1 L 138,5 L 210,2 L 282,6 L 356,2 L 430,5 L 505,1 L 580,5 L 655,2 L 730,6 L 806,2 L 878,5 L 948,1 L 992,6 L 997,72 L 993,146 L 998,224 L 992,304 L 997,382 L 991,462 L 997,540 L 992,618 L 996,696 L 989,772 L 925,777 L 852,773 L 780,778 L 705,773 L 632,777 L 558,772 L 485,778 L 410,773 L 336,777 L 262,772 L 188,778 L 114,773 L 42,777 L 5,770 L 10,700 L 4,625 L 10,548 L 5,470 L 11,394 L 4,316 L 10,238 L 5,160 L 11,82 Z" />
+              <Path Stretch="Fill"
+                    Fill="{StaticResource KilleropediaPaperBrush}"
+                    Stroke="#8A6A3B"
+                    StrokeThickness="1.5"
+                    Data="M 11,7 L 76,3 L 145,7 L 218,3 L 290,8 L 365,3 L 438,7 L 512,2 L 586,7 L 660,3 L 735,8 L 810,3 L 882,7 L 951,3 L 989,9 L 994,76 L 989,151 L 995,228 L 989,306 L 995,386 L 988,466 L 994,544 L 989,621 L 994,699 L 986,766 L 920,771 L 850,767 L 778,772 L 703,767 L 630,772 L 556,767 L 482,773 L 408,767 L 334,772 L 260,767 L 186,772 L 112,767 L 46,772 L 10,764 L 15,695 L 9,621 L 15,545 L 10,468 L 16,391 L 9,314 L 15,237 L 10,160 L 16,84 Z" />
+              <Ellipse Width="300" Height="220" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="55,30,0,0" Opacity="0.2">
+                <Ellipse.Fill>
+                  <RadialGradientBrush>
+                    <GradientStop Color="#8B5D2C" Offset="0" />
+                    <GradientStop Color="#398B5D2C" Offset="0.45" />
+                    <GradientStop Color="#008B5D2C" Offset="1" />
+                  </RadialGradientBrush>
+                </Ellipse.Fill>
+              </Ellipse>
+              <Ellipse Width="230" Height="170" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,75,35" Opacity="0.18">
+                <Ellipse.Fill>
+                  <RadialGradientBrush>
+                    <GradientStop Color="#7A4D20" Offset="0" />
+                    <GradientStop Color="#307A4D20" Offset="0.5" />
+                    <GradientStop Color="#007A4D20" Offset="1" />
+                  </RadialGradientBrush>
+                </Ellipse.Fill>
+              </Ellipse>
+            </Grid>
+
+            <ContentPresenter Content="{Binding TabContent, ElementName=Root}"
+                              Classes.killeropedia-widget-content="{Binding IsBookStyle, ElementName=Root}"
+                              Margin="16,10,16,16" />
+
+            <Grid IsVisible="{Binding IsBookStyle, ElementName=Root}"
+                  IsHitTestVisible="False"
+                  ClipToBounds="True"
+                  Margin="28,104,28,28">
+              <Ellipse Width="250" Height="185"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Margin="90,65,0,0"
+                       Opacity="0.075">
+                <Ellipse.Fill>
+                  <RadialGradientBrush>
+                    <GradientStop Color="#5C3514" Offset="0" />
+                    <GradientStop Color="#705C3514" Offset="0.44" />
+                    <GradientStop Color="#005C3514" Offset="1" />
+                  </RadialGradientBrush>
+                </Ellipse.Fill>
+              </Ellipse>
+              <Ellipse Width="185" Height="135"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       Margin="0,0,120,70"
+                       Opacity="0.065">
+                <Ellipse.Fill>
+                  <RadialGradientBrush>
+                    <GradientStop Color="#583116" Offset="0" />
+                    <GradientStop Color="#70583116" Offset="0.48" />
+                    <GradientStop Color="#00583116" Offset="1" />
+                  </RadialGradientBrush>
+                </Ellipse.Fill>
+              </Ellipse>
+            </Grid>
+          </Grid>
         </Grid>
       </Border>
     </Grid>
