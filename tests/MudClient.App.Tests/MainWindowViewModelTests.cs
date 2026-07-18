@@ -3181,6 +3181,56 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         return (bool)method!.Invoke(_vm, [command])!;
     }
 
+    private void SetCurrentVnum(string vnum)
+    {
+        var resolver = (GmcpLocationResolver)typeof(MainWindowViewModel)
+            .GetField("_locationResolver", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_vm)!;
+        typeof(GmcpLocationResolver).GetProperty(nameof(GmcpLocationResolver.CurrentVnum))!
+            .SetValue(resolver, vnum);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_IdzDodaj_SavesCurrentLocationForActiveProfile()
+    {
+        SetCurrentVnum("7007");
+        _vm.NewLocationName = "niedokończony formularz";
+        _vm.NewLocationVnum = "123";
+        _vm.NewLocationIsGlobal = true;
+
+        var consumed = InvokeTryHandleAutowalkCommand("/IDZ_DODAJ Stara Brama");
+
+        Assert.True(consumed);
+        var location = Assert.Single(_vm.Locations);
+        Assert.Equal("Stara Brama", location.Name);
+        Assert.Equal("7007", location.Vnum);
+        Assert.False(location.IsGlobal);
+        Assert.Equal("niedokończony formularz", _vm.NewLocationName);
+        Assert.Equal("123", _vm.NewLocationVnum);
+        Assert.True(_vm.NewLocationIsGlobal);
+        Assert.Contains("Dodano lokację", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_IdzDodaj_WithoutName_ShowsUsage()
+    {
+        var consumed = InvokeTryHandleAutowalkCommand("/idz_dodaj");
+
+        Assert.True(consumed);
+        Assert.Empty(_vm.Locations);
+        Assert.Contains("/idz_dodaj <nazwa>", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_IdzDodaj_WithoutGmcpLocation_ShowsError()
+    {
+        var consumed = InvokeTryHandleAutowalkCommand("/idz_dodaj Stara Brama");
+
+        Assert.True(consumed);
+        Assert.Empty(_vm.Locations);
+        Assert.Contains("brak danych GMCP", _vm.Toasts[^1].Text);
+    }
+
     [Fact]
     public void TryHandleAutowalkCommand_BareIdz_WithoutTarget_ShowsSameUsageAsCommand()
     {

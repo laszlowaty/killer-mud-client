@@ -213,6 +213,7 @@ public sealed class MainWindowClickTests : IDisposable
             .ToList();
         Assert.Contains("/idz", helpTexts);
         Assert.Contains("/idz <cel>", helpTexts);
+        Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
         Assert.Contains("/recast", helpTexts);
     }

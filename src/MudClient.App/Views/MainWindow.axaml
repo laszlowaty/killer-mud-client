@@ -342,6 +342,15 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="180,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/idz_dodaj &lt;nazwa&gt;" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Zapisuje obecną lokację pod podaną nazwą dla aktywnego konta." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
                     <TextBlock Grid.Column="0" Text="/stop" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />

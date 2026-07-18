@@ -2164,7 +2164,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddLocationCore(NewLocationName, NewLocationVnum);
     }
 
-    private void AddLocationCore(string rawName, string rawVnum)
+    private void AddLocationCore(
+        string rawName,
+        string rawVnum,
+        bool? isGlobal = null,
+        bool clearEditor = true)
     {
         var name = rawName.Trim();
         var vnum = rawVnum.Trim();
@@ -2193,10 +2197,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             AddToast($"Uwaga: vnum {vnum} nie istnieje w mapie.", "error");
         }
 
-        Locations.Add(new AutowalkLocation(name, vnum, room?.Name, NewLocationIsGlobal));
-        NewLocationName = string.Empty;
-        NewLocationVnum = string.Empty;
-        NewLocationIsGlobal = false;
+        Locations.Add(new AutowalkLocation(name, vnum, room?.Name, isGlobal ?? NewLocationIsGlobal));
+        if (clearEditor)
+        {
+            NewLocationName = string.Empty;
+            NewLocationVnum = string.Empty;
+            NewLocationIsGlobal = false;
+        }
+
         SaveActiveProfile();
         AddToast($"Dodano lokację „{name}”.", "info");
     }
@@ -2672,12 +2680,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt; and /stop. Returns true when consumed.</summary>
+    /// <summary>
+    /// Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt;,
+    /// /idz_dodaj &lt;nazwa&gt; and /stop. Returns true when consumed.
+    /// </summary>
     private bool TryHandleAutowalkCommand(string command)
     {
         if (string.Equals(command, "/stop", StringComparison.OrdinalIgnoreCase))
         {
             StopAutowalk("Autowalk zatrzymany.");
+            return true;
+        }
+
+        const string addPrefix = "/idz_dodaj";
+        if (command.StartsWith(addPrefix, StringComparison.OrdinalIgnoreCase)
+            && (command.Length == addPrefix.Length || char.IsWhiteSpace(command[addPrefix.Length])))
+        {
+            var name = command.Length > addPrefix.Length
+                ? command[addPrefix.Length..].Trim()
+                : string.Empty;
+            if (name.Length == 0)
+            {
+                AddToast("Użycie: /idz_dodaj <nazwa>.", "info");
+                return true;
+            }
+
+            var currentVnum = Map.CurrentVnum;
+            if (string.IsNullOrWhiteSpace(currentVnum))
+            {
+                AddToast("Nieznana obecna pozycja — brak danych GMCP.", "error");
+                return true;
+            }
+
+            AddLocationCore(name, currentVnum, isGlobal: false, clearEditor: false);
             return true;
         }
 

@@ -12,8 +12,10 @@ public sealed record MemSpellCircle
     public int Circle { get; }
     public int MemedCount { get; }
     public int MemingCount { get; }
+    public int UnmemedCount { get; }
     public string MemedDisplay { get; }
     public string MemingDisplay { get; }
+    public string UnmemedDisplay { get; }
 
     public string Header => $"Krąg {Circle}";
 
@@ -23,14 +25,24 @@ public sealed record MemSpellCircle
 
     public bool HasMemed => MemedDisplay.Length > 0;
     public bool HasMeming => MemingDisplay.Length > 0;
+    public bool HasUnmemed => UnmemedDisplay.Length > 0;
 
-    private MemSpellCircle(int circle, int memedCount, int memingCount, string memedDisplay, string memingDisplay)
+    private MemSpellCircle(
+        int circle,
+        int memedCount,
+        int memingCount,
+        int unmemedCount,
+        string memedDisplay,
+        string memingDisplay,
+        string unmemedDisplay)
     {
         Circle = circle;
         MemedCount = memedCount;
         MemingCount = memingCount;
+        UnmemedCount = unmemedCount;
         MemedDisplay = memedDisplay;
         MemingDisplay = memingDisplay;
+        UnmemedDisplay = unmemedDisplay;
     }
 
     /// <summary>Groups a flat slot list into per-circle rows, ordered by circle.</summary>
@@ -41,12 +53,15 @@ public sealed record MemSpellCircle
         {
             var memed = circleGroup.Where(s => s.Memed && !s.Meming).ToList();
             var meming = circleGroup.Where(s => s.Meming).ToList();
+            var unmemed = circleGroup.Where(s => !s.Memed && !s.Meming).ToList();
             result.Add(new MemSpellCircle(
                 circle: circleGroup.Key,
                 memedCount: memed.Count,
                 memingCount: meming.Count,
+                unmemedCount: unmemed.Count,
                 memedDisplay: Aggregate(memed),
-                memingDisplay: Aggregate(meming)));
+                memingDisplay: Aggregate(meming),
+                unmemedDisplay: Aggregate(unmemed)));
         }
 
         return result;

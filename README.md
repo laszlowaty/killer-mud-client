@@ -56,7 +56,7 @@ Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj
 - **Buffy** — lista wymaganych buffów z podświetleniem brakujących; komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
 - **Drużyna** — skład i stan grupy,
-- **Mem** — zapamiętane czary,
+- **Mem** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono,
 - **GMCP** — surowy podgląd pakietów GMCP.
 
 ### Killeropedia
@@ -82,7 +82,8 @@ aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu
 ### Pomoc aplikacji
 
 Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/idz`,
-`/idz <cel>`, `/stop` oraz `/recast`.
+`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop` oraz `/recast`. Komenda
+`/idz_dodaj <nazwa>` zapisuje obecną lokację dla aktywnego konta.
 
 ### Automatyzacja
 

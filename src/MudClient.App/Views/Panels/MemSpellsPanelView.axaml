@@ -29,6 +29,11 @@
                            Foreground="{StaticResource MudBrushGoldBright}"
                            ToolTip.Tip="W trakcie zapamiętywania"
                            IsVisible="{Binding HasMeming}" />
+                <TextBlock Text="{Binding UnmemedDisplay}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                           ToolTip.Tip="Niezapamiętane"
+                           IsVisible="{Binding HasUnmemed}" />
               </StackPanel>
             </Border>
           </DataTemplate>
