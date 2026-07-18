@@ -33,6 +33,11 @@ public sealed partial class TerminalPanelView : UserControl
             ?? throw new InvalidOperationException("MudOutput not found.");
         _commandBox = this.FindControl<TextBox>("CommandBox")
             ?? throw new InvalidOperationException("CommandBox not found.");
+        _commandBox.AddHandler(
+            InputElement.KeyDownEvent,
+            CommandBox_OnPreviewKeyDown,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
         _timerCountdownRefresh = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(100),
@@ -194,6 +199,19 @@ public sealed partial class TerminalPanelView : UserControl
         var redirectArgs = new TextInputEventArgs { Text = e.Text };
         redirectArgs.RoutedEvent = InputElement.TextInputEvent;
         _commandBox.RaiseEvent(redirectArgs);
+    }
+
+    private async void CommandBox_OnPreviewKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key == Key.C
+            && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control)
+            && _mudOutput.HasSelection)
+        {
+            // Output selection keeps focus in the command box so typing can continue.
+            // Give that selection priority; without one, leave Ctrl+C to the TextBox.
+            eventArgs.Handled = true;
+            await _mudOutput.CopySelectionToClipboardAsync();
+        }
     }
 
     private void CommandBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)

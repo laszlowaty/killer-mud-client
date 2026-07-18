@@ -204,6 +204,15 @@ public partial class MudOutputView : UserControl
 
     private async void CopySelection_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
+        await CopySelectionToClipboardAsync();
+    }
+
+    internal bool HasSelection =>
+        _scrollbackPane.GetSelectedText() is not null
+        || _liveTailPane.GetSelectedText() is not null;
+
+    internal async Task CopySelectionToClipboardAsync()
+    {
         var text = _scrollbackPane.GetSelectedText() ?? _liveTailPane.GetSelectedText();
         await CopyToClipboardAsync(text);
     }

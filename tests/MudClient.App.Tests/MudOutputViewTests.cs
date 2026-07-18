@@ -1,7 +1,10 @@
 using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using MudClient.App.Controls;
@@ -91,6 +94,42 @@ public sealed class MudOutputViewTests
         var logicalScrollable = (ILogicalScrollable)pane;
 
         Assert.True(logicalScrollable.ScrollSize.Height > 40);
+    }
+
+    [AvaloniaFact]
+    public async Task TerminalCtrlC_CopiesOutputSelection_AndFallsBackToCommandInput()
+    {
+        var terminal = new TerminalPanelView();
+        var commandBox = terminal.FindControl<TextBox>("CommandBox")!;
+        var output = terminal.FindControl<MudOutputView>("MudOutput")!;
+        var window = new Window { Content = terminal };
+        window.Show();
+        var clipboard = Assert.IsAssignableFrom<IClipboard>(window.Clipboard);
+
+        try
+        {
+            commandBox.Text = "tekst inputu";
+            commandBox.SelectAll();
+            commandBox.Focus();
+
+            output.AppendText("tekst terminala\n");
+            Assert.True(output.UpdateSearch("tekst terminala"));
+
+            window.KeyPress(Key.C, RawInputModifiers.Control, PhysicalKey.C, null);
+
+            Assert.Equal("tekst terminala", await clipboard.TryGetTextAsync());
+
+            output.Clear();
+            commandBox.SelectAll();
+
+            window.KeyPress(Key.C, RawInputModifiers.Control, PhysicalKey.C, null);
+
+            Assert.Equal("tekst inputu", await clipboard.TryGetTextAsync());
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static void SetSplitMode(MudOutputView output, bool enabled)
