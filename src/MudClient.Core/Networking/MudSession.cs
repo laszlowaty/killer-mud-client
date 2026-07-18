@@ -43,6 +43,9 @@ public sealed class MudSession : IAsyncDisposable
 
     public event Action<GmcpMessage>? GmcpSent;
 
+    /// <summary>Raised after a complete player command has been written to the MUD transport.</summary>
+    public event Action<string>? CommandSent;
+
     public event Action<string>? StatusChanged;
 
     public event Action<Exception>? ConnectionError;
@@ -139,6 +142,7 @@ public sealed class MudSession : IAsyncDisposable
     {
         var bytes = MudEncoding.GetBytes(command + "\r\n");
         await SendRawAsync(TelnetWriter.EscapeData(bytes), cancellationToken).ConfigureAwait(false);
+        CommandSent?.Invoke(command);
     }
 
     public async Task SendGmcpAsync(

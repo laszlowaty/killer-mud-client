@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
     private CancellationTokenSource? _pinnedPanelAuditCts;
+    private readonly DispatcherTimer _idleRefreshTimer;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
 
@@ -27,6 +28,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        _idleRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1),
+        };
+        _idleRefreshTimer.Tick += OnIdleRefreshTick;
 
         Opened += OnOpened;
         Activated += OnWindowActivated;
@@ -64,6 +71,9 @@ public partial class MainWindow : Window
         {
             return;
         }
+
+        viewModel.RefreshIdleTime();
+        _idleRefreshTimer.Start();
 
         try
         {
@@ -120,6 +130,9 @@ public partial class MainWindow : Window
     {
         Close();
     }
+
+    private void OnIdleRefreshTick(object? sender, EventArgs eventArgs) =>
+        _viewModel?.RefreshIdleTime();
 
     private void OnDataContextChanged(object? sender, EventArgs eventArgs)
     {
@@ -378,6 +391,8 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs eventArgs)
     {
+        _idleRefreshTimer.Stop();
+        _idleRefreshTimer.Tick -= OnIdleRefreshTick;
         _pinnedPanelAuditCts?.Cancel();
         _pinnedPanelAuditCts?.Dispose();
         _pinnedPanelAuditCts = null;

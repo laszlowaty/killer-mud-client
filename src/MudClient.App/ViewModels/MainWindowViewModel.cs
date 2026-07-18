@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using Avalonia.Threading;
 using Avalonia.Media;
@@ -87,6 +88,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private int _port = 4004;
     private string _commandText = string.Empty;
     private string _statusText = "Rozłączono";
+    private string _idleTimeText = "Idle: —";
+    private long _lastCommandSentTimestamp;
     private bool _isConnected;
     private bool _isBusy;
     private string? _startupErrorMessage;
@@ -294,6 +297,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.LineReceived += OnLineReceived;
         _session.GmcpReceived += OnGmcpReceived;
         _session.GmcpSent += OnGmcpSent;
+        _session.CommandSent += OnCommandSent;
         _session.StatusChanged += OnStatusChanged;
         _session.ConnectionError += OnConnectionError;
         _session.ConnectionClosed += OnConnectionClosed;
@@ -735,6 +739,26 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _isKilleropediaOpen;
         set => SetProperty(ref _isKilleropediaOpen, value);
+    }
+
+    public string IdleTimeText
+    {
+        get => _idleTimeText;
+        private set => SetProperty(ref _idleTimeText, value);
+    }
+
+    internal void RefreshIdleTime()
+    {
+        var timestamp = Interlocked.Read(ref _lastCommandSentTimestamp);
+        IdleTimeText = timestamp == 0
+            ? "Idle: —"
+            : FormatIdleTime(Stopwatch.GetElapsedTime(timestamp));
+    }
+
+    internal static string FormatIdleTime(TimeSpan idleTime)
+    {
+        var totalHours = Math.Max(0, (long)idleTime.TotalHours);
+        return $"Idle: {totalHours:00}:{idleTime.Minutes:00}:{idleTime.Seconds:00}";
     }
 
     public bool IsHelpOpen
@@ -4825,6 +4849,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
+    private void OnCommandSent(string _)
+    {
+        Interlocked.Exchange(ref _lastCommandSentTimestamp, Stopwatch.GetTimestamp());
+        Dispatcher.UIThread.Post(RefreshIdleTime);
+    }
+
     private void OnStatusChanged(string status)
     {
         Dispatcher.UIThread.Post(() =>
@@ -5014,6 +5044,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.LineReceived -= OnLineReceived;
         _session.GmcpReceived -= OnGmcpReceived;
         _session.GmcpSent -= OnGmcpSent;
+        _session.CommandSent -= OnCommandSent;
         _session.StatusChanged -= OnStatusChanged;
         _session.ConnectionError -= OnConnectionError;
         _session.ConnectionClosed -= OnConnectionClosed;

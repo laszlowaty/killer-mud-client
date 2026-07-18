@@ -218,6 +218,52 @@ public sealed class MainWindowClickTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Header_ShowsIdleTimeSinceLastMudCommand()
+    {
+        var viewModel = CreateViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var idleTime = window.FindControl<TextBlock>("IdleTimeIndicator");
+
+        Assert.NotNull(idleTime);
+        Assert.Equal("Idle: —", idleTime!.Text);
+        Assert.Equal("Czas od ostatniej komendy wysłanej do MUD-a", ToolTip.GetTip(idleTime));
+    }
+
+    [AvaloniaFact]
+    public void ProfilePicker_ContainsServerFieldsAndHeaderDoesNot()
+    {
+        var viewModel = CreateViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        window.Show();
+        EnsureLayout(window);
+
+        var profileServerFields = window.FindControl<StackPanel>("ProfileServerFields");
+        var newProfileServerFields = window.FindControl<Grid>("NewProfileServerFields");
+        var connectionActions = window.FindControl<StackPanel>("ConnectionActions");
+
+        Assert.NotNull(profileServerFields);
+        Assert.NotNull(newProfileServerFields);
+        Assert.NotNull(connectionActions);
+        Assert.Contains(profileServerFields!.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "host");
+        Assert.Contains(profileServerFields.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "port");
+        Assert.Contains(newProfileServerFields!.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "host");
+        Assert.Contains(newProfileServerFields.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "port");
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "Nazwa konta w aplikacji");
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "Login MUD");
+        Assert.DoesNotContain(connectionActions!.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText is "host" or "port");
+    }
+
+    [AvaloniaFact]
     public void FocusCommandBoxAndSelectAll_FocusesAndSelectsAll()
     {
         // Arrange

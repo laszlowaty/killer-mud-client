@@ -156,6 +156,13 @@
                       VerticalAlignment="Center">
             <Button Content="Połącz" Command="{Binding ConnectCommand}" Padding="12,6" />
             <Button Classes="mud-danger" Content="Rozłącz" Command="{Binding DisconnectCommand}" Padding="12,6" />
+            <TextBlock x:Name="IdleTimeIndicator"
+                       Text="{Binding IdleTimeText}"
+                       FontSize="11"
+                       MinWidth="92"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource MudBrushParchmentDim}"
+                       ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
             <TextBlock Text="{Binding StatusText}"
                        FontWeight="SemiBold"
                        FontSize="12"

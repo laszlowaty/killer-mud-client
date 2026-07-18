@@ -71,6 +71,21 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void Constructor_BeforeFirstSentCommand_ShowsUnknownIdleTime()
+    {
+        Assert.Equal("Idle: —", _vm.IdleTimeText);
+    }
+
+    [Theory]
+    [InlineData(0, "Idle: 00:00:00")]
+    [InlineData(65, "Idle: 00:01:05")]
+    [InlineData(90061, "Idle: 25:01:01")]
+    public void FormatIdleTime_UsesUnboundedHours(long seconds, string expected)
+    {
+        Assert.Equal(expected, MainWindowViewModel.FormatIdleTime(TimeSpan.FromSeconds(seconds)));
+    }
+
+    [Fact]
     public void Constructor_StartsWithNoAutomationRules()
     {
         // Rules are per-profile; none should exist before a profile is activated.
