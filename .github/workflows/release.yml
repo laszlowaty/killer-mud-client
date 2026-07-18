@@ -166,6 +166,8 @@ jobs:
       - name: Update changelog on GitHub Pages
         env:
           GH_TOKEN: ${{ github.token }}
+          FULL_VERSION: ${{ steps.version.outputs.full_version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
@@ -296,9 +298,25 @@ jobs:
           </html>
           HTML
 
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = {
+              "schemaVersion": 1,
+              "version": os.environ["FULL_VERSION"],
+              "prerelease": os.environ["PRERELEASE"].lower() == "true",
+          }
+          Path("docs/app-version.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/changelog.html
+          git add docs/changelog.html docs/app-version.json
           if ! git diff --cached --quiet; then
             git commit -m "docs: aktualizacja listy zmian dla $TAG"
             git push origin main

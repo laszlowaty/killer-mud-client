@@ -501,7 +501,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string ContentUpdateDescription => AvailableContentUpdate is { } update
-        ? $"{ComponentNames(update.Components)} · {FormatBytes(update.DownloadSize)}"
+        ? $"{ComponentVersions(update.Components)} · {FormatBytes(update.DownloadSize)}"
         : string.Empty;
 
     /// <summary>Name typed into the "zapisz układ" field before saving the current arrangement.</summary>
@@ -810,8 +810,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         return LoreCatalogLoader.Load(_settingsService.DirectoryPath);
     }
 
-    private static string ComponentNames(IReadOnlyList<ContentComponentUpdate> components) =>
-        string.Join(" i ", components.Select(component => ComponentDisplayName(component.Name)));
+    private static string ComponentVersions(IReadOnlyList<ContentComponentUpdate> components) =>
+        string.Join(" i ", components.Select(component =>
+            $"{ComponentDisplayName(component.Name)} {component.Version}"));
 
     private static string ComponentDisplayName(string name) => name.ToLowerInvariant() switch
     {

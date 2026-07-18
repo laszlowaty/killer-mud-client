@@ -10,16 +10,13 @@ public sealed class UpdateCheckServiceTests
     public async Task CheckForUpdateAsync_NewerPrerelease_ReturnsReleaseAndLinks()
     {
         using var httpClient = CreateClient("""
-            [
-              {
-                "tag_name": "v999.0.0-beta.2",
-                "html_url": "https://github.com/laszlowaty/killer-mud-client/releases/tag/v999.0.0-beta.2",
-                "draft": false,
-                "prerelease": true
-              }
-            ]
+            {
+              "schemaVersion": 1,
+              "version": "999.0.0-beta.2",
+              "prerelease": true
+            }
             """);
-        var service = new UpdateCheckService(httpClient);
+        var service = new UpdateCheckService(httpClient, currentVersion: "0.5.9");
 
         var update = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
@@ -35,53 +32,28 @@ public sealed class UpdateCheckServiceTests
     }
 
     [Fact]
-    public async Task CheckForUpdateAsync_SelectsHighestSemanticVersionAndSkipsDrafts()
+    public async Task CheckForUpdateAsync_UsesGitHubPagesManifestInsteadOfGitHubApi()
     {
-        using var httpClient = CreateClient("""
-            [
-              {
-                "tag_name": "v1000.0.0",
-                "html_url": "https://example.test/draft",
-                "draft": true,
-                "prerelease": false
-              },
-              {
-                "tag_name": "v999.0.0-beta.2",
-                "html_url": "https://example.test/beta-2",
-                "draft": false,
-                "prerelease": true
-              },
-              {
-                "tag_name": "v999.0.0-beta.10",
-                "html_url": "https://example.test/beta-10",
-                "draft": false,
-                "prerelease": true
-              }
-            ]
+        var handler = new StubHandler("""
+            { "schemaVersion": 1, "version": "999.0.0-beta.10", "prerelease": true }
             """);
-        var service = new UpdateCheckService(httpClient);
+        using var httpClient = new HttpClient(handler);
+        var service = new UpdateCheckService(httpClient, currentVersion: "0.5.9");
 
         var update = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(update);
         Assert.Equal("999.0.0-beta.10", update.Version);
-        Assert.Equal("https://example.test/beta-10", update.ReleasePageUri.AbsoluteUri.TrimEnd('/'));
+        Assert.Equal(UpdateCheckService.DefaultVersionManifestUri, handler.RequestUri);
     }
 
     [Fact]
     public async Task CheckForUpdateAsync_OlderRelease_ReturnsNull()
     {
         using var httpClient = CreateClient("""
-            [
-              {
-                "tag_name": "v0.0.1",
-                "html_url": "https://example.test/old",
-                "draft": false,
-                "prerelease": false
-              }
-            ]
+            { "schemaVersion": 1, "version": "0.5.8", "prerelease": false }
             """);
-        var service = new UpdateCheckService(httpClient);
+        var service = new UpdateCheckService(httpClient, currentVersion: "0.5.9");
 
         var update = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
@@ -92,12 +64,17 @@ public sealed class UpdateCheckServiceTests
 
     private sealed class StubHandler(string response) : HttpMessageHandler
     {
+        public Uri? RequestUri { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            CancellationToken cancellationToken)
+        {
+            RequestUri = request.RequestUri;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(response, Encoding.UTF8, "application/json"),
             });
+        }
     }
 }

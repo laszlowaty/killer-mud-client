@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text.Json.Serialization;
 using MudClient.App.Models;
 
 namespace MudClient.App.Services;
@@ -10,47 +9,54 @@ public interface IUpdateCheckService
     Task<AvailableUpdate?> CheckForUpdateAsync(CancellationToken cancellationToken = default);
 }
 
-internal sealed class UpdateCheckService(HttpClient? httpClient = null) : IUpdateCheckService
+internal sealed class UpdateCheckService : IUpdateCheckService
 {
     private static readonly HttpClient SharedHttpClient = CreateHttpClient();
-    private static readonly Uri ReleasesApiUri = new(
-        "https://api.github.com/repos/laszlowaty/killer-mud-client/releases?per_page=20");
+    internal static readonly Uri DefaultVersionManifestUri = new(
+        "https://laszlowaty.github.io/killer-mud-client/app-version.json");
+    private static readonly Uri ReleasesUri = new(
+        "https://github.com/laszlowaty/killer-mud-client/releases/");
     private static readonly Uri ChangelogUri = new(
         "https://laszlowaty.github.io/killer-mud-client/changelog.html");
 
-    private readonly HttpClient _httpClient = httpClient ?? SharedHttpClient;
+    private readonly HttpClient _httpClient;
+    private readonly Uri _versionManifestUri;
+    private readonly ReleaseVersion? _currentVersion;
+
+    public UpdateCheckService(
+        HttpClient? httpClient = null,
+        Uri? versionManifestUri = null,
+        string? currentVersion = null)
+    {
+        _httpClient = httpClient ?? SharedHttpClient;
+        _versionManifestUri = versionManifestUri ?? DefaultVersionManifestUri;
+        _currentVersion = ReleaseVersion.Parse(currentVersion ?? GetCurrentVersion());
+    }
 
     public async Task<AvailableUpdate?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
 
-        var releases = await _httpClient.GetFromJsonAsync<GitHubRelease[]>(
-            ReleasesApiUri,
+        var manifest = await _httpClient.GetFromJsonAsync<AppVersionManifest>(
+            _versionManifestUri,
             timeoutCts.Token);
 
-        var currentVersion = ReleaseVersion.Parse(GetCurrentVersion());
-        if (currentVersion is null || releases is null)
+        if (manifest is null || manifest.SchemaVersion != 1 || _currentVersion is null)
         {
             return null;
         }
 
-        var newest = releases
-            .Where(release => !release.Draft && release.HtmlUrl is not null)
-            .Select(release => (Release: release, Version: ReleaseVersion.Parse(release.TagName)))
-            .Where(candidate => candidate.Version is not null)
-            .OrderByDescending(candidate => candidate.Version)
-            .FirstOrDefault();
-
-        if (newest.Version is null || newest.Version.CompareTo(currentVersion) <= 0)
+        var availableVersion = ReleaseVersion.Parse(manifest.Version);
+        if (availableVersion is null || availableVersion.CompareTo(_currentVersion) <= 0)
         {
             return null;
         }
 
         return new AvailableUpdate(
-            newest.Version.Display,
-            newest.Release.Prerelease,
-            newest.Release.HtmlUrl!,
+            availableVersion.Display,
+            manifest.Prerelease,
+            new Uri(ReleasesUri, $"tag/v{availableVersion.Display}"),
             ChangelogUri);
     }
 
@@ -66,23 +72,15 @@ internal sealed class UpdateCheckService(HttpClient? httpClient = null) : IUpdat
     {
         var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("KillerMudClient-UpdateCheck");
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
     }
 
-    private sealed class GitHubRelease
+    private sealed class AppVersionManifest
     {
-        [JsonPropertyName("tag_name")]
-        public string TagName { get; init; } = string.Empty;
+        public int SchemaVersion { get; init; }
 
-        [JsonPropertyName("html_url")]
-        public Uri? HtmlUrl { get; init; }
+        public string Version { get; init; } = string.Empty;
 
-        [JsonPropertyName("draft")]
-        public bool Draft { get; init; }
-
-        [JsonPropertyName("prerelease")]
         public bool Prerelease { get; init; }
     }
 

@@ -33,6 +33,7 @@ public sealed class ContentUpdateNotificationTests : IAsyncDisposable
 
         Assert.True(_viewModel.IsContentUpdateAvailable);
         Assert.Contains("Killeropedia", _viewModel.ContentUpdateDescription);
+        Assert.Contains("2026.07.18.1", _viewModel.ContentUpdateDescription);
         Assert.Contains("2 MB", _viewModel.ContentUpdateDescription);
         Assert.True(_viewModel.InstallContentUpdateCommand.CanExecute(null));
     }

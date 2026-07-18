@@ -71,6 +71,56 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
         Assert.Contains("Lista zmian", visibleButtons);
     }
 
+    [AvaloniaFact]
+    public async Task AvailableContentUpdates_ShowVersionsAndUpdateAction()
+    {
+        var contentUpdate = new ContentUpdateAvailability(
+            "2026.07.18.2",
+            [
+                new ContentComponentUpdate(
+                    "map",
+                    "2026.07.18.1",
+                    new Uri("https://example.test/map.zip"),
+                    1024,
+                    new string('a', 64)),
+                new ContentComponentUpdate(
+                    "killeropedia",
+                    "2026.07.18.2",
+                    new Uri("https://example.test/killeropedia.zip"),
+                    2048,
+                    new string('b', 64)),
+            ]);
+        _viewModel = new MainWindowViewModel(
+            settingsService: new AppSettingsService(_tempDirectory),
+            updateCheckService: new NoApplicationUpdateService(),
+            contentUpdateService: new StubContentUpdateService(contentUpdate));
+        _window = new MainWindow { DataContext = _viewModel };
+        _window.Show();
+
+        _viewModel.StartUpdateCheck();
+        Assert.NotNull(_viewModel.ActiveContentUpdateCheck);
+        await _viewModel.ActiveContentUpdateCheck;
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        _window.UpdateLayout();
+
+        var visibleTexts = _window.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Where(text => text.IsEffectivelyVisible)
+            .Select(text => text.Text)
+            .ToList();
+        var visibleButtons = _window.GetVisualDescendants()
+            .OfType<Button>()
+            .Where(button => button.IsEffectivelyVisible)
+            .Select(button => button.Content?.ToString())
+            .ToList();
+
+        Assert.Contains(
+            "Dostępna aktualizacja danych: mapa 2026.07.18.1 i Killeropedia 2026.07.18.2 · 3 KB",
+            visibleTexts);
+        Assert.Contains("Aktualizuj", visibleButtons);
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_window is not null)
@@ -95,5 +145,26 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
     {
         public Task<AvailableUpdate?> CheckForUpdateAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<AvailableUpdate?>(update);
+    }
+
+    private sealed class NoApplicationUpdateService : IUpdateCheckService
+    {
+        public Task<AvailableUpdate?> CheckForUpdateAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<AvailableUpdate?>(null);
+    }
+
+    private sealed class StubContentUpdateService(ContentUpdateAvailability update) : IContentUpdateService
+    {
+        public Task<ContentUpdateAvailability?> CheckForUpdateAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<ContentUpdateAvailability?>(update);
+
+        public Task<ContentInstallResult> InstallAsync(
+            ContentUpdateAvailability selectedUpdate,
+            IProgress<ContentUpdateProgress>? progress = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ContentInstallResult(
+                selectedUpdate.Release,
+                selectedUpdate.Components.Select(component => component.Name).ToArray()));
     }
 }
