@@ -1001,6 +1001,29 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public string AutoAssistExcludedMobNamesText
+    {
+        get => string.Join(Environment.NewLine, _settings.AutoAssistExcludedMobNames);
+        set
+        {
+            var names = (value ?? string.Empty)
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (_settings.AutoAssistExcludedMobNames.SequenceEqual(names, StringComparer.Ordinal))
+            {
+                return;
+            }
+
+            _settings.AutoAssistExcludedMobNames = names;
+            OnPropertyChanged();
+            SaveSettings();
+            TryAutoAssist();
+        }
+    }
+
     public bool GroupOrdersEnabled
     {
         get => _settings.GroupOrdersEnabled;
@@ -4261,7 +4284,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 _latestCharacterName,
                 string.Equals(_latestCharacterPosition, "fighting", StringComparison.OrdinalIgnoreCase),
                 _latestGroupUpdate,
-                _latestRoomPeople))
+                _latestRoomPeople,
+                _settings.AutoAssistExcludedMobNames))
         {
             QueueTriggeredCommands(["as"]);
         }

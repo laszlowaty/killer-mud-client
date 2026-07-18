@@ -53,6 +53,9 @@ public sealed class AppSettings
     /// <summary>Automatically sends "as" when a group member fights in the current room.</summary>
     public bool AutoAssistEnabled { get; set; }
 
+    /// <summary>Exact GMCP enemy names for which autoassist must not send "as".</summary>
+    public List<string> AutoAssistExcludedMobNames { get; set; } = [];
+
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 

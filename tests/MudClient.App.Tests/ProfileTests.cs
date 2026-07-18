@@ -300,6 +300,18 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Vm_ChangingAutoAssistExclusions_PersistsNormalizedNames()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.AutoAssistExcludedMobNamesText = "  Wielki smok  \r\n\r\nOrk\r\nwielki SMOK";
+
+        Assert.Equal(["Wielki smok", "Ork"], settingsService.Load().AutoAssistExcludedMobNames);
+        Assert.Equal($"Wielki smok{Environment.NewLine}Ork", vm.AutoAssistExcludedMobNamesText);
+    }
+
+    [Fact]
     public async Task Vm_ChangingGroupMarkerDisplay_PersistsToSettings()
     {
         var settingsService = new AppSettingsService(_directory);

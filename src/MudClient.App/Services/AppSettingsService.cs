@@ -69,6 +69,12 @@ public sealed class AppSettingsService
                         settings.CommandStackingSeparator = settings.CommandStackingSeparator.Trim();
                     }
 
+                    settings.AutoAssistExcludedMobNames = settings.AutoAssistExcludedMobNames?
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Select(name => name.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList() ?? [];
+
                     return settings;
                 }
             }

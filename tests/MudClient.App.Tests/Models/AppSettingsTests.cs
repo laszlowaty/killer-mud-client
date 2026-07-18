@@ -57,6 +57,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_AutoAssistExclusionsAreEmptyByDefault()
+    {
+        Assert.Empty(new AppSettings().AutoAssistExcludedMobNames);
+    }
+
+    [Fact]
     public void Constructor_GroupOrdersAreDisabledByDefault()
     {
         Assert.False(new AppSettings().GroupOrdersEnabled);

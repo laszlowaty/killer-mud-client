@@ -114,6 +114,19 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
     }
 
+    [Fact]
+    public void Load_AutoAssistExclusions_TrimsAndRemovesEmptyDuplicates()
+    {
+        SaveRaw(new AppSettings
+        {
+            AutoAssistExcludedMobNames = ["  Wielki smok  ", "", "wielki SMOK", "Ork"],
+        });
+
+        var settings = _service.Load();
+
+        Assert.Equal(["Wielki smok", "Ork"], settings.AutoAssistExcludedMobNames);
+    }
+
     // ====================================================================
     // Save then Load round-trip
     // ====================================================================
@@ -133,6 +146,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             OutputWordWrap = false,
             ClearCommandInputAfterSend = true,
             AutoAssistEnabled = true,
+            AutoAssistExcludedMobNames = ["Wielki smok", "Ork"],
             GroupOrdersEnabled = true,
             ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
@@ -152,6 +166,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.False(loaded.OutputWordWrap);
         Assert.True(loaded.ClearCommandInputAfterSend);
         Assert.True(loaded.AutoAssistEnabled);
+        Assert.Equal(["Wielki smok", "Ork"], loaded.AutoAssistExcludedMobNames);
         Assert.True(loaded.GroupOrdersEnabled);
         Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);

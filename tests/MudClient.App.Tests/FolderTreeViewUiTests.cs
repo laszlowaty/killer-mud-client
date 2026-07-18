@@ -73,6 +73,9 @@ public sealed class FolderTreeViewUiTests
         var teamOptions = window.GetLogicalDescendants().OfType<CheckBox>().ToList();
         Assert.Contains(teamOptions, checkBox => Equals(checkBox.Content, "Autoassist — automatyczne wspieranie drużyny"));
         Assert.Contains(teamOptions, checkBox => Equals(checkBox.Content, "Ordery — wykonuj rozkazy członków drużyny"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<TextBox>(),
+            textBox => Equals(textBox.PlaceholderText, "Dokładna nazwa moba — po jednej w wierszu"));
 
         window.Close();
         await viewModel.DisposeAsync();
