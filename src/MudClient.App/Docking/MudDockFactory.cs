@@ -498,30 +498,39 @@ public sealed class MudDockFactory : Factory, IFactory
     }
 
     /// <summary>
-    /// Recovers a model-level pinned entry for which Dock failed to create a visible edge tab.
-    /// Such a tool is technically reachable through a root pinned collection, so the ordinary
-    /// <see cref="ReclaimLostTools"/> pass deliberately leaves it alone. Once the view confirms
-    /// that the tab did not render, close it through Dock's normal pipeline and expose it in the
-    /// "Panele" restore menu.
+    /// Re-pins model-level entries for which Dock failed to create visible edge tabs. Keeping
+    /// the original edge is important during startup: a slow first render must never turn valid
+    /// imported pins into closed panels and persist that destructive state on shutdown.
     /// </summary>
-    public void ReclaimUnrenderedPinnedTools(
+    public void RepairUnrenderedPinnedTools(
         IRootDock root, IReadOnlyCollection<PanelTool> renderedTools)
     {
         var rendered = renderedTools.ToHashSet();
-        var missing = AllTools
-            .Where(tool => IsPinned(root, tool) && !rendered.Contains(tool))
+        var pinnedByEdge = new[]
+        {
+            (Alignment.Left, root.LeftPinnedDockables),
+            (Alignment.Right, root.RightPinnedDockables),
+            (Alignment.Top, root.TopPinnedDockables),
+            (Alignment.Bottom, root.BottomPinnedDockables),
+        };
+        var missing = pinnedByEdge
+            .Where(entry => entry.Item2 is not null)
+            .SelectMany(entry => entry.Item2!
+                .SelectMany(DescendantTools)
+                .Select(tool => (Tool: tool, Edge: entry.Item1)))
+            .Where(entry => !rendered.Contains(entry.Tool))
+            .GroupBy(entry => entry.Tool)
+            .Select(group => group.First())
             .ToList();
 
-        foreach (var tool in missing)
+        foreach (var (tool, edge) in missing)
         {
-            CloseDockable(tool);
-            RemovePinnedEntries(tool);
-            if (!HiddenTools.Contains(tool))
-            {
-                HiddenTools.Add(tool);
-            }
+            PinToolToEdge(tool, edge);
         }
     }
+
+    public IReadOnlyCollection<PanelTool> GetPinnedTools(IRootDock root) =>
+        AllTools.Where(tool => IsPinned(root, tool)).ToArray();
 
     private static bool IsPinned(IRootDock root, PanelTool tool) =>
         new[]

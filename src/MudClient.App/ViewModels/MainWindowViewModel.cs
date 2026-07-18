@@ -388,11 +388,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public void ReclaimLostPanels() => _dockFactory.ReclaimLostTools(Layout);
 
     /// <summary>
-    /// Moves pinned tools whose edge tabs did not materialize in the live Dock visual tree to the
-    /// restore menu. The view calls this only after the replacement layout has had time to render.
+    /// Re-pins tools whose edge tabs did not materialize in the live Dock visual tree.
+    /// The view calls this only after the replacement layout has had time to render.
     /// </summary>
-    public void ReclaimUnrenderedPinnedPanels(IReadOnlyCollection<PanelTool> renderedPanels) =>
-        _dockFactory.ReclaimUnrenderedPinnedTools(Layout, renderedPanels);
+    public void RepairUnrenderedPinnedPanels(IReadOnlyCollection<PanelTool> renderedPanels) =>
+        _dockFactory.RepairUnrenderedPinnedTools(Layout, renderedPanels);
+
+    internal IReadOnlyCollection<PanelTool> PinnedPanels => _dockFactory.GetPinnedTools(Layout);
 
     /// <summary>Layout entries offered in the "Układ" menu: built-in DEFAULT first, then saved presets.</summary>
     public ObservableCollection<LayoutMenuItem> AvailableLayouts { get; } = new();

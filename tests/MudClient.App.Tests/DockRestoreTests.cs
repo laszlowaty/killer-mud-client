@@ -343,34 +343,29 @@ public sealed class DockRestoreTests
     }
 
     [Fact]
-    public void ReclaimUnrenderedPinnedTools_MovesGhostPinToHiddenTools()
+    public void RepairUnrenderedPinnedTools_RePinsGhostOnOriginalEdge()
     {
         var factory = CreateFactory(out var layout);
         var tool = GetTool(factory, "Gmcp");
         factory.PinToolToEdge(tool, Alignment.Top);
 
-        factory.ReclaimUnrenderedPinnedTools(layout, Array.Empty<PanelTool>());
+        factory.RepairUnrenderedPinnedTools(layout, Array.Empty<PanelTool>());
 
-        Assert.Contains(tool, factory.HiddenTools);
-        Assert.DoesNotContain(
-            layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
-            dockable => ReferenceEquals(dockable, tool));
-
-        factory.RestoreToTopEdge(tool);
         Assert.DoesNotContain(tool, factory.HiddenTools);
         Assert.Contains(
             layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => ReferenceEquals(dockable, tool));
+        Assert.Equal([tool], factory.GetPinnedTools(layout));
     }
 
     [Fact]
-    public void ReclaimUnrenderedPinnedTools_LeavesRenderedPinAlone()
+    public void RepairUnrenderedPinnedTools_LeavesRenderedPinAlone()
     {
         var factory = CreateFactory(out var layout);
         var tool = GetTool(factory, "Gmcp");
         factory.PinToolToEdge(tool, Alignment.Right);
 
-        factory.ReclaimUnrenderedPinnedTools(layout, new[] { tool });
+        factory.RepairUnrenderedPinnedTools(layout, new[] { tool });
 
         Assert.Empty(factory.HiddenTools);
         Assert.Contains(

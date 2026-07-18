@@ -165,28 +165,46 @@ public partial class MainWindow : Window
     {
         try
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            const int maximumAttempts = 12;
+            for (var attempt = 0; attempt < maximumAttempts; attempt++)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (_viewModel is null
-                    || _mainDock?.Layout != _viewModel.Layout
-                    || !IsVisible
-                    || WindowState == WindowState.Minimized
-                    || _mainDock.Bounds is not { Width: > 0, Height: > 0 })
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+                var completed = false;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (_viewModel is null
+                        || _mainDock?.Layout != _viewModel.Layout
+                        || !IsVisible
+                        || WindowState == WindowState.Minimized
+                        || _mainDock.Bounds is not { Width: > 0, Height: > 0 })
+                    {
+                        return;
+                    }
+
+                    var renderedPanels = RenderedPinnedPanels();
+                    var expectedPanels = _viewModel.PinnedPanels;
+                    if (expectedPanels.All(renderedPanels.Contains))
+                    {
+                        completed = true;
+                        return;
+                    }
+
+                    if (attempt == maximumAttempts - 1)
+                    {
+                        // Dock's model contains the pins but one or more presenters never
+                        // appeared. Normalize those pins on their original edges instead of
+                        // turning a slow startup/import into persisted closed panels.
+                        _viewModel.RepairUnrenderedPinnedPanels(renderedPanels);
+                        completed = true;
+                    }
+                });
+
+                if (completed)
                 {
                     return;
                 }
-
-                var renderedPanels = _mainDock.GetVisualDescendants()
-                    .OfType<Dock.Avalonia.Controls.ToolPinItemControl>()
-                    .Where(control => control.IsEffectivelyVisible
-                                      && control.Bounds is { Width: > 0, Height: > 0 })
-                    .Select(control => control.DataContext)
-                    .OfType<PanelTool>()
-                    .ToHashSet();
-                _viewModel.ReclaimUnrenderedPinnedPanels(renderedPanels);
-            });
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -198,6 +216,15 @@ public partial class MainWindow : Window
             _viewModel?.ReportStartupError(exception);
         }
     }
+
+    private HashSet<PanelTool> RenderedPinnedPanels() =>
+        _mainDock?.GetVisualDescendants()
+            .OfType<Dock.Avalonia.Controls.ToolPinItemControl>()
+            .Where(control => control.IsEffectivelyVisible
+                              && control.Bounds is { Width: > 0, Height: > 0 })
+            .Select(control => control.DataContext)
+            .OfType<PanelTool>()
+            .ToHashSet() ?? [];
 
     private async void DeleteProfile_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
