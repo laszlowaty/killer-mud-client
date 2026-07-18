@@ -124,10 +124,9 @@
       <span class="badge"><b>open source</b> · MIT</span>
     </div>
     <div class="downloads">
-      <a class="btn btn-primary" id="btn-download" href="https://github.com/laszlowaty/killer-mud-client/releases/latest">⬇ Pobierz najnowszą wersję</a>
+      <a class="btn btn-primary" id="btn-download" href="https://github.com/laszlowaty/killer-mud-client/releases/tag/v0.5.9">⬇ Pobierz v0.5.9</a>
       <a class="btn btn-secondary" href="https://github.com/laszlowaty/killer-mud-client">GitHub</a>
       <a class="btn btn-secondary" href="changelog.html">Lista zmian</a>
-      <a class="btn btn-secondary" href="https://github.com/laszlowaty/killer-mud-client/releases">Wszystkie wydania (w tym beta)</a>
     </div>
     <p class="version-note" id="version-note"></p>
   </div>
@@ -174,18 +173,18 @@
     <div class="platforms">
       <div class="platform">
         <h3>🪟 Windows</h3>
-        <div id="dl-win-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">win-x64 (zip)</a></div>
+        <div id="dl-win-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/download/v0.5.9/KillerMudClient-0.5.9-win-x64.zip">KillerMudClient-0.5.9-win-x64.zip</a></div>
         <p class="hint">Rozpakuj i uruchom <code>KillerMudClient-*.exe</code>. Jedna binarka, bez instalacji.</p>
       </div>
       <div class="platform">
         <h3>🐧 Linux</h3>
-        <div id="dl-linux-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">linux-x64 (tar.gz)</a></div>
+        <div id="dl-linux-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/download/v0.5.9/KillerMudClient-0.5.9-linux-x64.tar.gz">KillerMudClient-0.5.9-linux-x64.tar.gz</a></div>
         <p class="hint">Rozpakuj, nadaj prawa: <code>chmod +x KillerMudClient-*</code></p>
       </div>
       <div class="platform">
         <h3>🍎 macOS</h3>
-        <div id="dl-osx-arm64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">osx-arm64 (Apple Silicon)</a></div>
-        <div id="dl-osx-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/latest">osx-x64 (Intel)</a></div>
+        <div id="dl-osx-arm64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/download/v0.5.9/KillerMudClient-0.5.9-osx-arm64.tar.gz">KillerMudClient-0.5.9-osx-arm64.tar.gz</a></div>
+        <div id="dl-osx-x64"><a href="https://github.com/laszlowaty/killer-mud-client/releases/download/v0.5.9/KillerMudClient-0.5.9-osx-x64.tar.gz">KillerMudClient-0.5.9-osx-x64.tar.gz</a></div>
         <p class="hint">Binarka nie jest podpisana — po rozpakowaniu:</p>
         <pre>chmod +x KillerMudClient-*
 xattr -dr com.apple.quarantine .</pre>
@@ -202,43 +201,44 @@ xattr -dr com.apple.quarantine .</pre>
 </footer>
 
 <script>
-  // Pokazuje wersję z lokalnego changeloga nawet po wyczerpaniu limitu API GitHuba.
+  // Publiczny manifest opisuje wyłącznie aplikację. Wydania mapy i Killeropedii
+  // mają osobne tagi content-* i nie mogą wpływać na wersję pokazywaną na stronie.
   (async () => {
     const versionNote = document.getElementById('version-note');
     const downloadButton = document.getElementById('btn-download');
-    const showVersion = (tag, date) => {
-      versionNote.textContent = 'Najnowsza wersja: ' + tag + (date ? ' (' + date + ')' : '');
+    const repository = 'https://github.com/laszlowaty/killer-mud-client';
+    const downloads = {
+      'win-x64': 'zip',
+      'linux-x64': 'tar.gz',
+      'osx-arm64': 'tar.gz',
+      'osx-x64': 'tar.gz',
+    };
+    const showVersion = version => {
+      const tag = 'v' + version;
+      const releaseUrl = repository + '/releases/tag/' + tag;
+      versionNote.textContent = 'Najnowsza wersja aplikacji: ' + tag;
       downloadButton.textContent = '⬇ Pobierz ' + tag;
+      downloadButton.href = releaseUrl;
+
+      for (const [rid, extension] of Object.entries(downloads)) {
+        const asset = 'KillerMudClient-' + version + '-' + rid + '.' + extension;
+        const url = repository + '/releases/download/' + tag + '/' + asset;
+        const element = document.getElementById('dl-' + rid);
+        element.innerHTML = '<a href="' + url + '">' + asset + '</a>';
+      }
     };
 
     try {
-      const changelogResponse = await fetch('changelog.html');
-      if (changelogResponse.ok) {
-        const changelog = new DOMParser().parseFromString(await changelogResponse.text(), 'text/html');
-        const latestRelease = changelog.querySelector('.release');
-        const tag = latestRelease?.querySelector('h2 a')?.textContent.trim();
-        const date = latestRelease?.querySelector('.date')?.textContent.trim();
-        if (tag) showVersion(tag, date);
+      const response = await fetch('app-version.json');
+      if (!response.ok) return;
+      const manifest = await response.json();
+      if (manifest.schemaVersion === 1
+          && typeof manifest.version === 'string'
+          && /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(manifest.version)) {
+        showVersion(manifest.version);
       }
     } catch {
-      // Lokalny fallback jest opcjonalny; API poniżej nadal może uzupełnić stronę.
-    }
-
-    // API podmienia ogólne linki na bezpośrednie odnośniki do paczek.
-    try {
-      const res = await fetch('https://api.github.com/repos/laszlowaty/killer-mud-client/releases/latest');
-      if (!res.ok) return;
-      const rel = await res.json();
-      showVersion(rel.tag_name, new Date(rel.published_at).toLocaleDateString('pl-PL'));
-      for (const rid of ['win-x64', 'linux-x64', 'osx-arm64', 'osx-x64']) {
-        const asset = rel.assets.find(a => a.name.includes(rid));
-        if (asset) {
-          const el = document.getElementById('dl-' + rid);
-          el.innerHTML = '<a href="' + asset.browser_download_url + '">' + asset.name + '</a>';
-        }
-      }
-    } catch {
-      // Wersja z changeloga i statyczne linki pozostają użytecznym fallbackiem.
+      // Statyczne linki do listy wydań pozostają użytecznym fallbackiem.
     }
   })();
 </script>

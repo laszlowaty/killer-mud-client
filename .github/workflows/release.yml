@@ -244,10 +244,10 @@ jobs:
           <main class="wrap">
           HTML
 
-          # Iteruj po tagach (najnowsze pierwsze), max 30 — lokalnie, więc bez opóźnień API
-          # i z nowo utworzonym tagiem od razu widocznym.
+          # Tylko wydania aplikacji (v*). Tagi content-* mapy i Killeropedii
+          # są publikowane osobno i nie należą do listy zmian aplikacji.
           git for-each-ref --sort=-creatordate \
-            --format='%(refname:short)|%(creatordate:short)' refs/tags | head -30 > tags.txt
+            --format='%(refname:short)|%(creatordate:short)' 'refs/tags/v*' | head -30 > tags.txt
           mapfile -t TAGS  < <(cut -d'|' -f1 tags.txt)
           mapfile -t DATES < <(cut -d'|' -f2 tags.txt)
 
@@ -259,7 +259,7 @@ jobs:
 
             # Subjecty commitów w zakresie: bez merge'y i bez commitów naszej automatyki.
             git log --no-merges --pretty=format:'%s' "$RANGE" 2>/dev/null \
-              | grep -vE '^(chore: bump version|docs: aktualizacja listy zmian)' > all.txt || true
+              | grep -vE '^(chore: bump version|docs: aktualizacja listy zmian|Dane: (map|killeropedia) )' > all.txt || true
 
             # Grupowanie po prefiksie conventional-commits; prefiks jest ścinany.
             grep -iE '^feat(\(|!|:)' all.txt | sed -E 's/^feat(\([^)]*\))?!?:[[:space:]]*//I' > feat.txt  || true

@@ -14,3 +14,6 @@ Wersję komponentu należy zmienić przy każdym opublikowaniu nowych danych.
 Wersja samej aplikacji jest publikowana oddzielnie w `docs/app-version.json`.
 Workflow `Release` aktualizuje ten plik automatycznie; aplikacja nie korzysta
 przy tym z limitowanego GitHub Releases API.
+Strona główna GitHub Pages również korzysta wyłącznie z tego pliku. Wydania
+`content-map-*` i `content-killeropedia-*` nie są pokazywane jako wersje aplikacji
+ani uwzględniane w jej liście zmian.
