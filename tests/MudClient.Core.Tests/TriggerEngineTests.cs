@@ -296,4 +296,78 @@ public sealed class TriggerEngineTests
 
         Assert.Empty(result);
     }
+
+    // ====================================================================
+    // alias(regexAliasa) – triggers can invoke an alias
+    // ====================================================================
+
+    [Fact]
+    public void AliasCall_ExpandsThroughAliasEngine()
+    {
+        var aliases = new AliasEngine();
+        aliases.Add(new AliasRule("tell", "^t (.+) (.+)$", "tell $1 $2"));
+        var engine = new TriggerEngine { Aliases = aliases };
+        engine.Add(new TriggerRule("greet", "^witaj$", "alias(t bob hello)"));
+
+        var result = engine.Evaluate("witaj");
+
+        var command = Assert.Single(result);
+        Assert.Equal("tell bob hello", command);
+    }
+
+    [Fact]
+    public void AliasCall_MultiLineAliasExpansion_ProducesMultipleCommands()
+    {
+        var aliases = new AliasEngine();
+        aliases.Add(new AliasRule("mk", "^mk$", "kill orc\nkill goblin"));
+        var engine = new TriggerEngine { Aliases = aliases };
+        engine.Add(new TriggerRule("r", "trigger", "alias(mk)"));
+
+        var result = engine.Evaluate("trigger");
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("kill orc", result[0]);
+        Assert.Equal("kill goblin", result[1]);
+    }
+
+    [Fact]
+    public void AliasCall_NoAliasesConfigured_SendsLiterally()
+    {
+        var engine = new TriggerEngine();
+        engine.Add(new TriggerRule("r", "trigger", "alias(t bob hello)"));
+
+        var result = engine.Evaluate("trigger");
+
+        var command = Assert.Single(result);
+        Assert.Equal("alias(t bob hello)", command);
+    }
+
+    [Fact]
+    public void AliasCall_NoMatchingAlias_ReturnsInnerTextLiterally()
+    {
+        var aliases = new AliasEngine();
+        var engine = new TriggerEngine { Aliases = aliases };
+        engine.Add(new TriggerRule("r", "trigger", "alias(nothing matches this)"));
+
+        var result = engine.Evaluate("trigger");
+
+        var command = Assert.Single(result);
+        Assert.Equal("nothing matches this", command);
+    }
+
+    [Fact]
+    public void AliasCall_MixedWithRegularCommands_OnlyAliasCallExpands()
+    {
+        var aliases = new AliasEngine();
+        aliases.Add(new AliasRule("look", "^l$", "look"));
+        var engine = new TriggerEngine { Aliases = aliases };
+        engine.Add(new TriggerRule("r", "trigger", "say hi\nalias(l)\nsay bye"));
+
+        var result = engine.Evaluate("trigger");
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("say hi", result[0]);
+        Assert.Equal("look", result[1]);
+        Assert.Equal("say bye", result[2]);
+    }
 }

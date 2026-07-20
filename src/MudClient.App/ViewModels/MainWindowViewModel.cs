@@ -25,7 +25,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private readonly MudSession _session = new();
     private readonly AliasEngine _aliases = new();
-    private readonly TriggerEngine _triggers = new();
+    private readonly TriggerEngine _triggers;
     private readonly MudTimerService _timers = new();
     private BookCatalogStore _bookCatalogStore;
     private readonly bool _usesCustomBookCatalogStore;
@@ -217,6 +217,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         IExternalLinkService? externalLinkService = null,
         IContentUpdateService? contentUpdateService = null)
     {
+        _triggers = new TriggerEngine { Aliases = _aliases };
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
