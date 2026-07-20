@@ -93,6 +93,16 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void BuildAutoAssistCommands_PrependsAssistAndUsesConfiguredCommandSplitting()
+    {
+        var commands = MainWindowViewModel.BuildAutoAssistCommands(
+            "wesprzyj|czar 'ochrona'\r\nuciekaj",
+            "|");
+
+        Assert.Equal(["as", "wesprzyj", "czar 'ochrona'", "uciekaj"], commands);
+    }
+
+    [Fact]
     public void Constructor_PopulatesMockNotes()
     {
         Assert.NotEmpty(_vm.Notes);

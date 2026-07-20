@@ -1287,6 +1287,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public string AutoAssistFollowUpCommands
+    {
+        get => _settings.AutoAssistFollowUpCommands;
+        set
+        {
+            var commands = value ?? string.Empty;
+            if (string.Equals(_settings.AutoAssistFollowUpCommands, commands, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _settings.AutoAssistFollowUpCommands = commands;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool GroupOrdersEnabled
     {
         get => _settings.GroupOrdersEnabled;
@@ -4670,8 +4687,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 _latestRoomPeople,
                 _settings.AutoAssistExcludedMobNames))
         {
-            QueueTriggeredCommands(["as"]);
+            QueueTriggeredCommands(BuildAutoAssistCommands(
+                _settings.AutoAssistFollowUpCommands,
+                CommandStackingSeparator));
         }
+    }
+
+    internal static IReadOnlyList<string> BuildAutoAssistCommands(
+        string? followUpCommands,
+        string? separator)
+    {
+        var commands = new List<string> { "as" };
+        commands.AddRange(CommandStacker.Split(followUpCommands, separator));
+        return commands;
     }
 
     private void QueueTriggeredCommands(IReadOnlyList<string> commands)

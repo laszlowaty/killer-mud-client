@@ -343,6 +343,15 @@
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                            Text="Gdy GMCP wykryje, że inny członek drużyny walczy w tym samym pokoju, klient wyśle „as”. Jeśli przestaniesz walczyć, a członek drużyny nadal walczy, komenda zostanie ponowiona." />
                 <TextBlock Margin="0,6,0,0"
+                           Text="Komendy po asyście" />
+                <TextBox MinHeight="64"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         PlaceholderText="Np. wesprzyj;czar 'ochrona'"
+                         Text="{Binding AutoAssistFollowUpCommands, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wysyłane po komendzie „as”. Możesz wpisać wiele wierszy lub rozdzielić komendy separatorem ustawionym w opcjach klienta." />
+                <TextBlock Margin="0,6,0,0"
                            Text="Moby wykluczone z autoassista" />
                 <TextBox MinHeight="64"
                          AcceptsReturn="True"

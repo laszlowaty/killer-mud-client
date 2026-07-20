@@ -318,6 +318,17 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Vm_ChangingAutoAssistFollowUpCommands_PersistsMultilineText()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.AutoAssistFollowUpCommands = "wesprzyj\r\nczar 'ochrona'";
+
+        Assert.Equal("wesprzyj\r\nczar 'ochrona'", settingsService.Load().AutoAssistFollowUpCommands);
+    }
+
+    [Fact]
     public async Task Vm_ChangingGroupMarkerDisplay_PersistsToSettings()
     {
         var settingsService = new AppSettingsService(_directory);

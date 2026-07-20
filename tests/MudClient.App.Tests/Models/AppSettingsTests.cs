@@ -63,6 +63,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_AutoAssistFollowUpCommandsAreEmptyByDefault()
+    {
+        Assert.Empty(new AppSettings().AutoAssistFollowUpCommands);
+    }
+
+    [Fact]
     public void Constructor_GroupOrdersAreDisabledByDefault()
     {
         Assert.False(new AppSettings().GroupOrdersEnabled);

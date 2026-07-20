@@ -74,6 +74,7 @@ public sealed class AppSettingsService
                         .Select(name => name.Trim())
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToList() ?? [];
+                    settings.AutoAssistFollowUpCommands ??= string.Empty;
 
                     return settings;
                 }

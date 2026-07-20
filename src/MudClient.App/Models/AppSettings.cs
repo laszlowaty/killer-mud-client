@@ -56,6 +56,9 @@ public sealed class AppSettings
     /// <summary>Exact GMCP enemy names for which autoassist must not send "as".</summary>
     public List<string> AutoAssistExcludedMobNames { get; set; } = [];
 
+    /// <summary>Commands sent immediately after an automatic "as" command.</summary>
+    public string AutoAssistFollowUpCommands { get; set; } = string.Empty;
+
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 
