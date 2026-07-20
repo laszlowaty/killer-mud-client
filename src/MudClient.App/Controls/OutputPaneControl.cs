@@ -141,7 +141,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     {
         if (PinToBottom)
         {
-            _offset = new Vector(_offset.X, MaxOffsetY());
+            PinOffsetToBottom();
         }
         else
         {
@@ -428,7 +428,7 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
 
             if (PinToBottom)
             {
-                _offset = new Vector(_offset.X, MaxOffsetY());
+                PinOffsetToBottom();
             }
 
             _scrollInvalidated?.Invoke(this, EventArgs.Empty);
@@ -701,6 +701,37 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     }
 
     private double MaxOffsetY() => Math.Max(0, Extent.Height - _viewport.Height);
+
+    private void PinOffsetToBottom()
+    {
+        var buffer = _buffer;
+        if (buffer is not null)
+        {
+            EnsureHeightIndex(buffer);
+            MeasureVisibleTail(buffer);
+        }
+
+        _offset = new Vector(_offset.X, MaxOffsetY());
+    }
+
+    /// <summary>
+    /// Height estimates keep scrollback updates cheap, but wrapping can make the real tail
+    /// taller than its estimate (for example for wide glyphs or word-boundary wrapping).
+    /// Measure only enough lines to fill the viewport before calculating the bottom offset,
+    /// otherwise the final rows can remain just below the visible area until another update.
+    /// </summary>
+    private void MeasureVisibleTail(OutputBuffer buffer)
+    {
+        var measuredHeight = 0d;
+        for (var index = buffer.Count - 1;
+             index >= 0 && measuredHeight <= _viewport.Height;
+             index--)
+        {
+            var layout = GetLayout(buffer[index]);
+            SetIndexedHeight(buffer.FirstGlobalIndex + index, layout.Height);
+            measuredHeight += layout.Height;
+        }
+    }
 
     private double GetContentHeight(OutputBuffer buffer)
     {

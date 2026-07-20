@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media.Imaging;
 using MudClient.App.Controls;
 using Xunit;
 
@@ -53,6 +54,23 @@ public sealed class OutputPanePerformanceTests
         emptyLinesPane.Arrange(new Rect(0, 0, 160, 240));
 
         Assert.Equal(emptyLinesPane.Extent.Height, longLinesPane.Extent.Height);
+    }
+
+    [AvaloniaFact]
+    public void WrappedWideText_RemainsPinnedToActualBottom()
+    {
+        var buffer = new OutputBuffer(100);
+        buffer.Append(new string('W', 200), default);
+        buffer.CompleteLine();
+
+        var pane = new OutputPaneControl { Buffer = buffer, WordWrap = true };
+        pane.Arrange(new Rect(0, 0, 120, 80));
+
+        var bitmap = new RenderTargetBitmap(new PixelSize(120, 80));
+        bitmap.Render(pane);
+
+        var expectedBottom = Math.Max(0, pane.Extent.Height - pane.Viewport.Height);
+        Assert.Equal(expectedBottom, pane.Offset.Y, precision: 5);
     }
 
     [AvaloniaFact]
