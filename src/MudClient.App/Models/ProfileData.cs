@@ -17,6 +17,12 @@ public sealed class ProfileData
     /// <summary>Server port used by this account.</summary>
     public int Port { get; set; } = 4004;
 
+    /// <summary>
+    /// Text encoding used to talk to this account's server (see <see cref="Core.Networking.MudTextEncodings"/>).
+    /// Defaults to auto-detection; empty/legacy files also fall back to auto-detect.
+    /// </summary>
+    public string Encoding { get; set; } = Core.Networking.MudTextEncodings.Auto;
+
     /// <summary>Account password encrypted with DPAPI (base64); empty = no password stored.</summary>
     public string EncryptedPassword { get; set; } = string.Empty;
 

@@ -91,6 +91,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private string _host = "killer-mud.pl";
     private int _port = 4004;
+    private string _encoding = MudTextEncodings.Auto;
     private string _commandText = string.Empty;
     private string _statusText = "Rozłączono";
     private string? _lastReportedMapEditorStatus;
@@ -196,6 +197,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newProfileLogin = string.Empty;
     private string _newProfileHost = "killer-mud.pl";
     private int _newProfilePort = 4004;
+    private string _newProfileEncoding = MudTextEncodings.Auto;
     private string _newProfilePassword = string.Empty;
     private string _selectedProfilePassword = string.Empty;
 
@@ -880,6 +882,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
         }
     }
+
+    /// <summary>Text encoding used for the selected account's connection (see <see cref="MudTextEncodings"/>).</summary>
+    public string Encoding
+    {
+        get => _encoding;
+        set => SetProperty(ref _encoding, value);
+    }
+
+    /// <summary>Encodings offered in the account encoding picker.</summary>
+    public IReadOnlyList<string> AvailableEncodings => MudTextEncodings.All;
 
     public string CommandText
     {
@@ -3500,6 +3512,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => SetProperty(ref _newProfilePort, value);
     }
 
+    public string NewProfileEncoding
+    {
+        get => _newProfileEncoding;
+        set => SetProperty(ref _newProfileEncoding, value);
+    }
+
     private void LoadSelectedProfileEndpoint(string? name)
     {
         if (string.IsNullOrWhiteSpace(name) || _profiles.Load(name) is not { } profile)
@@ -3507,12 +3525,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             SelectedProfileLogin = string.Empty;
             Host = "killer-mud.pl";
             Port = 4004;
+            Encoding = MudTextEncodings.Auto;
             return;
         }
 
         SelectedProfileLogin = ResolveProfileLogin(profile);
         Host = ResolveProfileHost(profile);
         Port = ResolveProfilePort(profile);
+        Encoding = ResolveProfileEncoding(profile);
     }
 
     private void SelectProfile()
@@ -3529,6 +3549,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             : SelectedProfileLogin.Trim();
         profile.Host = Host.Trim();
         profile.Port = Port;
+        profile.Encoding = Encoding;
 
         // A password typed in the picker replaces the stored one.
         var typedPassword = SelectedProfilePassword;
@@ -3564,6 +3585,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Login = string.IsNullOrWhiteSpace(NewProfileLogin) ? name : NewProfileLogin.Trim(),
             Host = NewProfileHost.Trim(),
             Port = NewProfilePort,
+            Encoding = NewProfileEncoding,
             EncryptedPassword = PasswordProtector.Protect(NewProfilePassword),
             NeedsRegistration = true,
             Rules =
@@ -3701,6 +3723,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _activeProfileLogin = ResolveProfileLogin(profile);
         Host = ResolveProfileHost(profile);
         Port = ResolveProfilePort(profile);
+        Encoding = ResolveProfileEncoding(profile);
 
         ActiveProfileName = profile.Name;
         _suppressTreeRebuild = false;
@@ -3721,6 +3744,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private static int ResolveProfilePort(ProfileData profile) =>
         profile.Port is >= 1 and <= 65535 ? profile.Port : 4004;
+
+    private static string ResolveProfileEncoding(ProfileData profile) =>
+        MudTextEncodings.All.Contains(profile.Encoding) ? profile.Encoding : MudTextEncodings.Auto;
 
     /// <summary>Appends entries from the shared global store to the working collections.</summary>
     private void LoadGlobalEntries()
@@ -4612,6 +4638,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            _session.EncodingMode = Encoding;
             await _session.ConnectAsync(Host.Trim(), Port);
             IsConnected = true;
             await AutoLoginAsync();
@@ -4663,6 +4690,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _activeProfileNeedsRegistration = false;
             SaveActiveProfile();
             EmitSystem($"Utworzono i zalogowano nową postać {login}.", 36);
+            await SyncServerCodepageAsync();
             return;
         }
 
@@ -4670,6 +4698,32 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         await Task.Delay(500);
         await _session.SendCommandAsync(_activeProfilePassword);
         EmitSystem($"Zalogowano automatycznie jako {login}.", 36);
+        await SyncServerCodepageAsync();
+    }
+
+    /// <summary>
+    /// KillerMUD renders Polish diacritics per its own "config codepage" in-game setting
+    /// (iso/win/nopol), independent of anything the client guesses from received bytes.
+    /// When the account picks an explicit ISO-8859-2 or Windows-1250 encoding, tell the
+    /// server to match it so both sides actually agree instead of relying on detection.
+    /// Auto/UTF-8 send nothing — the server has no matching "utf8" mode to request.
+    /// </summary>
+    private async Task SyncServerCodepageAsync()
+    {
+        var codepageArg = Encoding switch
+        {
+            MudTextEncodings.Iso88592 => "iso",
+            MudTextEncodings.Windows1250 => "win",
+            _ => null,
+        };
+
+        if (codepageArg is null)
+        {
+            return;
+        }
+
+        await Task.Delay(300);
+        await _session.SendCommandAsync($"config codepage {codepageArg}");
     }
 
     private async Task DisconnectAsync()

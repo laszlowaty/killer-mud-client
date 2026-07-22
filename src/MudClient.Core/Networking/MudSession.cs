@@ -10,12 +10,16 @@ namespace MudClient.Core.Networking;
 
 public sealed class MudSession : IAsyncDisposable
 {
-    private static readonly Encoding MudEncoding = new UTF8Encoding(
-        encoderShouldEmitUTF8Identifier: false,
-        throwOnInvalidBytes: false);
-
     private readonly TelnetParser _parser = new();
-    private readonly Decoder _textDecoder = MudEncoding.GetDecoder();
+    private string _encodingMode = MudTextEncodings.Auto;
+    private Encoding _mudEncoding = MudTextEncodings.Resolve(MudTextEncodings.Utf8);
+    private Decoder _textDecoder = MudTextEncodings.Resolve(MudTextEncodings.Utf8).GetDecoder();
+
+    // In Auto mode we assume UTF-8 until the server's first non-ASCII bytes arrive, then
+    // check whether they're actually valid UTF-8 and fall back to legacy Windows-1250 if not.
+    // ASCII-only bytes never leave decoder state behind, so it's safe to keep detecting
+    // across chunks until a non-ASCII byte finally shows up.
+    private bool _autoDetecting = true;
     private readonly LineAccumulator _lineAccumulator = new();
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly HashSet<byte> _enabledLocalOptions = [];
@@ -58,6 +62,24 @@ public sealed class MudSession : IAsyncDisposable
 
     public bool IsConnected => _stream is not null;
 
+    /// <summary>
+    /// Encoding used to decode incoming bytes and encode outgoing commands: one of the
+    /// <see cref="MudTextEncodings"/> names. Defaults to <see cref="MudTextEncodings.Auto"/>,
+    /// which assumes UTF-8 until the server's first non-ASCII bytes prove otherwise, then
+    /// locks onto Windows-1250 — set an explicit encoding to skip detection entirely.
+    /// </summary>
+    public string EncodingMode
+    {
+        get => _encodingMode;
+        set
+        {
+            _encodingMode = value;
+            _autoDetecting = value == MudTextEncodings.Auto;
+            _mudEncoding = MudTextEncodings.Resolve(_autoDetecting ? MudTextEncodings.Utf8 : value);
+            _textDecoder = _mudEncoding.GetDecoder();
+        }
+    }
+
     public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
@@ -84,7 +106,18 @@ public sealed class MudSession : IAsyncDisposable
             _gmcpHandshakeSent = false;
             _enabledLocalOptions.Clear();
             _enabledRemoteOptions.Clear();
-            _textDecoder.Reset();
+
+            if (_encodingMode == MudTextEncodings.Auto)
+            {
+                // Redo detection from scratch on every new connection.
+                _mudEncoding = MudTextEncodings.Resolve(MudTextEncodings.Utf8);
+                _textDecoder = _mudEncoding.GetDecoder();
+                _autoDetecting = true;
+            }
+            else
+            {
+                _textDecoder.Reset();
+            }
 
             StatusChanged?.Invoke($"Połączono z {host}:{port}");
 
@@ -140,7 +173,7 @@ public sealed class MudSession : IAsyncDisposable
 
     public async Task SendCommandAsync(string command, CancellationToken cancellationToken = default)
     {
-        var bytes = MudEncoding.GetBytes(command + "\r\n");
+        var bytes = _mudEncoding.GetBytes(command + "\r\n");
         await SendRawAsync(TelnetWriter.EscapeData(bytes), cancellationToken).ConfigureAwait(false);
         CommandSent?.Invoke(command);
     }
@@ -294,7 +327,12 @@ public sealed class MudSession : IAsyncDisposable
 
     private void HandleTextData(byte[] data)
     {
-        var chars = ArrayPool<char>.Shared.Rent(MudEncoding.GetMaxCharCount(data.Length + 4));
+        if (_autoDetecting)
+        {
+            DetectEncodingIfNeeded(data);
+        }
+
+        var chars = ArrayPool<char>.Shared.Rent(_mudEncoding.GetMaxCharCount(data.Length + 4));
 
         try
         {
@@ -322,6 +360,42 @@ public sealed class MudSession : IAsyncDisposable
         finally
         {
             ArrayPool<char>.Shared.Return(chars);
+        }
+    }
+
+    /// <summary>
+    /// ASCII gives no signal about the server's real encoding, so detection waits for the
+    /// first non-ASCII byte before deciding. Once decided, <see cref="_autoDetecting"/> is
+    /// cleared and this never runs again for the connection.
+    /// </summary>
+    private void DetectEncodingIfNeeded(byte[] data)
+    {
+        var hasNonAscii = false;
+        foreach (var b in data)
+        {
+            if (b >= 0x80)
+            {
+                hasNonAscii = true;
+                break;
+            }
+        }
+
+        if (!hasNonAscii)
+        {
+            return;
+        }
+
+        _autoDetecting = false;
+
+        if (!MudTextEncodings.LooksLikeUtf8(data))
+        {
+            _mudEncoding = MudTextEncodings.Resolve(MudTextEncodings.AutoFallback);
+            _textDecoder = _mudEncoding.GetDecoder();
+            StatusChanged?.Invoke($"Wykryto kodowanie serwera: {MudTextEncodings.AutoFallback}");
+        }
+        else
+        {
+            StatusChanged?.Invoke($"Wykryto kodowanie serwera: {MudTextEncodings.Utf8}");
         }
     }
 
