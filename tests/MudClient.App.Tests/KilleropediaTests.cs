@@ -257,30 +257,29 @@ public sealed class KilleropediaTests : IDisposable
     {
         var catalog = CreateLoreCatalog();
 
-        Assert.Equal(51, catalog.Entries.Count);
+        Assert.Equal(179, catalog.Entries.Count);
         var arras = Assert.Single(catalog.Entries, entry => entry.Id == "place:arras");
         Assert.Equal("Arras", arras.Name);
-        Assert.Contains(arras.Sections, section => section.Title == "Władze i instytucje");
-        Assert.Contains(arras.Links, link => link.TargetId == "place:carrallak");
-        Assert.Contains(arras.Links, link => link.TargetId == "character:khabar-of-podgorze");
+        Assert.Contains(arras.Sections, section => section.Title == "Władza i porządek");
+        Assert.Contains(arras.Links, link => link.TargetId == "character:khabar");
         Assert.Contains(arras.Sources, source => source.DisplayText.Contains("arras.are", StringComparison.Ordinal));
 
         var easterial = Assert.Single(catalog.Entries, entry => entry.Id == "place:easterial");
-        Assert.Contains(easterial.Links, link => link.TargetId == "place:dinneshere-lake");
-
-        var gulfMountains = Assert.Single(catalog.Entries, entry => entry.Id == "place:gulf-mountains");
-        Assert.Contains(gulfMountains.Links, link => link.TargetId == "place:fish-scale-village");
-        Assert.Contains(gulfMountains.Facts, fact => fact.Label == "Szczyt pasma");
+        Assert.Contains(easterial.Links, link => link.TargetId == "place:dinneshere");
+        Assert.Contains(easterial.Links, link => link.TargetId == "character:eltar-odwazny");
         var easterialCharacter = Assert.Single(easterial.Facts, fact => fact.Label == "Charakter osady");
         Assert.DoesNotContain("settlement", easterialCharacter.Label, StringComparison.OrdinalIgnoreCase);
+        var silea = Assert.Single(catalog.Entries, entry => entry.Id == "place:silea");
+        Assert.Contains(silea.Links, link => link.TargetId == "deity:silea");
+        Assert.Contains(silea.Links, link => link.TargetId == "character:morhin-atyer");
+        Assert.Contains(silea.Sections, section => section.Title == "Miasto i port");
         Assert.DoesNotContain(
             catalog.Entries.SelectMany(entry => entry.Facts).Select(fact => fact.Label),
             label => label.Contains('_'));
         Assert.DoesNotContain(
             catalog.Entries.SelectMany(entry => entry.Links).Select(link => link.RelationText),
             label => label.Contains('_'));
-        Assert.Single(catalog.Entries, entry => entry.Id == "place:island-of-the-mad");
-        Assert.Single(catalog.Entries, entry => entry.Id == "place:grazl-stronghold");
+        Assert.Single(catalog.Entries, entry => entry.Id == "place:karakris");
     }
 
     [Fact]
@@ -288,18 +287,18 @@ public sealed class KilleropediaTests : IDisposable
     {
         var viewModel = CreateViewModel();
 
-        viewModel.LoreSearchText = "zalozyciela arras";
-        Assert.Contains(viewModel.FilteredLoreEntries, entry => entry.Id == "character:innsoniel");
+        viewModel.LoreSearchText = "eltar odwazny";
+        Assert.Contains(viewModel.FilteredLoreEntries, entry => entry.Id == "character:eltar-odwazny");
 
         viewModel.LoreSearchText = string.Empty;
         viewModel.SelectedLoreCategory = "Miejsca";
-        var arras = Assert.Single(viewModel.FilteredLoreEntries, entry => entry.Id == "place:arras");
-        var khabarLink = Assert.Single(arras.Links, link => link.TargetId == "character:khabar-of-podgorze");
+        var easterial = Assert.Single(viewModel.FilteredLoreEntries, entry => entry.Id == "place:easterial");
+        var eltarLink = Assert.Single(easterial.Links, link => link.TargetId == "character:eltar-odwazny");
 
-        viewModel.NavigateLoreCommand.Execute(khabarLink);
+        viewModel.NavigateLoreCommand.Execute(eltarLink);
 
         Assert.Equal("Wszystkie", viewModel.SelectedLoreCategory);
-        Assert.Equal("character:khabar-of-podgorze", viewModel.SelectedLoreEntry?.Id);
+        Assert.Equal("character:eltar-odwazny", viewModel.SelectedLoreEntry?.Id);
     }
 
     [AvaloniaFact]
@@ -337,7 +336,7 @@ public sealed class KilleropediaTests : IDisposable
 
         var catalog = LoreCatalogLoader.Load(_directory);
 
-        Assert.Equal(51, catalog.Entries.Count);
+        Assert.Equal(179, catalog.Entries.Count);
         Assert.Equal("katalog wbudowany", catalog.SourceText);
         Assert.Contains("Nie udało się wczytać", catalog.Warning);
     }

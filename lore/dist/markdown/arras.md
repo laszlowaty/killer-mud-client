@@ -2,7 +2,7 @@
 
 # Arras
 
-Złote, wielorasowe miasto handlowe nad Sejną, siedziba mera i ważny ośrodek magii.
+Arras to wielkie miasto handlowe zbudowane na zboczach góry Erthy, otwarte na wszystkie rasy, rządzone przez mera Khabara i strzeżone przez Straż Miejską — pod jego jawnym porządkiem kryją się jednak ukryte struktury, takie jak Gildia Złodziei i niejawna arena walk.
 
 ## Metadane
 
@@ -10,46 +10,84 @@ Złote, wielorasowe miasto handlowe nad Sejną, siedziba mera i ważny ośrodek 
 - Encja: `place:arras`
 - Status: `reviewed`
 - Widoczność: `public`
-- Poziom spoilerów: `1`
+- Poziom spoilerów: `0`
 
-## Charakter miasta
+## Ogólny opis
 
-Arras jest wielkim miastem handlowym. Jego reprezentacyjnym centrum jest Złoty Plac, a miejski krajobraz łączy handel, rzemiosło, administrację, port i rozbudowaną szkołę magii.
+Arras to wielkie miasto handlowe leżące na zboczach góry Erthy. Choć większość jego mieszkańców to ludzie, na ulicach spotkać można przedstawicieli wszystkich ras i nacji. Sercem miasta jest Złoty Plac — wyłożony wytartym, lecz wciąż lśniącym złotym brukiem — otoczony straganami z bronią, zbrojami, ekwipunkiem podróżnym i jedzeniem. Miasto otaczają kamienne mury z bramami południową, zachodnią i wschodnią, a nad rzeką Sejną, przepływającą przez dzielnicę portową, wznosi się Brama Wodna.
 
-## Władze i instytucje
+## Geografia i zabudowa
 
-Merem Arras jest Khabar z Podgórza. Ratusz, notariusz, straż, bank i poczta tworzą widoczną administracyjną warstwę miasta, a Arrasyjska Szkoła Magii stanowi jego najważniejszą instytucję nauczania magii.
+Miasto leży na zboczach góry Erthy (Erethe), co upamiętnia herb Arras — dwa złote gryfy stojące na wzniesieniu symbolizującym górę. Nieopodal Parku Lanserila znajduje się starożytny Amfiteatr wykuty w żywej skale zbocza, którego budowniczych nikt dziś nie potrafi wskazać. Przez miasto płynie krystalicznie czysta rzeka Sejna, mająca źródła daleko na północy, wzdłuż której leżą molo, targ rybny i Brama Wodna.
 
-## Położenie
+## Władza i porządek
 
-Sejna przepływa przez zachodnią, portową część Arras. Na południe prowadzi trakt do Carrallak, a na zachód Krasnoludzki Trakt do Fortecy. Na północ od miasta widać górę Erethe.
+Miastem rządzi mer Khabar z Podgórza, były najemnik, na którego barkach spoczywają teraz sprawy całego Arras. Porządku w mieście strzeże Straż Miejska, dysponująca elitarnym Patrolem powoływanym do rozprawy z najgroźniejszymi przestępcami. Mimo to legalność niektórych miejsc w mieście — jak podziemnej areny walk — budzi poważne wątpliwości, co podważa obraz Arras jako w pełni praworządnego miasta.
 
-## Innsoniel
+## Wiara
 
-Posąg nad mostem utrwala legendę o Innsonielu, który miał zjednoczyć koczownicze grupy elfów i założyć Arras. Przekaz jest wyraźnie przedstawiony jako legenda.
+Władze Arras nigdy nie zdołały wybrać jednego bóstwa patronackiego, dlatego świeżo odremontowana Świątynia Wszystkich Bóstw czci wszystkich bogów naraz. Osobną rolę duchową w mieście odgrywa Zakon Rycerzy Pokoju, kierowany przez Wielkiego Klerystę Armade Śmiałego, o którym krążą pogłoski, że utrzymuje bezpośredni kontakt z bogami.
+
+## Gildie i cechy
+
+Poza Strażą Miejską w Arras działają: Gildia Złodziei, prowadzona z ukrytej siedziby przez tajemniczego, groźnego mistrza cechu; Cech Najemników, szkolący młodych adeptów; oraz niewielkie biuro Gildii Łowców Głów przy bibliotece nad Sejną. Informacji o siedzibach gildii i cechów udziela notariusz miejski urzędujący w ratuszu.
+
+## Legendy i pogłoski
+
+Na wieży ratusza w Arras straszy, jak głosi legenda, duch dzwonnika, który zginął w tym miejscu i wraca nawiedzać śmiertelników. Wątpliwości budzi też pochodzenie Amfiteatru w Parku Lanserila — jego kamienna nisza nie przypomina dzieła żadnej znanej rasy. Na niewielkim, starannie utrzymanym klombie zieleni stoi granitowy pomnik paladyna, w którym po dwóch charakterystycznych bliznach na czole rozpoznać można sir Kemana — jak głosi inskrypcja, jednego z największych bohaterów ery śmiertelników, którego bogatej historii nie zdołałoby spisać stu historyków. Jedynym słabo znanym okresem jego życia pozostaje dzieciństwo, wzmiankowane, jak mówi legenda, jedynie w jego własnym dzienniku.
 
 ## Powiązania
 
-- Khabar z Podgórza — `character:khabar-of-podgorze`
-- Innsoniel — `character:innsoniel`
-- Posąg Innsoniela — `artifact:innsoniel-statue`
-- Merostwo Arras — `organization:arras-government`
-- Arrasyjska Szkoła Magii — `organization:arras-magic-academy`
-- Sejna — `place:sejna-river`
-- Erethe — `place:erethe-mountain`
-- Trakt Arras–Carrallak — `place:arras-carrallak-road`
-- Krasnoludzki Trakt — `place:dwarven-road`
+- Złoty Plac — `place:arras-zloty-plac`
+- Ratusz Miasta Arras — `place:arras-ratusz`
+- Świątynia Wszystkich Bóstw — `place:arras-swiatynia-wszystkich-bostw`
+- Bank Miejski Arras — `place:arras-bank-miejski`
+- Siedziba Straży Miejskiej w Arras — `place:arras-siedziba-strazy-miejskiej`
+- Oberża "Szkarłatna Gwiazda" — `place:arras-szkarlatna-gwiazda`
+- Amfiteatr w Parku Lanserila — `place:arras-amfiteatr`
+- Rzeka Sejna — `place:arras-rzeka-sejna`
+- Siedziba Gildii Złodziei w Arras — `place:arras-siedziba-gildii-zlodziei`
+- Arena Walk w Arras — `place:arras-arena-walk`
+- Biuro Gildii Łowców Głów w Arras — `place:arras-biuro-gildii-lowcow-glow`
+- Straż Miejska Arras — `organization:arras-straz-miejska`
+- Patrol Elitarny Arras — `organization:arras-patrol-elitarny`
+- Gildia Złodziei w Arras — `organization:arras-gildia-zlodziei`
+- Cech Najemników w Arras — `organization:arras-cech-najemnikow`
+- Zakon Rycerzy Pokoju — `organization:arras-zakon-rycerzy-pokoju`
+- Gildia Łowców Głów w Arras — `organization:arras-gildia-lowcow-glow`
+- Khabar — `character:khabar`
+- Armade Śmiały — `character:armade-smialy`
+- Vyeht Drhejr — `character:vyeht-drhejr`
+- Kragur Rhewarkle — `character:kragur-rhewarkle`
+- Mistrz cechu złodziei — `character:mistrz-cechu-zlodziei`
+- Mistrz cechu najemników — `character:mistrz-cechu-najemnikow`
+- Duch dzwonnika z Arras — `character:duch-dzwonnika`
+- sir Keman — `character:sir-keman`
+- Herb miasta Arras — `artifact:arras-herb-miasta`
+- Pomnik sir Kemana — `place:arras-pomnik-sir-kemana`
+- Śmierć dzwonnika na wieży ratusza w Arras — `event:arras-smierc-dzwonnika`
+- Legenda o duchu dzwonnika z ratusza — `narrative:arras-legenda-ducha-dzwonnika`
+- Pogłoska o boskim wsparciu Armade Śmiałego — `narrative:arras-poglos-armade-bogowie`
+- Zagadka budowniczych amfiteatru pod Arras — `narrative:arras-tajemnica-amfiteatru`
+- Legenda o sir Kemanie z pomnika w Arras — `narrative:arras-legenda-sir-kemana`
+- constraint:arras:no-single-patron-deity — `constraint:arras:no-single-patron-deity`
+- constraint:arras:law-and-hidden-crime-tension — `constraint:arras:law-and-hidden-crime-tension`
+- Styl Arras — `style:arras`
 
 ## Odniesienia mapy
 
-- Region mapy: `1`
-- Pliki krain: `arras.are`, `arrascde.are`, `arrmage.are`
-- VNUM-y pomieszczeń: `6000`, `6031`, `6046`, `6054`, `6125`, `6188`
+- Region mapy: `101`
+- Pliki krain: `area/arras.are`, `area/arrascde.are`
+- VNUM-y pomieszczeń: `6000`
 
 ## Źródła
 
-- `area/arras.are` — ROOMS — vnum 6000 — Descr
-- `area/arras.are` — MOBILES — vnum 6031 — Short
-- `area/arrmage.are` — AREADATA — Name
-- `area/arras.are` — ROOMS — vnum 6188 — Extra
-- `area/arras.are` — OBJECTS — vnum 6108 — Itemdesc
+- `area/arras.are` — ROOMS — vnum 6000 — Extra — keyword `tablica`
+- `area/arras.are` — ROOMS — vnum 6053 — Descr
+- `area/arras.are` — ROOMS — vnum 6071 — Descr
+- `area/arras.are` — MOBILES — vnum 6031 — Descr
+- `area/arrascde.are` — ROOMS — vnum 2283 — Descr
+- `area/arras.are` — ROOMS — vnum 6046 — Descr
+- `area/arras.are` — MOBILES — vnum 6021 — Descr
+- `area/arras.are` — MOBILES — vnum 6162 — Descr
+- `area/arrascde.are` — OBJECTS — vnum 2311 — Itemdesc

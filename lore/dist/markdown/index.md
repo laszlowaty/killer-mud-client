@@ -6,21 +6,17 @@ Czytelny katalog artykułów generowany z kanonicznych rekordów JSONL.
 
 ## Miasta
 
-- [Arras](arras.md) — Złote, wielorasowe miasto handlowe nad Sejną, siedziba mera i ważny ośrodek magii.
-- [Carrallak](carrallak.md) — Tłoczne miasto handlu, nauki, wielu kultów i silnie obecnej straży miejskiej.
-- [Krasnoludzka Forteca](dwarven-fortress.md) — Dawna cytadela przekształcona w krasnoludzkie miasto kupieckie, którego tożsamość kształtują kamień, straż i kulty wojennych dobroczyńców.
+- [Arras](arras.md) — Arras to wielkie miasto handlowe zbudowane na zboczach góry Erthy, otwarte na wszystkie rasy, rządzone przez mera Khabara i strzeżone przez Straż Miejską — pod jego jawnym porządkiem kryją się jednak ukryte struktury, takie jak Gildia Złodziei i niejawna arena walk.
+- [Carrallak](carrallak.md) — Carrallak to duże, murowane miasto handlowe na szlaku ze Stepów i Szczelin do Arras — za jawnym porządkiem strzeżonym przez konstabla Gevaxa kryje się bazar pełen podróbek, jawne kasyno i pogłoski o przekupnych strażnikach bram, a w cieniu okazałej Świątyni Portena trwa skromniejszy kult bogini Desgerty.
+- [Karakris](karakris.md) — Karakris to duze pustynne miasto karawanowe, ktore wyroslo z niewielkiej oazy wokol studni na glownym placu i stalo sie waznym wezlem handlu z odleglymi polnocnymi krainami, w tym z Krasnoludzka Forteca.
+- [Silea](silea.md) — Wielkie, otoczone murami miasto portowe nad oceanem, żyjące z żeglugi, rybołówstwa i handlu zamorskiego, którego patronką i legendarną założycielką jest bogini Silea.
 
 ## Miejsca
 
-- [Góry Zatokowe](gulf-mountains.md) — Niewielki masyw bezpośrednio na północ od Carrallak, z górą Kallerh, kanionami, zalesionymi stokami i samotnią Everyha.
-- [Warownia Grazla](grazl-stronghold.md) — Podziemna krasnoludzka warownia daleko na północ od Carrallak, obecnie będąca bazą duergarskich łowców i handlarzy niewolników.
-- [Wyspa Obłąkanych](island-of-the-mad.md) — Zróżnicowana, górzysta wyspa na północ od Rybiej Łuski, zamieszkana przez obłąkanych ludzi i druida-samotnika Iverla.
-
-## Regiony
-
-- [Stary Kontynent: Arras, Carrallak i Krasnoludzka Forteca](old-continent-core.md) — Rdzeń Starego Kontynentu tworzą trzy duże ośrodki połączone dalekimi traktami: handlowe Arras, tłoczne Carrallak i kupiecka Krasnoludzka Forteca.
+- [Arrasyjska Szkoła Magii](arras-akademia-magii.md) — Akademia magii w Arras, ukryta za iluzoryczną kopułą-akwarium, gdzie ośmiu mistrzów naucza odrębnych dyscyplin pod wodzą legendarnego Arcyrektora Keleborna Skrybusa.
+- [Uniwersytet Wszechwiedzy](carrallak-uniwersytet-wszechwiedzy.md) — Uniwersytet Wszechwiedzy to rozległa, wielowiekowa uczelnia w Carrallak, otoczona parkiem i widoczna z murów miasta — pod jej marmurowymi korytarzami i salą badań nad magią portali kryje się jednak mroczna tajemnica: podziemne laboratorium obłąkanego maga pełne okaleczonych zwłok.
+- [Świątynia Portena](carrallak-swiatynia-portena.md) — Świątynia Portena to potężna, przypominająca fortecę siedziba kultu boga światłości i sprawiedliwości w Carrallak — z Wiecznym Ogniem, w miejscu którego bóg miał ukazać się Arcykapłanowi, biblioteką Domu Wiedzy, sądem religijnym Sali Gwiazd i legendarnymi paladynami, wśród nich starym Federmelem ev Kenrahem z mitycznego bractwa Paladynów Poranka.
 
 ## Osady
 
-- [Easterial i okolice](easterial.md) — Spokojne północne miasteczko rybackie nad Dinneshere, otoczone śnieżnymi pustkowiami, górskimi lasami i szlakiem ku przełęczy Faldhar.
-- [Rybia Łuska](fish-scale-village.md) — Mała wioska rybacka na północ od Gór Zatokowych, skupiona wokół portu, magazynu rybnego i wspólnej przestrzeni między chatami.
+- [Easterial](easterial.md) — Małe i spokojne północne miasteczko rybackie nad Dinneshere, którego drewniana zabudowa, miejscowe instytucje i codzienne życie są podporządkowane mrozowi, jezioru oraz kontaktom z południem.

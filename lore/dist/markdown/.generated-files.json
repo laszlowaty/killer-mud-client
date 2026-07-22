@@ -2,25 +2,23 @@
   "articleIds": [
     "article:arras",
     "article:carrallak",
-    "article:dwarven-fortress",
-    "article:gulf-mountains",
-    "article:grazl-stronghold",
-    "article:island-of-the-mad",
-    "article:old-continent-core",
-    "article:easterial",
-    "article:fish-scale-village"
+    "article:karakris",
+    "article:silea",
+    "article:arras-akademia-magii",
+    "article:carrallak-uniwersytet-wszechwiedzy",
+    "article:carrallak-swiatynia-portena",
+    "article:easterial"
   ],
   "files": [
+    "arras-akademia-magii.md",
     "arras.md",
+    "carrallak-swiatynia-portena.md",
+    "carrallak-uniwersytet-wszechwiedzy.md",
     "carrallak.md",
-    "dwarven-fortress.md",
     "easterial.md",
-    "fish-scale-village.md",
-    "grazl-stronghold.md",
-    "gulf-mountains.md",
     "index.md",
-    "island-of-the-mad.md",
-    "old-continent-core.md"
+    "karakris.md",
+    "silea.md"
   ],
   "generator": "build-killermud-lore/export_lore_markdown.py",
   "schemaVersion": 1

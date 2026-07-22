@@ -2,7 +2,7 @@
 
 # Carrallak
 
-Tłoczne miasto handlu, nauki, wielu kultów i silnie obecnej straży miejskiej.
+Carrallak to duże, murowane miasto handlowe na szlaku ze Stepów i Szczelin do Arras — za jawnym porządkiem strzeżonym przez konstabla Gevaxa kryje się bazar pełen podróbek, jawne kasyno i pogłoski o przekupnych strażnikach bram, a w cieniu okazałej Świątyni Portena trwa skromniejszy kult bogini Desgerty.
 
 ## Metadane
 
@@ -10,55 +10,57 @@ Tłoczne miasto handlu, nauki, wielu kultów i silnie obecnej straży miejskiej.
 - Encja: `place:carrallak`
 - Status: `reviewed`
 - Widoczność: `public`
-- Poziom spoilerów: `1`
+- Poziom spoilerów: `0`
 
-## Charakter miasta
+## Ogólny opis
 
-Plac Spotkań skupia handlarzy, mieszkańców, gości, złodziei i strażników. Carrallak jest gęstym, intensywnym ośrodkiem, w którym reprezentacyjne instytucje sąsiadują z brudem, tłokiem i półświatkiem.
+Carrallak to duże, otoczone kamiennymi murami obronnymi miasto handlowe. Jego rdzeń (VNUMy 233-599 w pliku carralla.are) obejmuje zatłoczony rynek, cztery bramy o odmiennej konstrukcji, strażnicę miejską, bank, gildie magów i wojowników, jawnie działające kasyno oraz świątynię bogini Desgerty. Miasto sąsiaduje z dużo okazalszą Świątynią Portena i Uniwersytetem Wszechwiedzy, widocznymi już z murów rdzenia, choć fizycznie leżącymi w osobnych częściach Carrallak.
 
-## Porządek miejski
+## Geografia i mury
 
-Strażą miejską kieruje konstabl Gevax. Jej siedziba mieści biuro konstabla i areszt, co potwierdza trwałą miejską strukturę porządkową.
+Miasto jest otoczone murami z basztami i posiada co najmniej cztery bramy: Bramę Główną (najszerszą, skąd wybiega szlak handlowy przez Stepy i Szczeliny do Arras), Bramę Wodną (zamykaną spuszczaną z sufitu zaporą wodną zamiast kraty), Bramę Małą i Bramę Ćwiczeń. Rynek w centrum miasta jest ciasny, nierówno brukowany i zaśmiecony — typowy bazar, na którym towar bywa podrobiony.
 
-## Nauka
+## Prawo i porządek
 
-W Carrallak działa uniwersytet naukowy, odrębny od arrasyjskiej akademii magii.
+Strażą Miejską dowodzi konstabl Gevax — niepozorny z wyglądu, lecz posiadający w mieście realną władzę. Strażnica przyjmuje skargi mieszkańców i prowadzi listy gończe, ma też areszt i wieżę obserwacyjną z dzwonem alarmowym. Krążą jednak pogłoski w przestępczym półświatku, że strażnicy pilnujący bram bywają przekupni — źródło tych pogłosek to zainteresowana strona (gildia ściągająca długi), więc traktować je należy jako plotkę, nie potwierdzony fakt.
 
 ## Świątynie
 
-Jedną z ważniejszych świątyń miasta jest przybytek Turlitha, boga morza związanego z losem kupieckich statków. Desgerta, bogini miłosierdzia, ma mniejszą, bogato zdobioną świątynię oznaczoną białym gołębiem.
+W Carrallak współistnieją dwie świątynie o bardzo różnej randze. Świątynia Portena, przypominająca z zewnątrz zamek, dominuje panoramę miasta i przyciąga najwięcej wiernych. Skromniejsza, choć bogato zdobiona bielą i złotem Świątynia Desgerty czci boginię miłosierdzia (utożsamianą w opisach witraży również z kultem Shallyi), symbolizowaną przez białego gołębia — jest jednak znacznie rzadziej odwiedzana.
 
-## Dawny atak
+## Gildie i instytucje
 
-Stara laska Nerhilisa zachowuje informację o ataku nekromanty Ghrihwegga około trzystu lat wcześniej. W walce miał zginąć Yarhen, ojciec Nerhilisa; dokładna data i pełny przebieg pozostają nieznane.
+Poza Strażą Miejską w mieście działają Gildia Magów (okrągła sala szkoleniowa i komnata czarodzieja) oraz Gildia Wojowników przy zamożnej Ulicy Bogaczy, oznaczona flagą z rycerzem w pełnej zbroi. Miejski bank oferuje wpłaty i wypłaty, a przy zachodnim murze działa jawnie luksusowe kasyno z grami przy stole i ruletką.
 
 ## Powiązania
 
-- Gevax — `character:gevax`
-- Nerhilis Roahin — `character:nerhilis-roahin`
-- Yarhen — `character:yarhen`
-- Ghrihwegg — `character:ghrihwegg`
-- Straż miejska Carrallak — `organization:carrallak-city-guard`
-- Uniwersytet Carrallak — `organization:carrallak-university`
-- Turlith — `deity:turlith`
+- Rynek w Carrallak — `place:carrallak-rynek`
+- Brama Główna Carrallak — `place:carrallak-brama-glowna`
+- Brama Wodna Carrallak — `place:carrallak-brama-wodna`
+- Strażnica Miejska Carrallak — `place:carrallak-strazenica-miejska`
+- Bank w Carrallak — `place:carrallak-bank`
+- Świątynia Desgerty — `place:carrallak-swiatynia-desgerty`
+- Kasyno w Carrallak — `place:carrallak-kasyno`
+- Straż Miejska Carrallak — `organization:carrallak-straz-miejska`
+- Gildia Magów w Carrallak — `organization:carrallak-gildia-magow`
+- Gildia Wojowników w Carrallak — `organization:carrallak-gildia-wojownikow`
+- Konstabl Gevax — `character:konstabl-gevax`
 - Desgerta — `deity:desgerta`
-- Atak Ghrihwegga na Carrallak — `event:ghrihwegg-attack-on-carrallak`
-- Stara laska Nerhilisa — `artifact:nerhilis-staff`
-- Trakt Arras–Carrallak — `place:arras-carrallak-road`
-- Trakt Carrallak–Forteca — `place:carrallak-fortress-road`
+- constraint:carrallak:unknown-founding — `constraint:carrallak:unknown-founding`
+- constraint:carrallak:guard-corruption-tension — `constraint:carrallak:guard-corruption-tension`
+- Styl Carrallak — `style:carrallak`
+- [Arras](arras.md) — `place:arras`
 
 ## Odniesienia mapy
 
-- Region mapy: `1`
-- Pliki krain: `carralla.are`, `carauniw.are`, `carrwiez.are`
-- VNUM-y pomieszczeń: `500`, `560`, `562`, `596`, `4743`
+- Region mapy: `500`
+- Pliki krain: `area/carralla.are`
+- VNUM-y pomieszczeń: `266`, `550`, `596`
 
 ## Źródła
 
-- `area/carralla.are` — ROOMS — vnum 500 — Descr
-- `area/carralla.are` — MOBILES — vnum 526 — Long
-- `area/carralla.are` — ROOMS — vnum 560 — Descr
-- `area/carauniw.are` — ROOMS — vnum 4743 — Descr
-- `area/carralla.are` — MOBILES — vnum 581 — Descr
-- `area/carralla.are` — ROOMS — vnum 596 — Descr
-- `area/carrwiez.are` — OBJECTS — vnum 5131 — Identdesc
+- `area/carralla.are` — AREADATA — Name: „Name +# Carrallak~”
+- `area/carralla.are` — ROOMS — vnum 550 — Descr: „Jesteś w największej bramie miasta Carrallak - Bramie Głównej.”
+- `area/carralla.are` — MOBILES — vnum 526 — Descr: „dysponuje on w mieście naprawdę sporą władzą.”
+- `area/carralla.are` — ROOMS — vnum 596 — Descr: „świątyni poświęconej Desgercie, bogini miłosierdzia.”
+- `area/carralla.are` — ROOMS — vnum 549 — Extra — keyword `napis`: „<**Gildia Wojowników**>”
