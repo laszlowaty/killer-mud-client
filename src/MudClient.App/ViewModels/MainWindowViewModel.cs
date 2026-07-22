@@ -3150,8 +3150,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             case "info":
                 Map.ShowCurrentMapRoomInfo();
                 break;
+            case "show":
+            case "pokaz":
+                if (parts.Length < 2 || string.IsNullOrWhiteSpace(parts[1]))
+                {
+                    AddToast("Użycie: /map show <vnum>.", "info");
+                    return true;
+                }
+
+                var showVnum = parts[1].Trim();
+                if (Map.FocusRoomByVnum(showVnum) is null)
+                {
+                    AddToast($"VNUM {showVnum} nie istnieje w mapie.", "error");
+                    return true;
+                }
+
+                _dockFactory.ShowTool("Map");
+                return true;
             default:
-                AddToast("Komendy mappera: start, stop, save, undo, redo, cancel, status, info, check, diff, import, export, discard, resolve, step, area, reassign, room, symbol, label, forget i special. Działają prefiksy /map, /mapa i +map.", "info");
+                AddToast("Komendy mappera: start, stop, save, undo, redo, cancel, status, info, check, diff, import, export, discard, resolve, step, area, reassign, room, symbol, label, forget, show i special. Działają prefiksy /map, /mapa i +map.", "info");
                 return true;
         }
 
