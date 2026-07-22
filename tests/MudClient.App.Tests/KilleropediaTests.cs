@@ -257,7 +257,7 @@ public sealed class KilleropediaTests : IDisposable
     {
         var catalog = CreateLoreCatalog();
 
-        Assert.Equal(179, catalog.Entries.Count);
+        Assert.Equal(191, catalog.Entries.Count);
         var arras = Assert.Single(catalog.Entries, entry => entry.Id == "place:arras");
         Assert.Equal("Arras", arras.Name);
         Assert.Contains(arras.Sections, section => section.Title == "Władza i porządek");
@@ -336,7 +336,7 @@ public sealed class KilleropediaTests : IDisposable
 
         var catalog = LoreCatalogLoader.Load(_directory);
 
-        Assert.Equal(179, catalog.Entries.Count);
+        Assert.Equal(191, catalog.Entries.Count);
         Assert.Equal("katalog wbudowany", catalog.SourceText);
         Assert.Contains("Nie udało się wczytać", catalog.Warning);
     }
