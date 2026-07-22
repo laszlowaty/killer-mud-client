@@ -93,6 +93,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private int _port = 4004;
     private string _commandText = string.Empty;
     private string _statusText = "Rozłączono";
+    private string? _lastReportedMapEditorStatus;
     private string _idleTimeText = "Idle: —";
     private long _lastCommandSentTimestamp;
     private bool _isConnected;
@@ -2967,6 +2968,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
                 Map.CreateMapArea(parts[1]);
                 break;
+            case "reassign":
+            case "przenos":
+                if (parts.Length < 2 || parts[1].ToLowerInvariant() is not ("on" or "off"))
+                {
+                    AddToast("Użycie: /map reassign on|off.", "info");
+                    return true;
+                }
+
+                Map.SetMoveExistingRoomsToNewArea(
+                    string.Equals(parts[1], "on", StringComparison.OrdinalIgnoreCase));
+                break;
             case "symbol":
                 if (parts.Length < 2)
                 {
@@ -3125,13 +3137,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Map.ValidateEditedMap();
                 break;
             case "status":
-                AddToast($"{Map.MapEditorStatus} {Map.MapEditorSourceDescription}", "info");
+                var mapStatus =
+                    $"{Map.MapEditorStatus} {Map.MapEditorSourceDescription} " +
+                    $"Aktywne: {(Map.IsMapEditorActive ? "tak" : "nie")}; " +
+                    $"oczekuje na Room.Info: {(Map.IsMapEditorAwaitingRoomInfo ? "tak" : "nie")}; " +
+                    $"vnum: {Map.CurrentVnum ?? "brak"}; " +
+                    $"wybrany obszar: {Map.SelectedArea?.Name ?? "brak"}; " +
+                    $"przenoszenie znanych pokoi: {(Map.MoveExistingRoomsToNewArea ? "tak" : "nie")}.";
+                AddToast(mapStatus, "info");
+                EmitSystem($"Mapper: {mapStatus}", 36);
                 return true;
             case "info":
                 Map.ShowCurrentMapRoomInfo();
                 break;
             default:
-                AddToast("Komendy mappera: start, stop, save, undo, redo, cancel, status, info, check, diff, import, export, discard, resolve, step, area, room, symbol, label, forget i special. Działa też prefiks +map.", "info");
+                AddToast("Komendy mappera: start, stop, save, undo, redo, cancel, status, info, check, diff, import, export, discard, resolve, step, area, reassign, room, symbol, label, forget i special. Działają prefiksy /map, /mapa i +map.", "info");
                 return true;
         }
 
@@ -5491,6 +5511,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// </summary>
     private void OnMapPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MapViewModel.MapEditorStatus))
+        {
+            var status = Map.MapEditorStatus;
+            if (!string.Equals(status, _lastReportedMapEditorStatus, StringComparison.Ordinal))
+            {
+                _lastReportedMapEditorStatus = status;
+                EmitSystem($"Mapper: {status}", 36);
+            }
+        }
+
         if (e.PropertyName == nameof(MapViewModel.MapIndex) && _latestGroupUpdate is not null)
         {
             var update = _latestGroupUpdate;

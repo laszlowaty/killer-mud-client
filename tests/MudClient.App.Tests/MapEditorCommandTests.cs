@@ -11,6 +11,7 @@ public sealed class MapEditorCommandTests
     [InlineData("/mapa status")]
     [InlineData("+map status")]
     [InlineData("/map area Nowa kraina")]
+    [InlineData("/map reassign on")]
     [InlineData("/map symbol !!")]
     [InlineData("/map label ## Niebezpieczne miejsce!")]
     [InlineData("/map forget")]
@@ -63,6 +64,48 @@ public sealed class MapEditorCommandTests
 
             Assert.True(consumed);
             Assert.Contains("tylko w trybie lorda", viewModel.Toasts[^1].Text, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task BareMapCommand_RemainsAvailableToMud()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_MapCommandTests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            await using var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
+            viewModel.LordModeEnabled = true;
+
+            Assert.False(await InvokeMapCommandAsync(viewModel, "map"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task MapStatus_WritesDiagnosticToTerminal()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_MapCommandTests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            await using var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
+            viewModel.LordModeEnabled = true;
+            var output = new List<string>();
+            viewModel.OutputReceived += output.Add;
+
+            Assert.True(await InvokeMapCommandAsync(viewModel, "/map status"));
+
+            Assert.Contains(output, line =>
+                line.Contains("Mapper:", StringComparison.Ordinal) &&
+                line.Contains("Aktywne:", StringComparison.Ordinal));
         }
         finally
         {

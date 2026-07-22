@@ -126,6 +126,69 @@ public sealed class MapEditorSessionTests
     }
 
     [Fact]
+    public void ReassignMode_MovesKnownRoomsButKeepsMappingStartInOriginalArea()
+    {
+        var editor = CreateEditor();
+        editor.ProcessSnapshot(Snapshot("100", ("E", null)));
+        editor.Start("100");
+        editor.PrepareManualCommand("e");
+        editor.ProcessSnapshot(Snapshot("200", ("W", null), ("N", null)));
+        editor.PrepareManualCommand("n");
+        editor.ProcessSnapshot(Snapshot("300", ("S", null)));
+        editor.Stop();
+        editor.ProcessSnapshot(Snapshot("100", ("E", null)));
+        Assert.True(editor.CreateArea("Nowa kraina"));
+        Assert.True(editor.SetMoveKnownRoomsToTargetArea(true));
+        Assert.True(editor.Start("100"));
+
+        editor.PrepareManualCommand("e");
+        Assert.True(editor.ProcessSnapshot(Snapshot("200", ("W", null), ("N", null))));
+        editor.PrepareManualCommand("n");
+        Assert.True(editor.ProcessSnapshot(Snapshot("300", ("S", null))));
+
+        var targetArea = Assert.Single(editor.Document.Areas, area => area.Name == "Nowa kraina");
+        Assert.Equal(2, targetArea.Rooms.Count);
+        Assert.Equal(new MapCoordinates(0, 0, 0), targetArea.Rooms.Single(room => room.Vnum == "200").Coordinates);
+        Assert.Equal(new MapCoordinates(0, 2, 0), targetArea.Rooms.Single(room => room.Vnum == "300").Coordinates);
+        Assert.Single(editor.Document.Areas.Single(area => area.Name == "Test").Rooms);
+        Assert.Contains("Przeniesiono vnum 300", editor.Status);
+
+        editor.PrepareManualCommand("s");
+        editor.ProcessSnapshot(Snapshot("200", ("W", null), ("N", null)));
+        editor.PrepareManualCommand("w");
+        editor.ProcessSnapshot(Snapshot("100", ("E", null)));
+
+        Assert.Single(editor.Document.Areas.Single(area => area.Name == "Test").Rooms);
+        for (var i = 0; i < 4; i++)
+        {
+            Assert.True(editor.Undo());
+        }
+        Assert.Equal(3, editor.Document.Areas.Single(area => area.Name == "Test").Rooms.Count);
+        Assert.Empty(editor.Document.Areas.Single(area => area.Name == "Nowa kraina").Rooms);
+    }
+
+    [Fact]
+    public void StartFromUnknownCurrentVnum_CreatesStartingRoomInTargetArea()
+    {
+        var editor = CreateEditor();
+        editor.ProcessSnapshot(Snapshot("3921", ("E", null)));
+        Assert.True(editor.CreateArea("Nowa kraina"));
+
+        Assert.True(editor.Start("3921"));
+
+        var area = Assert.Single(editor.Document.Areas, item => item.Name == "Nowa kraina");
+        var startingRoom = Assert.Single(area.Rooms);
+        Assert.Equal("3921", startingRoom.Vnum);
+        Assert.Equal(new MapCoordinates(0, 0, 0), startingRoom.Coordinates);
+        Assert.True(editor.IsMapping);
+        Assert.Contains("Utworzono pokój startowy", editor.Status);
+
+        Assert.True(editor.PrepareManualCommand("e").Allow);
+        Assert.True(editor.ProcessSnapshot(Snapshot("3922", ("W", null))));
+        Assert.Equal(2, editor.Document.Areas.Single(item => item.Name == "Nowa kraina").Rooms.Count);
+    }
+
+    [Fact]
     public void SymbolLabelForgetAndUndo_UpdateCurrentRoomReversibly()
     {
         var editor = CreateEditor();

@@ -229,6 +229,104 @@ public sealed class MapEditorWorkspaceTests
     }
 
     [AvaloniaFact]
+    public async Task CreateAreaCommand_AddsAndSelectsNamedArea()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "KillerMudClient_CreateMapAreaTests_" + Guid.NewGuid().ToString("N"));
+        var appBase = Path.Combine(root, "app");
+        var dataRoot = Path.Combine(root, "data");
+        var mapDirectory = Path.Combine(appBase, "Assets", "Map");
+        Directory.CreateDirectory(mapDirectory);
+        MapViewModel? viewModel = null;
+
+        try
+        {
+            await new MapWriter().SaveAsync(CreateDocument(), Path.Combine(mapDirectory, "world-map.json"));
+            viewModel = new MapViewModel(appBase, new GmcpLocationResolver(), dataRoot);
+            await viewModel.InitializeAsync();
+            viewModel.LordModeEnabled = true;
+            viewModel.NewMapAreaName = "Nowa kraina";
+
+            Assert.True(viewModel.CreateMapAreaCommand.CanExecute(null));
+            viewModel.CreateMapAreaCommand.Execute(null);
+
+            Assert.Contains(viewModel.Areas, area => area.Name == "Nowa kraina");
+            Assert.Equal("Nowa kraina", viewModel.SelectedArea?.Name);
+            Assert.Equal(string.Empty, viewModel.NewMapAreaName);
+            Assert.True(viewModel.IsMapEditorDirty);
+            Assert.Contains("Utworzono obszar", viewModel.MapEditorStatus);
+            Assert.True(viewModel.CanMoveExistingRoomsToNewArea);
+            Assert.True(viewModel.SetMoveExistingRoomsToNewArea(true));
+            Assert.True(viewModel.MoveExistingRoomsToNewArea);
+            Assert.Contains("będą przenoszone", viewModel.MapEditorStatus);
+
+            Assert.True(viewModel.SetMoveExistingRoomsToNewArea(false));
+            viewModel.SelectedArea = viewModel.Areas.Single(area => area.Name == "Test");
+            Assert.True(viewModel.SetMoveExistingRoomsToNewArea(true));
+            Assert.Contains("obszaru Test", viewModel.MapEditorStatus);
+        }
+        finally
+        {
+            if (viewModel is not null)
+            {
+                await viewModel.DisposeAsync();
+            }
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task NewArea_StartsMappingFromCurrentVnumMissingFromBaseMap()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "KillerMudClient_NewAreaStartTests_" + Guid.NewGuid().ToString("N"));
+        var appBase = Path.Combine(root, "app");
+        var dataRoot = Path.Combine(root, "data");
+        var mapDirectory = Path.Combine(appBase, "Assets", "Map");
+        Directory.CreateDirectory(mapDirectory);
+        MapViewModel? viewModel = null;
+
+        try
+        {
+            await new MapWriter().SaveAsync(CreateDocument(), Path.Combine(mapDirectory, "world-map.json"));
+            var resolver = new GmcpLocationResolver();
+            viewModel = new MapViewModel(appBase, resolver, dataRoot);
+            await viewModel.InitializeAsync();
+            resolver.Process(new GmcpMessage("Room.Info", """{"vnum":"3921"}"""));
+            Dispatcher.UIThread.RunJobs();
+            viewModel.HandleRoomSnapshot(new RoomSnapshot(
+                "3921",
+                "Nowy początek",
+                "droga",
+                [new RoomSnapshotExit("E", "east", false, false)]));
+            viewModel.LordModeEnabled = true;
+            viewModel.NewMapAreaName = "Nowa kraina";
+            viewModel.CreateMapAreaCommand.Execute(null);
+
+            Assert.True(viewModel.StartMapEditorCommand.CanExecute(null));
+            viewModel.StartMapEditorCommand.Execute(null);
+
+            Assert.True(viewModel.IsMapEditorActive);
+            var startingRoom = viewModel.MapIndex!.FindFirstRoomByVnum("3921");
+            Assert.NotNull(startingRoom);
+            Assert.Equal("Nowa kraina", viewModel.MapIndex.AreasById[startingRoom.AreaId].Name);
+            Assert.Contains("Utworzono pokój startowy", viewModel.MapEditorStatus);
+        }
+        finally
+        {
+            if (viewModel is not null)
+            {
+                await viewModel.DisposeAsync();
+            }
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [AvaloniaFact]
     public async Task MissingRoomInfo_CancelsPendingMovementButKeepsMappingActive()
     {
         var root = Path.Combine(Path.GetTempPath(), "KillerMudClient_MapTimeoutTests_" + Guid.NewGuid().ToString("N"));

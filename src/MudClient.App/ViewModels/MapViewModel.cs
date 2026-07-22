@@ -50,12 +50,15 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     private bool _showGroupMembersAsNumbers;
     private bool _isUsingWorkingMap;
     private bool _isUsingRecoveryMap;
+    private string _newMapAreaName = string.Empty;
+    private bool _moveExistingRoomsToNewArea;
     private MapDisplayModeOption _selectedDisplayMode;
     private readonly RelayCommand _lordGotoSelectedRoomCommand;
     private readonly RelayCommand _startMapEditorCommand;
     private readonly RelayCommand _stopMapEditorCommand;
     private readonly RelayCommand _undoMapEditorCommand;
     private readonly RelayCommand _redoMapEditorCommand;
+    private readonly RelayCommand _createMapAreaCommand;
     private readonly AsyncRelayCommand _saveMapEditorCommand;
     private MapEditorSession? _mapEditor;
 
@@ -91,6 +94,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         _stopMapEditorCommand = new RelayCommand(StopMapEditor, () => IsMapEditorActive);
         _undoMapEditorCommand = new RelayCommand(UndoMapEditor, () => _mapEditor?.CanUndo == true);
         _redoMapEditorCommand = new RelayCommand(RedoMapEditor, () => _mapEditor?.CanRedo == true);
+        _createMapAreaCommand = new RelayCommand(CreateMapAreaFromInput, CanCreateMapAreaFromInput);
         _saveMapEditorCommand = new AsyncRelayCommand(SaveMapEditorAsync, () => _mapEditor?.IsDirty == true);
     }
 
@@ -127,7 +131,30 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
     public IRelayCommand RedoMapEditorCommand => _redoMapEditorCommand;
 
+    public IRelayCommand CreateMapAreaCommand => _createMapAreaCommand;
+
     public IAsyncRelayCommand SaveMapEditorCommand => _saveMapEditorCommand;
+
+    public string NewMapAreaName
+    {
+        get => _newMapAreaName;
+        set
+        {
+            if (SetProperty(ref _newMapAreaName, value))
+            {
+                _createMapAreaCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool MoveExistingRoomsToNewArea
+    {
+        get => _moveExistingRoomsToNewArea;
+        set => SetMoveExistingRoomsToNewArea(value);
+    }
+
+    public bool CanMoveExistingRoomsToNewArea =>
+        _mapEditor is not null && SelectedArea is not null && !IsMapEditorActive;
 
     public MapIndex? MapIndex
     {
@@ -196,9 +223,14 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         {
             if (SetProperty(ref _selectedArea, value) && value is not null)
             {
+                if (MoveExistingRoomsToNewArea && !IsMapEditorActive)
+                {
+                    _mapEditor?.SetMoveKnownRoomsToTargetArea(true, value.Id);
+                }
                 FollowPlayer = false;
                 RefreshZLevels();
                 FocusFirstRoom(value);
+                OnPropertyChanged(nameof(CanMoveExistingRoomsToNewArea));
             }
         }
     }
@@ -505,6 +537,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
                 ? recovery.UndoHistory
                 : [];
             _mapEditor = new MapEditorSession(editorDocument, undoHistory, recoveredDirtyMap);
+            _moveExistingRoomsToNewArea = false;
 
             var index = new MapIndex(editorDocument, Settings.SpatialBucketSize);
 
@@ -531,6 +564,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
                 StatusMessage = $"Załadowano {index.Document.Areas.Count} obszarów, {roomCount} pokoi{warningSuffix}.";
                 IsUsingWorkingMap = useWorkingMap;
                 IsUsingRecoveryMap = recoveredDirtyMap;
+                OnPropertyChanged(nameof(MoveExistingRoomsToNewArea));
                 NotifyMapEditorStateChanged();
             });
 
@@ -661,6 +695,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         {
             OnPropertyChanged(nameof(CurrentVnum));
             TryResolveCurrentRoom();
+            NotifyMapEditorCommands();
         });
     }
 
@@ -681,6 +716,10 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
         if (room is null)
         {
+            CurrentRoom = null;
+            _currentSectorName = null;
+            OnPropertyChanged(nameof(CurrentRoomName));
+            OnPropertyChanged(nameof(CurrentSectorName));
             StatusMessage = $"VNUM {vnum} nie istnieje w mapie.";
             return;
         }
@@ -798,6 +837,33 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
         NotifyMapEditorStateChanged();
         return true;
+    }
+
+    public bool SetMoveExistingRoomsToNewArea(bool enabled)
+    {
+        if (_mapEditor?.SetMoveKnownRoomsToTargetArea(enabled, SelectedArea?.Id) != true)
+        {
+            NotifyMapEditorStateChanged();
+            return false;
+        }
+
+        SetProperty(ref _moveExistingRoomsToNewArea, enabled, nameof(MoveExistingRoomsToNewArea));
+        NotifyMapEditorStateChanged();
+        return true;
+    }
+
+    private bool CanCreateMapAreaFromInput() =>
+        LordModeEnabled
+        && _mapEditor is not null
+        && !IsMapEditorActive
+        && !string.IsNullOrWhiteSpace(NewMapAreaName);
+
+    private void CreateMapAreaFromInput()
+    {
+        if (CreateMapArea(NewMapAreaName))
+        {
+            NewMapAreaName = string.Empty;
+        }
     }
 
     public bool SetCurrentMapRoomSymbol(string symbol) => ApplyMapEditorOperation(
@@ -1050,7 +1116,12 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         }
 
         var wasActive = IsMapEditorActive;
+        var documentBeforeStart = _mapEditor.Document;
         _mapEditor.Start(CurrentVnum);
+        if (!ReferenceEquals(documentBeforeStart, _mapEditor.Document))
+        {
+            ApplyMapEditorDocument();
+        }
         if (!wasActive && IsMapEditorActive)
         {
             MapEditorActiveChanged?.Invoke(true);
@@ -1146,7 +1217,11 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     }
 
     private bool CanStartMapEditor() =>
-        LordModeEnabled && _mapEditor is not null && !IsMapEditorActive && CurrentRoom is not null;
+        LordModeEnabled
+        && _mapEditor is not null
+        && !IsMapEditorActive
+        && !string.IsNullOrWhiteSpace(CurrentVnum)
+        && (CurrentRoom is not null || _mapEditor.HasTargetArea);
 
     private bool ApplyMapEditorOperation(
         Func<MapEditorSession, bool> operation,
@@ -1192,12 +1267,20 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
     private void NotifyMapEditorStateChanged()
     {
+        if (_mapEditor is { } editor &&
+            _moveExistingRoomsToNewArea != editor.MoveKnownRoomsToTargetArea)
+        {
+            _moveExistingRoomsToNewArea = editor.MoveKnownRoomsToTargetArea;
+        }
+
         OnPropertyChanged(nameof(IsMapEditorActive));
         OnPropertyChanged(nameof(IsMapEditorDirty));
         OnPropertyChanged(nameof(IsMapEditorAwaitingRoomInfo));
         OnPropertyChanged(nameof(MapEditorStep));
         OnPropertyChanged(nameof(MapEditorStatus));
         OnPropertyChanged(nameof(MapEditorSourceDescription));
+        OnPropertyChanged(nameof(CanMoveExistingRoomsToNewArea));
+        OnPropertyChanged(nameof(MoveExistingRoomsToNewArea));
         NotifyMapEditorCommands();
     }
 
@@ -1282,6 +1365,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         _stopMapEditorCommand.NotifyCanExecuteChanged();
         _undoMapEditorCommand.NotifyCanExecuteChanged();
         _redoMapEditorCommand.NotifyCanExecuteChanged();
+        _createMapAreaCommand.NotifyCanExecuteChanged();
         _saveMapEditorCommand.NotifyCanExecuteChanged();
     }
 

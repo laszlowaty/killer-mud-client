@@ -206,6 +206,15 @@ public sealed class LordModeMapUiTests
 
             Assert.True(editorPanel.IsVisible);
             Assert.Same(viewModel.StartMapEditorCommand, startButton.Command);
+            var areaNameBox = panel.FindControl<TextBox>("NewMapAreaNameBox");
+            var createAreaButton = panel.FindControl<Button>("CreateMapAreaButton");
+            Assert.NotNull(areaNameBox);
+            Assert.NotNull(createAreaButton);
+            Assert.Equal("Nazwa nowego obszaru", areaNameBox.PlaceholderText);
+            Assert.Same(viewModel.CreateMapAreaCommand, createAreaButton.Command);
+            var moveExistingSwitch = panel.FindControl<ToggleSwitch>("MoveExistingRoomsToNewAreaSwitch");
+            Assert.NotNull(moveExistingSwitch);
+            Assert.Equal("Przenoś istniejące pokoje do wybranego obszaru", moveExistingSwitch.Content);
             var redoButton = Assert.Single(
                 window.GetVisualDescendants().OfType<Button>(),
                 button => button.Content?.ToString() == "Ponów");

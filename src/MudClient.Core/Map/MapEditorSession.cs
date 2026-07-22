@@ -48,6 +48,8 @@ public sealed class MapEditorSession
     private MappingConflict? _conflict;
     private RoomSnapshot? _lastSnapshot;
     private int? _nextNewRoomAreaId;
+    private int? _targetAreaId;
+    private int? _mappingStartRoomId;
 
     public MapEditorSession(
         MapDocument document,
@@ -80,6 +82,10 @@ public sealed class MapEditorSession
 
     public bool HasConflict => _conflict is not null;
 
+    public bool HasTargetArea => _targetAreaId.HasValue;
+
+    public bool MoveKnownRoomsToTargetArea { get; private set; }
+
     public int Step { get; private set; } = 2;
 
     public string Status { get; private set; } = "Edytor mapy jest gotowy.";
@@ -100,22 +106,53 @@ public sealed class MapEditorSession
 
     public bool Start(string? currentVnum)
     {
-        if (string.IsNullOrWhiteSpace(currentVnum) || FindRoomByVnum(currentVnum) is null)
+        if (string.IsNullOrWhiteSpace(currentVnum))
         {
-            Status = "Nie można rozpocząć: bieżącego vnum nie ma na mapie.";
+            Status = "Nie można rozpocząć: brak bieżącego vnum z GMCP.";
             return false;
         }
 
+        var currentRoom = FindRoomByVnum(currentVnum);
+        var createdStartingRoom = false;
+        if (currentRoom is null)
+        {
+            if (_targetAreaId is not { } targetAreaId ||
+                Document.Areas.All(area => area.Id != targetAreaId))
+            {
+                Status = "Nie można rozpocząć: bieżącego vnum nie ma na mapie i nie wybrano obszaru docelowego.";
+                return false;
+            }
+
+            if (_lastSnapshot is not { } snapshot ||
+                !string.Equals(snapshot.Vnum, currentVnum, StringComparison.Ordinal))
+            {
+                Status = $"Nie można rozpocząć od nowego vnum {currentVnum}: brak aktualnego pełnego Room.Info.";
+                return false;
+            }
+
+            var before = Document;
+            currentRoom = CreateStartingRoom(snapshot, targetAreaId);
+            Document = AddRoom(Document, currentRoom);
+            RecordUndo(before);
+            _nextNewRoomAreaId = null;
+            IsDirty = true;
+            createdStartingRoom = true;
+        }
+
         IsMapping = true;
+        _mappingStartRoomId = currentRoom.Id;
         _pendingMovement = null;
         _conflict = null;
-        Status = $"Mapowanie aktywne od vnum {currentVnum}.";
+        Status = createdStartingRoom
+            ? $"Utworzono pokój startowy vnum {currentVnum} w obszarze {GetAreaName(currentRoom.AreaId)}. Mapowanie aktywne."
+            : $"Mapowanie aktywne od vnum {currentVnum}.";
         return true;
     }
 
     public void Stop(string? reason = null)
     {
         IsMapping = false;
+        _mappingStartRoomId = null;
         _pendingMovement = null;
         _conflict = null;
         Status = !string.IsNullOrWhiteSpace(reason)
@@ -172,8 +209,36 @@ public sealed class MapEditorSession
         };
         RecordUndo(before);
         _nextNewRoomAreaId = areaId;
+        _targetAreaId = areaId;
         IsDirty = true;
         Status = $"Utworzono obszar „{trimmed}”. Pierwszy nowy pokój trafi do niego.";
+        return true;
+    }
+
+    public bool SetMoveKnownRoomsToTargetArea(bool enabled, int? targetAreaId = null)
+    {
+        var effectiveTargetAreaId = targetAreaId ?? _targetAreaId;
+        if (enabled && effectiveTargetAreaId is null)
+        {
+            Status = "Najpierw wybierz obszar docelowy.";
+            return false;
+        }
+
+        if (enabled && Document.Areas.All(area => area.Id != effectiveTargetAreaId))
+        {
+            _targetAreaId = null;
+            Status = "Docelowy obszar już nie istnieje.";
+            return false;
+        }
+
+        if (enabled)
+        {
+            _targetAreaId = effectiveTargetAreaId;
+        }
+        MoveKnownRoomsToTargetArea = enabled;
+        Status = enabled
+            ? $"Istniejące pokoje będą przenoszone do obszaru {GetAreaName(_targetAreaId!.Value)}. Pokój wejściowy pozostanie w starej krainie."
+            : "Istniejące pokoje pozostaną w swoich dotychczasowych obszarach.";
         return true;
     }
 
@@ -788,6 +853,7 @@ public sealed class MapEditorSession
         }
 
         var target = FindRoomByVnum(snapshot.Vnum);
+        var movedKnownRoom = false;
         if (target is null)
         {
             target = CreateRoom(origin, snapshot, pending.Direction);
@@ -795,6 +861,18 @@ public sealed class MapEditorSession
         }
         else
         {
+            if (ShouldMoveKnownRoomToTargetArea(target))
+            {
+                var targetAreaId = _targetAreaId!.Value;
+                var coordinates = origin.AreaId == targetAreaId
+                    ? Offset(origin.Coordinates, pending.Direction, Step)
+                    : new MapCoordinates(0, 0, 0);
+                target = CloneRoom(target, areaId: targetAreaId, coordinates: coordinates);
+                Document = MoveRoomToArea(Document, target);
+                _nextNewRoomAreaId = null;
+                movedKnownRoom = true;
+            }
+
             Document = ReplaceRoom(Document, BuildRoomWithMetadata(target, snapshot));
             target = FindRoomById(target.Id)!;
         }
@@ -819,7 +897,9 @@ public sealed class MapEditorSession
 
         RecordUndo(before);
         IsDirty = true;
-        Status = $"Zmapowano {origin.Vnum} → {snapshot.Vnum} ({pending.Command}).";
+        Status = movedKnownRoom
+            ? $"Przeniesiono vnum {snapshot.Vnum} do obszaru {GetAreaName(target.AreaId)} i zmapowano przejście ({pending.Command})."
+            : $"Zmapowano {origin.Vnum} → {snapshot.Vnum} ({pending.Command}).";
         return true;
     }
 
@@ -834,6 +914,7 @@ public sealed class MapEditorSession
         _redo.Push(Document);
         Document = _undo.Pop();
         _nextNewRoomAreaId = null;
+        ClearMissingTargetArea();
         IsDirty = true;
         _pendingMovement = null;
         _conflict = null;
@@ -852,6 +933,7 @@ public sealed class MapEditorSession
         _undo.Push(Document);
         Document = _redo.Pop();
         _nextNewRoomAreaId = null;
+        ClearMissingTargetArea();
         IsDirty = true;
         _pendingMovement = null;
         _conflict = null;
@@ -895,6 +977,40 @@ public sealed class MapEditorSession
             ? new MapCoordinates(0, 0, 0)
             : Offset(origin.Coordinates, direction, Step);
         _nextNewRoomAreaId = null;
+        var userData = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["vnum"] = JsonSerializer.SerializeToElement(snapshot.Vnum),
+        };
+        if (!string.IsNullOrWhiteSpace(snapshot.Sector))
+        {
+            userData["sector"] = JsonSerializer.SerializeToElement(Normalize(snapshot.Sector));
+        }
+
+        return new MapRoom
+        {
+            Id = Document.Areas.SelectMany(area => area.Rooms).Select(room => room.Id).DefaultIfEmpty().Max() + 1,
+            AreaId = areaId,
+            Name = snapshot.Name,
+            Coordinates = coordinates,
+            Weight = 1,
+            Exits = [],
+            UserData = userData,
+        };
+    }
+
+    private MapRoom CreateStartingRoom(RoomSnapshot snapshot, int areaId)
+    {
+        var coordinates = new MapCoordinates(0, 0, 0);
+        var occupied = Document.Areas
+            .First(area => area.Id == areaId)
+            .Rooms
+            .Select(room => room.Coordinates)
+            .ToHashSet();
+        while (occupied.Contains(coordinates))
+        {
+            coordinates = coordinates with { X = coordinates.X + Step };
+        }
+
         var userData = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase)
         {
             ["vnum"] = JsonSerializer.SerializeToElement(snapshot.Vnum),
@@ -1049,12 +1165,44 @@ public sealed class MapEditorSession
     private MapRoom? GetCurrentRoom() =>
         _lastSnapshot is null ? null : FindRoomByVnum(_lastSnapshot.Vnum);
 
+    private bool ShouldMoveKnownRoomToTargetArea(MapRoom room) =>
+        MoveKnownRoomsToTargetArea
+        && _targetAreaId is { } targetAreaId
+        && room.AreaId != targetAreaId
+        && room.Id != _mappingStartRoomId;
+
+    private string GetAreaName(int areaId) =>
+        Document.Areas.First(area => area.Id == areaId).Name ?? $"#{areaId}";
+
+    private void ClearMissingTargetArea()
+    {
+        if (_targetAreaId is { } targetAreaId && Document.Areas.All(area => area.Id != targetAreaId))
+        {
+            _targetAreaId = null;
+            MoveKnownRoomsToTargetArea = false;
+        }
+    }
+
     private static MapDocument AddRoom(MapDocument document, MapRoom room) => new()
     {
         AnonymousAreaName = document.AnonymousAreaName,
         Areas = document.Areas.Select(area => area.Id == room.AreaId
             ? new MapArea { Id = area.Id, Name = area.Name, Rooms = [.. area.Rooms, room], Labels = area.Labels }
             : area).ToArray(),
+    };
+
+    private static MapDocument MoveRoomToArea(MapDocument document, MapRoom movedRoom) => new()
+    {
+        AnonymousAreaName = document.AnonymousAreaName,
+        Areas = document.Areas.Select(area => new MapArea
+        {
+            Id = area.Id,
+            Name = area.Name,
+            Rooms = area.Id == movedRoom.AreaId
+                ? [.. area.Rooms.Where(room => room.Id != movedRoom.Id), movedRoom]
+                : area.Rooms.Where(room => room.Id != movedRoom.Id).ToArray(),
+            Labels = area.Labels,
+        }).ToArray(),
     };
 
     private static MapDocument ReplaceRoom(MapDocument document, MapRoom replacement) => new()
@@ -1083,10 +1231,11 @@ public sealed class MapEditorSession
         IReadOnlyList<MapExit>? exits = null,
         IReadOnlyDictionary<string, JsonElement>? userData = null,
         MapCoordinates? coordinates = null,
-        double? weight = null) => new()
+        double? weight = null,
+        int? areaId = null) => new()
     {
         Id = room.Id,
-        AreaId = room.AreaId,
+        AreaId = areaId ?? room.AreaId,
         Name = name ?? room.Name,
         Coordinates = coordinates ?? room.Coordinates,
         Environment = room.Environment,

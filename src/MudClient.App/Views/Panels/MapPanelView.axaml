@@ -53,6 +53,23 @@
                           Background="{StaticResource MudBrushSlate}"
                           Margin="0,4" />
                   <TextBlock Classes="mud-heading" Text="EDYTOR MAPY" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox x:Name="NewMapAreaNameBox"
+                             Grid.Column="0"
+                             Text="{Binding NewMapAreaName, Mode=TwoWay}"
+                             PlaceholderText="Nazwa nowego obszaru"
+                             ToolTip.Tip="Nowy obszar można utworzyć, gdy mapowanie jest zatrzymane." />
+                    <Button x:Name="CreateMapAreaButton"
+                            Grid.Column="1"
+                            Content="Utwórz obszar"
+                            Command="{Binding CreateMapAreaCommand}"
+                            Padding="10,6" />
+                  </Grid>
+                  <ToggleSwitch x:Name="MoveExistingRoomsToNewAreaSwitch"
+                                Content="Przenoś istniejące pokoje do wybranego obszaru"
+                                IsChecked="{Binding MoveExistingRoomsToNewArea, Mode=TwoWay}"
+                                IsEnabled="{Binding CanMoveExistingRoomsToNewArea}"
+                                ToolTip.Tip="Zmienia przypisanie napotkanych vnumów na aktualnie wybrany obszar. Pokój, z którego rozpoczęto mapowanie, pozostaje w dotychczasowym obszarze; zmiany można cofnąć." />
                   <WrapPanel>
                     <Button Content="Rozpocznij mapowanie"
                             Command="{Binding StartMapEditorCommand}"
@@ -88,7 +105,7 @@
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                   <TextBlock Classes="mud-faint"
-                             Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|room|symbol|label|forget|special (również +map)."
+                             Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|reassign|room|symbol|label|forget|special (również /mapa i +map)."
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                 </StackPanel>

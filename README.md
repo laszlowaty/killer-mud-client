@@ -87,11 +87,18 @@ Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/id
 `/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop`, `/recast` oraz komend mappera `/map`.
 W Trybie lorda mapper obsługuje `start`, `stop`, `save`, `undo`, `redo`, `cancel`,
 `status`, `info`, `check`, `diff`, `import`, `export`, `discard`, `resolve`,
-`step <1-20>`, `area`, `room`, `symbol`, `label`, `forget` i `special`; jako
-zgodny skrót można używać prefiksu `+map`. Rozszerzone operacje mają postać
+`step <1-20>`, `area`, `reassign`, `room`, `symbol`, `label`, `forget` i `special`; jako
+zgodne prefiksy można używać `/map`, `/mapa` oraz `+map`. Rozszerzone operacje mają postać
 `/map area <nazwa>`, `/map symbol <znak>`, `/map label <tekst>` oraz
 `/map special <kierunek> <komenda>`; wartości `clear`/`-1` usuwają symbol lub
-przejście specjalne. Komenda `/map forget` odłącza bieżący pokój od vnum, a
+przejście specjalne. Nowy obszar można też utworzyć polem **Nazwa nowego obszaru**
+w panelu edytora, gdy mapowanie jest zatrzymane. Opcjonalny przełącznik
+**Przenoś istniejące pokoje do wybranego obszaru** (komenda `/map reassign on|off`)
+przenosi napotkane, znane już vnumy do aktualnie wybranego obszaru, ale pozostawia pokój
+wejściowy w jego dotychczasowej krainie; każdą taką zmianę obejmuje undo.
+Jeżeli bieżącego vnum nie ma jeszcze w mapie, rozpoczęcie mapowania tworzy z aktualnego
+`Room.Info` pierwszy pokój wybranego obszaru w punkcie `(0, 0, 0)`.
+Komenda `/map forget` odłącza bieżący pokój od vnum, a
 `/map check` sprawdza spójność edytowanej mapy. `/map diff` porównuje ją z
 aktualną mapą bazową, `/map export <ścieżka.json>` zapisuje kopię, a chroniona
 potwierdzeniem komenda `/map discard confirm` usuwa mapę roboczą i wraca do
