@@ -5,7 +5,7 @@ description: Extract, normalize, review, and compile the canonical KillerMUD wor
 
 # Build KillerMUD Lore
 
-Build the canonical dataset in `lore/` from sources in `tools/KillerMUD`. Do not generate MUD areas or `.are` content.
+Build the canonical dataset in `lore/` from sources in `tools/KillerMUD`. Use `tools/KillerMUD/area-lore` exclusively for every area file, help file, active-file list, and area-source lookup. Do not generate MUD areas or `.are` content.
 
 ## Load the contracts
 
@@ -18,7 +18,7 @@ Build the canonical dataset in `lore/` from sources in `tools/KillerMUD`. Do not
 ## Build in bounded batches
 
 1. Choose one bounded subject: one area file, deity, city, organization, artifact family, or help topic.
-2. Confirm active source files through `area/area.lst`.
+2. Confirm active source files through `area-lore/area.lst`.
 3. Extract source-backed records with stable IDs and exact `sourceRefs`.
 4. Store atomic assertions as `claim` or `relation` records. Do not bury important assertions only in prose.
 5. Separate observable facts, beliefs, rumors, legends, and inference through `evidenceStatus` and `truthStatus`.

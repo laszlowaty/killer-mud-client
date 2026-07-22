@@ -2,6 +2,8 @@
 
 This map was prepared against local KillerMUD commit `60af6d4dd21bb41164812607790ddbafd9b6f751` from `https://github.com/iworks/KillerMUD.git`. Recheck loaders and field names after updating that checkout.
 
+Lore parsing uses `tools/KillerMUD/area-lore` exclusively for all area/help data. Record these sources with `area-lore/...` paths in `sourceRefs.file` and `mapReferences.areaFiles`. Non-area sources (`src/`, `doc/`, `system/`, `boards/`, `player/`, `log/`) are unaffected and still live under `tools/KillerMUD/` as usual.
+
 ## Contents
 
 - [Source priority](#source-priority)
@@ -19,7 +21,7 @@ This map was prepared against local KillerMUD commit `60af6d4dd21bb4116481260779
 
 Use these sources in descending order when locating existing lore:
 
-1. Active player-facing entries in files named by `area/area.lst`.
+1. Active player-facing entries in files named by `area-lore/area.lst`.
 2. Other active structured game data, for example clan or language definitions.
 3. Hard-coded player-facing text and tables in `src/`.
 4. Inactive `.are` files, technical documentation, reports, logs, boards, and player data.
@@ -46,8 +48,8 @@ The authoritative loaders are:
 
 ## Loaded world and area metadata
 
-- `area/area.lst`: startup list of loaded area/help files. This is the first authority for active versus inactive content.
-- `area/*.are`: world data. Most current files contain `#AREADATA`, `#MOBILES`, `#OBJECTS`, `#ROOMS`, and supporting mechanical sections.
+- `area-lore/area.lst`: startup list of loaded area/help files. This is the first authority for active versus inactive content.
+- `area-lore/*.are`: world data. Most current files contain `#AREADATA`, `#MOBILES`, `#OBJECTS`, `#ROOMS`, and supporting mechanical sections.
 - `#AREADATA` fields:
   - `Name`: displayed area/land name; useful for geography and provenance.
   - `Builders`, `Credits`: authorship, not in-world lore unless the text itself clearly says otherwise.
@@ -113,7 +115,7 @@ Room `Extra` entries often hold plaques, signs, monuments, books, maps, murals, 
 
 ## Help records
 
-Active help containers listed in `area/area.lst` include `help.are`, `helpblk.are`, `helpcle.are`, `helpdru.are`, `helpmag.are`, `skills.are`, and `olc.hlp`.
+Active help containers listed in `area-lore/area.lst` include `help.are`, `helpblk.are`, `helpcle.are`, `helpdru.are`, `helpmag.are`, `skills.are`, and `olc.hlp`.
 
 Each `#HELPS` record is:
 
@@ -148,10 +150,10 @@ The section ends with `-1 $~`; the file ends with `#$`.
 Run searches from `tools/KillerMUD`:
 
 ```powershell
-rg -n '^#(AREADATA|MOBILES|OBJECTS|ROOMS|HELPS)$' area
-rg -n '^#Vnum 6000$' area -g '*.are'
-rg -n '^(Name|Short|Long|Descr|Itemdesc|Nightdescr|Extra) ' area -g '*.are'
-rg -n -i 'histori|król|bóg|bogini|wiar|świąty|klan|wojn|traktat' area -g '*.are'
+rg -n '^#(AREADATA|MOBILES|OBJECTS|ROOMS|HELPS)$' area-lore
+rg -n '^#Vnum 6000$' area-lore -g '*.are'
+rg -n '^(Name|Short|Long|Descr|Itemdesc|Nightdescr|Extra) ' area-lore -g '*.are'
+rg -n -i 'histori|król|bóg|bogini|wiar|świąty|klan|wojn|traktat' area-lore -g '*.are'
 ```
 
 For Polish terms containing non-ASCII characters, decode candidate files as ISO-8859-2 before text matching. Use ASCII stems with `rg` for initial discovery when possible.

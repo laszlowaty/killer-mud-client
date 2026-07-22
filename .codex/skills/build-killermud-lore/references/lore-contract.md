@@ -54,7 +54,7 @@ Point to the narrowest available location:
 
 ```json
 {
-  "file": "area/arras.are",
+  "file": "area-lore/arras.are",
   "sourceTier": "active-player-facing",
   "section": "ROOMS",
   "vnum": 6000,

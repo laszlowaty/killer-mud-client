@@ -3,6 +3,9 @@
 Źródłem prawdy są rekordy JSONL wymienione w `manifest.json`. Plików w `dist/`
 nie należy edytować ręcznie: są odtwarzane z rekordów kanonicznych.
 
+Kanoniczny zbiór jest odbudowywany wyłącznie ze źródeł wymienionych
+w `tools/KillerMUD/area-lore/area.lst`.
+
 Po zmianie świata albo rekordów lore uruchom z katalogu repozytorium:
 
 ```powershell
