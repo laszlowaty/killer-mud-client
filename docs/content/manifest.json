@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "release": "2026.07.22.2",
+  "release": "2026.07.22.4",
   "minAppVersion": "0.5.9",
   "components": {
     "map": {
-      "version": "2026.07.18.1",
-      "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-map-2026.07.18.1/map-2026.07.18.1.zip",
+      "version": "2026.07.22.3",
+      "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-map-2026.07.22.3/map-2026.07.22.3.zip",
       "size": 34930920,
-      "sha256": "eb29f048f5941ca90716c2c9d45924d9be32573c3848d41d44d48fc78f6770f9"
+      "sha256": "d3f2ec16926bbe0f0e963004673aaa6e907b7ac44b438f2492d9fb696fe0ead0"
     },
     "killeropedia": {
-      "version": "2026.07.22.2",
-      "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-killeropedia-2026.07.22.2/killeropedia-2026.07.22.2.zip",
-      "size": 43674,
-      "sha256": "1ab874892aeb002a94a02280a5719c4dfc99e3e4d65bc35e6fbae8668e1f6b1f"
+      "version": "2026.07.22.4",
+      "url": "https://github.com/laszlowaty/killer-mud-client/releases/download/content-killeropedia-2026.07.22.4/killeropedia-2026.07.22.4.zip",
+      "size": 111839,
+      "sha256": "b144787fa060ec393dfe50500018365018bfce55b821614433ff66d61de20b2a"
     }
   }
 }
