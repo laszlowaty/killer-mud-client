@@ -7,18 +7,22 @@
     "article:arras-akademia-magii",
     "article:carrallak-uniwersytet-wszechwiedzy",
     "article:carrallak-swiatynia-portena",
+    "article:bagna-na-poludnie-od-arras",
+    "article:zamek-i-twierdza-w-okolicach-arras",
     "article:easterial"
   ],
   "files": [
     "arras-akademia-magii.md",
     "arras.md",
+    "bagna-na-poludnie-od-arras.md",
     "carrallak-swiatynia-portena.md",
     "carrallak-uniwersytet-wszechwiedzy.md",
     "carrallak.md",
     "easterial.md",
     "index.md",
     "karakris.md",
-    "silea.md"
+    "silea.md",
+    "zamek-i-twierdza-w-okolicach-arras.md"
   ],
   "generator": "build-killermud-lore/export_lore_markdown.py",
   "schemaVersion": 1

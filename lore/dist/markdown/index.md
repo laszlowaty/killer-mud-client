@@ -17,6 +17,11 @@ Czytelny katalog artykułów generowany z kanonicznych rekordów JSONL.
 - [Uniwersytet Wszechwiedzy](carrallak-uniwersytet-wszechwiedzy.md) — Uniwersytet Wszechwiedzy to rozległa, wielowiekowa uczelnia w Carrallak, otoczona parkiem i widoczna z murów miasta — pod jej marmurowymi korytarzami i salą badań nad magią portali kryje się jednak mroczna tajemnica: podziemne laboratorium obłąkanego maga pełne okaleczonych zwłok.
 - [Świątynia Portena](carrallak-swiatynia-portena.md) — Świątynia Portena to potężna, przypominająca fortecę siedziba kultu boga światłości i sprawiedliwości w Carrallak — z Wiecznym Ogniem, w miejscu którego bóg miał ukazać się Arcykapłanowi, biblioteką Domu Wiedzy, sądem religijnym Sali Gwiazd i legendarnymi paladynami, wśród nich starym Federmelem ev Kenrahem z mitycznego bractwa Paladynów Poranka.
 
+## Regiony
+
+- [Bagna na południe od Arras](bagna-na-poludnie-od-arras.md) — Na południe od Arras Droga Południowa przechodzi przez równiny i pastwiska, a dalej w sieć podmokłych ścieżek, bagien przed deltą i rozlewisk uchodzących ku zatoce.
+- [Czarny Zamek, Szkarłatne Płaszcze i trakt ku Fortecy](zamek-i-twierdza-w-okolicach-arras.md) — W okolicach Arras spotykają się trzy różne szlaki i konflikty: brukowane połączenie z Krasnoludzką Fortecą, ponury Zamek Wyznawców Variotha oraz Twierdza Szkarłatnych Płaszczy, której przeszłość wiąże się z Rycerzami Pokoju.
+
 ## Osady
 
 - [Easterial](easterial.md) — Małe i spokojne północne miasteczko rybackie nad Dinneshere, którego drewniana zabudowa, miejscowe instytucje i codzienne życie są podporządkowane mrozowi, jezioru oraz kontaktom z południem.
