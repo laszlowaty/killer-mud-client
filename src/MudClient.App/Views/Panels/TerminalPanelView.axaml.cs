@@ -211,6 +211,19 @@ public sealed partial class TerminalPanelView : UserControl
             // Give that selection priority; without one, leave Ctrl+C to the TextBox.
             eventArgs.Handled = true;
             await _mudOutput.CopySelectionToClipboardAsync();
+            return;
+        }
+
+        // Must intercept Enter in the tunnel phase: the TextBox's own bubble-phase
+        // handling (AcceptsReturn="True") would otherwise insert a newline first.
+        if (eventArgs.Key == Key.Enter
+            && !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            && _viewModel is not null
+            && _viewModel.SendCommandCommand.CanExecute(null))
+        {
+            _viewModel.SendCommandCommand.Execute(null);
+            HandlePostSend();
+            eventArgs.Handled = true;
         }
     }
 
@@ -223,25 +236,36 @@ public sealed partial class TerminalPanelView : UserControl
 
         switch (eventArgs.Key)
         {
-            case Key.Enter:
-                if (_viewModel.SendCommandCommand.CanExecute(null))
+            case Key.Up:
+                if (IsCaretOnFirstLine())
                 {
-                    _viewModel.SendCommandCommand.Execute(null);
-                    HandlePostSend();
+                    NavigateHistory(+1);
                     eventArgs.Handled = true;
                 }
                 break;
 
-            case Key.Up:
-                NavigateHistory(+1);
-                eventArgs.Handled = true;
-                break;
-
             case Key.Down:
-                NavigateHistory(-1);
-                eventArgs.Handled = true;
+                if (IsCaretOnLastLine())
+                {
+                    NavigateHistory(-1);
+                    eventArgs.Handled = true;
+                }
                 break;
         }
+    }
+
+    private bool IsCaretOnFirstLine()
+    {
+        var text = _commandBox.Text ?? string.Empty;
+        var caretIndex = _commandBox.CaretIndex;
+        return text.LastIndexOf('\n', Math.Max(0, Math.Min(caretIndex, text.Length) - 1)) < 0;
+    }
+
+    private bool IsCaretOnLastLine()
+    {
+        var text = _commandBox.Text ?? string.Empty;
+        var caretIndex = _commandBox.CaretIndex;
+        return text.IndexOf('\n', Math.Min(caretIndex, text.Length)) < 0;
     }
 
     private void SearchBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
