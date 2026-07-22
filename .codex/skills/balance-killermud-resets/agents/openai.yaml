@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resety i balans KillerMUD"
+  short_description: "Układa resety i sprawdza balans krainy"
+  default_prompt: "Użyj $balance-killermud-resets, aby wyposażyć moby zgodnie z ich skillami, dodać resety i zbalansować krainę."

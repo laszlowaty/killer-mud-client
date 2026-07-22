@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review krainy KillerMUD"
+  short_description: "Sprawdza kompletność, lore i mechanikę"
+  default_prompt: "Użyj $review-killermud-area, aby sprawdzić całą krainę, w tym zgodność opisów, skilli, spelli, wyposażenia i resetów."

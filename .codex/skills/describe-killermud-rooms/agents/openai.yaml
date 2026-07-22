@@ -1,0 +1,4 @@
+interface:
+  display_name: "Opisy roomów KillerMUD"
+  short_description: "Dodaje dłuższe, spójne opisy lokacji"
+  default_prompt: "Użyj $describe-killermud-rooms, aby dodać rozbudowane opisy i sprawdzić ciągłość zatwierdzonej siatki krainy."

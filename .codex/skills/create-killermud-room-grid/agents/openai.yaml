@@ -1,0 +1,4 @@
+interface:
+  display_name: "Siatka roomów KillerMUD"
+  short_description: "Tworzy logiczną siatkę, nazwy i sektory"
+  default_prompt: "Użyj $create-killermud-room-grid, aby stworzyć siatkę roomów w podanym zakresie vnumów."

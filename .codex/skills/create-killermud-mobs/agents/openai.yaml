@@ -1,0 +1,4 @@
+interface:
+  display_name: "Moby KillerMUD"
+  short_description: "Projektuje spójne fabularnie i mechanicznie moby"
+  default_prompt: "Użyj $create-killermud-mobs, aby utworzyć moby wraz z opisami, skillami, spellami i potrzebnym wyposażeniem."

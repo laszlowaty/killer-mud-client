@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generuj krainę KillerMUD"
+  short_description: "Prowadzi cały proces tworzenia nowej krainy"
+  default_prompt: "Użyj $generate-killermud-area, aby przygotować od zera izolowaną krainę w podanym zakresie vnumów."

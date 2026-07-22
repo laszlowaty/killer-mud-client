@@ -1,0 +1,4 @@
+interface:
+  display_name: "Przedmioty KillerMUD"
+  short_description: "Tworzy lub dobiera przedmioty z rezerwuaru"
+  default_prompt: "Użyj $create-killermud-items, aby zaspokoić potrzeby bojowe mobów i utworzyć albo dobrać przedmioty z rezerwuaru."
