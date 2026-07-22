@@ -43,6 +43,8 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 - miękki, półprzezroczysty cień pokojów i połączeń z poziomu `z-1`, ułatwiający orientację między piętrami,
 - znaczniki z imionami członków drużyny na mapie na podstawie pokojów z GMCP `Char.Group` (złoty znacznik oznacza lidera),
 - opcjonalny **Tryb lorda** w menu mapy udostępnia pod prawym przyciskiem pokoju polecenie `goto <vnum>`; uprawnienia do wykonania komendy nadal weryfikuje serwer,
+- dostępny wyłącznie w Trybie lorda edytor mapy koreluje ręczną komendę ruchu z następnym GMCP `Room.Info`, tworzy nowe pokoje i połączenia oraz zapisuje roboczą mapę w `%AppData%/KillerMudClient/MapEditor/world-map.json`; podczas mapowania timery, triggery, autowalk i komendy przycisków są blokowane; brak `Room.Info` po 8 sekundach anuluje tylko oczekujący ruch, teleport do znanego pokoju synchronizuje punkt startowy, a teleport do nieznanego pokoju lub rozłączenie bezpiecznie zatrzymuje mapowanie,
+- niezapisane zmiany mappera są automatycznie odkładane w skompresowanym checkpointcie `MapEditor/recovery.json.gz`; po restarcie klient odtwarza mapę oraz do pięciu ostatnich stanów undo, a ręczny zapis zachowuje historię bez oznaczania mapy jako awaryjnie odzyskanej,
 - pathfinding i automatyczne chodzenie po kliknięciu pokoju, także przez przejścia między poziomami `z`, z politykami odzyskiwania: odpoczynek/`refresh` przy niskim `mv` oraz obsługa zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).
 - zapisane cele autowalk można usuwać dopiero po potwierdzeniu operacji.
 
@@ -82,7 +84,22 @@ aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu
 ### Pomoc aplikacji
 
 Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/idz`,
-`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop` oraz `/recast`. Komenda
+`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop`, `/recast` oraz komend mappera `/map`.
+W Trybie lorda mapper obsługuje `start`, `stop`, `save`, `undo`, `redo`, `cancel`,
+`status`, `info`, `check`, `diff`, `import`, `export`, `discard`, `resolve`,
+`step <1-20>`, `area`, `room`, `symbol`, `label`, `forget` i `special`; jako
+zgodny skrót można używać prefiksu `+map`. Rozszerzone operacje mają postać
+`/map area <nazwa>`, `/map symbol <znak>`, `/map label <tekst>` oraz
+`/map special <kierunek> <komenda>`; wartości `clear`/`-1` usuwają symbol lub
+przejście specjalne. Komenda `/map forget` odłącza bieżący pokój od vnum, a
+`/map check` sprawdza spójność edytowanej mapy. `/map diff` porównuje ją z
+aktualną mapą bazową, `/map export <ścieżka.json>` zapisuje kopię, a chroniona
+potwierdzeniem komenda `/map discard confirm` usuwa mapę roboczą i wraca do
+aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
+`/map resolve keep` albo `/map resolve gmcp`. Import wymaga jawnego potwierdzenia:
+`/map import <ścieżka.json> confirm`. Bieżący pokój można edytować przez
+`/map room name|sector|weight|move`, a etykiety wyświetlać i zmieniać przez
+`/map label list`, `/map label set <id> <tekst>` i `/map label delete <id>`. Komenda
 `/idz_dodaj <nazwa>` zapisuje obecną lokację dla aktywnego konta.
 
 ### Automatyzacja

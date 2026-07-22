@@ -632,6 +632,7 @@ public sealed class WorldMapControl : Control
 
         if (_zoom < OverviewZoomThreshold && hasWorldBackdrop)
         {
+            DrawLabels(context);
             DrawRoute(context, EmptyOffsets);
             DrawOverviewSelectionAndCurrent(context);
             DrawGroupMarkers(context, EmptyOffsets);
@@ -650,6 +651,7 @@ public sealed class WorldMapControl : Control
         DrawLowerLevelShadow(context);
         DrawExits(context, roomsWithOffsets, roomLookup);
         DrawRooms(context, roomsWithOffsets);
+        DrawLabels(context);
         DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
         DrawGroupMarkers(context, roomLookup);
@@ -1067,6 +1069,47 @@ public sealed class WorldMapControl : Control
                     context.DrawRectangle(new Pen(Brushes.Black, 1), doorRect);
                 }
             }
+        }
+    }
+
+    private void DrawLabels(DrawingContext context)
+    {
+        if (_mapIndex?.AreasById.GetValueOrDefault(_areaId) is not { } area)
+        {
+            return;
+        }
+
+        var visible = GetVisibleWorldBounds();
+        foreach (var label in area.Labels)
+        {
+            if (label.Coordinates.Z != _z ||
+                string.IsNullOrWhiteSpace(label.Text) ||
+                label.Text == "?" ||
+                !visible.Contains(new Point(label.Coordinates.X, label.Coordinates.Y)))
+            {
+                continue;
+            }
+
+            var fontSize = Math.Clamp((label.FontSize ?? 16) * Math.Sqrt(_zoom), 8, 48);
+            var typeface = new Typeface(WidgetFontFamily, weight: FontWeight.Bold);
+            var text = new FormattedText(
+                label.Text,
+                System.Globalization.CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                fontSize,
+                Brushes.Gold);
+            var shadow = new FormattedText(
+                label.Text,
+                System.Globalization.CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                fontSize,
+                Brushes.Black);
+            var center = WorldToScreen(label.Coordinates.X, label.Coordinates.Y);
+            var origin = new Point(center.X - text.Width / 2, center.Y - text.Height / 2);
+            context.DrawText(shadow, origin + new Vector(1, 1));
+            context.DrawText(text, origin);
         }
     }
 

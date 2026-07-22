@@ -32,6 +32,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly BookCatalogRefreshCoordinator _bookCatalogRefreshCoordinator;
     private readonly GmcpLocationResolver _locationResolver = new();
     private readonly RoomExitsResolver _roomExits = new();
+    private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
     private readonly ProfileService _profiles;
@@ -315,10 +316,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
         _roomExits.ExitsChanged += OnRoomExitsChanged;
+        _roomSnapshots.SnapshotReceived += OnRoomSnapshotReceived;
         Map.RoomDoubleClicked += OnMapRoomDoubleClicked;
         Map.LordGotoRequested += OnLordGotoRequested;
         Map.LordModeChanged += OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged += OnMapGroupMarkerDisplayChanged;
+        Map.MapEditorActiveChanged += OnMapEditorActiveChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
         _dockLayoutService = dockLayoutService ?? new DockLayoutService();
@@ -1924,6 +1927,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 foreach (var command in commands)
                 {
                     token.ThrowIfCancellationRequested();
+                    if (Map.IsMapEditorActive)
+                    {
+                        continue;
+                    }
+
                     Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
                     await _session.SendCommandAsync(command, token);
                 }
@@ -2812,6 +2820,365 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         return false;
+    }
+
+    private async Task<bool> TryHandleMapEditorCommandAsync(string command)
+    {
+        var trimmed = command.Trim();
+        string? arguments = null;
+        foreach (var prefix in new[] { "/map", "/mapa", "+map" })
+        {
+            if (string.Equals(trimmed, prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                arguments = string.Empty;
+                break;
+            }
+
+            if (trimmed.StartsWith(prefix + " ", StringComparison.OrdinalIgnoreCase))
+            {
+                arguments = trimmed[(prefix.Length + 1)..].Trim();
+                break;
+            }
+        }
+
+        if (arguments is null)
+        {
+            return false;
+        }
+
+        if (!LordModeEnabled)
+        {
+            AddToast("Edytor mapy jest dostępny tylko w trybie lorda.", "error");
+            return true;
+        }
+
+        var parts = arguments.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var action = parts.Length == 0 ? "status" : parts[0].ToLowerInvariant();
+        switch (action)
+        {
+            case "edit":
+                if (Map.IsMapEditorActive)
+                {
+                    Map.StopMapEditor();
+                }
+                else
+                {
+                    Map.StartMapEditor();
+                }
+
+                break;
+            case "start":
+                Map.StartMapEditor();
+                break;
+            case "stop":
+                Map.StopMapEditor();
+                break;
+            case "save":
+            case "zapisz":
+                await Map.SaveMapEditorAsync();
+                break;
+            case "undo":
+            case "cofnij":
+                Map.UndoMapEditor();
+                break;
+            case "redo":
+            case "ponow":
+                Map.RedoMapEditor();
+                break;
+            case "cancel":
+            case "anuluj":
+                Map.CancelPendingMapMovement("Anulowano oczekiwanie mappera na Room.Info.");
+                break;
+            case "diff":
+            case "roznice":
+                AddToast(await Map.GetMapEditorDiffAsync(), "info");
+                return true;
+            case "export":
+            case "eksport":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map export <ścieżka-do-world-map.json>.", "info");
+                    return true;
+                }
+
+                AddToast(await Map.ExportMapEditorAsync(parts[1]), "info");
+                return true;
+            case "import":
+                if (parts.Length < 2 || !TryParseConfirmedPath(parts[1], out var importPath))
+                {
+                    AddToast("Import zastępuje mapę roboczą. Użycie: /map import <ścieżka.json> confirm.", "error");
+                    return true;
+                }
+
+                AddToast(await Map.ImportMapEditorAsync(importPath), "info");
+                return true;
+            case "discard":
+            case "odrzuc":
+                if (parts.Length < 2 ||
+                    parts[1].ToLowerInvariant() is not ("confirm" or "potwierdz"))
+                {
+                    AddToast("Ta komenda usuwa zapisaną mapę roboczą. Użycie: /map discard confirm.", "error");
+                    return true;
+                }
+
+                AddToast(await Map.DiscardWorkingMapAsync(), "info");
+                return true;
+            case "resolve":
+            case "rozwiaz":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map resolve keep|gmcp.", "info");
+                    return true;
+                }
+
+                var resolution = parts[1].ToLowerInvariant();
+                if (resolution is "keep" or "map" or "mapa")
+                {
+                    Map.ResolveMapConflictKeepMap();
+                }
+                else if (resolution is "gmcp" or "replace" or "zastap")
+                {
+                    Map.ResolveMapConflictUseGmcp();
+                }
+                else
+                {
+                    AddToast("Użycie: /map resolve keep|gmcp.", "info");
+                    return true;
+                }
+
+                break;
+            case "step":
+            case "krok":
+                if (parts.Length < 2 || !int.TryParse(parts[1], out var step))
+                {
+                    AddToast("Użycie: /map step <1-20>.", "info");
+                    return true;
+                }
+
+                Map.SetMapEditorStep(step);
+                break;
+            case "area":
+            case "obszar":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map area <nazwa>.", "info");
+                    return true;
+                }
+
+                Map.CreateMapArea(parts[1]);
+                break;
+            case "symbol":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map symbol <znak>; wartości -1 lub clear usuwają symbol.", "info");
+                    return true;
+                }
+
+                Map.SetCurrentMapRoomSymbol(parts[1]);
+                break;
+            case "label":
+            case "etykieta":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map label <tekst>. Prefiksy #, ## i ### zmieniają rozmiar.", "info");
+                    return true;
+                }
+
+                var labelParts = parts[1].Split(
+                    ' ',
+                    3,
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var labelAction = labelParts[0].ToLowerInvariant();
+                if (labelAction is "list" or "lista")
+                {
+                    Map.ShowCurrentAreaMapLabels();
+                }
+                else if (labelAction is "delete" or "remove" or "usun")
+                {
+                    if (labelParts.Length < 2 || !int.TryParse(labelParts[1], out var labelId))
+                    {
+                        AddToast("Użycie: /map label delete <id>.", "info");
+                        return true;
+                    }
+
+                    Map.RemoveMapLabel(labelId);
+                }
+                else if (labelAction is "set" or "edit" or "zmien")
+                {
+                    if (labelParts.Length < 3 || !int.TryParse(labelParts[1], out var labelId))
+                    {
+                        AddToast("Użycie: /map label set <id> <tekst>.", "info");
+                        return true;
+                    }
+
+                    Map.SetMapLabelText(labelId, labelParts[2]);
+                }
+                else
+                {
+                    Map.AddCurrentMapLabel(parts[1]);
+                }
+
+                break;
+            case "room":
+            case "pokoj":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map room name|sector|weight|move <wartość>.", "info");
+                    return true;
+                }
+
+                var roomParts = parts[1].Split(
+                    ' ',
+                    2,
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (roomParts.Length < 2)
+                {
+                    AddToast("Użycie: /map room name|sector|weight|move <wartość>.", "info");
+                    return true;
+                }
+
+                switch (roomParts[0].ToLowerInvariant())
+                {
+                    case "name":
+                    case "nazwa":
+                        Map.SetCurrentMapRoomName(roomParts[1]);
+                        break;
+                    case "sector":
+                    case "sektor":
+                        Map.SetCurrentMapRoomSector(roomParts[1]);
+                        break;
+                    case "weight":
+                    case "waga":
+                        if (!double.TryParse(
+                                roomParts[1],
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out var weight))
+                        {
+                            AddToast("Użycie: /map room weight <liczba>.", "info");
+                            return true;
+                        }
+
+                        Map.SetCurrentMapRoomWeight(weight);
+                        break;
+                    case "move":
+                    case "przenies":
+                        var coordinates = roomParts[1].Split(
+                            ' ',
+                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        if (coordinates.Length != 3 ||
+                            !double.TryParse(coordinates[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var x) ||
+                            !double.TryParse(coordinates[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var y) ||
+                            !double.TryParse(coordinates[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var z))
+                        {
+                            AddToast("Użycie: /map room move <x> <y> <z>.", "info");
+                            return true;
+                        }
+
+                        Map.MoveCurrentMapRoom(new MapCoordinates(x, y, z));
+                        break;
+                    default:
+                        AddToast("Użycie: /map room name|sector|weight|move <wartość>.", "info");
+                        return true;
+                }
+
+                break;
+            case "forget":
+            case "zapomnij":
+                Map.ForgetCurrentMapRoom();
+                break;
+            case "special":
+            case "specjalne":
+                if (parts.Length < 2)
+                {
+                    AddToast("Użycie: /map special <kierunek> <komenda>; komenda -1 usuwa przejście.", "info");
+                    return true;
+                }
+
+                var specialParts = parts[1].Split(
+                    ' ',
+                    2,
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (specialParts.Length < 2)
+                {
+                    AddToast("Użycie: /map special <kierunek> <komenda>.", "info");
+                    return true;
+                }
+
+                if (specialParts[1] == "-1")
+                {
+                    Map.RemoveMapSpecialExit(specialParts[0]);
+                    break;
+                }
+
+                var specialDecision = Map.PrepareMapSpecialMovement(specialParts[0], specialParts[1]);
+                if (!specialDecision.Allow)
+                {
+                    AddToast(specialDecision.Message ?? "Nie można dodać przejścia specjalnego.", "error");
+                    return true;
+                }
+
+                await SendMapSpecialCommandAsync(specialDecision.Command);
+                break;
+            case "check":
+            case "sprawdz":
+                Map.ValidateEditedMap();
+                break;
+            case "status":
+                AddToast($"{Map.MapEditorStatus} {Map.MapEditorSourceDescription}", "info");
+                return true;
+            case "info":
+                Map.ShowCurrentMapRoomInfo();
+                break;
+            default:
+                AddToast("Komendy mappera: start, stop, save, undo, redo, cancel, status, info, check, diff, import, export, discard, resolve, step, area, room, symbol, label, forget i special. Działa też prefiks +map.", "info");
+                return true;
+        }
+
+        AddToast(Map.MapEditorStatus, Map.MapEditorStatus.StartsWith("Konflikt", StringComparison.OrdinalIgnoreCase) ? "error" : "info");
+        return true;
+    }
+
+    private static bool TryParseConfirmedPath(string arguments, out string path)
+    {
+        foreach (var confirmation in new[] { " confirm", " potwierdz" })
+        {
+            if (arguments.EndsWith(confirmation, StringComparison.OrdinalIgnoreCase))
+            {
+                path = arguments[..^confirmation.Length].Trim();
+                return path.Length > 0;
+            }
+        }
+
+        path = string.Empty;
+        return false;
+    }
+
+    private async Task SendMapSpecialCommandAsync(string command)
+    {
+        EmitCommandEcho(command);
+        try
+        {
+            await _session.SendCommandAsync(command);
+        }
+        catch (Exception exception)
+        {
+            Map.CancelPendingMapMovement($"Nie udało się wysłać przejścia specjalnego: {exception.Message}");
+            EmitSystem(exception.Message, 31);
+        }
+    }
+
+    private void OnRoomSnapshotReceived(RoomSnapshot snapshot)
+    {
+        Dispatcher.UIThread.Post(() => Map.HandleRoomSnapshot(snapshot));
+    }
+
+    private void OnMapEditorActiveChanged(bool active)
+    {
+        if (active)
+        {
+            StopAutowalk("Autowalk zatrzymany na czas mapowania.");
+        }
     }
 
     /// <summary>
@@ -4271,6 +4638,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private async Task DisconnectAsync()
     {
         IsBusy = true;
+        Map.StopMapEditor(
+            "Mapowanie zatrzymane przed rozłączeniem. Po ponownym połączeniu uruchom je ręcznie.");
 
         try
         {
@@ -4306,6 +4675,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var segment in segments)
         {
+            if (await TryHandleMapEditorCommandAsync(segment))
+            {
+                continue;
+            }
+
             if (TryHandleAutowalkCommand(segment))
             {
                 continue;
@@ -4324,6 +4698,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             foreach (var command in commands)
             {
+                var mapperDecision = Map.PrepareMapEditorCommand(command);
+                if (!mapperDecision.Allow)
+                {
+                    EmitSystem($"Mapper: {mapperDecision.Message}", 33);
+                    continue;
+                }
+
                 EmitCommandEcho(command);
 
                 try
@@ -4332,6 +4713,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
+                    if (Map.IsMapEditorAwaitingRoomInfo)
+                    {
+                        Map.CancelPendingMapMovement(
+                            $"Nie udało się wysłać ruchu mappera: {exception.Message}");
+                    }
                     EmitSystem(exception.Message, 31);
                 }
             }
@@ -4346,7 +4732,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         if (!string.IsNullOrWhiteSpace(name) && IsConnected)
         {
-            _ = _session.SendCommandAsync($"exa {name}");
+            _ = SendUiCommandAsync($"exa {name}");
         }
     }
 
@@ -4354,7 +4740,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         if (!string.IsNullOrWhiteSpace(name) && IsConnected)
         {
-            _ = _session.SendCommandAsync($"kill {name}");
+            _ = SendUiCommandAsync($"kill {name}");
+        }
+    }
+
+    private async Task SendUiCommandAsync(string command)
+    {
+        if (Map.IsMapEditorActive)
+        {
+            AddToast("Automatyczne i przyciskowe komendy są zablokowane podczas mapowania.", "info");
+            return;
+        }
+
+        try
+        {
+            await _session.SendCommandAsync(command);
+        }
+        catch (Exception exception)
+        {
+            EmitSystem(exception.Message, 31);
         }
     }
 
@@ -4857,6 +5261,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         string command,
         CancellationToken cancellationToken = default)
     {
+        if (Map.IsMapEditorActive)
+        {
+            return;
+        }
+
         Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
 
         try
@@ -4877,6 +5286,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         // Exits must be parsed before the location resolver fires
         // LocationChanged, so autowalk sees the new room's doors.
+        _roomSnapshots.Process(message);
         _roomExits.Process(message);
         _locationResolver.Process(message);
         _characterState.Process(message);
@@ -5165,6 +5575,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
+            Map.StopMapEditor(
+                "Mapowanie zatrzymane po utracie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
         });
     }
@@ -5174,6 +5586,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
+            Map.StopMapEditor(
+                "Mapowanie zatrzymane po błędzie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
             EmitSystem(exception.Message, 31);
         });
@@ -5256,6 +5670,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task SendBookCatalogCommandAsync(string command, CancellationToken cancellationToken)
     {
+        if (Map.IsMapEditorActive)
+        {
+            throw new InvalidOperationException("Odświeżanie katalogu jest niedostępne podczas mapowania.");
+        }
+
         var echo = command.Length == 0 ? "[PUSTA WIADOMOŚĆ]" : command;
         await Dispatcher.UIThread.InvokeAsync(() => EmitSystem($"> {echo}", 90));
         await _session.SendCommandAsync(command, cancellationToken);
@@ -5379,6 +5798,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.PropertyChanged -= OnMapPropertyChanged;
         _locationResolver.LocationChanged -= OnAutowalkLocationChanged;
         _roomExits.ExitsChanged -= OnRoomExitsChanged;
+        _roomSnapshots.SnapshotReceived -= OnRoomSnapshotReceived;
+        Map.MapEditorActiveChanged -= OnMapEditorActiveChanged;
         Map.RoomDoubleClicked -= OnMapRoomDoubleClicked;
         Map.LordGotoRequested -= OnLordGotoRequested;
         Map.LordModeChanged -= OnMapLordModeChanged;
@@ -5476,7 +5897,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         await _timers.DisposeAsync();
         await _session.DisposeAsync();
-        Map.Dispose();
+        await Map.DisposeAsync();
         _triggerSendLock.Dispose();
         _triggerCts.Dispose();
         _autowalkCts.Dispose();

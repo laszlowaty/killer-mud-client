@@ -91,6 +91,22 @@ public sealed class MapLoader
                 Id = rawArea.Id,
                 Name = rawArea.Name,
                 Rooms = rooms,
+                Labels = (rawArea.Labels ?? [])
+                    .Where(label => MapCoordinates.TryCreate(label.Coordinates, out _))
+                    .Select(label =>
+                    {
+                        MapCoordinates.TryCreate(label.Coordinates, out var coordinates);
+                        return new MapLabel
+                        {
+                            Id = label.Id,
+                            AreaId = rawArea.Id,
+                            Text = label.Text ?? string.Empty,
+                            Coordinates = coordinates,
+                            FontSize = label.FontSize,
+                            ShowOnTop = label.ShowOnTop,
+                        };
+                    })
+                    .ToArray(),
             });
         }
 

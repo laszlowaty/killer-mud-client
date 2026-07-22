@@ -7,4 +7,6 @@ public sealed class MapArea
     public string? Name { get; init; }
 
     public IReadOnlyList<MapRoom> Rooms { get; init; } = [];
+
+    public IReadOnlyList<MapLabel> Labels { get; init; } = [];
 }

@@ -181,6 +181,43 @@ public sealed class LordModeMapUiTests
     }
 
     [AvaloniaFact]
+    public void MapOptions_ExposeEditorControlsOnlyInLordMode()
+    {
+        using var viewModel = new MapViewModel(AppContext.BaseDirectory, new GmcpLocationResolver());
+        var panel = new MapPanelView { DataContext = viewModel };
+        var window = new Window { Width = 800, Height = 600, Content = panel };
+
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            var mapMenuButton = panel.FindControl<Button>("MapMenuButton")!;
+            mapMenuButton.Flyout!.ShowAt(mapMenuButton);
+            Dispatcher.UIThread.RunJobs();
+
+            var startButton = Assert.Single(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => button.Content?.ToString() == "Rozpocznij mapowanie");
+            var editorPanel = panel.FindControl<StackPanel>("MapEditorPanel")!;
+            Assert.False(editorPanel.IsVisible);
+
+            viewModel.LordModeEnabled = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(editorPanel.IsVisible);
+            Assert.Same(viewModel.StartMapEditorCommand, startButton.Command);
+            var redoButton = Assert.Single(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => button.Content?.ToString() == "Ponów");
+            Assert.Same(viewModel.RedoMapEditorCommand, redoButton.Command);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public async Task GroupContextMenu_ExposesRoomAndCharacterGotoOnlyInLordMode()
     {
         var settingsDirectory = Path.Combine(

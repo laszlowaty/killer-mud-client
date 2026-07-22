@@ -216,6 +216,7 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
         Assert.Contains("/recast", helpTexts);
+        Assert.Contains("/map <komenda>", helpTexts);
     }
 
     [AvaloniaFact]

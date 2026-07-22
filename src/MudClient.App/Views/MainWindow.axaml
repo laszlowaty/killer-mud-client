@@ -367,6 +367,15 @@
                                Text="Ponownie rzuca wszystkie brakujące czary z listy wymaganych buffów na postać." />
                   </Grid>
                 </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/map &lt;komenda&gt;" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="W trybie lorda steruje edytorem mapy: start, stop, save, undo, redo, cancel, info, check, diff, import, export, discard, resolve, step, area, room, symbol, label, forget i special. Można też używać prefiksu +map." />
+                  </Grid>
+                </Border>
               </StackPanel>
             </ScrollViewer>
           </TabItem>

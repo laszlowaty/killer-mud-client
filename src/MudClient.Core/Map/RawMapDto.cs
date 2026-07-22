@@ -21,6 +21,21 @@ internal sealed class RawMapArea
     public int RoomCount { get; set; }
 
     public List<RawMapRoom>? Rooms { get; set; }
+
+    public List<RawMapLabel>? Labels { get; set; }
+}
+
+internal sealed class RawMapLabel
+{
+    public int Id { get; set; }
+
+    public string? Text { get; set; }
+
+    public List<double>? Coordinates { get; set; }
+
+    public double? FontSize { get; set; }
+
+    public bool ShowOnTop { get; set; }
 }
 
 internal sealed class RawMapRoom

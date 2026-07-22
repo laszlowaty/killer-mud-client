@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
     private CancellationTokenSource? _pinnedPanelAuditCts;
+    private bool _closingAfterRecoveryFlush;
     private readonly DispatcherTimer _idleRefreshTimer;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
@@ -386,6 +387,42 @@ public partial class MainWindow : Window
             {
                 _viewModel.SelectProfileCommand.Execute(null);
             }
+        }
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs eventArgs)
+    {
+        if (!_closingAfterRecoveryFlush && _viewModel?.Map.IsMapEditorDirty == true)
+        {
+            eventArgs.Cancel = true;
+            _ = FlushRecoveryAndCloseAsync();
+            return;
+        }
+
+        base.OnClosing(eventArgs);
+    }
+
+    private async Task FlushRecoveryAndCloseAsync()
+    {
+        try
+        {
+            if (_viewModel is not null)
+            {
+                await _viewModel.Map.FlushMapEditorRecoveryAsync();
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or System.Text.Json.JsonException
+            or NotSupportedException)
+        {
+            // Closing must remain possible when the optional recovery checkpoint cannot be written.
+            System.Diagnostics.Trace.WriteLine(exception);
+        }
+        finally
+        {
+            _closingAfterRecoveryFlush = true;
+            Close();
         }
     }
 

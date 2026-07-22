@@ -48,6 +48,50 @@
                 <ToggleSwitch Content="Tryb lorda"
                               IsChecked="{Binding LordModeEnabled}"
                               ToolTip.Tip="Udostępnia polecenie goto w menu prawego przycisku mapy." />
+                <StackPanel x:Name="MapEditorPanel" Spacing="6" IsVisible="{Binding LordModeEnabled}">
+                  <Border Height="1"
+                          Background="{StaticResource MudBrushSlate}"
+                          Margin="0,4" />
+                  <TextBlock Classes="mud-heading" Text="EDYTOR MAPY" />
+                  <WrapPanel>
+                    <Button Content="Rozpocznij mapowanie"
+                            Command="{Binding StartMapEditorCommand}"
+                            IsVisible="{Binding !IsMapEditorActive}"
+                            Margin="0,0,6,4"
+                            Padding="10,6" />
+                    <Button Content="Zatrzymaj mapowanie"
+                            Command="{Binding StopMapEditorCommand}"
+                            IsVisible="{Binding IsMapEditorActive}"
+                            Margin="0,0,6,4"
+                            Padding="10,6" />
+                  </WrapPanel>
+                  <WrapPanel>
+                    <Button Content="Zapisz"
+                            Command="{Binding SaveMapEditorCommand}"
+                            Margin="0,0,6,4"
+                            Padding="10,6" />
+                    <Button Content="Cofnij"
+                            Command="{Binding UndoMapEditorCommand}"
+                            Margin="0,0,6,4"
+                            Padding="10,6" />
+                    <Button Content="Ponów"
+                            Command="{Binding RedoMapEditorCommand}"
+                            Margin="0,0,6,4"
+                            Padding="10,6" />
+                  </WrapPanel>
+                  <TextBlock Classes="mud-faint"
+                             Text="{Binding MapEditorStatus}"
+                             MaxWidth="300"
+                             TextWrapping="Wrap" />
+                  <TextBlock Classes="mud-faint"
+                             Text="{Binding MapEditorSourceDescription}"
+                             MaxWidth="300"
+                             TextWrapping="Wrap" />
+                  <TextBlock Classes="mud-faint"
+                             Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|room|symbol|label|forget|special (również +map)."
+                             MaxWidth="300"
+                             TextWrapping="Wrap" />
+                </StackPanel>
                 <ToggleSwitch Content="Członkowie grupy jako cyfry"
                               IsChecked="{Binding ShowGroupMembersAsNumbers}"
                               ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
@@ -120,7 +164,12 @@
          Footer bar: status message
          ======================================================================== -->
     <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
-      <TextBlock Classes="mud-faint" Text="{Binding StatusMessage}" />
+      <StackPanel>
+        <TextBlock Classes="mud-faint" Text="{Binding StatusMessage}" />
+        <TextBlock Classes="mud-faint"
+                   IsVisible="{Binding LordModeEnabled}"
+                   Text="{Binding MapEditorStatus}" />
+      </StackPanel>
     </Border>
 
   </Grid>
