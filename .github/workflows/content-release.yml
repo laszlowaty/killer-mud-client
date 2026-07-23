@@ -69,7 +69,8 @@ jobs:
             cp lore/dist/lore-catalog.json.gz staging/lore-catalog.json.gz
             cp src/MudClient.App/Assets/Data/teachers.json.gz staging/teachers.json.gz
             cp src/MudClient.App/Assets/Data/books.json staging/books.json
-            (cd staging && zip "$GITHUB_WORKSPACE/artifacts/$ASSET" lore-catalog.json.gz teachers.json.gz books.json)
+            cp src/MudClient.App/Assets/Data/quests.json staging/quests.json
+            (cd staging && zip "$GITHUB_WORKSPACE/artifacts/$ASSET" lore-catalog.json.gz teachers.json.gz books.json quests.json)
           fi
 
           SHA256=$(sha256sum "artifacts/$ASSET" | awk '{print $1}')

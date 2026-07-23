@@ -82,6 +82,7 @@ public sealed class ContentUpdateServiceTests : IDisposable
         Assert.True(File.Exists(Path.Combine(activeDirectory, "lore-catalog.json.gz")));
         Assert.True(File.Exists(Path.Combine(activeDirectory, "teachers.json.gz")));
         Assert.True(File.Exists(Path.Combine(activeDirectory, "books.json")));
+        Assert.True(File.Exists(Path.Combine(activeDirectory, "quests.json")));
 
         var secondCheckClient = new HttpClient(new StaticHandler(_ => JsonResponse($$"""
             {
@@ -152,6 +153,7 @@ public sealed class ContentUpdateServiceTests : IDisposable
             CopyResource(assembly, archive, "MudClient.App.Assets.Data.lore-catalog.json.gz", "lore-catalog.json.gz");
             CopyResource(assembly, archive, "MudClient.App.Assets.Data.teachers.json.gz", "teachers.json.gz");
             CopyResource(assembly, archive, "MudClient.App.Assets.Data.books.json", "books.json");
+            CopyResource(assembly, archive, "MudClient.App.Assets.Data.quests.json", "quests.json");
         }
 
         return buffer.ToArray();

@@ -338,7 +338,9 @@ internal sealed class ContentUpdateService : IContentUpdateService
         var lorePath = Path.Combine(directory, "lore-catalog.json.gz");
         var teacherPath = Path.Combine(directory, "teachers.json.gz");
         var booksPath = Path.Combine(directory, "books.json");
-        if (!File.Exists(lorePath) || !File.Exists(teacherPath) || !File.Exists(booksPath))
+        var questsPath = Path.Combine(directory, "quests.json");
+        if (!File.Exists(lorePath) || !File.Exists(teacherPath) || !File.Exists(booksPath)
+            || !File.Exists(questsPath))
         {
             throw new InvalidDataException("Paczka Killeropedii nie zawiera wszystkich wymaganych katalogów.");
         }
@@ -346,6 +348,7 @@ internal sealed class ContentUpdateService : IContentUpdateService
         _ = LoreCatalogLoader.LoadFile(lorePath);
         _ = TeacherCatalogLoader.LoadFile(teacherPath);
         _ = new BookCatalogStore(booksPath).Load();
+        _ = QuestCatalogLoader.LoadFile(questsPath);
     }
 
     private static bool IsSha256(string value) =>
