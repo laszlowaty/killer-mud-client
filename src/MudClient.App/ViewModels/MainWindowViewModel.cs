@@ -783,6 +783,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             .GetActiveDirectory("killeropedia");
         var teachers = TeacherCatalogLoader.Load(
             downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "teachers.json.gz"));
+        var quests = QuestCatalogLoader.Load(
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "quests.json"));
         var lore = LoadLoreCatalog(downloadedDirectory);
         return new KilleropediaViewModel(
             teachers,

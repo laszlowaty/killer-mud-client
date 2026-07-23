@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             xmlns:b="using:MudClient.App.Behaviors"
+             x:Class="MudClient.App.Views.KilleropediaQuestsView"
+             x:DataType="vm:KilleropediaViewModel"
+             Classes="killeropedia-page"
+             x:Name="Root">
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <TextBox Grid.Column="0"
+               Text="{Binding QuestSearchText, UpdateSourceTrigger=PropertyChanged}"
+               PlaceholderText="Szukaj zadania, krainy albo zleceniodawcy..." />
+      <TextBlock Grid.Column="1"
+                 Classes="mud-faint"
+                 Text="{Binding FilteredQuestCountText}"
+                 VerticalAlignment="Center" />
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBlock Grid.Column="0"
+                 Classes="mud-muted"
+                 Text="Lista zadań graczy z progów area-lore."
+                 TextTrimming="CharacterEllipsis" />
+      <TextBlock Grid.Column="1"
+                 Classes="mud-faint"
+                 Text="Bez VNUM-ów"
+                 VerticalAlignment="Center" />
+    </Grid>
+
+    <Border Grid.Row="2"
+            Classes="mud-section"
+            Padding="18"
+            IsVisible="{Binding HasNoQuestResults}">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+        <TextBlock Classes="mud-heading-lg" Text="Brak pasujących zadań" HorizontalAlignment="Center" />
+        <TextBlock Classes="mud-muted"
+                   Text="Zmień wyszukiwaną frazę albo wybierz inną krainę."
+                   TextWrapping="Wrap"
+                   TextAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="2"
+          ColumnDefinitions="1*,3,2*"
+          IsVisible="{Binding !HasNoQuestResults}">
+      <Border Grid.Column="0" Classes="mud-inset killeropedia-left-page" Padding="12">
+        <ListBox ItemsSource="{Binding FilteredQuests}"
+                 SelectedItem="{Binding SelectedQuest}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="models:QuestEntry">
+              <Border Padding="10,7" Margin="0,1" CornerRadius="3">
+                <StackPanel Spacing="3">
+                  <TextBlock FontWeight="SemiBold"
+                             b:SearchHighlight.Text="{Binding Name}"
+                             b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).QuestSearchText}"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="mud-faint"
+                             b:SearchHighlight.Text="{Binding Region}"
+                             b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).QuestSearchText}"
+                             TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+      <Border Grid.Column="2" Classes="mud-section killeropedia-right-page" Padding="22">
+        <ScrollViewer Classes="killeropedia-content-scroll">
+          <StackPanel Spacing="14" DataContext="{Binding SelectedQuest}">
+            <TextBlock Classes="mud-heading-lg"
+                       b:SearchHighlight.Text="{Binding Name}"
+                       b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).QuestSearchText}"
+                       TextWrapping="Wrap" />
+
+            <Border Classes="mud-inset" Padding="11">
+              <StackPanel Spacing="5">
+                <TextBlock Classes="mud-heading" Text="KRAINA" />
+                <TextBlock b:SearchHighlight.Text="{Binding Region}"
+                           b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).QuestSearchText}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="mud-inset" Padding="11">
+              <StackPanel Spacing="5">
+                <TextBlock Classes="mud-heading" Text="ZLECENIODAWCA" />
+                <TextBlock b:SearchHighlight.Text="{Binding Giver}"
+                           b:SearchHighlight.Terms="{Binding #Root.((vm:KilleropediaViewModel)DataContext).QuestSearchText}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

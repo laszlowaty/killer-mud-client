@@ -9,6 +9,7 @@ namespace MudClient.App.ViewModels;
 public sealed class KilleropediaViewModel : ObservableObject
 {
     private readonly IReadOnlyList<TeacherEntry> _allTeachers;
+    private readonly IReadOnlyList<QuestEntry> _allQuests;
     private readonly IReadOnlyList<LoreEntry> _allLoreEntries;
     private readonly IReadOnlyDictionary<string, LoreEntry> _loreById;
     private readonly BookCatalogStore _bookCatalogStore;
@@ -17,6 +18,8 @@ public sealed class KilleropediaViewModel : ObservableObject
     private readonly AsyncRelayCommand _refreshBooksCommand;
     private readonly List<BookEntry> _allBooks = [];
     private string _teacherSearchText = string.Empty;
+    private string _questSearchText = string.Empty;
+    private QuestEntry? _selectedQuest;
     private TeacherEntry? _selectedTeacher;
     private string _bookSearchText = string.Empty;
     private string _selectedBookClass = "Wszystkie";
@@ -34,7 +37,7 @@ public sealed class KilleropediaViewModel : ObservableObject
     private readonly string? _loreWarning;
 
     public KilleropediaViewModel()
-        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null, null, null)
+        : this(TeacherCatalogLoader.Load(), new BookCatalogStore(), null, null, null, null, QuestCatalogLoader.Load())
     {
     }
 
@@ -44,9 +47,11 @@ public sealed class KilleropediaViewModel : ObservableObject
         Func<Task>? refreshBooksAsync,
         Action<TeacherEntry>? showTeacherOnMap = null,
         LoreCatalogData? loreCatalog = null,
-        string? mapDirectory = null)
+        string? mapDirectory = null,
+        IReadOnlyList<QuestEntry>? quests = null)
     {
         _allTeachers = teachers;
+        _allQuests = quests ?? QuestCatalogLoader.Load();
         _bookCatalogStore = bookCatalogStore;
         _refreshBooksAsync = refreshBooksAsync;
         _showTeacherOnMap = showTeacherOnMap;
@@ -69,6 +74,7 @@ public sealed class KilleropediaViewModel : ObservableObject
             NavigateLore,
             link => link is not null && _loreById.ContainsKey(link.TargetId));
         ApplyTeacherFilter();
+        ApplyQuestFilter();
         LoadBookCatalog();
         ApplyLoreFilter();
         _selectedWorldMapRegion = WorldMapRegions.FirstOrDefault();
@@ -83,6 +89,30 @@ public sealed class KilleropediaViewModel : ObservableObject
     }
 
     public ObservableCollection<TeacherEntry> FilteredTeachers { get; } = [];
+
+    public ObservableCollection<QuestEntry> FilteredQuests { get; } = [];
+
+    public string QuestSearchText
+    {
+        get => _questSearchText;
+        set
+        {
+            if (SetProperty(ref _questSearchText, value))
+            {
+                ApplyQuestFilter();
+            }
+        }
+    }
+
+    public QuestEntry? SelectedQuest
+    {
+        get => _selectedQuest;
+        set => SetProperty(ref _selectedQuest, value);
+    }
+
+    public string FilteredQuestCountText => $"Zadania: {FilteredQuests.Count} z {_allQuests.Count}";
+
+    public bool HasNoQuestResults => FilteredQuests.Count == 0;
 
     public ObservableCollection<LoreEntry> FilteredLoreEntries { get; } = [];
 
@@ -302,6 +332,27 @@ public sealed class KilleropediaViewModel : ObservableObject
         SelectedTeacher = FilteredTeachers.FirstOrDefault(teacher => teacher.MobVnum == previousId)
             ?? FilteredTeachers.FirstOrDefault();
         OnPropertyChanged(nameof(FilteredTeacherCountText));
+    }
+
+    private void ApplyQuestFilter()
+    {
+        var tokens = Normalize(QuestSearchText)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var previousName = SelectedQuest?.Name;
+
+        FilteredQuests.Clear();
+        foreach (var quest in _allQuests)
+        {
+            if (tokens.All(token => Normalize(quest.SearchableText).Contains(token)))
+            {
+                FilteredQuests.Add(quest);
+            }
+        }
+
+        SelectedQuest = FilteredQuests.FirstOrDefault(quest => quest.Name == previousName)
+            ?? FilteredQuests.FirstOrDefault();
+        OnPropertyChanged(nameof(FilteredQuestCountText));
+        OnPropertyChanged(nameof(HasNoQuestResults));
     }
 
     private void ApplyLoreFilter()

@@ -12,6 +12,7 @@
     <AvaloniaResource Include="Assets\Killeropedia\**" />
     <EmbeddedResource Include="Assets\Data\teachers.json.gz" />
     <EmbeddedResource Include="Assets\Data\books.json" />
+    <EmbeddedResource Include="Assets\Data\quests.json" />
     <EmbeddedResource Include="..\..\lore\dist\lore-catalog.json.gz"
                       Link="Assets\Data\lore-catalog.json.gz"
                       LogicalName="MudClient.App.Assets.Data.lore-catalog.json.gz" />

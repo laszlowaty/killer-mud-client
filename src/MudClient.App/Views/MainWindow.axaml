@@ -302,6 +302,10 @@
             <views:KilleropediaLoreView
                                         DataContext="{Binding Killeropedia}" />
           </TabItem>
+          <TabItem Classes="killeropedia-tab-quests" Header="Zadania">
+            <views:KilleropediaQuestsView
+                                        DataContext="{Binding Killeropedia}" />
+          </TabItem>
           <TabItem Classes="killeropedia-tab-map" Header="Mapa Świata">
             <views:KilleropediaWorldMapView
                                             DataContext="{Binding Killeropedia}" />

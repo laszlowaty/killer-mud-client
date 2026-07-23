@@ -75,6 +75,9 @@
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-lore /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#642B1D" />
   </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-quests /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#315329" />
+  </Style>
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-map /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#24324D" />
   </Style>

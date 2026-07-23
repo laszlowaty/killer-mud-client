@@ -23,6 +23,10 @@ postaciami, organizacjami, bóstwami, artefaktami, wydarzeniami i legendami. Pli
 `%AppData%/KillerMudClient/Data/lore-catalog.json.gz` zastępuje kopię wbudowaną,
 dzięki czemu aktualizacja lore nie wymaga ponownej kompilacji klienta.
 
+`quests.json` zawiera skróconą listę zadań graczy opracowaną na podstawie
+`docs/questy-area-lore.md`. Zakładka „Zadania” pokazuje nazwę zadania, krainę
+oraz moba zlecającego; katalog aplikacji celowo nie zawiera VNUM-ów.
+
 ## Aktualizacje danych aplikacji
 
 Aplikacja sprawdza publiczny `docs/content/manifest.json` i może pobrać osobne

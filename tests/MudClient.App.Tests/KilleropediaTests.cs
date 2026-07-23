@@ -128,6 +128,41 @@ public sealed class KilleropediaTests : IDisposable
     }
 
     [Fact]
+    public void QuestCatalog_ContainsPlayerQuestsWithoutVnums()
+    {
+        var quests = QuestCatalogLoader.Load();
+
+        Assert.Equal(26, quests.Count);
+        Assert.Contains(quests, quest => quest.Name == "Łowcy Smoków"
+            && quest.Region == "Forteca"
+            && quest.Giver == "Wielki Łowca");
+        Assert.DoesNotContain(quests, quest => quest.SearchableText.Contains("vnum", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [AvaloniaFact]
+    public void QuestsView_RendersQuestListAndSelectedQuestDetails()
+    {
+        var viewModel = CreateViewModel();
+        var view = new KilleropediaQuestsView { DataContext = viewModel };
+        var window = new Window { Width = 1100, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var list = view.GetVisualDescendants().OfType<ListBox>().Single();
+        Assert.Equal(26, list.ItemCount);
+        Assert.NotNull(viewModel.SelectedQuest);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == viewModel.SelectedQuest.Name);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == viewModel.SelectedQuest.Giver);
+
+        window.Close();
+    }
+
+    [Fact]
     public void ShowTeacherOnMapCommand_OnlyInvokesCallbackForKnownRoom()
     {
         TeacherEntry? requestedTeacher = null;
