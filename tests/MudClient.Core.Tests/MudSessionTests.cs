@@ -98,7 +98,12 @@ public sealed class MudSessionTests
             await Task.Delay(50, timeout.Token);
             while (serverConnection.Available > 0)
             {
-                await serverStream.ReadAsync(negotiationBuffer.AsMemory(0, serverConnection.Available), timeout.Token);
+                var available = Math.Min(serverConnection.Available, negotiationBuffer.Length);
+                await serverStream.ReadAtLeastAsync(
+                    negotiationBuffer.AsMemory(0, available),
+                    available,
+                    throwOnEndOfStream: false,
+                    timeout.Token);
             }
 
             await session.SendCommandAsync("zażółć gęślą jaźń", timeout.Token);
@@ -145,7 +150,12 @@ public sealed class MudSessionTests
             await Task.Delay(50, timeout.Token);
             while (serverConnection.Available > 0)
             {
-                await serverStream.ReadAsync(negotiationBuffer.AsMemory(0, serverConnection.Available), timeout.Token);
+                var available = Math.Min(serverConnection.Available, negotiationBuffer.Length);
+                await serverStream.ReadAtLeastAsync(
+                    negotiationBuffer.AsMemory(0, available),
+                    available,
+                    throwOnEndOfStream: false,
+                    timeout.Token);
             }
 
             var textReceived = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
