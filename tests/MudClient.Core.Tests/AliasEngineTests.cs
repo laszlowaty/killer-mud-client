@@ -296,4 +296,14 @@ public sealed class AliasEngineTests
         Assert.Equal("east", result[1]);
         Assert.Equal("south", result[2]);
     }
+
+    [Fact]
+    public void ProcessAliasCall_ExpandsExistingAliasAndKeepsRegularCommands()
+    {
+        var engine = new AliasEngine();
+        engine.Add(new AliasRule("buff", "^buff$", "cast shield\ncast armor"));
+
+        Assert.Equal(["cast shield", "cast armor"], engine.ProcessAliasCall("alias(buff)"));
+        Assert.Equal(["look"], engine.ProcessAliasCall("look"));
+    }
 }

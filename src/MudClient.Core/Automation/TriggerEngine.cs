@@ -1,12 +1,7 @@
-using System.Text.RegularExpressions;
-
 namespace MudClient.Core.Automation;
 
 public sealed class TriggerEngine
 {
-    private static readonly Regex AliasCallRegex = new(
-        @"^\s*alias\((.*)\)\s*$", RegexOptions.Compiled | RegexOptions.Singleline);
-
     private readonly List<TriggerRule> _rules = [];
 
     /// <summary>
@@ -63,12 +58,11 @@ public sealed class TriggerEngine
 
     private IReadOnlyList<string> ExpandAliasCall(string command, string? separator)
     {
-        var aliasMatch = AliasCallRegex.Match(command);
-        if (!aliasMatch.Success || Aliases is null)
+        if (Aliases is null)
         {
             return [command];
         }
 
-        return Aliases.ProcessCommands(aliasMatch.Groups[1].Value, separator);
+        return Aliases.ProcessAliasCall(command, separator);
     }
 }

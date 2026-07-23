@@ -377,7 +377,34 @@
                     <TextBlock Grid.Column="0" Text="/map &lt;komenda&gt;" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="W trybie lorda steruje edytorem mapy: start, stop, save, undo, redo, cancel, info, check, diff, import, export, discard, resolve, step, area, room, symbol, label, forget i special. Można też używać prefiksu +map." />
+                               Text="W trybie lorda steruje edytorem mapy. Pełna lista komend mapowania znajduje się poniżej. Można też używać prefiksów /mapa i +map." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/map show &lt;vnum&gt;" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Wyszukuje pokój o podanym VNUM-ie, ustawia go jako cel mapy i otwiera widok mapy. Użyj tej komendy, aby szybko przejść do konkretnego pokoju." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="Komendy mapowania" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="start / stop — rozpoczęcie i zakończenie mapowania; save — zapis zmian; undo / redo — cofanie i ponawianie; cancel — odrzucenie bieżącej sesji; status lub info — stan i informacje o pokoju; check / diff — kontrola i porównanie map; import / export — wymiana mapy z plikiem; discard — odrzucenie mapy roboczej; resolve keep|gmcp — rozwiązanie konfliktu; step &lt;1-20&gt; — krok mapowania; area / reassign — praca z krainą; room — informacje o pokoju; symbol — symbol pokoju; label — etykieta; forget — usunięcie pokoju; special — przejście specjalne." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="alias(...) w triggerze/timerze" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="W komendzie triggera albo timera wpisz alias(nazwa-aliasu) lub alias(tekst-dopasowany-do-wzorca). Klient uruchomi istniejący alias i wyśle jego rozwinięcie, także wiele komend rozdzielonych nowymi liniami lub separatorem. Przykład: alias(buff)." />
                   </Grid>
                 </Border>
               </StackPanel>

@@ -792,7 +792,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             RefreshBookCatalogAsync,
             ShowTeacherOnMap,
             lore,
-            new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"));
+            new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"),
+            quests);
     }
 
     private LoreCatalogData LoadLoreCatalog(string? downloadedDirectory)
@@ -1932,7 +1933,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var commands = entry.GetCommands(CommandStackingSeparator);
+        var commands = entry.GetCommands(CommandStackingSeparator)
+            .SelectMany(command => _aliases.ProcessAliasCall(command, CommandStackingSeparator))
+            .ToArray();
         var now = DateTimeOffset.UtcNow;
         entry.ScheduleNextActivation(now + interval, now);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>

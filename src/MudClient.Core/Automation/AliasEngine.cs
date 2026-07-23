@@ -1,7 +1,12 @@
+using System.Text.RegularExpressions;
+
 namespace MudClient.Core.Automation;
 
 public sealed class AliasEngine
 {
+    private static readonly Regex AliasCallRegex = new(
+        @"^\s*alias\((.*)\)\s*$", RegexOptions.Compiled | RegexOptions.Singleline);
+
     private readonly List<AliasRule> _rules = [];
 
     public IReadOnlyList<AliasRule> Rules => _rules;
@@ -74,5 +79,17 @@ public sealed class AliasEngine
         }
 
         return new[] { command };
+    }
+
+    /// <summary>
+    /// Expands an explicit <c>alias(...)</c> call, preserving the command
+    /// literally when it is not a call or no alias matches it.
+    /// </summary>
+    public IReadOnlyList<string> ProcessAliasCall(string command, string? separator = null)
+    {
+        var match = AliasCallRegex.Match(command);
+        return match.Success
+            ? ProcessCommands(match.Groups[1].Value, separator)
+            : [command];
     }
 }
