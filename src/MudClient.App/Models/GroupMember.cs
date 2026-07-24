@@ -48,6 +48,12 @@ public sealed record GroupMember
 
     public string NpcDisplay => IsNpc ? "[NPC]" : "[Gracz]";
 
+    /// <summary>HP scale as a 0-100 value for progress bar display.</summary>
+    public double HpPercent => HpScale is { } scale ? scale / 7.0 * 100 : 0;
+
+    /// <summary>MV scale as a 0-100 value for progress bar display.</summary>
+    public double MvPercent => MvScale is { } scale ? scale / 4.0 * 100 : 0;
+
     public GroupMember(
         string name,
         bool isLeader,

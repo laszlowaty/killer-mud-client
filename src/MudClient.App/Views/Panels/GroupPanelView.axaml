@@ -39,19 +39,21 @@
                   <TextBlock Text="{Binding NpcDisplay}"
                              Foreground="{StaticResource MudBrushParchmentDim}" />
                 </StackPanel>
-                <!-- Row 2: HP + MV + MEM -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock
-                             Foreground="{StaticResource MudBrushCrimson}"
-                             Text="{Binding HpDisplay}" />
-                  <TextBlock
-                             Foreground="{StaticResource MudBrushEmerald}"
-                             Text="{Binding MvDisplay}" />
-                  <TextBlock
-                             Foreground="{StaticResource MudBrushArcaneBlueBright}"
-                             Text="{Binding MemDisplay}"
-                             IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <!-- Row 2: HP + MV bars -->
+                <StackPanel Spacing="2">
+                  <ProgressBar Minimum="0" Maximum="100" Height="6" CornerRadius="3"
+                               Value="{Binding HpPercent}"
+                               Foreground="{StaticResource MudBrushCrimson}"
+                               ToolTip.Tip="{Binding HpDisplay}" />
+                  <ProgressBar Minimum="0" Maximum="100" Height="6" CornerRadius="3"
+                               Value="{Binding MvPercent}"
+                               Foreground="{StaticResource MudBrushEmerald}"
+                               ToolTip.Tip="{Binding MvDisplay}" />
                 </StackPanel>
+                <TextBlock Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                           Text="{Binding MemDisplay}"
+                           IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
                 <!-- Row 3: position + room -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Foreground="{StaticResource MudBrushParchmentDim}"
