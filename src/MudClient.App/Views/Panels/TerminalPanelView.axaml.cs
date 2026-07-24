@@ -20,6 +20,7 @@ public sealed partial class TerminalPanelView : UserControl
 
     private readonly MudOutputView _mudOutput;
     private readonly TextBox _commandBox;
+    private readonly TextBox _searchBox;
     private readonly DispatcherTimer _timerCountdownRefresh;
     private MainWindowViewModel? _viewModel;
     private bool _isViewModelSubscribed;
@@ -33,6 +34,8 @@ public sealed partial class TerminalPanelView : UserControl
             ?? throw new InvalidOperationException("MudOutput not found.");
         _commandBox = this.FindControl<TextBox>("CommandBox")
             ?? throw new InvalidOperationException("CommandBox not found.");
+        _searchBox = this.FindControl<TextBox>("SearchBox")
+            ?? throw new InvalidOperationException("SearchBox not found.");
         _commandBox.AddHandler(
             InputElement.KeyDownEvent,
             CommandBox_OnPreviewKeyDown,
@@ -295,10 +298,25 @@ public sealed partial class TerminalPanelView : UserControl
             return;
         }
 
-        _mudOutput.Search(
-            searchBox.Text ?? string.Empty,
-            newer: eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift));
+        ExecuteSearch(newer: eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift));
         eventArgs.Handled = true;
+    }
+
+    private void SearchPrevButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ExecuteSearch(newer: false);
+    }
+
+    private void SearchNextButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ExecuteSearch(newer: true);
+    }
+
+    private void ExecuteSearch(bool newer)
+    {
+        _mudOutput.Search(_searchBox.Text ?? string.Empty, newer: newer);
+        _searchBox.Focus();
+        _searchBox.CaretIndex = _searchBox.Text?.Length ?? 0;
     }
 
     private void HandlePostSend()
