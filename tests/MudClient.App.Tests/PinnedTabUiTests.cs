@@ -126,6 +126,27 @@ public sealed class PinnedTabUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void WidgetHeader_UsesCompactChrome()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        var chrome = window.GetVisualDescendants().OfType<ToolChromeControl>()
+            .First(control => control.IsEffectivelyVisible);
+        var header = chrome.GetVisualDescendants().OfType<Border>()
+            .First(control => ReferenceEquals(control.ContextFlyout, chrome.ToolFlyout));
+        var title = header.GetVisualDescendants().OfType<TextBlock>().First();
+
+        Assert.All(
+            header.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.IsEffectivelyVisible && button.Bounds.Height > 0),
+            button => Assert.InRange(button.Bounds.Height, 1, 16));
+        Assert.InRange(title.Bounds.Height, 1, 19);
+        Assert.InRange(header.Bounds.Height, 1, 20);
+    }
+
+    [AvaloniaFact]
     public void ExpandedPinnedWidget_DisablesHeaderDrag()
     {
         var viewModel = CreateViewModel();

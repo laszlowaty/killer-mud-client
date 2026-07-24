@@ -8,6 +8,8 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using MudClient.App.Controls;
+using MudClient.App.Services;
+using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
 using Xunit;
 
@@ -29,6 +31,44 @@ public sealed class MudOutputViewTests
         Assert.Same(commandBox!.Parent, searchBox.Parent);
         Assert.Equal(0, Grid.GetColumn(commandBox));
         Assert.Equal(1, Grid.GetColumn(searchBox));
+    }
+
+    [AvaloniaFact]
+    public async Task VitalsBars_HideAndReleaseTheirTerminalColumns()
+    {
+        var settingsDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "KillerMudClient_VitalsUiTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(settingsDirectory);
+        var viewModel = new MainWindowViewModel(
+            settingsService: new AppSettingsService(settingsDirectory));
+        var terminal = new TerminalPanelView { DataContext = viewModel };
+        var window = new Window { Width = 800, Height = 500, Content = terminal };
+        window.Show();
+
+        try
+        {
+            var hpBar = terminal.FindControl<Border>("HitPointsBar")!;
+            var mvBar = terminal.FindControl<Border>("MovementPointsBar")!;
+            var output = terminal.FindControl<MudOutputView>("MudOutput")!;
+            var widthWithBars = output.Bounds.Width;
+
+            Assert.True(hpBar.IsVisible);
+            Assert.True(mvBar.IsVisible);
+
+            viewModel.ShowTerminalVitalsBars = false;
+            window.UpdateLayout();
+
+            Assert.False(hpBar.IsVisible);
+            Assert.False(mvBar.IsVisible);
+            Assert.True(output.Bounds.Width > widthWithBars + 80);
+        }
+        finally
+        {
+            window.Close();
+            await viewModel.DisposeAsync();
+            Directory.Delete(settingsDirectory, recursive: true);
+        }
     }
 
     [AvaloniaFact]

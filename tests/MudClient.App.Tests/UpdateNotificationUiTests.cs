@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Models;
@@ -19,7 +21,7 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
     private MainWindowViewModel? _viewModel;
 
     [AvaloniaFact]
-    public void MainWindow_ShowsDiscordButtonInTopBar()
+    public void MainWindow_KeepsDiscordInOverflowMenu()
     {
         _viewModel = new MainWindowViewModel(
             settingsService: new AppSettingsService(_tempDirectory));
@@ -29,9 +31,42 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         _window.UpdateLayout();
 
+        var topBar = _window.FindControl<Border>("MainTopBar")!;
+        var killeropedia = _window.FindControl<Button>("TopKilleropediaButton")!;
+        Assert.InRange(topBar.Bounds.Height, 1, 44);
+        Assert.True(killeropedia.IsEffectivelyVisible);
+        Assert.Equal(HorizontalAlignment.Center, killeropedia.HorizontalAlignment);
+        Assert.Equal("Killeropedia", killeropedia.Content);
+
+        Assert.DoesNotContain(
+            _window.GetVisualDescendants().OfType<Button>(),
+            button => button.IsEffectivelyVisible && button.Content?.ToString() == "Discord");
+
+        var moreActions = _window.FindControl<Button>("MoreActionsButton")!;
+        moreActions.Flyout!.ShowAt(moreActions);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        _window.UpdateLayout();
+
         Assert.Contains(
             _window.GetVisualDescendants().OfType<Button>(),
-            button => button.IsEffectivelyVisible && button.Content?.ToString() == "discord");
+            button => button.IsEffectivelyVisible && button.Content?.ToString() == "Discord");
+    }
+
+    [AvaloniaFact]
+    public void StandardSections_UseASingleSeparatorInsteadOfABox()
+    {
+        var section = new Border
+        {
+            Classes = { "mud-section" },
+            Child = new TextBlock { Text = "Sekcja" },
+        };
+        _window = new MainWindow { Content = section };
+        _window.Show();
+        _window.UpdateLayout();
+
+        Assert.Equal(new Thickness(0, 0, 0, 1), section.BorderThickness);
+        Assert.Equal(new CornerRadius(0), section.CornerRadius);
     }
 
     [AvaloniaFact]
@@ -51,6 +86,13 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
         _viewModel.StartUpdateCheck();
         Assert.NotNull(_viewModel.ActiveUpdateCheck);
         await _viewModel.ActiveUpdateCheck;
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        _window.UpdateLayout();
+
+        var updateButton = _window.FindControl<Button>("ApplicationUpdateButton")!;
+        Assert.True(updateButton.IsEffectivelyVisible);
+        updateButton.Flyout!.ShowAt(updateButton);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         _window.UpdateLayout();
@@ -104,6 +146,13 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         _window.UpdateLayout();
 
+        var updateButton = _window.FindControl<Button>("ContentUpdateButton")!;
+        Assert.True(updateButton.IsEffectivelyVisible);
+        updateButton.Flyout!.ShowAt(updateButton);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        _window.UpdateLayout();
+
         var visibleTexts = _window.GetVisualDescendants()
             .OfType<TextBlock>()
             .Where(text => text.IsEffectivelyVisible)
@@ -116,7 +165,7 @@ public sealed class UpdateNotificationUiTests : IAsyncDisposable
             .ToList();
 
         Assert.Contains(
-            "Dostępna aktualizacja danych: mapa 2026.07.18.1 i Killeropedia 2026.07.18.2 · 3 KB",
+            "mapa 2026.07.18.1 i Killeropedia 2026.07.18.2 · 3 KB",
             visibleTexts);
         Assert.Contains("Aktualizuj", visibleButtons);
     }

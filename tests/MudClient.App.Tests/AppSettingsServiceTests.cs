@@ -40,7 +40,9 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(AppSettings.DefaultWidgetFontFamily, settings.WidgetFontFamily);
         Assert.Equal(AppSettings.DefaultWidgetFontSize, settings.WidgetFontSize);
         Assert.True(settings.OutputWordWrap);
+        Assert.True(settings.ShowTerminalVitalsBars);
         Assert.False(settings.ClearCommandInputAfterSend);
+        Assert.False(settings.LordModeEnabled);
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
     }
 
@@ -144,6 +146,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             WidgetFontSize = 15,
             WidgetFontBold = true,
             OutputWordWrap = false,
+            ShowTerminalVitalsBars = false,
             ClearCommandInputAfterSend = true,
             AutoAssistEnabled = true,
             AutoAssistExcludedMobNames = ["Wielki smok", "Ork"],
@@ -165,6 +168,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(15, loaded.WidgetFontSize);
         Assert.True(loaded.WidgetFontBold);
         Assert.False(loaded.OutputWordWrap);
+        Assert.False(loaded.ShowTerminalVitalsBars);
         Assert.True(loaded.ClearCommandInputAfterSend);
         Assert.True(loaded.AutoAssistEnabled);
         Assert.Equal(["Wielki smok", "Ork"], loaded.AutoAssistExcludedMobNames);

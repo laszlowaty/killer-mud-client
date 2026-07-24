@@ -15,7 +15,7 @@
                        VerticalAlignment="Center" />
             <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
                     ToolTip.Tip="Wspólna dla wszystkich kont">
-              <TextBlock Text="GLOBALNA" />
+              <TextBlock Text="Globalna" />
             </Border>
           </StackPanel>
           <Button Grid.Row="0" Grid.Column="1"
@@ -43,13 +43,6 @@
   </UserControl.Resources>
   <ScrollViewer>
     <StackPanel Spacing="8" Margin="12">
-
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Classes="mud-heading" Text="NOTATKI" VerticalAlignment="Center" />
-        <Border Grid.Column="1" Classes="mud-badge">
-          <TextBlock Text="{Binding Notes.Count}" />
-        </Border>
-      </Grid>
 
       <Expander Classes="mud-expander"
                 Header="{Binding NoteFormHeader}"

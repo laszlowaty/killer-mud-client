@@ -1208,6 +1208,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool ShowTerminalVitalsBars
+    {
+        get => _settings.ShowTerminalVitalsBars;
+        set
+        {
+            if (_settings.ShowTerminalVitalsBars == value)
+            {
+                return;
+            }
+
+            _settings.ShowTerminalVitalsBars = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool ClearCommandInputAfterSend
     {
         get => _settings.ClearCommandInputAfterSend;

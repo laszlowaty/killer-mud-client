@@ -15,7 +15,7 @@
                          TextTrimming="CharacterEllipsis" />
               <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
                       ToolTip.Tip="Wspólna dla wszystkich kont">
-                <TextBlock Text="GLOBALNA" />
+                <TextBlock Text="Globalna" />
               </Border>
             </StackPanel>
             <TextBlock Text="{Binding Display}" Classes="mud-faint"
@@ -39,7 +39,7 @@
     <StackPanel Spacing="8" Margin="12">
 
       <!-- Status -->
-      <TextBlock Classes="mud-heading" Text="STATUS" />
+      <TextBlock Classes="mud-heading" Text="Status podróży" />
       <Border Classes="mud-section" Padding="10,8">
         <StackPanel Spacing="6">
           <Grid ColumnDefinitions="Auto,*">
@@ -78,7 +78,7 @@
 
       <!-- Add location -->
       <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-        <TextBlock Classes="mud-heading" Text="LOKACJE" VerticalAlignment="Center" />
+        <TextBlock Classes="mud-heading" Text="Lokacje" VerticalAlignment="Center" />
         <Border Grid.Column="1" Classes="mud-badge">
           <TextBlock Text="{Binding Locations.Count}" />
         </Border>
@@ -131,7 +131,7 @@
 
       <!-- Death marks -->
       <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-        <TextBlock Classes="mud-heading" Text="MIEJSCA ŚMIERCI" VerticalAlignment="Center" />
+        <TextBlock Classes="mud-heading" Text="Miejsca śmierci" VerticalAlignment="Center" />
         <Border Grid.Column="1" Classes="mud-badge">
           <TextBlock Text="{Binding Deaths.Count}" />
         </Border>

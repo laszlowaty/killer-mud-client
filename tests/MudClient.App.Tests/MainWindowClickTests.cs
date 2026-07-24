@@ -193,8 +193,14 @@ public sealed class MainWindowClickTests : IDisposable
 
         var helpWidget = window.GetVisualDescendants()
             .OfType<LargeTabbedWidget>()
-            .Single(widget => widget.Title == "POMOC");
+            .Single(widget => widget.Title == "Pomoc");
         Assert.False(helpWidget.IsVisible);
+
+        var moreActions = window.FindControl<Button>("MoreActionsButton")!;
+        moreActions.Flyout!.ShowAt(moreActions);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
 
         var helpButton = window.GetVisualDescendants()
             .OfType<Button>()

@@ -9,8 +9,6 @@
       <Grid ColumnDefinitions="*,Auto">
         <!-- Left: details -->
         <StackPanel Grid.Column="0" Spacing="8">
-        <TextBlock Classes="mud-heading" Text="SZCZEGÓŁY POKOJU" />
-
         <Border Background="{StaticResource MudBrushVoid}"
                 CornerRadius="3" Padding="8">
           <StackPanel Spacing="6">
@@ -65,7 +63,7 @@
       </Grid>
 
       <StackPanel Spacing="6">
-        <TextBlock Classes="mud-heading" Text="OSOBY W POKOJU" />
+        <TextBlock Classes="mud-heading" Text="Osoby w pokoju" />
         <TextBlock Classes="mud-faint" Text="Nikogo tu nie ma."
                    IsVisible="{Binding !People.Count}" />
         <ItemsControl ItemsSource="{Binding People}">

@@ -15,10 +15,10 @@
   </Style>
 
   <Style Selector="Border.mud-bar-top">
-    <Setter Property="Background" Value="{StaticResource MudBrushHeaderGradient}" />
-    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Padding" Value="10,6" />
   </Style>
 
   <Style Selector="Border.mud-bar-bottom">
@@ -36,11 +36,33 @@
   </Style>
 
   <Style Selector="Border.mud-section">
-    <Setter Property="Background" Value="{StaticResource MudBrushStone}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="8,8,8,9" />
+  </Style>
+
+  <Style Selector="Border.mud-status-chip">
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="7,2" />
+  </Style>
+  <Style Selector="Border.mud-status-chip > TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style Selector="Border.mud-toast">
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
     <Setter Property="BorderBrush" Value="{StaticResource MudBrushSlate}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
-    <Setter Property="Padding" Value="10" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Opacity" Value="0.96" />
+  </Style>
+  <Style Selector="Border.mud-toast TextBlock">
+    <Setter Property="FontSize" Value="11" />
   </Style>
 
   <!-- Folder header row inside the reusable FolderTreeView -->

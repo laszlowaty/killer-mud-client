@@ -35,6 +35,9 @@ public sealed class AppSettings
     /// <summary>Wraps long MUD output lines to the terminal width.</summary>
     public bool OutputWordWrap { get; set; } = true;
 
+    /// <summary>Shows the vertical HP and MV indicators beside the terminal.</summary>
+    public bool ShowTerminalVitalsBars { get; set; } = true;
+
     /// <summary>Clears the terminal command input after a manually submitted command.</summary>
     public bool ClearCommandInputAfterSend { get; set; }
 
@@ -66,5 +69,5 @@ public sealed class AppSettings
     public bool ShowGroupMembersAsNumbers { get; set; }
 
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
-    public bool LordModeEnabled { get; set; }
+    public bool LordModeEnabled { get; set; } = false;
 }

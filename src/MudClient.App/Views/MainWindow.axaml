@@ -20,258 +20,249 @@
 
   <Grid RowDefinitions="Auto,*,Auto">
 
-    <!-- ========================================================================
-         Row 0: Top bar – 4 sections
-         ======================================================================== -->
-    <Border Grid.Row="0" Classes="mud-bar-top">
-      <StackPanel Spacing="8">
+    <!-- A single calm command row. Frequent session actions stay visible; account,
+         help and layout management live in the overflow menu. -->
+    <Border x:Name="MainTopBar" Grid.Row="0" Classes="mud-bar-top">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="⚔"
+                     FontSize="16"
+                     Foreground="{StaticResource MudBrushGold}"
+                     VerticalAlignment="Center" />
+          <TextBlock Classes="mud-brand" Text="KillerMudClient" VerticalAlignment="Center" />
+          <Border Classes="mud-status-chip" IsVisible="{Binding IsProfileSelected}">
+            <TextBlock Text="{Binding ActiveProfileName}"
+                       MaxWidth="140"
+                       TextTrimming="CharacterEllipsis" />
+          </Border>
+          <TextBlock Text="{Binding HeaderAreaText}"
+                     Classes="mud-caption"
+                     MaxWidth="220"
+                     TextTrimming="CharacterEllipsis"
+                     VerticalAlignment="Center" />
+        </StackPanel>
 
-        <!-- Row A: logo + area/profile chips (left), connection + status (right) -->
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Grid Grid.Column="1">
+          <Button x:Name="TopKilleropediaButton"
+                  Content="Killeropedia"
+                  Command="{Binding OpenKilleropediaCommand}"
+                  Classes="mud-small"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="Otwórz Killeropedię" />
 
-          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-            <TextBlock Text="⚔" FontSize="20" Foreground="{StaticResource MudBrushGoldBright}" VerticalAlignment="Center" />
-            <TextBlock Classes="mud-heading-lg" Text="KillerMudClient" VerticalAlignment="Center" />
-            <Border Background="{StaticResource MudBrushSlate}"
-                    CornerRadius="3"
-                    Padding="8,3"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center">
-              <TextBlock Text="{Binding HeaderAreaText}"
-                         FontSize="11"
-                         MaxWidth="220"
-                         TextTrimming="CharacterEllipsis"
-                         Foreground="{StaticResource MudBrushParchmentDim}" />
-            </Border>
-            <Border Background="{StaticResource MudBrushSlate}"
-                    CornerRadius="3"
-                    Padding="8,3"
-                    VerticalAlignment="Center"
-                    IsVisible="{Binding IsProfileSelected}">
-              <TextBlock Text="{Binding ActiveProfileName, StringFormat='Konto: {0}'}"
-                         FontSize="11"
-                         MaxWidth="160"
-                         TextTrimming="CharacterEllipsis"
-                         Foreground="{StaticResource MudBrushGoldBright}" />
-            </Border>
-            <Button Content="Zmień konto"
-                    Command="{Binding SwitchProfileCommand}"
-                    FontSize="11"
-                    Padding="8,3"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
-            <Button Content="killeropedia"
-                    Command="{Binding OpenKilleropediaCommand}"
-                    FontSize="11"
-                    Padding="10,3"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="Otwórz killeropedię" />
-            <Button Content="discord"
-                    Command="{Binding OpenDiscordCommand}"
-                    FontSize="11"
-                    Padding="10,3"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="Otwórz Discord Killer MUD" />
-            <Button Content="Pomoc"
-                    Command="{Binding OpenHelpCommand}"
-                    FontSize="11"
-                    Padding="10,3"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="Otwórz pomoc aplikacji" />
-            <Button Content="{Binding HiddenPanels.Count, StringFormat='Panele ({0})'}"
-                    FontSize="11"
-                    Padding="8,3"
-                    VerticalAlignment="Center"
-                    IsVisible="{Binding HiddenPanels.Count}"
-                    ToolTip.Tip="Przywróć schowany panel u góry">
+          <StackPanel Orientation="Horizontal"
+                      Spacing="6"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center">
+            <Button x:Name="ApplicationUpdateButton"
+                  Classes="mud-notice"
+                  Content="Nowa wersja"
+                  IsVisible="{Binding IsUpdateAvailable}">
               <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedLeft">
-                  <ItemsControl ItemsSource="{Binding HiddenPanels}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="docking:PanelTool">
-                        <Button Content="{Binding Title}"
-                                FontFamily="{DynamicResource WidgetFontFamilyResource}"
-                                FontSize="{DynamicResource WidgetFontSizeResource}"
-                                FontWeight="{DynamicResource WidgetFontWeightResource}"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                Padding="10,6" Margin="0,1"
-                                Command="{Binding $parent[Window].DataContext.RestorePanelCommand}"
-                                CommandParameter="{Binding}" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
+                <Flyout Placement="BottomEdgeAlignedRight">
+                  <StackPanel Spacing="8" Width="320">
+                    <TextBlock Classes="mud-section-title"
+                               Text="Aktualizacja aplikacji" />
+                    <TextBlock Text="{Binding UpdateNotificationText}"
+                               TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                      <Button Content="Pobierz"
+                              Command="{Binding OpenUpdateReleaseCommand}"
+                              Classes="mud-small" />
+                      <Button Content="Lista zmian"
+                              Command="{Binding OpenChangelogCommand}"
+                              Classes="mud-small" />
+                      <Button Content="Ukryj"
+                              Command="{Binding DismissUpdateCommand}"
+                              Classes="mud-small" />
+                    </StackPanel>
+                  </StackPanel>
                 </Flyout>
               </Button.Flyout>
             </Button>
-            <Button Content="Układ"
-                    FontSize="11"
-                    Padding="8,3"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="Zapisz lub przywróć układ paneli">
+
+            <Button x:Name="ContentUpdateButton"
+                    Classes="mud-notice mud-notice-success"
+                    Content="Nowe dane"
+                    IsVisible="{Binding IsContentUpdateAvailable}">
               <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedLeft">
-                  <StackPanel Spacing="6" MinWidth="220">
-                    <TextBlock Text="Wczytaj układ" FontSize="11" FontWeight="SemiBold"
-                               Foreground="{StaticResource MudBrushParchmentDim}" />
-                    <ItemsControl ItemsSource="{Binding AvailableLayouts}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:LayoutMenuItem">
-                          <Grid ColumnDefinitions="*,Auto" Margin="0,1">
-                            <Button Grid.Column="0" Content="{Binding Name}"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="10,6"
-                                    Command="{Binding $parent[Window].DataContext.ApplyLayoutCommand}"
-                                    CommandParameter="{Binding Name}" />
-                            <Button Grid.Column="1" Classes="mud-danger" Content="✕"
-                                    Padding="8,6" Margin="4,0,0,0"
-                                    ToolTip.Tip="Usuń układ"
-                                    IsVisible="{Binding CanDelete}"
-                                    Command="{Binding $parent[Window].DataContext.DeleteLayoutCommand}"
-                                    CommandParameter="{Binding Name}" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
-                    <TextBlock Text="Zapisz obecny układ" FontSize="11" FontWeight="SemiBold"
-                               Foreground="{StaticResource MudBrushParchmentDim}" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                      <TextBox Grid.Column="0" Text="{Binding NewLayoutName}"
-                               PlaceholderText="nazwa układu" FontSize="11" />
-                      <Button Grid.Column="1" Content="Zapisz" Padding="10,6"
-                              Command="{Binding SaveLayoutCommand}" />
-                    </Grid>
+                <Flyout Placement="BottomEdgeAlignedRight">
+                  <StackPanel Spacing="8" Width="340">
+                    <TextBlock Classes="mud-section-title"
+                               Text="Aktualizacja danych gry" />
+                    <TextBlock Text="{Binding ContentUpdateDescription}"
+                               TextWrapping="Wrap" />
+                    <Button Content="Aktualizuj"
+                            Command="{Binding InstallContentUpdateCommand}"
+                            Classes="mud-small"
+                            HorizontalAlignment="Right" />
                   </StackPanel>
                 </Flyout>
               </Button.Flyout>
             </Button>
           </StackPanel>
-
-          <StackPanel x:Name="ConnectionActions"
-                      Grid.Column="1"
-                      Orientation="Horizontal"
-                      Spacing="8"
-                      VerticalAlignment="Center">
-            <Button Content="Połącz" Command="{Binding ConnectCommand}" Padding="12,6" />
-            <Button Classes="mud-danger" Content="Rozłącz" Command="{Binding DisconnectCommand}" Padding="12,6" />
-            <TextBlock x:Name="IdleTimeIndicator"
-                       Text="{Binding IdleTimeText}"
-                       FontSize="11"
-                       MinWidth="92"
-                       VerticalAlignment="Center"
-                       Foreground="{StaticResource MudBrushParchmentDim}"
-                       ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
-            <TextBlock Text="{Binding StatusText}"
-                       FontWeight="SemiBold"
-                       FontSize="12"
-                       VerticalAlignment="Center"
-                       MaxWidth="140"
-                       TextTrimming="CharacterEllipsis"
-                       Foreground="{StaticResource MudBrushEmeraldBright}" />
-          </StackPanel>
         </Grid>
 
-        <!-- Available release: persistent until explicitly dismissed. -->
-        <Border Classes="mud-section"
-                BorderBrush="{StaticResource MudBrushGold}"
-                BorderThickness="1"
-                CornerRadius="3"
-                Padding="8,4"
-                IsVisible="{Binding IsUpdateAvailable}">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-            <TextBlock Grid.Column="0"
-                       Text="{Binding UpdateNotificationText}"
-                       FontSize="11"
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource MudBrushGoldBright}"
-                       VerticalAlignment="Center" />
-            <Button Grid.Column="1"
-                    Content="Pobierz"
-                    Command="{Binding OpenUpdateReleaseCommand}"
-                    FontSize="11"
-                    Padding="8,3" />
-            <Button Grid.Column="2"
-                    Content="Lista zmian"
-                    Command="{Binding OpenChangelogCommand}"
-                    FontSize="11"
-                    Padding="8,3" />
-            <Button Grid.Column="3"
-                    Classes="mud-small"
-                    Content="✕"
-                    Command="{Binding DismissUpdateCommand}"
-                    ToolTip.Tip="Ukryj powiadomienie do następnego uruchomienia"
-                    Padding="6,2" />
-          </Grid>
-        </Border>
-
-        <!-- Map and Killeropedia data can be updated independently of the executable. -->
-        <Border Classes="mud-section"
-                BorderBrush="{StaticResource MudBrushEmerald}"
-                BorderThickness="1"
-                CornerRadius="3"
-                Padding="8,4"
-                IsVisible="{Binding IsContentUpdateAvailable}">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <TextBlock Grid.Column="0"
-                       Text="{Binding ContentUpdateDescription, StringFormat='Dostępna aktualizacja danych: {0}'}"
-                       FontSize="11"
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource MudBrushEmeraldBright}"
-                       VerticalAlignment="Center" />
-            <Button Grid.Column="1"
-                    Content="Aktualizuj"
-                    Command="{Binding InstallContentUpdateCommand}"
-                    FontSize="11"
-                    Padding="8,3" />
-          </Grid>
-        </Border>
-
-        <!-- Row B: toasts (clipped so they never overlap) -->
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-
-          <!-- Toasts: newest on the left; anything that doesn't fit is clipped, never overlapping -->
-          <Border Grid.Column="0" ClipToBounds="True">
-            <ItemsControl ItemsSource="{Binding Toasts}" HorizontalAlignment="Right">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Orientation="Horizontal" Spacing="6" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:ToastMessage">
-                  <Border CornerRadius="3" Padding="6,3"
-                          Classes="mud-section"
-                          IsVisible="{Binding IsVisible}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                      <TextBlock Text="{Binding IconGlyph}" FontSize="11"
-                                 Foreground="{Binding ForegroundBrush}" />
-                      <TextBlock Text="{Binding Text}" FontSize="11" MaxWidth="260"
-                                 ToolTip.Tip="{Binding Text}"
-                                 TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Border>
-
-          <Button Grid.Column="1" Classes="mud-small" Content="✕"
-                  Command="{Binding ClearToastsCommand}"
-                  ToolTip.Tip="Wyczyść powiadomienia"
-                  VerticalAlignment="Center"
-                  Padding="6,2"
-                  IsVisible="{Binding Toasts.Count}" />
-        </Grid>
-
-      </StackPanel>
+        <StackPanel x:Name="ConnectionActions"
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="7"
+                    VerticalAlignment="Center">
+          <TextBlock x:Name="IdleTimeIndicator"
+                     Text="{Binding IdleTimeText}"
+                     Classes="mud-caption"
+                     MinWidth="86"
+                     VerticalAlignment="Center"
+                     ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
+          <TextBlock Text="{Binding StatusText}"
+                     Classes="mud-connection-status"
+                     VerticalAlignment="Center"
+                     MaxWidth="120"
+                     TextTrimming="CharacterEllipsis" />
+          <Button Content="Połącz"
+                  Command="{Binding ConnectCommand}"
+                  IsVisible="{Binding !IsConnected}"
+                  Classes="mud-small" />
+          <Button Classes="mud-danger mud-small"
+                  Content="Rozłącz"
+                  Command="{Binding DisconnectCommand}"
+                  IsVisible="{Binding IsConnected}" />
+          <Button x:Name="MoreActionsButton"
+                  Content="Więcej  ⋯"
+                  Classes="mud-small"
+                  ToolTip.Tip="Konto, narzędzia i układ">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Spacing="4" MinWidth="220">
+                  <Button Content="Zmień konto"
+                          Command="{Binding SwitchProfileCommand}"
+                          HorizontalContentAlignment="Left"
+                          Classes="mud-menu-action"
+                          ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
+                  <Button Content="Discord"
+                          Command="{Binding OpenDiscordCommand}"
+                          HorizontalContentAlignment="Left"
+                          Classes="mud-menu-action" />
+                  <Button Content="Pomoc"
+                          Command="{Binding OpenHelpCommand}"
+                          HorizontalContentAlignment="Left"
+                          Classes="mud-menu-action" />
+                  <Separator Margin="0,3" />
+                  <Button Content="{Binding HiddenPanels.Count, StringFormat='Przywróć panele ({0})'}"
+                          IsVisible="{Binding HiddenPanels.Count}"
+                          HorizontalContentAlignment="Left"
+                          Classes="mud-menu-action">
+                    <Button.Flyout>
+                      <Flyout Placement="LeftEdgeAlignedTop">
+                        <ItemsControl ItemsSource="{Binding HiddenPanels}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="docking:PanelTool">
+                              <Button Content="{Binding Title}"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Left"
+                                      Classes="mud-menu-action"
+                                      Command="{Binding $parent[Window].DataContext.RestorePanelCommand}"
+                                      CommandParameter="{Binding}" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Flyout>
+                    </Button.Flyout>
+                  </Button>
+                  <Button Content="Układy paneli"
+                          HorizontalContentAlignment="Left"
+                          Classes="mud-menu-action">
+                    <Button.Flyout>
+                      <Flyout Placement="LeftEdgeAlignedTop">
+                        <StackPanel Spacing="6" MinWidth="220">
+                          <TextBlock Classes="mud-section-title" Text="Wczytaj układ" />
+                          <ItemsControl ItemsSource="{Binding AvailableLayouts}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="models:LayoutMenuItem">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                                  <Button Grid.Column="0"
+                                          Content="{Binding Name}"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Left"
+                                          Classes="mud-menu-action"
+                                          Command="{Binding $parent[Window].DataContext.ApplyLayoutCommand}"
+                                          CommandParameter="{Binding Name}" />
+                                  <Button Grid.Column="1"
+                                          Classes="mud-danger mud-small"
+                                          Content="✕"
+                                          Margin="4,0,0,0"
+                                          ToolTip.Tip="Usuń układ"
+                                          IsVisible="{Binding CanDelete}"
+                                          Command="{Binding $parent[Window].DataContext.DeleteLayoutCommand}"
+                                          CommandParameter="{Binding Name}" />
+                                </Grid>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <Separator Margin="0,3" />
+                          <TextBlock Classes="mud-section-title" Text="Zapisz obecny układ" />
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding NewLayoutName}"
+                                     PlaceholderText="Nazwa układu" />
+                            <Button Grid.Column="1"
+                                    Content="Zapisz"
+                                    Classes="mud-small"
+                                    Command="{Binding SaveLayoutCommand}" />
+                          </Grid>
+                        </StackPanel>
+                      </Flyout>
+                    </Button.Flyout>
+                  </Button>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
     </Border>
 
      <!-- ========================================================================
          Row 1: Main content – 25* (left), 50* (terminal), 25* (right)
          ======================================================================== -->
     <dock:DockControl x:Name="MainDock" Grid.Row="1" Layout="{Binding Layout}" Margin="8" />
+
+    <!-- Transient messages float above the workspace instead of increasing header height. -->
+    <StackPanel Grid.Row="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,8,18,0"
+                Spacing="5"
+                Panel.ZIndex="100">
+      <ItemsControl ItemsSource="{Binding Toasts}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="5" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:ToastMessage">
+            <Border Classes="mud-toast"
+                    IsVisible="{Binding IsVisible}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="{Binding IconGlyph}"
+                           Foreground="{Binding ForegroundBrush}" />
+                <TextBlock Text="{Binding Text}"
+                           MaxWidth="300"
+                           ToolTip.Tip="{Binding Text}"
+                           TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button Classes="mud-small"
+              Content="Wyczyść"
+              Command="{Binding ClearToastsCommand}"
+              HorizontalAlignment="Right"
+              IsVisible="{Binding Toasts.Count}" />
+    </StackPanel>
 
     <!-- ========================================================================
          Row 2: Footer bar
@@ -285,7 +276,7 @@
     </Border>
 
     <controls:LargeTabbedWidget Grid.RowSpan="3"
-                                Title="KILLEROPEDIA"
+                                Title="Killeropedia"
                                 IsBookStyle="True"
                                 IsOpen="{Binding IsKilleropediaOpen}">
       <controls:LargeTabbedWidget.TabContent>
@@ -315,14 +306,13 @@
     </controls:LargeTabbedWidget>
 
     <controls:LargeTabbedWidget Grid.RowSpan="3"
-                                Title="POMOC"
+                                Title="Pomoc"
                                 IsOpen="{Binding IsHelpOpen}">
       <controls:LargeTabbedWidget.TabContent>
         <TabControl Classes="mud-large-widget-tabs">
           <TabItem Header="Dostępne komendy">
             <ScrollViewer Margin="0,12,0,0">
               <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
-                <TextBlock Classes="mud-heading-lg" Text="DOSTĘPNE KOMENDY" />
                 <TextBlock Classes="mud-muted"
                            Text="Komendy klienta wpisuj w polu komendy terminala. Wielkość liter nie ma znaczenia."
                            TextWrapping="Wrap" />
@@ -430,7 +420,7 @@
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
             <TextBlock Grid.Column="0" Text="⚔" FontSize="28" Foreground="{StaticResource MudBrushGoldBright}" />
             <StackPanel Grid.Column="1">
-              <TextBlock Classes="mud-heading-lg" Text="WYBIERZ KONTO" />
+              <TextBlock Classes="mud-heading-lg" Text="Wybierz konto" />
               <TextBlock Classes="mud-muted"
                          TextWrapping="Wrap"
                          Text="Konto przechowuje hasło, notatki, aliasy, triggery i timery postaci." />
@@ -598,7 +588,7 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="☠" FontSize="28" Foreground="{StaticResource MudBrushCrimsonBright}" />
             <StackPanel>
-              <TextBlock Classes="mud-heading-lg" Text="BŁĄD URUCHAMIANIA" />
+              <TextBlock Classes="mud-heading-lg" Text="Błąd uruchamiania" />
               <TextBlock Classes="mud-muted"
                          Text="Aplikacja napotkała problem przy inicjalizacji widoku." />
             </StackPanel>

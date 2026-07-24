@@ -48,6 +48,31 @@
     <Setter Property="Padding" Value="8,4" />
   </Style>
 
+  <Style Selector="Button.mud-menu-action">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.mud-menu-action:pointerover">
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
+  </Style>
+
+  <Style Selector="Button.mud-notice">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="Padding" Value="7,3" />
+    <Setter Property="Background" Value="{StaticResource MudBrushStoneLight}" />
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushGoldDim}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+  </Style>
+  <Style Selector="Button.mud-notice-success">
+    <Setter Property="BorderBrush" Value="{StaticResource MudBrushEmerald}" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+  </Style>
+
   <Style Selector="Button.mud-chip">
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="10,4" />

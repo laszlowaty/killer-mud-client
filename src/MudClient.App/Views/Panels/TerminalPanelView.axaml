@@ -5,10 +5,13 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="48,*,48">
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="Auto,*,Auto">
 
     <!-- HP vertical indicator (left) – spans full panel height -->
-    <Border Grid.Column="0" Grid.RowSpan="2"
+    <Border x:Name="HitPointsBar"
+            Grid.Column="0" Grid.RowSpan="2"
+            Width="46"
+            IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="2,0,0,0"
             Background="{StaticResource MudBrushStone}" CornerRadius="3">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="3">
@@ -132,7 +135,10 @@
     </Border>
 
     <!-- MV vertical indicator (right) – spans full panel height -->
-    <Border Grid.Column="2" Grid.RowSpan="2"
+    <Border x:Name="MovementPointsBar"
+            Grid.Column="2" Grid.RowSpan="2"
+            Width="46"
+            IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="0,0,2,0"
             Background="{StaticResource MudBrushStone}" CornerRadius="3">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="3">

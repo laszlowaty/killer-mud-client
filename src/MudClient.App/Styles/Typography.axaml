@@ -10,19 +10,48 @@
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
   </Style>
 
-  <!-- Section / caption headings, small-caps gold -->
+  <!-- Hierarchy is carried by weight and contrast, not by making every label
+       uppercase, gold and equally prominent. -->
   <Style Selector="TextBlock.mud-heading">
-    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="LetterSpacing" Value="1" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LetterSpacing" Value="0.2" />
   </Style>
 
   <Style Selector="TextBlock.mud-heading-lg">
-    <Setter Property="Foreground" Value="{StaticResource MudBrushGoldBright}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="FontSize" Value="16" />
-    <Setter Property="LetterSpacing" Value="1" />
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchment}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-brand">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushGold}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-section-title">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-label">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentDim}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-caption">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentFaint}" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style Selector="TextBlock.mud-connection-status">
+    <Setter Property="Foreground" Value="{StaticResource MudBrushEmeraldBright}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="11" />
   </Style>
 
   <Style Selector="TextBlock.mud-muted">
