@@ -2905,7 +2905,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 break;
             case "cancel":
             case "anuluj":
-                Map.CancelPendingMapMovement("Anulowano oczekiwanie mappera na Room.Info.");
+                Map.CancelMapEditorChanges();
                 break;
             case "diff":
             case "roznice":

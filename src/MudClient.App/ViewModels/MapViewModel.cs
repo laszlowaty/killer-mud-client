@@ -931,6 +931,19 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         NotifyMapEditorStateChanged();
     }
 
+    public bool CancelMapEditorChanges()
+    {
+        CancelMapMovementTimeout();
+        var changed = _mapEditor?.CancelChanges() == true;
+        if (changed)
+        {
+            ApplyMapEditorDocument();
+        }
+
+        NotifyMapEditorStateChanged();
+        return changed;
+    }
+
     public bool ResolveMapConflictKeepMap() => ApplyMapEditorOperation(
         editor => editor.ResolveConflictKeepMap(),
         applyDocument: false);

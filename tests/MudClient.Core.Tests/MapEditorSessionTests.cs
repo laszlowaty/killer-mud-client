@@ -105,6 +105,29 @@ public sealed class MapEditorSessionTests
     }
 
     [Fact]
+    public void CancelChanges_RestoresLastSavedDocumentAndClearsHistory()
+    {
+        var editor = CreateEditor();
+        editor.ProcessSnapshot(Snapshot("100", ("E", null)));
+        Assert.True(editor.SetCurrentRoomSymbol("!!"));
+        editor.MarkSaved();
+
+        Assert.True(editor.AddLabel("## Tymczasowa etykieta"));
+        editor.Start("100");
+        Assert.True(editor.PrepareManualCommand("e").Allow);
+
+        Assert.True(editor.CancelChanges());
+
+        Assert.False(editor.IsDirty);
+        Assert.False(editor.IsAwaitingRoomInfo);
+        Assert.False(editor.CanUndo);
+        Assert.False(editor.CanRedo);
+        Assert.Empty(editor.Document.Areas.Single().Labels);
+        Assert.Equal("‼", editor.Document.Areas.Single().Rooms.Single().Symbol);
+        Assert.Contains("wszystkie niezapisane zmiany", editor.Status, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void NewAreaAndSpecialMovement_CreateFirstRoomInSelectedArea()
     {
         var editor = CreateEditor();

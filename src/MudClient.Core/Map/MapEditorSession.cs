@@ -44,6 +44,7 @@ public sealed class MapEditorSession
 
     private readonly Stack<MapDocument> _undo = new();
     private readonly Stack<MapDocument> _redo = new();
+    private MapDocument _savedDocument;
     private PendingMovement? _pendingMovement;
     private MappingConflict? _conflict;
     private RoomSnapshot? _lastSnapshot;
@@ -57,6 +58,7 @@ public sealed class MapEditorSession
         bool isDirty = false)
     {
         Document = document ?? throw new ArgumentNullException(nameof(document));
+        _savedDocument = Document;
         if (undoHistory is not null)
         {
             foreach (var snapshot in undoHistory)
@@ -943,8 +945,29 @@ public sealed class MapEditorSession
 
     public void MarkSaved()
     {
+        _savedDocument = Document;
         IsDirty = false;
         Status = "Mapa została zapisana.";
+    }
+
+    public bool CancelChanges()
+    {
+        if (!IsDirty && _pendingMovement is null && _conflict is null)
+        {
+            Status = "Brak niezapisanych zmian mapy do anulowania.";
+            return false;
+        }
+
+        Document = _savedDocument;
+        _undo.Clear();
+        _redo.Clear();
+        _nextNewRoomAreaId = null;
+        _pendingMovement = null;
+        _conflict = null;
+        ClearMissingTargetArea();
+        IsDirty = false;
+        Status = "Anulowano wszystkie niezapisane zmiany mapy.";
+        return true;
     }
 
     private bool UpdateKnownRoomMetadata(RoomSnapshot snapshot)

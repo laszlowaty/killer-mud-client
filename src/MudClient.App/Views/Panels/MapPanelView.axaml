@@ -105,7 +105,7 @@
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                   <TextBlock Classes="mud-faint"
-                             Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|reassign|room|symbol|label|forget|special (również /mapa i +map)."
+                            Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|reassign|room|symbol|label|forget|special (cancel anuluje wszystkie niezapisane zmiany; również /mapa i +map)."
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                 </StackPanel>
