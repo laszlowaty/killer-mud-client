@@ -93,7 +93,7 @@
                  x:Name="CommandBox"
                  Classes="terminal-input"
                  Text="{Binding CommandText}"
-                 PlaceholderText="Wpisz komendę i naciśnij Enter… (Shift+Enter: nowa linia)"
+                 PlaceholderText="Wpisz komendę (Enter or Shift+Enter)"
                  AcceptsReturn="True"
                  AcceptsTab="False"
                  TextWrapping="Wrap"
@@ -103,7 +103,7 @@
                  x:Name="SearchBox"
                  Width="190"
                  MinHeight="30"
-                 PlaceholderText="Search..."
+                 PlaceholderText="Wyszukaj..."
                  ToolTip.Tip="Szukaj w terminalu (Enter/▲: starsze, Shift+Enter/▼: nowsze)"
                  TextChanged="SearchBox_OnTextChanged"
                  KeyDown="SearchBox_OnKeyDown" />
@@ -124,8 +124,9 @@
                 ToolTip.Tip="Następne dopasowanie (nowsze)"
                 Click="SearchNextButton_OnClick" />
         <Button Grid.Column="4"
-                Content="➤ Wyślij"
+                Content="➤"
                 Padding="20,7"
+                ToolTip.Tip="Wyślij"
                 Command="{Binding SendCommandCommand}"
                 Click="SendButton_OnClick" />
       </Grid>
