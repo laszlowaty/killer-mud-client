@@ -88,6 +88,32 @@ public sealed class MudOutputViewTests
     }
 
     [AvaloniaFact]
+    public void SearchNavigationButtons_StepThroughMatchesLikeEnterAndShiftEnter()
+    {
+        var terminal = new TerminalPanelView();
+        var output = terminal.FindControl<MudOutputView>("MudOutput")!;
+        var searchBox = terminal.FindControl<TextBox>("SearchBox")!;
+        var prevButton = terminal.FindControl<Button>("SearchPrevButton")!;
+        var nextButton = terminal.FindControl<Button>("SearchNextButton")!;
+
+        // TerminalPanelView seeds the output with a greeting on construction, so match
+        // positions are asserted relative to each other rather than as absolute line numbers.
+        output.AppendText("pierwszy smok\nbez trafienia\nostatni smok\n");
+        searchBox.Text = "smok";
+        Assert.True(output.UpdateSearch("smok"));
+        var newestMatchLine = output.SelectedSearchGlobalLine;
+        Assert.NotNull(newestMatchLine);
+
+        prevButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var olderMatchLine = output.SelectedSearchGlobalLine;
+        Assert.NotNull(olderMatchLine);
+        Assert.True(olderMatchLine < newestMatchLine);
+
+        nextButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(newestMatchLine, output.SelectedSearchGlobalLine);
+    }
+
+    [AvaloniaFact]
     public void TerminalWheelScroll_UsesFourLineLogicalStep()
     {
         var pane = new OutputPaneControl();
