@@ -9,7 +9,8 @@
   <UserControl.Resources>
     <!-- Leaf template for a timer inside the folder tree. -->
     <DataTemplate x:Key="TimerItemTemplate" x:DataType="models:TimerEntry">
-      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2"
+              MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
         <StackPanel Spacing="6">
 
           <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="6">
@@ -64,7 +65,8 @@
 
     <!-- Shared item template for aliases and triggers (rendered in two sections). -->
     <DataTemplate x:Key="RuleItemTemplate" x:DataType="models:AutomationRuleEntry">
-      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2"
+              MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
         <StackPanel Spacing="4">
 
           <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6">
@@ -102,7 +104,8 @@
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
             <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
             <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
-                       Text="{Binding Pattern}" TextTrimming="CharacterEllipsis" />
+                       Text="{Binding Pattern}" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding Pattern}" />
             <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
             <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
                        Text="{Binding Action}" TextWrapping="Wrap" />

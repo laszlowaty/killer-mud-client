@@ -28,6 +28,7 @@
           <!-- Folder row -->
           <Border IsVisible="{Binding IsFolder}"
                   Classes="mud-folder-row" Padding="6,4"
+                  MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}"
                   Classes.mud-folder-enabled="{Binding IsAllEnabled}"
                   Classes.mud-folder-disabled="{Binding IsAllDisabled}"
                   Classes.mud-folder-mixed="{Binding IsMixedActivation}">
