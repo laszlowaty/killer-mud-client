@@ -7,6 +7,7 @@
   <TreeView ItemsSource="{Binding Nodes, RelativeSource={RelativeSource AncestorType=controls:FolderTreeView}}"
             Background="Transparent" BorderThickness="0" Padding="0"
             SelectionMode="Single"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             Tapped="Tree_OnTapped">
     <TreeView.Styles>
       <Style Selector="TreeViewItem">
@@ -28,7 +29,6 @@
           <!-- Folder row -->
           <Border IsVisible="{Binding IsFolder}"
                   Classes="mud-folder-row" Padding="6,4"
-                  MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}"
                   Classes.mud-folder-enabled="{Binding IsAllEnabled}"
                   Classes.mud-folder-disabled="{Binding IsAllDisabled}"
                   Classes.mud-folder-mixed="{Binding IsMixedActivation}">
