@@ -3,88 +3,176 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.BuffsPanelView"
+             x:Name="BuffsRoot"
              x:DataType="vm:MainWindowViewModel">
-  <!-- Required buffs (user-defined, matched against Char.Affects) -->
-  <ScrollViewer>
-    <StackPanel Spacing="4" Margin="12">
-      <Button Content="RECAST BRAKUJĄCYCH" Classes="mud-small"
-              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-              Command="{Binding RecastBuffsCommand}" />
+  <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+    <!-- The normal view stays compact: set selector, recast and one overflow menu. -->
+    <StackPanel Grid.Row="0" Spacing="5">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+        <ComboBox Grid.Column="0"
+                  ItemsSource="{Binding BuffSets}"
+                  SelectedItem="{Binding SelectedBuffSet, Mode=TwoWay}"
+                  HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Aktywny zestaw buffów">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="models:BuffSetEntry">
+              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
 
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBox Text="{Binding NewBuffName}" PlaceholderText="nazwa buffa (np. armor)"
-                 KeyDown="NewBuffBox_OnKeyDown" />
-        <Button Grid.Column="1" Content="Dodaj" Classes="mud-small" Margin="4,0,0,0"
-                VerticalAlignment="Stretch"
-                Command="{Binding AddBuffCommand}" />
+        <Button x:Name="AddSetButton"
+                Grid.Column="1"
+                Content="+"
+                Classes="mud-small"
+                Padding="9,4"
+                ToolTip.Tip="Nowy zestaw">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="6" Width="240">
+                <TextBlock Classes="mud-heading" Text="Nowy zestaw buffów" />
+                <TextBox Text="{Binding NewBuffSetName, Mode=TwoWay}"
+                         PlaceholderText="Nazwa zestawu"
+                         KeyDown="NewBuffSetBox_OnKeyDown" />
+                <Button Content="Utwórz i przełącz"
+                        HorizontalAlignment="Stretch"
+                        Click="CreateBuffSet_OnClick" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+
+        <Button x:Name="ManageSetButton"
+                Grid.Column="2"
+                Content="⋯"
+                Classes="mud-small"
+                Padding="9,4"
+                ToolTip.Tip="Zarządzaj zestawem">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="6" Width="240">
+                <TextBlock Classes="mud-heading" Text="Aktywny zestaw" />
+                <TextBox Text="{Binding BuffSetNameDraft, Mode=TwoWay}"
+                         PlaceholderText="Nazwa zestawu"
+                         KeyDown="BuffSetNameBox_OnKeyDown" />
+                <Button Content="Zmień nazwę"
+                        HorizontalAlignment="Stretch"
+                        Click="RenameBuffSet_OnClick" />
+                <Border Height="1"
+                        Background="{StaticResource MudBrushSlate}"
+                        Margin="0,2" />
+                <Button Content="Usuń zestaw"
+                        HorizontalAlignment="Stretch"
+                        IsEnabled="{Binding CanDeleteBuffSet}"
+                        Click="DeleteBuffSet_OnClick" />
+                <TextBlock Classes="mud-faint"
+                           Text="Ostatniego zestawu nie można usunąć."
+                           IsVisible="{Binding !CanDeleteBuffSet}" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
       </Grid>
 
-      <TextBlock Classes="mud-faint" Text="Brak zdefiniowanych buffów."
-                 IsVisible="{Binding !RequiredBuffs.Count}" />
-
-      <ItemsControl ItemsSource="{Binding RequiredBuffs}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="models:BuffWatchEntry">
-            <Grid>
-              <!-- Active: green. Clicking the whole entry recasts just this spell. -->
-              <Button BorderBrush="{StaticResource MudBrushEmerald}"
-                      Background="Transparent"
-                      BorderThickness="1" CornerRadius="3"
-                      Padding="6,3" Margin="0,1"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Stretch"
-                      Cursor="Hand"
-                      ToolTip.Tip="Rzuć ten spell"
-                      IsVisible="{Binding IsActive}"
-                      Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
-                      CommandParameter="{Binding}">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <TextBlock Text="[+]"
-                             Foreground="{StaticResource MudBrushEmeraldBright}"
-                             Margin="0,0,6,0" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding Name}"
-                             VerticalAlignment="Center" />
-                  <Button Grid.Column="2" Content="✕" Classes="mud-small"
-                          Padding="6,1"
-                          Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
-                          CommandParameter="{Binding}" />
-                </Grid>
-              </Button>
-              <!-- Missing: red -->
-              <Button BorderBrush="{StaticResource MudBrushCrimson}"
-                      Background="{StaticResource MudBrushStoneLight}"
-                      BorderThickness="1" CornerRadius="3"
-                      Padding="6,3" Margin="0,1"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Stretch"
-                      Cursor="Hand"
-                      ToolTip.Tip="Rzuć ten spell"
-                      IsVisible="{Binding !IsActive}"
-                      Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
-                      CommandParameter="{Binding}">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                  <TextBlock Text="[!]"
-                             Foreground="{StaticResource MudBrushCrimsonBright}"
-                             Margin="0,0,6,0" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding Name}"
-                             Foreground="{StaticResource MudBrushCrimsonBright}"
-                             VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="2" Text="brak"
-                             Classes="mud-faint" Margin="0,0,6,0"
-                             VerticalAlignment="Center" />
-                  <Button Grid.Column="3" Content="✕" Classes="mud-small"
-                          Padding="6,1"
-                          Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
-                          CommandParameter="{Binding}" />
-                </Grid>
-              </Button>
-            </Grid>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-
-      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                 Text="Komenda /recast wysyła cast &quot;nazwa&quot; self dla każdego brakującego buffa." />
+      <Button Content="RZUĆ BRAKUJĄCE"
+              Classes="mud-small"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center"
+              ToolTip.Tip="/recast działa na aktualnie wybranym zestawie"
+              Command="{Binding RecastBuffsCommand}" />
     </StackPanel>
-  </ScrollViewer>
+
+    <ScrollViewer Grid.Row="1" Margin="0,5,0,5">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="mud-faint"
+                   Text="Ten zestaw jest pusty."
+                   HorizontalAlignment="Center"
+                   Margin="6,12"
+                   IsVisible="{Binding !RequiredBuffs.Count}" />
+
+        <ItemsControl ItemsSource="{Binding RequiredBuffs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:BuffWatchEntry">
+              <Grid>
+                <Button BorderBrush="{StaticResource MudBrushEmerald}"
+                        Background="Transparent"
+                        BorderThickness="1" CornerRadius="3"
+                        Padding="6,3" Margin="0,1"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Cursor="Hand"
+                        ToolTip.Tip="Rzuć ten spell"
+                        IsVisible="{Binding IsActive}"
+                        Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
+                        CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Text="[+]"
+                               Foreground="{StaticResource MudBrushEmeraldBright}"
+                               Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Content="✕" Classes="mud-small"
+                            Padding="6,1"
+                            ToolTip.Tip="Usuń z zestawu"
+                            Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </Button>
+
+                <Button BorderBrush="{StaticResource MudBrushCrimson}"
+                        Background="{StaticResource MudBrushStoneLight}"
+                        BorderThickness="1" CornerRadius="3"
+                        Padding="6,3" Margin="0,1"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Cursor="Hand"
+                        ToolTip.Tip="Rzuć ten spell"
+                        IsVisible="{Binding !IsActive}"
+                        Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
+                        CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <TextBlock Text="[!]"
+                               Foreground="{StaticResource MudBrushCrimsonBright}"
+                               Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                               Foreground="{StaticResource MudBrushCrimsonBright}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="brak"
+                               Classes="mud-faint" Margin="0,0,6,0"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="3" Content="✕" Classes="mud-small"
+                            Padding="6,1"
+                            ToolTip.Tip="Usuń z zestawu"
+                            Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Button x:Name="AddBuffButton"
+            Grid.Row="2"
+            Content="+ Dodaj buff"
+            Classes="mud-small"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center">
+      <Button.Flyout>
+        <Flyout Placement="TopEdgeAlignedLeft">
+          <StackPanel Spacing="6" Width="260">
+            <TextBlock Classes="mud-heading" Text="Dodaj do aktywnego zestawu" />
+            <TextBox Text="{Binding NewBuffName, Mode=TwoWay}"
+                     PlaceholderText="Nazwa buffa (np. armor)"
+                     KeyDown="NewBuffBox_OnKeyDown" />
+            <Button Content="Dodaj"
+                    HorizontalAlignment="Stretch"
+                    Click="AddBuff_OnClick" />
+          </StackPanel>
+        </Flyout>
+      </Button.Flyout>
+    </Button>
+  </Grid>
 </UserControl>

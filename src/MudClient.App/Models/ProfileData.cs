@@ -48,8 +48,26 @@ public sealed class ProfileData
     /// <summary>Last 10 death locations, newest first.</summary>
     public List<ProfileDeath> Deaths { get; set; } = [];
 
-    /// <summary>Buff names the character wants to keep active (see BuffWatchEntry).</summary>
+    /// <summary>
+    /// Legacy flat buff list. New clients migrate it to a default set and keep
+    /// the selected set mirrored here for compatibility with older clients.
+    /// </summary>
     public List<string> RequiredBuffs { get; set; } = [];
+
+    /// <summary>Named buff sets available to this character.</summary>
+    public List<ProfileBuffSet> BuffSets { get; set; } = [];
+
+    /// <summary>Id of the set last selected in the buffs widget.</summary>
+    public string ActiveBuffSetId { get; set; } = string.Empty;
+}
+
+public sealed class ProfileBuffSet
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    public string Name { get; set; } = string.Empty;
+
+    public List<string> Buffs { get; set; } = [];
 }
 
 /// <summary>

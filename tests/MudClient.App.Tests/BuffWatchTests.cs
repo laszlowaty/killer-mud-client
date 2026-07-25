@@ -1,5 +1,6 @@
 using MudClient.App.Models;
 using MudClient.App.Services;
+using MudClient.App.ViewModels;
 
 namespace MudClient.App.Tests;
 
@@ -54,6 +55,38 @@ public sealed class BuffWatchTests : IDisposable
     }
 
     [Fact]
+    public void SaveAndLoad_RoundTripsNamedSetsAndSelection()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Gandalf",
+            ActiveBuffSetId = "combat",
+            BuffSets =
+            [
+                new ProfileBuffSet { Id = "travel", Name = "Podróż", Buffs = ["fly"] },
+                new ProfileBuffSet { Id = "combat", Name = "Walka", Buffs = ["armor", "sanctuary"] },
+            ],
+        });
+
+        var loaded = Assert.IsType<ProfileData>(service.Load("Gandalf"));
+
+        Assert.Equal("combat", loaded.ActiveBuffSetId);
+        Assert.Collection(
+            loaded.BuffSets,
+            set =>
+            {
+                Assert.Equal("Podróż", set.Name);
+                Assert.Equal(["fly"], set.Buffs);
+            },
+            set =>
+            {
+                Assert.Equal("Walka", set.Name);
+                Assert.Equal(["armor", "sanctuary"], set.Buffs);
+            });
+    }
+
+    [Fact]
     public void Load_OldProfileWithoutBuffs_ReturnsEmptyList()
     {
         var service = CreateService();
@@ -63,5 +96,64 @@ public sealed class BuffWatchTests : IDisposable
 
         Assert.NotNull(loaded);
         Assert.Empty(loaded!.RequiredBuffs);
+    }
+
+    [Fact]
+    public async Task ViewModel_MigratesLegacyListAndPersistsNewSets()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Mag",
+            RequiredBuffs = ["armor", "mirror image"],
+        });
+
+        await using var viewModel = new MainWindowViewModel(
+            service,
+            new AppSettingsService(_directory));
+        viewModel.SelectedProfileName = "Mag";
+        viewModel.SelectProfileCommand.Execute(null);
+
+        Assert.Equal("Domyślny", viewModel.SelectedBuffSet?.Name);
+        Assert.Equal(["armor", "mirror image"], viewModel.RequiredBuffs.Select(buff => buff.Name));
+
+        viewModel.NewBuffSetName = "Walka";
+        viewModel.CreateBuffSetCommand.Execute(null);
+        viewModel.NewBuffName = "sanctuary";
+        viewModel.AddBuffCommand.Execute(null);
+
+        var loaded = Assert.IsType<ProfileData>(service.Load("Mag"));
+        Assert.Equal("Walka", viewModel.SelectedBuffSet?.Name);
+        Assert.Equal(viewModel.SelectedBuffSet?.Id, loaded.ActiveBuffSetId);
+        Assert.Collection(
+            loaded.BuffSets,
+            set => Assert.Equal(["armor", "mirror image"], set.Buffs),
+            set => Assert.Equal(["sanctuary"], set.Buffs));
+    }
+
+    [Fact]
+    public async Task ViewModel_SwitchesVisibleBuffsAndPreventsDuplicateSetNames()
+    {
+        await using var viewModel = new MainWindowViewModel(
+            CreateService(),
+            new AppSettingsService(_directory));
+        viewModel.NewBuffName = "armor";
+        viewModel.AddBuffCommand.Execute(null);
+        var defaultSet = Assert.IsType<BuffSetEntry>(viewModel.SelectedBuffSet);
+
+        viewModel.NewBuffSetName = "Walka";
+        viewModel.CreateBuffSetCommand.Execute(null);
+        viewModel.NewBuffName = "sanctuary";
+        viewModel.AddBuffCommand.Execute(null);
+
+        Assert.Equal(["sanctuary"], viewModel.RequiredBuffs.Select(buff => buff.Name));
+        viewModel.SelectedBuffSet = defaultSet;
+        Assert.Equal(["armor"], viewModel.RequiredBuffs.Select(buff => buff.Name));
+
+        viewModel.NewBuffSetName = "walka";
+        viewModel.CreateBuffSetCommand.Execute(null);
+
+        Assert.Equal(2, viewModel.BuffSets.Count);
+        Assert.Contains(viewModel.Toasts, toast => toast.Text == "Zestaw „walka” już istnieje.");
     }
 }

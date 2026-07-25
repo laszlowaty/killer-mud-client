@@ -358,7 +358,7 @@
                     <TextBlock Grid.Column="0" Text="/recast" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="Ponownie rzuca wszystkie brakujące czary z listy wymaganych buffów na postać." />
+                               Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów na postać." />
                   </Grid>
                 </Border>
 

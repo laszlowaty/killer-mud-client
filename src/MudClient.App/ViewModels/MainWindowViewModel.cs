@@ -181,6 +181,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     // --- Required buffs ---
     private string _newBuffName = string.Empty;
+    private string _newBuffSetName = string.Empty;
+    private string _buffSetNameDraft = string.Empty;
+    private BuffSetEntry? _selectedBuffSet;
+    private bool _loadingBuffSets;
 
     /// <summary>
     /// Normalized names from the latest Char.Affects, used to mark
@@ -276,8 +280,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         GoToDeathCommand = new RelayCommand<DeathMarkEntry>(GoToDeath);
         AddBuffCommand = new RelayCommand(AddBuff, () => !string.IsNullOrWhiteSpace(NewBuffName));
         DeleteBuffCommand = new RelayCommand<BuffWatchEntry>(DeleteBuff);
+        CreateBuffSetCommand = new RelayCommand(CreateBuffSet, () => !string.IsNullOrWhiteSpace(NewBuffSetName));
+        RenameBuffSetCommand = new RelayCommand(RenameSelectedBuffSet, () =>
+            SelectedBuffSet is not null && !string.IsNullOrWhiteSpace(BuffSetNameDraft));
+        DeleteBuffSetCommand = new RelayCommand(DeleteSelectedBuffSet, () => BuffSets.Count > 1);
         RecastBuffsCommand = new AsyncRelayCommand(RecastMissingBuffsAsync);
         RecastSingleBuffCommand = new AsyncRelayCommand<BuffWatchEntry>(RecastSingleBuffAsync);
+        var defaultBuffSet = new BuffSetEntry { Name = "Domyślny" };
+        BuffSets.Add(defaultBuffSet);
+        _selectedBuffSet = defaultBuffSet;
+        _buffSetNameDraft = defaultBuffSet.Name;
         GoToLocationCommand = new RelayCommand<AutowalkLocation>(entry =>
         {
             if (entry is not null)
@@ -3304,11 +3316,40 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // Required buffs (user-defined, matched against Char.Affects)
     // ========================================================================
 
-    /// <summary>Buffs the user wants to keep active. Persisted per profile.</summary>
-    public ObservableCollection<BuffWatchEntry> RequiredBuffs { get; } = [];
+    /// <summary>Named buff sets persisted per profile.</summary>
+    public ObservableCollection<BuffSetEntry> BuffSets { get; } = [];
+
+    /// <summary>The set displayed in the widget and used by /recast.</summary>
+    public BuffSetEntry? SelectedBuffSet
+    {
+        get => _selectedBuffSet;
+        set
+        {
+            if (!SetProperty(ref _selectedBuffSet, value) || value is null)
+            {
+                return;
+            }
+
+            BuffSetNameDraft = value.Name;
+            OnPropertyChanged(nameof(RequiredBuffs));
+            RefreshBuffIndicators();
+            RenameBuffSetCommand.NotifyCanExecuteChanged();
+            if (!_loadingBuffSets)
+            {
+                SaveActiveProfile();
+            }
+        }
+    }
+
+    /// <summary>Buffs in the currently selected set.</summary>
+    public ObservableCollection<BuffWatchEntry> RequiredBuffs =>
+        SelectedBuffSet?.Buffs ?? [];
 
     public RelayCommand AddBuffCommand { get; }
     public RelayCommand<BuffWatchEntry> DeleteBuffCommand { get; }
+    public RelayCommand CreateBuffSetCommand { get; }
+    public RelayCommand RenameBuffSetCommand { get; }
+    public RelayCommand DeleteBuffSetCommand { get; }
     public AsyncRelayCommand RecastBuffsCommand { get; }
     public AsyncRelayCommand<BuffWatchEntry> RecastSingleBuffCommand { get; }
 
@@ -3319,6 +3360,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>True when at least one required buff is missing.</summary>
     public bool BuffsAlert => RequiredBuffs.Any(b => !b.IsActive);
+
+    public bool CanDeleteBuffSet => BuffSets.Count > 1;
 
     private void RefreshBuffIndicators()
     {
@@ -3353,6 +3396,91 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 AddBuffCommand.NotifyCanExecuteChanged();
             }
         }
+    }
+
+    public string NewBuffSetName
+    {
+        get => _newBuffSetName;
+        set
+        {
+            if (SetProperty(ref _newBuffSetName, value))
+            {
+                CreateBuffSetCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string BuffSetNameDraft
+    {
+        get => _buffSetNameDraft;
+        set
+        {
+            if (SetProperty(ref _buffSetNameDraft, value))
+            {
+                RenameBuffSetCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    private void CreateBuffSet()
+    {
+        var name = NewBuffSetName.Trim();
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        if (BuffSets.Any(set => string.Equals(set.Name, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            AddToast($"Zestaw „{name}” już istnieje.", "info");
+            return;
+        }
+
+        var set = new BuffSetEntry { Name = name };
+        BuffSets.Add(set);
+        NewBuffSetName = string.Empty;
+        DeleteBuffSetCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanDeleteBuffSet));
+        SelectedBuffSet = set;
+    }
+
+    private void RenameSelectedBuffSet()
+    {
+        if (SelectedBuffSet is not { } selected)
+        {
+            return;
+        }
+
+        var name = BuffSetNameDraft.Trim();
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        if (BuffSets.Any(set => !ReferenceEquals(set, selected)
+            && string.Equals(set.Name, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            AddToast($"Zestaw „{name}” już istnieje.", "info");
+            return;
+        }
+
+        selected.Name = name;
+        BuffSetNameDraft = name;
+        SaveActiveProfile();
+    }
+
+    private void DeleteSelectedBuffSet()
+    {
+        if (SelectedBuffSet is not { } selected || BuffSets.Count <= 1)
+        {
+            return;
+        }
+
+        var index = BuffSets.IndexOf(selected);
+        BuffSets.Remove(selected);
+        DeleteBuffSetCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanDeleteBuffSet));
+        SelectedBuffSet = BuffSets[Math.Min(index, BuffSets.Count - 1)];
     }
 
     private void AddBuff()
@@ -3690,7 +3818,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Locations.Clear();
         Folders.Clear();
         Deaths.Clear();
-        RequiredBuffs.Clear();
+        _loadingBuffSets = true;
+        BuffSets.Clear();
 
         // Globals first, then the profile's own entries.
         LoadGlobalEntries();
@@ -3729,15 +3858,55 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 death.When));
         }
 
-        foreach (var buffName in profile.RequiredBuffs)
+        var persistedSets = profile.BuffSets ?? [];
+        if (persistedSets.Count == 0)
         {
-            RequiredBuffs.Add(new BuffWatchEntry(buffName)
-            {
-                IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buffName)),
-            });
+            persistedSets =
+            [
+                new ProfileBuffSet
+                {
+                    Name = "Domyślny",
+                    Buffs = profile.RequiredBuffs ?? [],
+                },
+            ];
         }
 
-        RefreshBuffIndicators();
+        foreach (var persistedSet in persistedSets)
+        {
+            var set = new BuffSetEntry
+            {
+                Id = string.IsNullOrWhiteSpace(persistedSet.Id)
+                    ? Guid.NewGuid().ToString("N")
+                    : persistedSet.Id,
+                Name = string.IsNullOrWhiteSpace(persistedSet.Name)
+                    ? "Bez nazwy"
+                    : persistedSet.Name.Trim(),
+            };
+            foreach (var buffName in persistedSet.Buffs ?? [])
+            {
+                if (!string.IsNullOrWhiteSpace(buffName))
+                {
+                    set.Buffs.Add(new BuffWatchEntry(buffName)
+                    {
+                        IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buffName)),
+                    });
+                }
+            }
+
+            BuffSets.Add(set);
+        }
+
+        if (BuffSets.Count == 0)
+        {
+            BuffSets.Add(new BuffSetEntry { Name = "Domyślny" });
+        }
+
+        SelectedBuffSet = BuffSets.FirstOrDefault(set =>
+            string.Equals(set.Id, profile.ActiveBuffSetId, StringComparison.Ordinal))
+            ?? BuffSets[0];
+        _loadingBuffSets = false;
+        DeleteBuffSetCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanDeleteBuffSet));
 
         _activeProfilePassword = PasswordProtector.Unprotect(profile.EncryptedPassword);
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
@@ -3946,6 +4115,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 When = d.When,
             }).ToList(),
             RequiredBuffs = RequiredBuffs.Select(b => b.Name).ToList(),
+            BuffSets = BuffSets.Select(set => new ProfileBuffSet
+            {
+                Id = set.Id,
+                Name = set.Name,
+                Buffs = set.Buffs.Select(buff => buff.Name).ToList(),
+            }).ToList(),
+            ActiveBuffSetId = SelectedBuffSet?.Id ?? string.Empty,
             EncryptedPassword = PasswordProtector.Protect(_activeProfilePassword),
             NeedsRegistration = _activeProfileNeedsRegistration,
         };
@@ -5486,7 +5662,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 _activeAffectNames.Add(BuffWatchEntry.NormalizeName(affect.Name));
             }
 
-            foreach (var buff in RequiredBuffs)
+            foreach (var buff in BuffSets.SelectMany(set => set.Buffs))
             {
                 buff.IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buff.Name));
             }

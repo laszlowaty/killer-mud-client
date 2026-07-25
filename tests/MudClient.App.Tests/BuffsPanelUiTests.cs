@@ -57,8 +57,14 @@ public sealed class BuffsPanelUiTests
                 .ToList();
             var buffList = panel.GetVisualDescendants().OfType<ItemsControl>()
                 .Single(control => ReferenceEquals(control.ItemsSource, viewModel.RequiredBuffs));
+            var setSelector = panel.GetVisualDescendants().OfType<ComboBox>()
+                .Single(control => ReferenceEquals(control.ItemsSource, viewModel.BuffSets));
 
             Assert.Equal(2, recastButtons.Count);
+            Assert.Same(viewModel.SelectedBuffSet, setSelector.SelectedItem);
+            Assert.Contains(
+                panel.GetVisualDescendants().OfType<Button>(),
+                button => button.IsEffectivelyVisible && button.Content?.ToString() == "+ Dodaj buff");
 
             foreach (var recastButton in recastButtons)
             {
