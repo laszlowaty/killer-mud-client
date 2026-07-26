@@ -252,7 +252,8 @@ public sealed class LordModeMapUiTests
 
             var memberBorder = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
-                border => ReferenceEquals(border.DataContext, member));
+                border => ReferenceEquals(border.DataContext, member)
+                    && border.ContextMenu is ContextMenu);
             var groupMembersList = panel.FindControl<ItemsControl>("GroupMembersList");
             Assert.NotNull(groupMembersList);
             Assert.Null(groupMembersList.ContextMenu);
