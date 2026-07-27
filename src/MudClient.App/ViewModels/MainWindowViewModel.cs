@@ -350,6 +350,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
+        _dockFactory.OverlayChanged += OnOverlayChanged;
+        ApplyOverlayFromSettings();
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
             if (tool is not null)
@@ -417,6 +419,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public ObservableCollection<PanelTool> HiddenPanels => _dockFactory.HiddenTools;
+
+    /// <summary>The panel currently pinned as a floating overlay on the Terminal, or null.</summary>
+    public PanelTool? OverlayPanel => _dockFactory.OverlayTool;
 
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
 
@@ -575,10 +580,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         previousFactory.HiddenTools.CollectionChanged -= OnHiddenToolsChanged;
+        previousFactory.OverlayChanged -= OnOverlayChanged;
         _dockFactory = replacementFactory;
         _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
+        _dockFactory.OverlayChanged += OnOverlayChanged;
         Layout = fresh;
         OnPropertyChanged(nameof(HiddenPanels));
+        ApplyOverlayFromSettings();
 
         // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
         UpdateBuffsToolTitle();
@@ -586,6 +594,32 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
         OnPropertyChanged(nameof(HiddenPanels));
+
+    private void OnOverlayChanged(object? sender, PanelTool? tool)
+    {
+        _settings.TerminalOverlayPanelId = tool?.Id;
+        OnPropertyChanged(nameof(OverlayPanel));
+        SaveSettings();
+    }
+
+    /// <summary>Re-applies the panel remembered as a Terminal overlay (if any) after the dock
+    /// tree is (re)built — at startup, and again whenever a layout preset switch recreates the
+    /// factory. Silently does nothing if the remembered panel id no longer exists.</summary>
+    private void ApplyOverlayFromSettings()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.TerminalOverlayPanelId))
+        {
+            return;
+        }
+
+        var tool = _dockFactory.AllTools.FirstOrDefault(t => t.Id == _settings.TerminalOverlayPanelId);
+        if (tool is null || string.Equals(tool.Id, "Terminal", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _dockFactory.PinToolAsOverlay(tool);
+    }
 
     private void SaveLayout()
     {
@@ -1183,6 +1217,70 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public string WidgetFontSizeText => $"{_settings.WidgetFontSize:0} px";
 
     public FontFamily WidgetFontFamilyValue => AppFonts.Resolve(_settings.WidgetFontFamily);
+
+    public double MinTerminalOverlayOpacity => AppSettings.MinTerminalOverlayOpacity;
+
+    public double MaxTerminalOverlayOpacity => AppSettings.MaxTerminalOverlayOpacity;
+
+    /// <summary>Overlay position/size as fractions of the Terminal's own bounds. Read-only from
+    /// bindings — <see cref="TerminalOverlayHost"/> commits new values via
+    /// <see cref="CommitOverlayGeometry"/> once a drag/resize gesture ends, rather than on every
+    /// pointer-moved frame, to avoid rewriting settings.json dozens of times per second.</summary>
+    public double TerminalOverlayXFraction => _settings.TerminalOverlayXFraction;
+
+    public double TerminalOverlayYFraction => _settings.TerminalOverlayYFraction;
+
+    public double TerminalOverlayWidthFraction => _settings.TerminalOverlayWidthFraction;
+
+    public double TerminalOverlayHeightFraction => _settings.TerminalOverlayHeightFraction;
+
+    public double TerminalOverlayOpacity
+    {
+        get => _settings.TerminalOverlayOpacity;
+        set
+        {
+            var clamped = Math.Clamp(
+                value, AppSettings.MinTerminalOverlayOpacity, AppSettings.MaxTerminalOverlayOpacity);
+            if (Math.Abs(_settings.TerminalOverlayOpacity - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayOpacity = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Commits a new overlay position/size, clamped to valid ranges, in a single write.
+    /// Called once when a drag or resize gesture on the overlay chrome ends.</summary>
+    public void CommitOverlayGeometry(double xFraction, double yFraction, double widthFraction, double heightFraction)
+    {
+        var clampedWidth = Math.Clamp(
+            widthFraction, AppSettings.MinTerminalOverlaySizeFraction, AppSettings.MaxTerminalOverlaySizeFraction);
+        var clampedHeight = Math.Clamp(
+            heightFraction, AppSettings.MinTerminalOverlaySizeFraction, AppSettings.MaxTerminalOverlaySizeFraction);
+        var clampedX = Math.Clamp(xFraction, 0, 1 - clampedWidth);
+        var clampedY = Math.Clamp(yFraction, 0, 1 - clampedHeight);
+
+        if (Math.Abs(_settings.TerminalOverlayXFraction - clampedX) < 0.0005
+            && Math.Abs(_settings.TerminalOverlayYFraction - clampedY) < 0.0005
+            && Math.Abs(_settings.TerminalOverlayWidthFraction - clampedWidth) < 0.0005
+            && Math.Abs(_settings.TerminalOverlayHeightFraction - clampedHeight) < 0.0005)
+        {
+            return;
+        }
+
+        _settings.TerminalOverlayXFraction = clampedX;
+        _settings.TerminalOverlayYFraction = clampedY;
+        _settings.TerminalOverlayWidthFraction = clampedWidth;
+        _settings.TerminalOverlayHeightFraction = clampedHeight;
+        OnPropertyChanged(nameof(TerminalOverlayXFraction));
+        OnPropertyChanged(nameof(TerminalOverlayYFraction));
+        OnPropertyChanged(nameof(TerminalOverlayWidthFraction));
+        OnPropertyChanged(nameof(TerminalOverlayHeightFraction));
+        SaveSettings();
+    }
 
     public bool WidgetFontBold
     {
