@@ -202,6 +202,74 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(AppSettings.MaxWidgetFontSize, settings.WidgetFontSize);
     }
 
+    [Fact]
+    public void Load_OutOfRangeOverlayOpacityAndSize_ClampsToLimits()
+    {
+        SaveRaw(new AppSettings
+        {
+            TerminalOverlayOpacity = 5,
+            TerminalOverlayWidthFraction = 5,
+            TerminalOverlayHeightFraction = -1,
+        });
+
+        var settings = _service.Load();
+
+        Assert.Equal(AppSettings.MaxTerminalOverlayOpacity, settings.TerminalOverlayOpacity);
+        Assert.Equal(AppSettings.MaxTerminalOverlaySizeFraction, settings.TerminalOverlayWidthFraction);
+        Assert.Equal(AppSettings.MinTerminalOverlaySizeFraction, settings.TerminalOverlayHeightFraction);
+    }
+
+    [Fact]
+    public void Load_OverlayPositionOffScreen_ClampsWithinBounds()
+    {
+        SaveRaw(new AppSettings
+        {
+            TerminalOverlayWidthFraction = 0.4,
+            TerminalOverlayHeightFraction = 0.4,
+            TerminalOverlayXFraction = 2,
+            TerminalOverlayYFraction = -2,
+        });
+
+        var settings = _service.Load();
+
+        Assert.Equal(0.6, settings.TerminalOverlayXFraction, precision: 6);
+        Assert.Equal(0, settings.TerminalOverlayYFraction, precision: 6);
+    }
+
+    [Fact]
+    public void Load_WhitespaceOverlayPanelId_NormalizesToNull()
+    {
+        SaveRaw(new AppSettings { TerminalOverlayPanelId = "   " });
+
+        var settings = _service.Load();
+
+        Assert.Null(settings.TerminalOverlayPanelId);
+    }
+
+    [Fact]
+    public void SaveAndLoad_OverlaySettings_RoundTrip()
+    {
+        var original = new AppSettings
+        {
+            TerminalOverlayPanelId = "Notes",
+            TerminalOverlayXFraction = 0.1,
+            TerminalOverlayYFraction = 0.2,
+            TerminalOverlayWidthFraction = 0.3,
+            TerminalOverlayHeightFraction = 0.4,
+            TerminalOverlayOpacity = 0.6,
+        };
+
+        _service.Save(original);
+        var loaded = _service.Load();
+
+        Assert.Equal("Notes", loaded.TerminalOverlayPanelId);
+        Assert.Equal(0.1, loaded.TerminalOverlayXFraction, precision: 6);
+        Assert.Equal(0.2, loaded.TerminalOverlayYFraction, precision: 6);
+        Assert.Equal(0.3, loaded.TerminalOverlayWidthFraction, precision: 6);
+        Assert.Equal(0.4, loaded.TerminalOverlayHeightFraction, precision: 6);
+        Assert.Equal(0.6, loaded.TerminalOverlayOpacity, precision: 6);
+    }
+
     // ====================================================================
     // Helpers
     // ====================================================================

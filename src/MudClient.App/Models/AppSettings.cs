@@ -15,6 +15,18 @@ public sealed class AppSettings
     public const double MaxWidgetFontSize = 24;
     public const string DefaultTelnetColorScheme = "Ciepłe";
 
+    /// <summary>Default/limits for the terminal overlay's transparency and geometry (see
+    /// <see cref="TerminalOverlayOpacity"/> and the fraction properties below).</summary>
+    public const double DefaultTerminalOverlayOpacity = 0.85;
+    public const double MinTerminalOverlayOpacity = 0.2;
+    public const double MaxTerminalOverlayOpacity = 1.0;
+    public const double MinTerminalOverlaySizeFraction = 0.15;
+    public const double MaxTerminalOverlaySizeFraction = 0.95;
+    public const double DefaultTerminalOverlayXFraction = 0.55;
+    public const double DefaultTerminalOverlayYFraction = 0.05;
+    public const double DefaultTerminalOverlayWidthFraction = 0.42;
+    public const double DefaultTerminalOverlayHeightFraction = 0.42;
+
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
 
@@ -67,4 +79,22 @@ public sealed class AppSettings
 
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; }
+
+    /// <summary>Id of the panel currently pinned as a floating overlay on the Terminal, or null
+    /// if no panel is overlaid. Independent of the per-layout dock snapshots (see
+    /// <see cref="MudClient.App.Docking.MudDockFactory.OverlayTool"/>).</summary>
+    public string? TerminalOverlayPanelId { get; set; }
+
+    /// <summary>Overlay position/size as fractions (0..1) of the Terminal panel's own bounds, so
+    /// the overlay always stays proportionally inside the terminal regardless of window size.</summary>
+    public double TerminalOverlayXFraction { get; set; } = DefaultTerminalOverlayXFraction;
+
+    public double TerminalOverlayYFraction { get; set; } = DefaultTerminalOverlayYFraction;
+
+    public double TerminalOverlayWidthFraction { get; set; } = DefaultTerminalOverlayWidthFraction;
+
+    public double TerminalOverlayHeightFraction { get; set; } = DefaultTerminalOverlayHeightFraction;
+
+    /// <summary>0 (fully transparent) .. 1 (opaque). Lets the terminal text show through the overlay.</summary>
+    public double TerminalOverlayOpacity { get; set; } = DefaultTerminalOverlayOpacity;
 }

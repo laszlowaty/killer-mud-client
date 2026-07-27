@@ -76,6 +76,27 @@ public sealed class AppSettingsService
                         .ToList() ?? [];
                     settings.AutoAssistFollowUpCommands ??= string.Empty;
 
+                    settings.TerminalOverlayOpacity = Math.Clamp(
+                        settings.TerminalOverlayOpacity,
+                        AppSettings.MinTerminalOverlayOpacity,
+                        AppSettings.MaxTerminalOverlayOpacity);
+                    settings.TerminalOverlayWidthFraction = Math.Clamp(
+                        settings.TerminalOverlayWidthFraction,
+                        AppSettings.MinTerminalOverlaySizeFraction,
+                        AppSettings.MaxTerminalOverlaySizeFraction);
+                    settings.TerminalOverlayHeightFraction = Math.Clamp(
+                        settings.TerminalOverlayHeightFraction,
+                        AppSettings.MinTerminalOverlaySizeFraction,
+                        AppSettings.MaxTerminalOverlaySizeFraction);
+                    settings.TerminalOverlayXFraction = Math.Clamp(
+                        settings.TerminalOverlayXFraction, 0, 1 - settings.TerminalOverlayWidthFraction);
+                    settings.TerminalOverlayYFraction = Math.Clamp(
+                        settings.TerminalOverlayYFraction, 0, 1 - settings.TerminalOverlayHeightFraction);
+                    if (string.IsNullOrWhiteSpace(settings.TerminalOverlayPanelId))
+                    {
+                        settings.TerminalOverlayPanelId = null;
+                    }
+
                     return settings;
                 }
             }

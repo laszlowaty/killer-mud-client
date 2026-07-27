@@ -63,9 +63,82 @@ public sealed class MudDockFactory : Factory, IFactory
         };
         tool.PinToEdge = edge => PinToolToEdge(tool, edge);
         tool.ReturnToLayout = () => ReturnToLayout(tool);
-        tool.CanReturnToLayout = () => _root is not null && IsPinned(_root, tool);
+        tool.CanReturnToLayout = () =>
+            (_root is not null && IsPinned(_root, tool)) || ReferenceEquals(OverlayTool, tool);
+        tool.PinAsOverlay = () => PinToolAsOverlay(tool);
+        tool.CanPinAsOverlay = () => !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal);
         AllTools.Add(tool);
         return tool;
+    }
+
+    /// <summary>The panel currently detached from the dock tree and rendered as a floating,
+    /// transparent overlay on the Terminal panel, or null if none. Only one at a time.</summary>
+    public PanelTool? OverlayTool { get; private set; }
+
+    /// <summary>Raised whenever <see cref="OverlayTool"/> changes (a panel is pinned as an
+    /// overlay, or the overlaid panel returns to its normal dock position).</summary>
+    public event EventHandler<PanelTool?>? OverlayChanged;
+
+    /// <summary>
+    /// Detaches <paramref name="tool"/> from the live dock tree (or an edge-pinned state) so it
+    /// can be rendered outside Dock's own presenter as a floating overlay on the Terminal panel.
+    /// Only one tool can be overlaid at a time: pinning a second tool first returns the previous
+    /// one to its remembered dock position. Deliberately avoids Dock's native floating windows
+    /// (see the <c>CanFloat = false</c> comment above) — this uses the plain <see cref="RemoveDockable"/>
+    /// primitive instead, so the tool is neither closed (no <see cref="HiddenTools"/> entry) nor
+    /// floated through Dock's own (known-buggy) window machinery.
+    /// </summary>
+    public void PinToolAsOverlay(PanelTool tool)
+    {
+        if (_root is null
+            || string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
+            || ReferenceEquals(OverlayTool, tool))
+        {
+            return;
+        }
+
+        if (OverlayTool is { } previous)
+        {
+            ReturnOverlayToLayout(previous);
+        }
+
+        var preferredOwner =
+            LiveToolDockOrNull(tool.Owner as IDock)
+            ?? LiveToolDockOrNull(tool.OriginalOwner as IDock)
+            ?? (_lastOwners.TryGetValue(tool, out var rememberedOwner) ? Reattach(rememberedOwner) as ToolDock : null);
+        if (preferredOwner is not null)
+        {
+            RememberOwner(tool, preferredOwner);
+        }
+
+        if (IsPinned(_root, tool))
+        {
+            UnpinDockable(tool);
+            RemovePinnedEntries(tool);
+        }
+
+        if (ContainsDockable(_root, tool))
+        {
+            RemoveDockable(tool, false);
+        }
+
+        HiddenTools.Remove(tool);
+        OverlayTool = tool;
+        tool.RefreshDockCommands();
+        OverlayChanged?.Invoke(this, tool);
+    }
+
+    /// <summary>Moves an overlaid panel back to its remembered dock position.</summary>
+    public void ReturnOverlayToLayout(PanelTool tool)
+    {
+        if (!ReferenceEquals(OverlayTool, tool))
+        {
+            return;
+        }
+
+        OverlayTool = null;
+        Restore(tool);
+        OverlayChanged?.Invoke(this, null);
     }
 
     /// <summary>
@@ -426,9 +499,15 @@ public sealed class MudDockFactory : Factory, IFactory
         tool.RefreshDockCommands();
     }
 
-    /// <summary>Moves an auto-hidden widget back to its remembered ToolDock.</summary>
+    /// <summary>Moves an auto-hidden widget, or an overlaid one, back to its remembered ToolDock.</summary>
     public void ReturnToLayout(PanelTool tool)
     {
+        if (ReferenceEquals(OverlayTool, tool))
+        {
+            ReturnOverlayToLayout(tool);
+            return;
+        }
+
         if (_root is null || !IsPinned(_root, tool))
         {
             return;
@@ -564,6 +643,7 @@ public sealed class MudDockFactory : Factory, IFactory
         HiddenTools.Clear();
         _lastOwners.Clear();
         _lastDockOwners.Clear();
+        OverlayTool = null;
 
         var root = CreateLayout();
         InitLayout(root);
@@ -631,16 +711,71 @@ public sealed class MudDockFactory : Factory, IFactory
     public DockLayoutSnapshot Snapshot(IRootDock root)
     {
         var rootChild = root.VisibleDockables?.FirstOrDefault();
+        // Dock may remove the last empty container when every tool is hidden or pinned.
+        // Keep the snapshot loadable; pinned restoration will create a staging ToolDock.
+        var rootNode = rootChild is null
+            ? new DockNodeSnapshot { Kind = "Splitter", Id = "EmptyLayoutPlaceholder" }
+            : BuildNode(rootChild);
+
+        // An overlaid tool is detached from the tree entirely (see PinToolAsOverlay) and is in
+        // none of the tree/hidden/pinned buckets TryApplySnapshot's consistency check requires.
+        // Record it as if still docked at its remembered "home" position; the overlay itself is
+        // an orthogonal AppSettings-driven layer reapplied after the snapshot is restored.
+        if (OverlayTool is { } overlay)
+        {
+            InjectOverlayNode(rootNode, overlay);
+        }
+
         return new DockLayoutSnapshot
         {
-            // Dock may remove the last empty container when every tool is hidden or pinned.
-            // Keep the snapshot loadable; pinned restoration will create a staging ToolDock.
-            Root = rootChild is null
-                ? new DockNodeSnapshot { Kind = "Splitter", Id = "EmptyLayoutPlaceholder" }
-                : BuildNode(rootChild),
+            Root = rootNode,
             HiddenToolIds = HiddenTools.Select(t => t.Id!).ToList(),
             PinnedTools = PinnedTools(root),
         };
+    }
+
+    private void InjectOverlayNode(DockNodeSnapshot rootNode, PanelTool overlay)
+    {
+        var ownerId = _lastOwners.TryGetValue(overlay, out var owner) ? owner.Id : null;
+        var target = (ownerId is not null ? FindToolDockNodeById(rootNode, ownerId) : null)
+            ?? FindFirstToolDockNode(rootNode);
+        target?.Children.Add(new DockNodeSnapshot { Kind = "Panel", Id = overlay.Id });
+    }
+
+    private static DockNodeSnapshot? FindToolDockNodeById(DockNodeSnapshot node, string id)
+    {
+        if (node.Kind == "ToolDock" && string.Equals(node.Id, id, StringComparison.Ordinal))
+        {
+            return node;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (FindToolDockNodeById(child, id) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static DockNodeSnapshot? FindFirstToolDockNode(DockNodeSnapshot node)
+    {
+        if (node.Kind == "ToolDock")
+        {
+            return node;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (FindFirstToolDockNode(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private List<PinnedToolSnapshot> PinnedTools(IRootDock root)

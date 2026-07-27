@@ -23,6 +23,12 @@ public sealed class PanelTool : Tool
 
     internal Func<bool>? CanReturnToLayout { get; set; }
 
+    /// <summary>Set by <see cref="MudDockFactory"/>; detaches this tool from its dock position
+    /// and renders it as a floating, transparent overlay on top of the Terminal panel.</summary>
+    internal Action? PinAsOverlay { get; set; }
+
+    internal Func<bool>? CanPinAsOverlay { get; set; }
+
     public PanelTool()
     {
         PinLeftCommand = new RelayCommand(() => PinToEdge?.Invoke(Alignment.Left));
@@ -32,6 +38,9 @@ public sealed class PanelTool : Tool
         ReturnToLayoutCommand = new RelayCommand(
             () => ReturnToLayout?.Invoke(),
             () => CanReturnToLayout?.Invoke() == true);
+        PinAsOverlayCommand = new RelayCommand(
+            () => PinAsOverlay?.Invoke(),
+            () => CanPinAsOverlay?.Invoke() == true);
     }
 
     public IRelayCommand PinLeftCommand { get; }
@@ -44,5 +53,11 @@ public sealed class PanelTool : Tool
 
     public IRelayCommand ReturnToLayoutCommand { get; }
 
-    internal void RefreshDockCommands() => ReturnToLayoutCommand.NotifyCanExecuteChanged();
+    public IRelayCommand PinAsOverlayCommand { get; }
+
+    internal void RefreshDockCommands()
+    {
+        ReturnToLayoutCommand.NotifyCanExecuteChanged();
+        PinAsOverlayCommand.NotifyCanExecuteChanged();
+    }
 }

@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:panels="using:MudClient.App.Views.Panels"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Controls.TerminalOverlayHost"
+             x:DataType="vm:MainWindowViewModel">
+  <!--
+    Renders whichever panel is pinned as a Terminal overlay (MainWindowViewModel.OverlayPanel)
+    as a draggable, resizable, translucent card floating above the terminal content. Deliberately
+    outside Dock's own floating-window machinery (see MudDockFactory's CanFloat=false comment) —
+    this is a plain Avalonia overlay positioned via Canvas.Left/Top, computed from fractions of
+    this control's own bounds so it always stays proportionally inside the terminal.
+    Areas outside OverlayCard have no Background, so pointer input passes through to the terminal.
+  -->
+  <Canvas x:Name="OverlayCanvas">
+    <Border x:Name="OverlayCard"
+            IsVisible="{Binding OverlayPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Background="{StaticResource MudBrushVoid}"
+            BorderBrush="{StaticResource MudBrushGoldDim}"
+            BorderThickness="1"
+            CornerRadius="6"
+            ClipToBounds="True"
+            Opacity="{Binding TerminalOverlayOpacity}">
+      <Grid RowDefinitions="Auto,*">
+        <Border x:Name="TitleBar" Grid.Row="0"
+                Background="{StaticResource MudBrushSlate}"
+                Padding="8,4"
+                Cursor="SizeAll">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontWeight="Bold"
+                       Foreground="{StaticResource MudBrushGoldBright}"
+                       Text="{Binding OverlayPanel.Title}" />
+            <Slider Grid.Column="1" Width="90" Margin="8,0" VerticalAlignment="Center"
+                    Minimum="{Binding MinTerminalOverlayOpacity}"
+                    Maximum="{Binding MaxTerminalOverlayOpacity}"
+                    Value="{Binding TerminalOverlayOpacity}"
+                    ToolTip.Tip="Przezroczystość nakładki" />
+            <Button Grid.Column="2" Content="✕" Padding="6,2" FontSize="11"
+                    Command="{Binding OverlayPanel.ReturnToLayoutCommand}"
+                    ToolTip.Tip="Wróć do układu" />
+          </Grid>
+        </Border>
+        <panels:PanelToolView Grid.Row="1" DataContext="{Binding OverlayPanel}" />
+      </Grid>
+    </Border>
+    <Border x:Name="ResizeGrip"
+            IsVisible="{Binding OverlayPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Width="14" Height="14" CornerRadius="3"
+            Background="{StaticResource MudBrushGoldDim}"
+            Cursor="BottomRightCorner" />
+  </Canvas>
+</UserControl>

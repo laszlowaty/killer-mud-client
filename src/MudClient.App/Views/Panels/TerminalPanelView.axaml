@@ -5,6 +5,7 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
+  <Panel>
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="48,*,48">
 
     <!-- HP vertical indicator (left) – spans full panel height -->
@@ -160,4 +161,6 @@
     </Border>
 
   </Grid>
+  <controls:TerminalOverlayHost x:Name="OverlayHost" />
+  </Panel>
 </UserControl>
