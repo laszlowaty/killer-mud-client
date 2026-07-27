@@ -41,13 +41,13 @@
   {
     "areaId": 1,
     "z": -2,
-    "minX": -474,
+    "minX": -559,
     "minY": -374,
     "maxX": 84,
-    "maxY": 58,
+    "maxY": 178,
     "pixelsPerUnit": 2,
-    "width": 1118,
-    "height": 866,
+    "width": 1288,
+    "height": 1106,
     "fileName": "area-1-z-m2-terrain.png",
     "overviewFileName": "area-1-z-m2-rooms.png"
   },
