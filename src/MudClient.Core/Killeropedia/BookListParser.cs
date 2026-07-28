@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using MudClient.Core.Text;
 
 namespace MudClient.Core.Killeropedia;
 
@@ -17,7 +18,7 @@ public static partial class BookListParser
         var books = new List<BookListSummary>();
         foreach (var rawLine in lines)
         {
-            var match = ListEntryRegex().Match(StripAnsi(rawLine).Trim());
+            var match = ListEntryRegex().Match(AnsiText.StripAnsi(rawLine).Trim());
             if (!match.Success || !int.TryParse(match.Groups["vnum"].Value, out var vnum))
             {
                 continue;
@@ -34,7 +35,7 @@ public static partial class BookListParser
 
     public static BookListDetails ParseDetails(IEnumerable<string> lines)
     {
-        var cleanLines = lines.Select(line => StripAnsi(line).Trim()).ToArray();
+        var cleanLines = lines.Select(line => AnsiText.StripAnsi(line).Trim()).ToArray();
         var headerIndex = Array.FindIndex(
             cleanLines,
             line => line.Contains("Informacje na temat ksiegi", StringComparison.OrdinalIgnoreCase));
@@ -72,13 +73,13 @@ public static partial class BookListParser
     }
 
     public static bool ContainsClassListHeader(IEnumerable<string> lines) =>
-        lines.Any(line => StripAnsi(line).Contains("lista ksiag dla klasy", StringComparison.OrdinalIgnoreCase));
+        lines.Any(line => AnsiText.StripAnsi(line).Contains("lista ksiag dla klasy", StringComparison.OrdinalIgnoreCase));
 
     public static bool ContainsDetailsHeader(IEnumerable<string> lines) =>
-        lines.Any(line => StripAnsi(line).Contains("Informacje na temat ksiegi", StringComparison.OrdinalIgnoreCase));
+        lines.Any(line => AnsiText.StripAnsi(line).Contains("Informacje na temat ksiegi", StringComparison.OrdinalIgnoreCase));
 
     public static bool ContainsPagerPrompt(IEnumerable<string> lines) =>
-        lines.Any(line => StripAnsi(line).Contains("Nacisnij Enter", StringComparison.OrdinalIgnoreCase));
+        lines.Any(line => AnsiText.StripAnsi(line).Contains("Nacisnij Enter", StringComparison.OrdinalIgnoreCase));
 
     private static IReadOnlyList<string> ParseQuotedValues(string text) =>
         QuotedValueRegex().Matches(text)
@@ -94,14 +95,9 @@ public static partial class BookListParser
         || line.StartsWith('>')
         || line.Contains("Nacisnij Enter", StringComparison.OrdinalIgnoreCase);
 
-    private static string StripAnsi(string value) => AnsiRegex().Replace(value, string.Empty);
-
     [GeneratedRegex(@"^\[(?<vnum>\d+)\]\s+(?<name>.*?):\s*(?<spells>.*)$", RegexOptions.CultureInvariant)]
     private static partial Regex ListEntryRegex();
 
     [GeneratedRegex("'(?<value>[^']*)'", RegexOptions.CultureInvariant)]
     private static partial Regex QuotedValueRegex();
-
-    [GeneratedRegex("\\x1B\\[[0-?]*[ -/]*[@-~]", RegexOptions.CultureInvariant)]
-    private static partial Regex AnsiRegex();
 }

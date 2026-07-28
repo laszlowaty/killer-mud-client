@@ -867,6 +867,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public event Action<string>? OutputReceived;
 
+    /// <summary>Raised for every line recognized as player communication (say, sayto, tell,
+    /// clantell, grouptell, yell, shout — see <see cref="ChatLinePolicy"/>), independent of
+    /// whether the Chat panel is currently open. The Chat panel appends it to its own console;
+    /// the main window flashes the taskbar icon if it isn't focused.</summary>
+    public event Action<string>? ChatLineReceived;
+
     /// <summary>Raised when a profile becomes active; the view auto-connects then.</summary>
     public event Action<string>? ProfileActivated;
 
@@ -5240,6 +5246,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (_bookCatalogRefreshCoordinator.TryCaptureLine(line))
         {
             return;
+        }
+
+        if (ChatLinePolicy.IsCommunicationLine(line))
+        {
+            Dispatcher.UIThread.Post(() => ChatLineReceived?.Invoke(line));
         }
 
         if (IsDeathLine(line))

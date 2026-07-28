@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using System.ComponentModel;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
+using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
 
@@ -21,6 +22,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _pinnedPanelAuditCts;
     private bool _closingAfterRecoveryFlush;
     private readonly DispatcherTimer _idleRefreshTimer;
+    private DispatcherTimer? _chatFlashStopTimer;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
 
@@ -106,6 +108,9 @@ public partial class MainWindow : Window
 
     private void OnWindowActivated(object? sender, EventArgs e)
     {
+        _chatFlashStopTimer?.Stop();
+        TaskbarFlashService.Stop(this);
+
         // A layout applied while minimized is audited once the Dock visual tree is visible again.
         SchedulePinnedPanelAudit();
 
@@ -140,18 +145,43 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.ChatLineReceived -= OnChatLineReceivedForFlash;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.ChatLineReceived += OnChatLineReceivedForFlash;
             // Pinned edge tabs use fixed proportions of the live dock area: one third of its
             // width at the sides and half its height at the top/bottom. The view supplies the
             // dimensions because the UI-agnostic factory cannot see the rendered DockControl.
             _viewModel.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
             SchedulePinnedPanelAudit();
         }
+    }
+
+    /// <summary>Flashes the taskbar icon for 5 seconds when a chat message arrives while the
+    /// window is not focused — mirrors the community Mudlet package's <c>alert(5)</c> behavior
+    /// for this MUD. <see cref="OnWindowActivated"/> cancels it early if the user refocuses
+    /// first.</summary>
+    private void OnChatLineReceivedForFlash(string line)
+    {
+        if (IsActive)
+        {
+            return;
+        }
+
+        TaskbarFlashService.Start(this);
+
+        _chatFlashStopTimer?.Stop();
+        _chatFlashStopTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _chatFlashStopTimer.Tick += (_, _) =>
+        {
+            _chatFlashStopTimer?.Stop();
+            TaskbarFlashService.Stop(this);
+        };
+        _chatFlashStopTimer.Start();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
