@@ -544,7 +544,7 @@ public sealed class MainWindowClickTests : IDisposable
         var sendButton = ((Visual)panel)
             .GetVisualDescendants()
             .OfType<Button>()
-            .FirstOrDefault(b => b.Content is string s && s.Contains("Wyślij"));
+            .FirstOrDefault(b => ToolTip.GetTip(b) is string s && s.Contains("Wyślij"));
         Assert.NotNull(sendButton);
 
         // Act: raise the Click event as the UI would after mouse-up.

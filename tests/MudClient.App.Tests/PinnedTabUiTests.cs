@@ -439,6 +439,30 @@ public sealed class PinnedTabUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void ApplyTransparencyLayout_RestoresEveryNonTerminalPanelToTopEdge()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        Assert.True(factory.IsTransparencyLayout);
+        Assert.Empty(viewModel.HiddenPanels);
+
+        var topPinnedIds = (viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>())
+            .Select(dockable => dockable.Id)
+            .ToHashSet();
+        var nonTerminalIds = factory.AllTools
+            .Where(tool => tool.Id != "Terminal")
+            .Select(tool => tool.Id)
+            .ToHashSet();
+        Assert.Equal(nonTerminalIds, topPinnedIds);
+    }
+
+    [AvaloniaFact]
     public void RestoringMap_DetachesPreviousMapControlFromViewModel()
     {
         var viewModel = CreateViewModel();

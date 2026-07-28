@@ -63,9 +63,79 @@ public sealed class MudDockFactory : Factory, IFactory
         };
         tool.PinToEdge = edge => PinToolToEdge(tool, edge);
         tool.ReturnToLayout = () => ReturnToLayout(tool);
-        tool.CanReturnToLayout = () => _root is not null && IsPinned(_root, tool);
+        tool.CanReturnToLayout = () =>
+            (_root is not null && IsPinned(_root, tool)) || _overlayTools.Contains(tool);
+        tool.PinAsOverlay = () => PinToolAsOverlay(tool);
+        tool.CanPinAsOverlay = () => IsTransparencyLayout && !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal);
         AllTools.Add(tool);
         return tool;
+    }
+
+    private readonly List<PanelTool> _overlayTools = new();
+
+    /// <summary>The panels currently detached from the dock tree and rendered as floating,
+    /// transparent overlays on the Terminal panel. Any number of tools may be overlaid at once.</summary>
+    public IReadOnlyList<PanelTool> OverlayTools => _overlayTools;
+
+    /// <summary>Raised whenever <see cref="OverlayTools"/> changes (a panel is pinned as an
+    /// overlay, or an overlaid panel returns to its normal dock position).</summary>
+    public event EventHandler? OverlayChanged;
+
+    /// <summary>
+    /// Detaches <paramref name="tool"/> from the live dock tree (or an edge-pinned state) so it
+    /// can be rendered outside Dock's own presenter as a floating overlay on the Terminal panel,
+    /// alongside any other panels already overlaid. Deliberately avoids Dock's native floating
+    /// windows (see the <c>CanFloat = false</c> comment above) — this uses the plain
+    /// <see cref="RemoveDockable"/> primitive instead, so the tool is neither closed (no
+    /// <see cref="HiddenTools"/> entry) nor floated through Dock's own (known-buggy) window
+    /// machinery.
+    /// </summary>
+    public void PinToolAsOverlay(PanelTool tool)
+    {
+        if (_root is null
+            || !IsTransparencyLayout
+            || string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
+            || _overlayTools.Contains(tool))
+        {
+            return;
+        }
+
+        var preferredOwner =
+            LiveToolDockOrNull(tool.Owner as IDock)
+            ?? LiveToolDockOrNull(tool.OriginalOwner as IDock)
+            ?? (_lastOwners.TryGetValue(tool, out var rememberedOwner) ? Reattach(rememberedOwner) as ToolDock : null);
+        if (preferredOwner is not null)
+        {
+            RememberOwner(tool, preferredOwner);
+        }
+
+        if (IsPinned(_root, tool))
+        {
+            UnpinDockable(tool);
+            RemovePinnedEntries(tool);
+        }
+
+        if (ContainsDockable(_root, tool))
+        {
+            RemoveDockable(tool, false);
+        }
+
+        HiddenTools.Remove(tool);
+        _overlayTools.Add(tool);
+        tool.RefreshDockCommands();
+        OverlayChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Moves an overlaid panel back to its remembered dock position.</summary>
+    public void ReturnOverlayToLayout(PanelTool tool)
+    {
+        if (!_overlayTools.Remove(tool))
+        {
+            return;
+        }
+
+        Restore(tool);
+        OverlayChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -208,22 +278,90 @@ public sealed class MudDockFactory : Factory, IFactory
 
     private static bool IsValidSize(double size) => !double.IsNaN(size) && !double.IsInfinity(size) && size > 0;
 
+    /// <summary>Creates every panel tool once, populating <see cref="AllTools"/>. Shared by
+    /// <see cref="CreateLayout"/> and <see cref="CreateTransparencyLayout"/>, which differ only
+    /// in how they arrange these tools into a dock tree.</summary>
+    private void CreateAllTools()
+    {
+        NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
+        NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
+        NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
+        NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
+        NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
+        NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
+        NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
+        NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
+        NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
+        NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
+        NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
+        NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
+        NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
+        NewTool("Settings", "🛠 Ustawienia", typeof(Views.Panels.SettingsPanelView), _mainContext);
+    }
+
+    private PanelTool Tool(string id) => AllTools.First(t => t.Id == id);
+
+    /// <summary>True while the active layout is the built-in TRANSPARENCY preset (see
+    /// <see cref="CreateTransparencyLayout"/>) — the only mode where panels may be pinned as
+    /// Terminal overlays. Deliberately not combined with normal docking (DEFAULT and any custom
+    /// preset): mixing free panel arrangement with floating overlays made saving/restoring a
+    /// layout ambiguous (an overlay's position belonged to no preset in particular).</summary>
+    public bool IsTransparencyLayout { get; private set; }
+
+    /// <summary>Builds the Terminal-only layout for TRANSPARENCY mode: the Terminal fills the
+    /// entire window and every other panel starts hidden in the "Panele" restore menu, from where
+    /// it can be pinned as an overlay (see <see cref="PinToolAsOverlay"/>).</summary>
+    public IRootDock CreateTransparencyLayout()
+    {
+        IsTransparencyLayout = true;
+        CreateAllTools();
+        var terminalTool = Tool("Terminal");
+
+        var centerDock = new ToolDock
+        {
+            Id = "CenterPane",
+            Proportion = 1.0,
+            ActiveDockable = terminalTool,
+            VisibleDockables = CreateList<IDockable>(terminalTool),
+            Alignment = Alignment.Left,
+        };
+
+        var rootDock = CreateRootDock();
+        rootDock.Id = "Root";
+        rootDock.VisibleDockables = CreateList<IDockable>(centerDock);
+        rootDock.ActiveDockable = centerDock;
+        rootDock.DefaultDockable = centerDock;
+
+        _root = rootDock;
+
+        foreach (var tool in AllTools)
+        {
+            if (!ReferenceEquals(tool, terminalTool))
+            {
+                HiddenTools.Add(tool);
+            }
+        }
+
+        return rootDock;
+    }
+
     public override IRootDock CreateLayout()
     {
-        var mapTool = NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
-        var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
-        var terminalTool = NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
-        var infoTool = NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
-        var conditionTool = NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
-        var effectsTool = NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
-        var buffsTool = NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
-        var groupTool = NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
-        var memSpellsTool = NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
-        var automationTool = NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
-        var autowalkTool = NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
-        var notesTool = NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
-        var gmcpTool = NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
-        var settingsTool = NewTool("Settings", "🛠 Ustawienia", typeof(Views.Panels.SettingsPanelView), _mainContext);
+        CreateAllTools();
+        var mapTool = Tool("Map");
+        var roomInfoTool = Tool("RoomInfo");
+        var terminalTool = Tool("Terminal");
+        var infoTool = Tool("CharInfo");
+        var conditionTool = Tool("Condition");
+        var effectsTool = Tool("Effects");
+        var buffsTool = Tool(BuffsToolId);
+        var groupTool = Tool("Group");
+        var memSpellsTool = Tool("MemSpells");
+        var automationTool = Tool("Automation");
+        var autowalkTool = Tool("Autowalk");
+        var notesTool = Tool("Notes");
+        var gmcpTool = Tool("Gmcp");
+        var settingsTool = Tool("Settings");
 
         var leftDock = new ToolDock
         {
@@ -426,9 +564,15 @@ public sealed class MudDockFactory : Factory, IFactory
         tool.RefreshDockCommands();
     }
 
-    /// <summary>Moves an auto-hidden widget back to its remembered ToolDock.</summary>
+    /// <summary>Moves an auto-hidden widget, or an overlaid one, back to its remembered ToolDock.</summary>
     public void ReturnToLayout(PanelTool tool)
     {
+        if (_overlayTools.Contains(tool))
+        {
+            ReturnOverlayToLayout(tool);
+            return;
+        }
+
         if (_root is null || !IsPinned(_root, tool))
         {
             return;
@@ -564,6 +708,8 @@ public sealed class MudDockFactory : Factory, IFactory
         HiddenTools.Clear();
         _lastOwners.Clear();
         _lastDockOwners.Clear();
+        _overlayTools.Clear();
+        IsTransparencyLayout = false;
 
         var root = CreateLayout();
         InitLayout(root);
@@ -631,16 +777,72 @@ public sealed class MudDockFactory : Factory, IFactory
     public DockLayoutSnapshot Snapshot(IRootDock root)
     {
         var rootChild = root.VisibleDockables?.FirstOrDefault();
+        // Dock may remove the last empty container when every tool is hidden or pinned.
+        // Keep the snapshot loadable; pinned restoration will create a staging ToolDock.
+        var rootNode = rootChild is null
+            ? new DockNodeSnapshot { Kind = "Splitter", Id = "EmptyLayoutPlaceholder" }
+            : BuildNode(rootChild);
+
+        // Overlaid tools are detached from the tree entirely (see PinToolAsOverlay) and are in
+        // none of the tree/hidden/pinned buckets TryApplySnapshot's consistency check requires.
+        // Record each as if still docked at its remembered "home" position; the overlay itself is
+        // an orthogonal AppSettings-driven layer reapplied after the snapshot is restored.
+        foreach (var overlay in _overlayTools)
+        {
+            InjectOverlayNode(rootNode, overlay);
+        }
+
         return new DockLayoutSnapshot
         {
-            // Dock may remove the last empty container when every tool is hidden or pinned.
-            // Keep the snapshot loadable; pinned restoration will create a staging ToolDock.
-            Root = rootChild is null
-                ? new DockNodeSnapshot { Kind = "Splitter", Id = "EmptyLayoutPlaceholder" }
-                : BuildNode(rootChild),
+            Root = rootNode,
             HiddenToolIds = HiddenTools.Select(t => t.Id!).ToList(),
             PinnedTools = PinnedTools(root),
+            IsTransparencyLayout = IsTransparencyLayout,
         };
+    }
+
+    private void InjectOverlayNode(DockNodeSnapshot rootNode, PanelTool overlay)
+    {
+        var ownerId = _lastOwners.TryGetValue(overlay, out var owner) ? owner.Id : null;
+        var target = (ownerId is not null ? FindToolDockNodeById(rootNode, ownerId) : null)
+            ?? FindFirstToolDockNode(rootNode);
+        target?.Children.Add(new DockNodeSnapshot { Kind = "Panel", Id = overlay.Id });
+    }
+
+    private static DockNodeSnapshot? FindToolDockNodeById(DockNodeSnapshot node, string id)
+    {
+        if (node.Kind == "ToolDock" && string.Equals(node.Id, id, StringComparison.Ordinal))
+        {
+            return node;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (FindToolDockNodeById(child, id) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static DockNodeSnapshot? FindFirstToolDockNode(DockNodeSnapshot node)
+    {
+        if (node.Kind == "ToolDock")
+        {
+            return node;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (FindFirstToolDockNode(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private List<PinnedToolSnapshot> PinnedTools(IRootDock root)
@@ -724,6 +926,7 @@ public sealed class MudDockFactory : Factory, IFactory
         }
 
         RestorePinnedTools(root, snapshot.PinnedTools, toolsById);
+        IsTransparencyLayout = snapshot.IsTransparencyLayout;
 
         return true;
     }

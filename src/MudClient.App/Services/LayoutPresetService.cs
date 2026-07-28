@@ -23,6 +23,11 @@ public sealed class LayoutPresetService
     /// <summary>Reserved name of the always-available built-in layout.</summary>
     public const string DefaultName = "DEFAULT";
 
+    /// <summary>Reserved name of the built-in layout where the Terminal fills the window and
+    /// panels can be pinned as floating overlays (see
+    /// <see cref="MudDockFactory.CreateTransparencyLayout"/>). Not stored here either.</summary>
+    public const string TransparencyName = "TRANSPARENCY";
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,

@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:panels="using:MudClient.App.Views.Panels"
+             xmlns:docking="using:MudClient.App.Docking"
+             x:Class="MudClient.App.Controls.TerminalOverlayCard"
+             x:DataType="docking:PanelTool">
+  <Border Background="{StaticResource MudBrushVoid}"
+          BorderBrush="{StaticResource MudBrushGoldDim}"
+          BorderThickness="1"
+          CornerRadius="6"
+          ClipToBounds="True"
+          Margin="4"
+          Opacity="{DynamicResource TerminalOverlayOpacityResource}">
+    <Grid RowDefinitions="Auto,*">
+      <Border Grid.Row="0"
+              Background="{StaticResource MudBrushSlate}"
+              Padding="8,2">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                     FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                     FontSize="{DynamicResource WidgetFontSizeResource}"
+                     FontWeight="{DynamicResource WidgetFontWeightResource}"
+                     Foreground="{StaticResource MudBrushGoldBright}"
+                     Text="{Binding Title}" />
+          <Button Grid.Column="1" Content="✕" Padding="6,2" FontSize="11"
+                  Command="{Binding ReturnToLayoutCommand}"
+                  ToolTip.Tip="Wróć do układu" />
+        </Grid>
+      </Border>
+      <panels:PanelToolView Grid.Row="1" DataContext="{Binding}" />
+    </Grid>
+  </Border>
+</UserControl>
