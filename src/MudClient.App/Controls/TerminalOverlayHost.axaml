@@ -1,52 +1,50 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:panels="using:MudClient.App.Views.Panels"
              xmlns:vm="using:MudClient.App.ViewModels"
              x:Class="MudClient.App.Controls.TerminalOverlayHost"
              x:DataType="vm:MainWindowViewModel">
   <!--
-    Renders whichever panel is pinned as a Terminal overlay (MainWindowViewModel.OverlayPanel)
-    as a draggable, resizable, translucent card floating above the terminal content. Deliberately
-    outside Dock's own floating-window machinery (see MudDockFactory's CanFloat=false comment) —
-    this is a plain Avalonia overlay positioned via Canvas.Left/Top, computed from fractions of
-    this control's own bounds so it always stays proportionally inside the terminal.
-    Areas outside OverlayCard have no Background, so pointer input passes through to the terminal.
+    Renders every panel pinned as a Terminal overlay (MainWindowViewModel.TerminalOverlays, only
+    ever populated in TRANSPARENCY mode) as a right-aligned, resizable stack. Resize handles are
+    plain Border elements driven by hand-rolled pointer-drag code in
+    TerminalOverlayHost.axaml.cs — Avalonia's GridSplitter proved unreliable for resizing two
+    star-sized siblings here, so this computes fractions/weights directly from pointer deltas
+    instead (see PointerMoved handlers). Each handle is a wide (6px) transparent hit area around a
+    barely-visible 1px line, brightening on hover, so it stays easy to grab without dominating
+    the view.
+    RootGrid columns: empty passthrough | width handle | stack area.
+    StackArea rows: card stack | height handle | empty passthrough below (revealed by shrinking
+    the stack's height fraction — the handle sits right below the lowest card).
+    Areas with no Background pass pointer input straight through to the terminal.
   -->
-  <Canvas x:Name="OverlayCanvas">
-    <Border x:Name="OverlayCard"
-            IsVisible="{Binding OverlayPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
-            Background="{StaticResource MudBrushVoid}"
-            BorderBrush="{StaticResource MudBrushGoldDim}"
-            BorderThickness="1"
-            CornerRadius="6"
-            ClipToBounds="True"
-            Opacity="{Binding TerminalOverlayOpacity}">
-      <Grid RowDefinitions="Auto,*">
-        <Border x:Name="TitleBar" Grid.Row="0"
-                Background="{StaticResource MudBrushSlate}"
-                Padding="8,4"
-                Cursor="SizeAll">
-          <Grid ColumnDefinitions="*,Auto,Auto">
-            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontWeight="Bold"
-                       Foreground="{StaticResource MudBrushGoldBright}"
-                       Text="{Binding OverlayPanel.Title}" />
-            <Slider Grid.Column="1" Width="90" Margin="8,0" VerticalAlignment="Center"
-                    Minimum="{Binding MinTerminalOverlayOpacity}"
-                    Maximum="{Binding MaxTerminalOverlayOpacity}"
-                    Value="{Binding TerminalOverlayOpacity}"
-                    ToolTip.Tip="Przezroczystość nakładki" />
-            <Button Grid.Column="2" Content="✕" Padding="6,2" FontSize="11"
-                    Command="{Binding OverlayPanel.ReturnToLayoutCommand}"
-                    ToolTip.Tip="Wróć do układu" />
-          </Grid>
-        </Border>
-        <panels:PanelToolView Grid.Row="1" DataContext="{Binding OverlayPanel}" />
-      </Grid>
+  <UserControl.Styles>
+    <Style Selector="Border.mud-overlay-handle-line">
+      <Setter Property="Background" Value="{StaticResource MudBrushGoldDim}" />
+      <Setter Property="Opacity" Value="0.35" />
+    </Style>
+    <Style Selector="Border.mud-overlay-handle:pointerover Border.mud-overlay-handle-line">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+  </UserControl.Styles>
+  <Grid x:Name="RootGrid" ColumnDefinitions="*,6,*">
+    <Border x:Name="WidthHandle" Grid.Column="1"
+            Classes="mud-overlay-handle"
+            Background="Transparent"
+            Cursor="SizeWestEast"
+            IsVisible="{Binding TerminalOverlays.Count}">
+      <Border Classes="mud-overlay-handle-line"
+              Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
     </Border>
-    <Border x:Name="ResizeGrip"
-            IsVisible="{Binding OverlayPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
-            Width="14" Height="14" CornerRadius="3"
-            Background="{StaticResource MudBrushGoldDim}"
-            Cursor="BottomRightCorner" />
-  </Canvas>
+    <Grid x:Name="StackArea" Grid.Column="2" MinWidth="160" RowDefinitions="*,6,*"
+          IsVisible="{Binding TerminalOverlays.Count}">
+      <Grid x:Name="OverlayColumn" Grid.Row="0" />
+      <Border x:Name="HeightHandle" Grid.Row="1"
+              Classes="mud-overlay-handle"
+              Background="Transparent"
+              Cursor="SizeNorthSouth">
+        <Border Classes="mud-overlay-handle-line"
+                Height="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+      </Border>
+    </Grid>
+  </Grid>
 </UserControl>

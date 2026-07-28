@@ -207,47 +207,69 @@ public sealed class AppSettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public void Load_OutOfRangeOverlayOpacityAndSize_ClampsToLimits()
+    public void Load_OutOfRangeOverlayOpacity_ClampsToLimits()
     {
-        SaveRaw(new AppSettings
-        {
-            TerminalOverlayOpacity = 5,
-            TerminalOverlayWidthFraction = 5,
-            TerminalOverlayHeightFraction = -1,
-        });
+        SaveRaw(new AppSettings { TerminalOverlayOpacity = 5 });
 
         var settings = _service.Load();
 
         Assert.Equal(AppSettings.MaxTerminalOverlayOpacity, settings.TerminalOverlayOpacity);
-        Assert.Equal(AppSettings.MaxTerminalOverlaySizeFraction, settings.TerminalOverlayWidthFraction);
-        Assert.Equal(AppSettings.MinTerminalOverlaySizeFraction, settings.TerminalOverlayHeightFraction);
     }
 
     [Fact]
-    public void Load_OverlayPositionOffScreen_ClampsWithinBounds()
+    public void Load_WhitespaceOverlayPanelId_IsDropped()
     {
         SaveRaw(new AppSettings
         {
-            TerminalOverlayWidthFraction = 0.4,
-            TerminalOverlayHeightFraction = 0.4,
-            TerminalOverlayXFraction = 2,
-            TerminalOverlayYFraction = -2,
+            TerminalOverlays = [new TerminalOverlayEntry { PanelId = "   " }],
         });
 
         var settings = _service.Load();
 
-        Assert.Equal(0.6, settings.TerminalOverlayXFraction, precision: 6);
-        Assert.Equal(0, settings.TerminalOverlayYFraction, precision: 6);
+        Assert.Empty(settings.TerminalOverlays);
     }
 
     [Fact]
-    public void Load_WhitespaceOverlayPanelId_NormalizesToNull()
+    public void Load_DuplicateOverlayPanelIds_KeepsFirstOnly()
     {
-        SaveRaw(new AppSettings { TerminalOverlayPanelId = "   " });
+        SaveRaw(new AppSettings
+        {
+            TerminalOverlays =
+            [
+                new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 2 },
+                new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 3 },
+            ],
+        });
 
         var settings = _service.Load();
 
-        Assert.Null(settings.TerminalOverlayPanelId);
+        var overlay = Assert.Single(settings.TerminalOverlays);
+        Assert.Equal("Notes", overlay.PanelId);
+        Assert.Equal(2, overlay.HeightWeight, precision: 6);
+    }
+
+    [Fact]
+    public void Load_OutOfRangeOverlayHeightWeight_ClampsToLimits()
+    {
+        SaveRaw(new AppSettings
+        {
+            TerminalOverlays = [new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 50 }],
+        });
+
+        var settings = _service.Load();
+
+        var overlay = Assert.Single(settings.TerminalOverlays);
+        Assert.Equal(AppSettings.MaxTerminalOverlayHeightWeight, overlay.HeightWeight);
+    }
+
+    [Fact]
+    public void Load_OutOfRangeColumnWidthFraction_ClampsToLimits()
+    {
+        SaveRaw(new AppSettings { TerminalOverlayColumnWidthFraction = 5 });
+
+        var settings = _service.Load();
+
+        Assert.Equal(AppSettings.MaxTerminalOverlayColumnWidthFraction, settings.TerminalOverlayColumnWidthFraction);
     }
 
     [Fact]
@@ -255,23 +277,25 @@ public sealed class AppSettingsServiceTests : IDisposable
     {
         var original = new AppSettings
         {
-            TerminalOverlayPanelId = "Notes",
-            TerminalOverlayXFraction = 0.1,
-            TerminalOverlayYFraction = 0.2,
-            TerminalOverlayWidthFraction = 0.3,
-            TerminalOverlayHeightFraction = 0.4,
+            TerminalOverlays =
+            [
+                new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 1.5 },
+                new TerminalOverlayEntry { PanelId = "Group", HeightWeight = 0.5 },
+            ],
             TerminalOverlayOpacity = 0.6,
+            TerminalOverlayColumnWidthFraction = 0.3,
         };
 
         _service.Save(original);
         var loaded = _service.Load();
 
-        Assert.Equal("Notes", loaded.TerminalOverlayPanelId);
-        Assert.Equal(0.1, loaded.TerminalOverlayXFraction, precision: 6);
-        Assert.Equal(0.2, loaded.TerminalOverlayYFraction, precision: 6);
-        Assert.Equal(0.3, loaded.TerminalOverlayWidthFraction, precision: 6);
-        Assert.Equal(0.4, loaded.TerminalOverlayHeightFraction, precision: 6);
+        Assert.Equal(2, loaded.TerminalOverlays.Count);
+        Assert.Equal("Notes", loaded.TerminalOverlays[0].PanelId);
+        Assert.Equal(1.5, loaded.TerminalOverlays[0].HeightWeight, precision: 6);
+        Assert.Equal("Group", loaded.TerminalOverlays[1].PanelId);
+        Assert.Equal(0.5, loaded.TerminalOverlays[1].HeightWeight, precision: 6);
         Assert.Equal(0.6, loaded.TerminalOverlayOpacity, precision: 6);
+        Assert.Equal(0.3, loaded.TerminalOverlayColumnWidthFraction, precision: 6);
     }
 
     // ====================================================================

@@ -10,6 +10,10 @@ public sealed class DockLayoutSnapshot
     /// <summary>Tools the user has auto-hidden (pinned to an edge). These live outside the
     /// visible tree in the root's pinned collections, so they are tracked separately.</summary>
     public List<PinnedToolSnapshot> PinnedTools { get; set; } = new();
+
+    /// <summary>Whether this snapshot was taken while <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/>
+    /// was active, so restoring it (e.g. on app restart) re-enables pinning panels as overlays.</summary>
+    public bool IsTransparencyLayout { get; set; }
 }
 
 /// <summary>An auto-hidden (pinned) tool and the tool dock it should snap back to.</summary>

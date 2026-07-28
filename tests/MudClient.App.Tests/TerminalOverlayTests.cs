@@ -1,6 +1,5 @@
 using Dock.Model.Controls;
 using Dock.Model.Core;
-using Dock.Model.Mvvm.Controls;
 using MudClient.App.Docking;
 
 namespace MudClient.App.Tests;
@@ -11,6 +10,15 @@ public sealed class TerminalOverlayTests
     {
         var factory = new MudDockFactory(new object(), new object());
         layout = factory.CreateLayout();
+        factory.InitLayout(layout);
+        return factory;
+    }
+
+    /// <summary>Overlays only work in TRANSPARENCY mode — see <see cref="MudDockFactory.IsTransparencyLayout"/>.</summary>
+    private static MudDockFactory CreateTransparencyFactory(out IRootDock layout)
+    {
+        var factory = new MudDockFactory(new object(), new object());
+        layout = factory.CreateTransparencyLayout();
         factory.InitLayout(layout);
         return factory;
     }
@@ -28,34 +36,31 @@ public sealed class TerminalOverlayTests
         (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).Any(p => p.Id == id);
 
     [Fact]
-    public void PinToolAsOverlay_RemovesToolFromDockTree_AndSetsOverlayTool()
+    public void CreateTransparencyLayout_TerminalAloneIsVisible_EverythingElseHidden()
     {
-        var factory = CreateFactory(out var layout);
-        var tool = GetTool(factory, "Gmcp");
+        var factory = CreateTransparencyFactory(out var layout);
 
-        factory.PinToolAsOverlay(tool);
-
-        Assert.Same(tool, factory.OverlayTool);
-        Assert.False(Visible(layout, "Gmcp"));
-        Assert.DoesNotContain(tool, factory.HiddenTools);
-    }
-
-    [Fact]
-    public void PinToolAsOverlay_Terminal_IsNoOp()
-    {
-        var factory = CreateFactory(out var layout);
-        var terminal = GetTool(factory, "Terminal");
-
-        factory.PinToolAsOverlay(terminal);
-
-        Assert.Null(factory.OverlayTool);
         Assert.True(Visible(layout, "Terminal"));
+        Assert.False(Visible(layout, "Gmcp"));
+        Assert.Contains(GetTool(factory, "Gmcp"), factory.HiddenTools);
+        Assert.True(factory.IsTransparencyLayout);
     }
 
     [Fact]
-    public void CanPinAsOverlay_Terminal_IsFalse()
+    public void CanPinAsOverlay_OutsideTransparencyMode_IsFalseForEveryTool()
     {
         var factory = CreateFactory(out _);
+        var terminal = GetTool(factory, "Terminal");
+        var gmcp = GetTool(factory, "Gmcp");
+
+        Assert.False(terminal.PinAsOverlayCommand.CanExecute(null));
+        Assert.False(gmcp.PinAsOverlayCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CanPinAsOverlay_InTransparencyMode_IsTrueExceptTerminal()
+    {
+        var factory = CreateTransparencyFactory(out _);
         var terminal = GetTool(factory, "Terminal");
         var gmcp = GetTool(factory, "Gmcp");
 
@@ -64,41 +69,75 @@ public sealed class TerminalOverlayTests
     }
 
     [Fact]
-    public void PinToolAsOverlay_ReplacesPreviousOverlay_ReturningItToItsRememberedOwner()
+    public void PinToolAsOverlay_OutsideTransparencyMode_IsNoOp()
     {
         var factory = CreateFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+
+        factory.PinToolAsOverlay(tool);
+
+        Assert.Empty(factory.OverlayTools);
+        Assert.True(Visible(layout, "Gmcp"));
+    }
+
+    [Fact]
+    public void PinToolAsOverlay_RemovesToolFromDockTree_AndSetsOverlayTool()
+    {
+        var factory = CreateTransparencyFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+
+        factory.PinToolAsOverlay(tool);
+
+        Assert.Contains(tool, factory.OverlayTools);
+        Assert.False(Visible(layout, "Gmcp"));
+        Assert.DoesNotContain(tool, factory.HiddenTools);
+    }
+
+    [Fact]
+    public void PinToolAsOverlay_Terminal_IsNoOp()
+    {
+        var factory = CreateTransparencyFactory(out var layout);
+        var terminal = GetTool(factory, "Terminal");
+
+        factory.PinToolAsOverlay(terminal);
+
+        Assert.Empty(factory.OverlayTools);
+        Assert.True(Visible(layout, "Terminal"));
+    }
+
+    [Fact]
+    public void PinToolAsOverlay_SecondTool_BothRemainOverlaidSimultaneously()
+    {
+        var factory = CreateTransparencyFactory(out var layout);
         var first = GetTool(factory, "Gmcp");
-        var firstOwner = Assert.IsType<ToolDock>(first.Owner);
         var second = GetTool(factory, "Notes");
 
         factory.PinToolAsOverlay(first);
         factory.PinToolAsOverlay(second);
 
-        Assert.Same(second, factory.OverlayTool);
-        Assert.True(Visible(layout, "Gmcp"));
-        Assert.Same(firstOwner, first.Owner);
+        Assert.Contains(first, factory.OverlayTools);
+        Assert.Contains(second, factory.OverlayTools);
+        Assert.False(Visible(layout, "Gmcp"));
         Assert.False(Visible(layout, "Notes"));
     }
 
     [Fact]
-    public void ReturnOverlayToLayout_RestoresToolToRememberedOwner()
+    public void ReturnOverlayToLayout_InTransparencyMode_DocksToolBackNextToTerminal()
     {
-        var factory = CreateFactory(out var layout);
+        var factory = CreateTransparencyFactory(out var layout);
         var tool = GetTool(factory, "Gmcp");
-        var originalOwner = Assert.IsType<ToolDock>(tool.Owner);
 
         factory.PinToolAsOverlay(tool);
         factory.ReturnOverlayToLayout(tool);
 
-        Assert.Null(factory.OverlayTool);
+        Assert.DoesNotContain(tool, factory.OverlayTools);
         Assert.True(Visible(layout, "Gmcp"));
-        Assert.Same(originalOwner, tool.Owner);
     }
 
     [Fact]
     public void ReturnToLayoutCommand_UnoverlaysAnOverlaidTool()
     {
-        var factory = CreateFactory(out var layout);
+        var factory = CreateTransparencyFactory(out var layout);
         var tool = GetTool(factory, "Gmcp");
 
         factory.PinToolAsOverlay(tool);
@@ -106,7 +145,7 @@ public sealed class TerminalOverlayTests
 
         tool.ReturnToLayoutCommand.Execute(null);
 
-        Assert.Null(factory.OverlayTool);
+        Assert.DoesNotContain(tool, factory.OverlayTools);
         Assert.True(Visible(layout, "Gmcp"));
     }
 
@@ -125,11 +164,10 @@ public sealed class TerminalOverlayTests
     }
 
     [Fact]
-    public void Snapshot_WhileToolIsOverlaid_StillAccountsForItAtItsHomeToolDock()
+    public void Snapshot_WhileToolIsOverlaid_StillAccountsForItSomewhereInTheTree()
     {
-        var factory = CreateFactory(out var layout);
+        var factory = CreateTransparencyFactory(out var layout);
         var tool = GetTool(factory, "Gmcp");
-        var homeOwnerId = Assert.IsType<ToolDock>(tool.Owner).Id;
 
         factory.PinToolAsOverlay(tool);
         var snapshot = factory.Snapshot(layout);
@@ -145,16 +183,13 @@ public sealed class TerminalOverlayTests
         // of all three would fail this and reject the whole snapshot (see MudDockFactory.Snapshot).
         Assert.True(new HashSet<string>(referenced.Union(hidden).Union(pinned)).SetEquals(known));
         Assert.Contains("Gmcp", referenced);
-
-        var toolDockNode = FindToolDockNodeContaining(snapshot.Root!, "Gmcp");
-        Assert.NotNull(toolDockNode);
-        Assert.Equal(homeOwnerId, toolDockNode!.Id);
+        Assert.True(snapshot.IsTransparencyLayout);
     }
 
     [Fact]
     public void SaveThenLoadSnapshot_WithActiveOverlay_RoundTrips()
     {
-        var factory1 = CreateFactory(out var layout1);
+        var factory1 = CreateTransparencyFactory(out var layout1);
         factory1.PinToolAsOverlay(GetTool(factory1, "Gmcp"));
 
         var snapshot = factory1.Snapshot(layout1);
@@ -163,9 +198,12 @@ public sealed class TerminalOverlayTests
         Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
 
         // The preset snapshot describes the static shape as if nothing were overlaid — the
-        // overlay itself is reapplied afterward from AppSettings (MainWindowViewModel).
+        // overlay itself is reapplied afterward from AppSettings (MainWindowViewModel). The
+        // snapshot's own IsTransparencyLayout flag must still come back true so the restored
+        // session allows pinning overlays again.
         Assert.True(Visible(layout2, "Gmcp"));
-        Assert.Null(factory2.OverlayTool);
+        Assert.Empty(factory2.OverlayTools);
+        Assert.True(factory2.IsTransparencyLayout);
     }
 
     private static void CollectPanelIds(DockNodeSnapshot node, HashSet<string> ids)
@@ -179,23 +217,5 @@ public sealed class TerminalOverlayTests
         {
             CollectPanelIds(child, ids);
         }
-    }
-
-    private static DockNodeSnapshot? FindToolDockNodeContaining(DockNodeSnapshot node, string panelId)
-    {
-        if (node.Kind == "ToolDock" && node.Children.Any(c => c.Kind == "Panel" && c.Id == panelId))
-        {
-            return node;
-        }
-
-        foreach (var child in node.Children)
-        {
-            if (FindToolDockNodeContaining(child, panelId) is { } found)
-            {
-                return found;
-            }
-        }
-
-        return null;
     }
 }

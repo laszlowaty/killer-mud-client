@@ -8,8 +8,8 @@ using CommunityToolkit.Mvvm.Input;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dock.Model.Controls;
-using MudClient.App.Docking;
 using MudClient.App.Controls;
+using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Automation;
@@ -242,6 +242,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Locations.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Folders.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         ApplyWidgetFontResources();
+        ApplyTerminalOverlayOpacityResource();
         PopulateAvailableFonts();
         _settingsLoaded = true;
         _connectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
@@ -420,8 +421,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<PanelTool> HiddenPanels => _dockFactory.HiddenTools;
 
-    /// <summary>The panel currently pinned as a floating overlay on the Terminal, or null.</summary>
-    public PanelTool? OverlayPanel => _dockFactory.OverlayTool;
+    /// <summary>Panels currently pinned as floating overlays on the Terminal — only possible in
+    /// TRANSPARENCY mode (see <see cref="MudDockFactory.IsTransparencyLayout"/>). Kept in sync
+    /// with <see cref="MudDockFactory.OverlayTools"/> by <see cref="OnOverlayChanged"/>.</summary>
+    public ObservableCollection<TerminalOverlayViewModel> TerminalOverlays { get; } = new();
 
     public IRelayCommand<PanelTool> RestorePanelCommand { get; }
 
@@ -539,13 +542,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         AvailableLayouts.Clear();
         AvailableLayouts.Add(new LayoutMenuItem { Name = LayoutPresetService.DefaultName, CanDelete = false });
+        AvailableLayouts.Add(new LayoutMenuItem { Name = LayoutPresetService.TransparencyName, CanDelete = false });
         foreach (var preset in _layoutPresets)
         {
             AvailableLayouts.Add(new LayoutMenuItem { Name = preset.Name, CanDelete = true });
         }
     }
 
-    /// <summary>Restores the built-in default layout or a named preset.</summary>
+    /// <summary>Restores the built-in default layout, the built-in transparency layout, or a
+    /// named preset.</summary>
     private void ApplyLayout(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -561,21 +566,40 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             PinnedPreviewSizeProvider = previousFactory.PinnedPreviewSizeProvider,
         };
-        var fresh = replacementFactory.CreateLayout();
-        replacementFactory.InitLayout(fresh);
 
-        if (!string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
+        IRootDock fresh;
+        if (string.Equals(name, LayoutPresetService.TransparencyName, StringComparison.Ordinal))
         {
-            var preset = _layoutPresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal));
-            if (preset is null)
-            {
-                return;
-            }
+            fresh = replacementFactory.CreateTransparencyLayout();
+            replacementFactory.InitLayout(fresh);
 
-            if (!replacementFactory.TryApplySnapshot(fresh, preset.Snapshot))
+            // Every non-Terminal panel starts hidden in a fresh TRANSPARENCY layout. Restore them
+            // all to the top edge right away — the same RestoreToTopEdge a manual "Przywróć panel"
+            // click performs — so the user can immediately open one and pin it as an overlay
+            // instead of having to restore each panel by hand first.
+            foreach (var tool in replacementFactory.HiddenTools.ToList())
             {
-                // Snapshot no longer matches the current set of panels (e.g. after an update).
-                AddToast($"Układ „{name}” jest nieaktualny — wczytano DEFAULT.", "warning");
+                replacementFactory.RestoreToTopEdge(tool);
+            }
+        }
+        else
+        {
+            fresh = replacementFactory.CreateLayout();
+            replacementFactory.InitLayout(fresh);
+
+            if (!string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
+            {
+                var preset = _layoutPresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal));
+                if (preset is null)
+                {
+                    return;
+                }
+
+                if (!replacementFactory.TryApplySnapshot(fresh, preset.Snapshot))
+                {
+                    // Snapshot no longer matches the current set of panels (e.g. after an update).
+                    AddToast($"Układ „{name}” jest nieaktualny — wczytano DEFAULT.", "warning");
+                }
             }
         }
 
@@ -595,30 +619,55 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
         OnPropertyChanged(nameof(HiddenPanels));
 
-    private void OnOverlayChanged(object? sender, PanelTool? tool)
+    private void OnOverlayChanged(object? sender, EventArgs e)
     {
-        _settings.TerminalOverlayPanelId = tool?.Id;
-        OnPropertyChanged(nameof(OverlayPanel));
+        SyncTerminalOverlaysFromFactory();
         SaveSettings();
     }
 
-    /// <summary>Re-applies the panel remembered as a Terminal overlay (if any) after the dock
+    /// <summary>Rebuilds <see cref="TerminalOverlays"/> and the persisted entry list from
+    /// <see cref="MudDockFactory.OverlayTools"/>, reusing each panel's existing
+    /// <see cref="TerminalOverlayEntry"/> (and its height weight) when it is still active.</summary>
+    private void SyncTerminalOverlaysFromFactory()
+    {
+        var activeTools = _dockFactory.OverlayTools;
+        var newEntries = new List<TerminalOverlayEntry>();
+
+        TerminalOverlays.Clear();
+        foreach (var tool in activeTools)
+        {
+            var entry = _settings.TerminalOverlays.FirstOrDefault(e => e.PanelId == tool.Id)
+                ?? new TerminalOverlayEntry { PanelId = tool.Id! };
+            newEntries.Add(entry);
+            TerminalOverlays.Add(new TerminalOverlayViewModel(tool, entry, SaveSettings));
+        }
+
+        _settings.TerminalOverlays = newEntries;
+    }
+
+    /// <summary>Re-applies the panels remembered as Terminal overlays (if any) after the dock
     /// tree is (re)built — at startup, and again whenever a layout preset switch recreates the
-    /// factory. Silently does nothing if the remembered panel id no longer exists.</summary>
+    /// factory. Only meaningful in TRANSPARENCY mode; silently skips any remembered panel id that
+    /// no longer exists.</summary>
     private void ApplyOverlayFromSettings()
     {
-        if (string.IsNullOrWhiteSpace(_settings.TerminalOverlayPanelId))
+        TerminalOverlays.Clear();
+
+        if (!_dockFactory.IsTransparencyLayout)
         {
             return;
         }
 
-        var tool = _dockFactory.AllTools.FirstOrDefault(t => t.Id == _settings.TerminalOverlayPanelId);
-        if (tool is null || string.Equals(tool.Id, "Terminal", StringComparison.Ordinal))
+        foreach (var entry in _settings.TerminalOverlays.ToList())
         {
-            return;
-        }
+            var tool = _dockFactory.AllTools.FirstOrDefault(t => t.Id == entry.PanelId);
+            if (tool is null || string.Equals(tool.Id, "Terminal", StringComparison.Ordinal))
+            {
+                continue;
+            }
 
-        _dockFactory.PinToolAsOverlay(tool);
+            _dockFactory.PinToolAsOverlay(tool);
+        }
     }
 
     private void SaveLayout()
@@ -629,9 +678,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        if (string.Equals(name, LayoutPresetService.DefaultName, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(name, LayoutPresetService.DefaultName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, LayoutPresetService.TransparencyName, StringComparison.OrdinalIgnoreCase))
         {
-            AddToast("Nazwa „DEFAULT” jest zarezerwowana.", "warning");
+            AddToast($"Nazwa „{name}” jest zarezerwowana.", "warning");
             return;
         }
 
@@ -655,7 +705,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void DeleteLayout(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)
-            || string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal))
+            || string.Equals(name, LayoutPresetService.DefaultName, StringComparison.Ordinal)
+            || string.Equals(name, LayoutPresetService.TransparencyName, StringComparison.Ordinal))
         {
             return;
         }
@@ -1218,70 +1269,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public FontFamily WidgetFontFamilyValue => AppFonts.Resolve(_settings.WidgetFontFamily);
 
-    public double MinTerminalOverlayOpacity => AppSettings.MinTerminalOverlayOpacity;
-
-    public double MaxTerminalOverlayOpacity => AppSettings.MaxTerminalOverlayOpacity;
-
-    /// <summary>Overlay position/size as fractions of the Terminal's own bounds. Read-only from
-    /// bindings — <see cref="TerminalOverlayHost"/> commits new values via
-    /// <see cref="CommitOverlayGeometry"/> once a drag/resize gesture ends, rather than on every
-    /// pointer-moved frame, to avoid rewriting settings.json dozens of times per second.</summary>
-    public double TerminalOverlayXFraction => _settings.TerminalOverlayXFraction;
-
-    public double TerminalOverlayYFraction => _settings.TerminalOverlayYFraction;
-
-    public double TerminalOverlayWidthFraction => _settings.TerminalOverlayWidthFraction;
-
-    public double TerminalOverlayHeightFraction => _settings.TerminalOverlayHeightFraction;
-
-    public double TerminalOverlayOpacity
-    {
-        get => _settings.TerminalOverlayOpacity;
-        set
-        {
-            var clamped = Math.Clamp(
-                value, AppSettings.MinTerminalOverlayOpacity, AppSettings.MaxTerminalOverlayOpacity);
-            if (Math.Abs(_settings.TerminalOverlayOpacity - clamped) < 0.001)
-            {
-                return;
-            }
-
-            _settings.TerminalOverlayOpacity = clamped;
-            OnPropertyChanged();
-            SaveSettings();
-        }
-    }
-
-    /// <summary>Commits a new overlay position/size, clamped to valid ranges, in a single write.
-    /// Called once when a drag or resize gesture on the overlay chrome ends.</summary>
-    public void CommitOverlayGeometry(double xFraction, double yFraction, double widthFraction, double heightFraction)
-    {
-        var clampedWidth = Math.Clamp(
-            widthFraction, AppSettings.MinTerminalOverlaySizeFraction, AppSettings.MaxTerminalOverlaySizeFraction);
-        var clampedHeight = Math.Clamp(
-            heightFraction, AppSettings.MinTerminalOverlaySizeFraction, AppSettings.MaxTerminalOverlaySizeFraction);
-        var clampedX = Math.Clamp(xFraction, 0, 1 - clampedWidth);
-        var clampedY = Math.Clamp(yFraction, 0, 1 - clampedHeight);
-
-        if (Math.Abs(_settings.TerminalOverlayXFraction - clampedX) < 0.0005
-            && Math.Abs(_settings.TerminalOverlayYFraction - clampedY) < 0.0005
-            && Math.Abs(_settings.TerminalOverlayWidthFraction - clampedWidth) < 0.0005
-            && Math.Abs(_settings.TerminalOverlayHeightFraction - clampedHeight) < 0.0005)
-        {
-            return;
-        }
-
-        _settings.TerminalOverlayXFraction = clampedX;
-        _settings.TerminalOverlayYFraction = clampedY;
-        _settings.TerminalOverlayWidthFraction = clampedWidth;
-        _settings.TerminalOverlayHeightFraction = clampedHeight;
-        OnPropertyChanged(nameof(TerminalOverlayXFraction));
-        OnPropertyChanged(nameof(TerminalOverlayYFraction));
-        OnPropertyChanged(nameof(TerminalOverlayWidthFraction));
-        OnPropertyChanged(nameof(TerminalOverlayHeightFraction));
-        SaveSettings();
-    }
-
     public bool WidgetFontBold
     {
         get => _settings.WidgetFontBold;
@@ -1301,6 +1288,77 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public FontWeight WidgetFontWeight => WidgetFontBold ? FontWeight.Bold : FontWeight.Normal;
+
+    public double MinTerminalOverlayOpacity => AppSettings.MinTerminalOverlayOpacity;
+
+    public double MaxTerminalOverlayOpacity => AppSettings.MaxTerminalOverlayOpacity;
+
+    /// <summary>Shared transparency for every panel pinned as a Terminal overlay — one setting
+    /// for all of them rather than per-panel, set from the general Settings panel.</summary>
+    public double TerminalOverlayOpacity
+    {
+        get => _settings.TerminalOverlayOpacity;
+        set
+        {
+            var clamped = Math.Clamp(
+                value, AppSettings.MinTerminalOverlayOpacity, AppSettings.MaxTerminalOverlayOpacity);
+            if (Math.Abs(_settings.TerminalOverlayOpacity - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayOpacity = clamped;
+            ApplyTerminalOverlayOpacityResource();
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Width of the overlay column as a fraction of the Terminal's own width, shared by
+    /// every overlay since they all stack in one right-aligned column. Set by
+    /// <c>TerminalOverlayHost</c> when the user drags the column's left-edge splitter.</summary>
+    public double TerminalOverlayColumnWidthFraction
+    {
+        get => _settings.TerminalOverlayColumnWidthFraction;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinTerminalOverlayColumnWidthFraction,
+                AppSettings.MaxTerminalOverlayColumnWidthFraction);
+            if (Math.Abs(_settings.TerminalOverlayColumnWidthFraction - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayColumnWidthFraction = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Height of the overlay column as a fraction of the Terminal's own height. The
+    /// stack is anchored to the top; dragging the handle below the last card shrinks this to
+    /// reveal terminal beneath it. Set by <c>TerminalOverlayHost</c>.</summary>
+    public double TerminalOverlayColumnHeightFraction
+    {
+        get => _settings.TerminalOverlayColumnHeightFraction;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinTerminalOverlayColumnHeightFraction,
+                AppSettings.MaxTerminalOverlayColumnHeightFraction);
+            if (Math.Abs(_settings.TerminalOverlayColumnHeightFraction - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayColumnHeightFraction = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
 
     public bool OutputWordWrap
     {
@@ -1509,6 +1567,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         application.Resources["WidgetFontFamilyResource"] = WidgetFontFamilyValue;
         application.Resources["WidgetFontSizeResource"] = _settings.WidgetFontSize;
         application.Resources["WidgetFontWeightResource"] = WidgetFontWeight;
+    }
+
+    private void ApplyTerminalOverlayOpacityResource()
+    {
+        if (Avalonia.Application.Current is not { } application)
+        {
+            return;
+        }
+
+        application.Resources["TerminalOverlayOpacityResource"] = _settings.TerminalOverlayOpacity;
     }
 
     private void SaveSettings()

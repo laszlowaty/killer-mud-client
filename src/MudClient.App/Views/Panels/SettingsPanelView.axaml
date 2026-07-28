@@ -128,6 +128,20 @@
         </StackPanel>
       </Border>
 
+      <TextBlock Classes="mud-heading" Text="Nakładki na terminal" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Wspólna przezroczystość wszystkich paneli przypiętych jako nakładka na terminal." />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Przezroczystość" />
+            <Slider Minimum="{Binding MinTerminalOverlayOpacity}"
+                    Maximum="{Binding MaxTerminalOverlayOpacity}"
+                    Value="{Binding TerminalOverlayOpacity}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <TextBlock Classes="mud-heading" Text="Komendy" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10">
         <StackPanel Spacing="10">

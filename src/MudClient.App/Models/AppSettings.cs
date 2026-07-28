@@ -15,17 +15,30 @@ public sealed class AppSettings
     public const double MaxWidgetFontSize = 24;
     public const string DefaultTelnetColorScheme = "Ciepłe";
 
-    /// <summary>Default/limits for the terminal overlay's transparency and geometry (see
-    /// <see cref="TerminalOverlayOpacity"/> and the fraction properties below).</summary>
+    /// <summary>Default/limits for the terminal overlay's shared transparency (see
+    /// <see cref="TerminalOverlayOpacity"/>).</summary>
     public const double DefaultTerminalOverlayOpacity = 0.85;
     public const double MinTerminalOverlayOpacity = 0.2;
     public const double MaxTerminalOverlayOpacity = 1.0;
-    public const double MinTerminalOverlaySizeFraction = 0.15;
-    public const double MaxTerminalOverlaySizeFraction = 0.95;
-    public const double DefaultTerminalOverlayXFraction = 0.55;
-    public const double DefaultTerminalOverlayYFraction = 0.05;
-    public const double DefaultTerminalOverlayWidthFraction = 0.42;
-    public const double DefaultTerminalOverlayHeightFraction = 0.42;
+
+    /// <summary>Default/limits for the overlay column's overall width, as a fraction (0..1) of
+    /// the Terminal's own width (see <see cref="TerminalOverlayColumnWidthFraction"/>).</summary>
+    public const double DefaultTerminalOverlayColumnWidthFraction = 0.42;
+    public const double MinTerminalOverlayColumnWidthFraction = 0.2;
+    public const double MaxTerminalOverlayColumnWidthFraction = 0.7;
+
+    /// <summary>Default/limits for the overlay column's overall height, as a fraction (0..1) of
+    /// the Terminal's own height (see <see cref="TerminalOverlayColumnHeightFraction"/>). The
+    /// stack is anchored to the top, so shrinking this reveals terminal below the last card.</summary>
+    public const double DefaultTerminalOverlayColumnHeightFraction = 1.0;
+    public const double MinTerminalOverlayColumnHeightFraction = 0.2;
+    public const double MaxTerminalOverlayColumnHeightFraction = 1.0;
+
+    /// <summary>Default/limits for one overlay's height relative to the others stacked in the
+    /// same column (a Grid star weight — see <see cref="TerminalOverlayEntry.HeightWeight"/>).</summary>
+    public const double DefaultTerminalOverlayHeightWeight = 1.0;
+    public const double MinTerminalOverlayHeightWeight = 0.2;
+    public const double MaxTerminalOverlayHeightWeight = 5.0;
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
@@ -83,21 +96,22 @@ public sealed class AppSettings
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; }
 
-    /// <summary>Id of the panel currently pinned as a floating overlay on the Terminal, or null
-    /// if no panel is overlaid. Independent of the per-layout dock snapshots (see
-    /// <see cref="MudClient.App.Docking.MudDockFactory.OverlayTool"/>).</summary>
-    public string? TerminalOverlayPanelId { get; set; }
+    /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
+    /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
+    /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and
+    /// <see cref="MudClient.App.Docking.MudDockFactory.OverlayTools"/>.</summary>
+    public List<TerminalOverlayEntry> TerminalOverlays { get; set; } = [];
 
-    /// <summary>Overlay position/size as fractions (0..1) of the Terminal panel's own bounds, so
-    /// the overlay always stays proportionally inside the terminal regardless of window size.</summary>
-    public double TerminalOverlayXFraction { get; set; } = DefaultTerminalOverlayXFraction;
-
-    public double TerminalOverlayYFraction { get; set; } = DefaultTerminalOverlayYFraction;
-
-    public double TerminalOverlayWidthFraction { get; set; } = DefaultTerminalOverlayWidthFraction;
-
-    public double TerminalOverlayHeightFraction { get; set; } = DefaultTerminalOverlayHeightFraction;
-
-    /// <summary>0 (fully transparent) .. 1 (opaque). Lets the terminal text show through the overlay.</summary>
+    /// <summary>0 (fully transparent) .. 1 (opaque). Shared by every overlay — lets the terminal
+    /// text show through. One setting for all of them, not one per panel.</summary>
     public double TerminalOverlayOpacity { get; set; } = DefaultTerminalOverlayOpacity;
+
+    /// <summary>Width of the overlay column as a fraction (0..1) of the Terminal's own width.
+    /// Shared by every overlay — they all live in one right-aligned column.</summary>
+    public double TerminalOverlayColumnWidthFraction { get; set; } = DefaultTerminalOverlayColumnWidthFraction;
+
+    /// <summary>Height of the overlay column as a fraction (0..1) of the Terminal's own height.
+    /// The stack is anchored to the top; dragging the handle below the last card shrinks this to
+    /// reveal terminal beneath it.</summary>
+    public double TerminalOverlayColumnHeightFraction { get; set; } = DefaultTerminalOverlayColumnHeightFraction;
 }

@@ -76,26 +76,33 @@ public sealed class AppSettingsService
                         .ToList() ?? [];
                     settings.AutoAssistFollowUpCommands ??= string.Empty;
 
+                    settings.TerminalOverlays = (settings.TerminalOverlays ?? [])
+                        .Where(overlay => !string.IsNullOrWhiteSpace(overlay.PanelId))
+                        .GroupBy(overlay => overlay.PanelId, StringComparer.Ordinal)
+                        .Select(group => group.First())
+                        .ToList();
+                    foreach (var overlay in settings.TerminalOverlays)
+                    {
+                        overlay.HeightWeight = Math.Clamp(
+                            overlay.HeightWeight,
+                            AppSettings.MinTerminalOverlayHeightWeight,
+                            AppSettings.MaxTerminalOverlayHeightWeight);
+                    }
+
                     settings.TerminalOverlayOpacity = Math.Clamp(
                         settings.TerminalOverlayOpacity,
                         AppSettings.MinTerminalOverlayOpacity,
                         AppSettings.MaxTerminalOverlayOpacity);
-                    settings.TerminalOverlayWidthFraction = Math.Clamp(
-                        settings.TerminalOverlayWidthFraction,
-                        AppSettings.MinTerminalOverlaySizeFraction,
-                        AppSettings.MaxTerminalOverlaySizeFraction);
-                    settings.TerminalOverlayHeightFraction = Math.Clamp(
-                        settings.TerminalOverlayHeightFraction,
-                        AppSettings.MinTerminalOverlaySizeFraction,
-                        AppSettings.MaxTerminalOverlaySizeFraction);
-                    settings.TerminalOverlayXFraction = Math.Clamp(
-                        settings.TerminalOverlayXFraction, 0, 1 - settings.TerminalOverlayWidthFraction);
-                    settings.TerminalOverlayYFraction = Math.Clamp(
-                        settings.TerminalOverlayYFraction, 0, 1 - settings.TerminalOverlayHeightFraction);
-                    if (string.IsNullOrWhiteSpace(settings.TerminalOverlayPanelId))
-                    {
-                        settings.TerminalOverlayPanelId = null;
-                    }
+
+                    settings.TerminalOverlayColumnWidthFraction = Math.Clamp(
+                        settings.TerminalOverlayColumnWidthFraction,
+                        AppSettings.MinTerminalOverlayColumnWidthFraction,
+                        AppSettings.MaxTerminalOverlayColumnWidthFraction);
+
+                    settings.TerminalOverlayColumnHeightFraction = Math.Clamp(
+                        settings.TerminalOverlayColumnHeightFraction,
+                        AppSettings.MinTerminalOverlayColumnHeightFraction,
+                        AppSettings.MaxTerminalOverlayColumnHeightFraction);
 
                     return settings;
                 }
