@@ -6,7 +6,7 @@
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
   <Panel>
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="48,*,48">
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="Auto,*,Auto">
 
     <!-- HP vertical indicator (left) – spans full panel height -->
     <Border x:Name="HitPointsBar"
