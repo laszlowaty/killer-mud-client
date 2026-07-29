@@ -217,9 +217,9 @@ public sealed class MainWindowClickTests : IDisposable
             .OfType<TextBlock>()
             .Select(text => text.Text)
             .ToList();
-        Assert.Contains("/idz", helpTexts);
-        Assert.Contains("/idz <cel>", helpTexts);
-        Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
+        Assert.Contains("/walk", helpTexts);
+        Assert.Contains("/walk <cel>", helpTexts);
+        Assert.Contains("/walk_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
         Assert.Contains("/recast", helpTexts);
         Assert.Contains("/map <komenda>", helpTexts);

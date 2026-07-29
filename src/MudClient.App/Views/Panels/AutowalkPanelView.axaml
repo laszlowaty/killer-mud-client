@@ -61,7 +61,7 @@
                   Command="{Binding GoToSelectedTargetCommand}"
                   HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center" Padding="16,6"
-                  ToolTip.Tip="Idź do celu wybranego na mapie (tak samo jak komenda /idz)" />
+                  ToolTip.Tip="Idź do celu wybranego na mapie (tak samo jak komenda /walk)" />
 
           <!-- Temporary target picked by double-clicking the map -->
           <StackPanel Spacing="6" IsVisible="{Binding HasTemporaryTarget}">
@@ -106,7 +106,7 @@
           <CheckBox IsChecked="{Binding NewLocationIsGlobal}"
                     Content="Globalna — wspólna dla wszystkich kont" />
           <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                     Text="Do członka grupy lub zapisanej lokacji dojdziesz komendą /idz &lt;nazwa&gt;. Przycisk IDŹ prowadzi do wybranej lokacji, a /stop przerywa marsz." />
+                     Text="Do członka grupy lub zapisanej lokacji dojdziesz komendą /walk &lt;nazwa&gt;, a do lidera grupy komendą /walk leader. Przycisk IDŹ prowadzi do wybranej lokacji, a /stop przerywa marsz." />
         </StackPanel>
       </Expander>
 

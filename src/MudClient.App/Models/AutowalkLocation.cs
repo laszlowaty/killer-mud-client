@@ -18,7 +18,7 @@ public sealed class AutowalkLocation : ObservableObject, IFolderItem
 
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
 
-    /// <summary>User-chosen label, e.g. "plac-arras"; used by the /idz command.</summary>
+    /// <summary>User-chosen label, e.g. "plac-arras"; used by the /walk command.</summary>
     public string Name { get; }
 
     /// <summary>Room vnum as reported by GMCP and stored in the map's userData.</summary>
