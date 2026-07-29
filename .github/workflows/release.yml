@@ -196,6 +196,7 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           FULL_VERSION="${{ steps.version.outputs.full_version }}"
           gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
             --title "KillerMudClient $FULL_VERSION" \
             --notes-file release-notes.md \
             --prerelease \
