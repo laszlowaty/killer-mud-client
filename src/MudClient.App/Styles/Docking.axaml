@@ -19,6 +19,8 @@
       <MenuItem Header="Przypnij u góry" Command="{Binding ActiveDockable.PinTopCommand}" />
       <MenuItem Header="Przypnij u dołu" Command="{Binding ActiveDockable.PinBottomCommand}" />
       <Separator />
+      <MenuItem Header="Przypnij jako nakładkę na terminal" Command="{Binding ActiveDockable.PinAsOverlayCommand}" />
+      <Separator />
       <MenuItem Header="Zamknij"
                 Command="{Binding Owner.Factory.CloseDockable}"
                 CommandParameter="{Binding ActiveDockable}" />
