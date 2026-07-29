@@ -1,14 +1,20 @@
 # KillerMudClient
 
-[![CI](https://github.com/laszlowaty/killer-mud-client/actions/workflows/ci.yml/badge.svg)](https://github.com/laszlowaty/killer-mud-client/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/laszlowaty/killer-mud-client?include_prereleases&label=release)](https://github.com/laszlowaty/killer-mud-client/releases)
-[![Strona projektu](https://img.shields.io/badge/www-killer--mud--client-d9b970)](https://laszlowaty.github.io/killer-mud-client/)
+[![CI](https://github.com/Grzyboll/killer-mud-client/actions/workflows/ci.yml/badge.svg)](https://github.com/Grzyboll/killer-mud-client/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Grzyboll/killer-mud-client?include_prereleases&label=release)](https://github.com/Grzyboll/killer-mud-client/releases)
+[![Strona projektu](https://img.shields.io/badge/www-killer--mud--client-d9b970)](https://grzyboll.github.io/killer-mud-client/)
 
 Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [killer-mud.pl](http://killer-mud.pl).
 
-**Strona projektu i pobieranie:** https://laszlowaty.github.io/killer-mud-client/
+**Strona projektu i pobieranie:** https://grzyboll.github.io/killer-mud-client/
 
 ![Zrzut ekranu klienta: terminal, mapa świata, panele buffów i automatów](docs/assets/screenshot.png)
+
+> **To jest eksperymentalny fork** [laszlowaty/killer-mud-client](https://github.com/laszlowaty/killer-mud-client).
+> Rozwijane są tu funkcje, które nie trafiły (jeszcze albo wcale) do głównego repozytorium,
+> przy zachowaniu zgodności z upstreamem — wydania forka są numerowane względem aktualnej
+> wersji upstreamu (np. `v0.6.4-dev.1`). Model branchy i proces wydawania opisuje
+> [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Funkcje
 
@@ -171,13 +177,23 @@ Przed `dotnet publish` skrypty czyszczą katalog docelowy wybranego wariantu, dz
 
 ### Wydania (GitHub Actions)
 
-Oficjalne wydania buduje workflow **Release** (zakładka Actions → Release → *Run workflow*):
+Ten fork wydaje wyłącznie wersje deweloperskie, cięte z brancha `develop` (zobacz
+[CONTRIBUTING.md](CONTRIBUTING.md) po pełny opis modelu branchy). Buduje je workflow
+**Release** (zakładka Actions → Release → *Run workflow*, branch `develop`):
 
-- wybierasz kanał: `beta` → pre-release z tagiem `vX.Y.Z-beta.N` (numer bety nadawany automatycznie), `release` → pełne wydanie z tagiem `vX.Y.Z`,
-- wybierasz podbicie wersji: `patch` / `minor` / `major` / `none` — workflow aktualizuje `Directory.Build.props`, commituje i taguje,
-- po przejściu testów budowane są paczki `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64` i publikowane jako GitHub Release z automatycznymi notatkami.
+- wersja docelowa jest liczona względem **aktualnej wersji upstreamu**
+  (`Directory.Build.props` na `upstream/main`), nie względem ostatniego wydania forka —
+  wybierasz tylko podbicie: `patch` / `minor` / `major` / `none`,
+- workflow nadaje kolejny wolny numer `-dev.N` dla tak wyliczonej wersji (np. `v0.6.4-dev.1`,
+  `v0.6.4-dev.2`, ...; po wydaniu przez upstream `v0.6.4` kolejne wydanie forka to automatycznie
+  `v0.6.5-dev.1`), aktualizuje `Directory.Build.props`, commituje i taguje na `develop`,
+- po przejściu testów budowane są paczki `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64` i
+  publikowane jako GitHub **prerelease** z notatkami zawierającymi wersję upstreamu, na
+  której oparto wydanie, oraz listę zmian pogrupowaną wg Conventional Commits.
 
-Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull requeście do `main`, a workflow **Deploy GitHub Pages** publikuje stronę projektu z katalogu `docs/`.
+Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull requeście do
+`main` oraz `develop`, a workflow **Deploy GitHub Pages** publikuje stronę projektu z
+katalogu `docs/` przy każdej zmianie na `develop`.
 
 ## Gdzie wpisać adres MUD-a
 
