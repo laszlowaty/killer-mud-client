@@ -2228,6 +2228,22 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal(1, semaphore.CurrentCount);
     }
 
+    // ChatLinePolicy's own matching/rejection logic is covered by ChatLinePolicyTests in
+    // MudClient.Core.Tests. This just proves the integration point in OnLineReceived doesn't
+    // throw. It cannot assert that ChatLineReceived actually fires here: the production code
+    // marshals it via Dispatcher.UIThread.Post, and (per the "Outgoing GMCP recording" comment
+    // above) calling Dispatcher.UIThread.RunJobs() from this plain (non-headless) test class
+    // would throw Dispatcher.VerifyAccess.
+    [Fact]
+    public void OnLineReceived_CommunicationLine_DoesNotThrow()
+    {
+        var method = GetOnLineReceivedMethod();
+
+        var exception = Record.Exception(() => method.Invoke(_vm, ["Ala mówi 'witam wszystkich'"]));
+
+        Assert.Null(exception);
+    }
+
     // ====================================================================
     // Trigger lifecycle — CTS, task tracking, and DisposeAsync draining
     //

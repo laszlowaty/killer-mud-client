@@ -296,6 +296,7 @@ public sealed class MudDockFactory : Factory, IFactory
         NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
         NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
         NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
+        NewTool("Chat", "💬 Czat", typeof(Views.Panels.ChatPanelView), _mainContext);
         NewTool("Settings", "🛠 Ustawienia", typeof(Views.Panels.SettingsPanelView), _mainContext);
     }
 
@@ -361,6 +362,7 @@ public sealed class MudDockFactory : Factory, IFactory
         var autowalkTool = Tool("Autowalk");
         var notesTool = Tool("Notes");
         var gmcpTool = Tool("Gmcp");
+        var chatTool = Tool("Chat");
         var settingsTool = Tool("Settings");
 
         var leftDock = new ToolDock
@@ -399,7 +401,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Proportion = 0.5,
             ActiveDockable = automationTool,
             VisibleDockables = CreateList<IDockable>(
-                automationTool, autowalkTool, notesTool, gmcpTool, settingsTool),
+                automationTool, autowalkTool, notesTool, gmcpTool, chatTool, settingsTool),
             Alignment = Alignment.Right,
         };
 
