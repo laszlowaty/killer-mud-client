@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: develop
           fetch-depth: 0
 
       - name: Setup .NET
@@ -109,7 +109,7 @@ jobs:
           TAG: ${{ steps.package.outputs.tag }}
         run: |
           set -euo pipefail
-          git pull --rebase origin main
+          git pull --rebase origin develop
           python - <<'PY'
           import json
           import os
@@ -145,7 +145,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/content/manifest.json
           git commit -m "Dane: ${COMPONENT} ${CONTENT_VERSION}"
-          git push origin main
+          git push origin develop
 
   deploy-pages:
     needs: publish

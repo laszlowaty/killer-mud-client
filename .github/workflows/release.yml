@@ -3,16 +3,8 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      channel:
-        description: 'Kanał wydania'
-        required: true
-        type: choice
-        default: beta
-        options:
-          - beta
-          - release
       bump:
-        description: 'Podbicie wersji w Directory.Build.props'
+        description: 'Podbicie wersji względem aktualnej wersji upstream (Directory.Build.props na upstream/main)'
         required: true
         type: choice
         default: patch
@@ -35,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: develop
           fetch-depth: 0
 
       - name: Setup .NET
@@ -43,65 +35,66 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Bump version
+      - name: Determine dev version
         id: version
         run: |
           set -euo pipefail
-          CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
-          echo "Current version: $CURRENT"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          git remote add upstream https://github.com/laszlowaty/killer-mud-client.git
+          git fetch upstream main
+
+          # Ten fork nigdy nie "posiada" stabilnego wydania danego numeru wersji —
+          # ten numer należy do upstreamu. Każde wydanie forka to prerelease
+          # oznaczony jako "o jedną (lub więcej, zależnie od bump) wersję do przodu"
+          # względem NAJNOWSZEJ znanej wersji upstreamu, więc ten krok zawsze liczy
+          # cel na nowo z upstream/main — nie z własnej, potencjalnie nieaktualnej
+          # wersji w Directory.Build.props na develop.
+          UPSTREAM_VERSION=$(git show upstream/main:Directory.Build.props | sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p')
+          echo "Wersja upstream: $UPSTREAM_VERSION"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$UPSTREAM_VERSION"
           case "${{ inputs.bump }}" in
             major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
             minor) MINOR=$((MINOR+1)); PATCH=0 ;;
             patch) PATCH=$((PATCH+1)) ;;
             none)  ;;
           esac
-          VERSION="$MAJOR.$MINOR.$PATCH"
+          TARGET_VERSION="$MAJOR.$MINOR.$PATCH"
 
-          if [ "${{ inputs.channel }}" = "beta" ]; then
-            # kolejny numer bety dla tej wersji: v1.2.3-beta.N
-            N=1
-            while git rev-parse -q --verify "refs/tags/v$VERSION-beta.$N" >/dev/null; do
-              N=$((N+1))
-            done
-            FULL_VERSION="$VERSION-beta.$N"
-            PRERELEASE=true
-          else
-            if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
-              echo "::error::Tag v$VERSION już istnieje — wybierz podbicie wersji."
-              exit 1
-            fi
-            FULL_VERSION="$VERSION"
-            PRERELEASE=false
-          fi
-
+          # Kolejny wolny numer dev dla tej wersji docelowej: vX.Y.Z-dev.N.
+          N=1
+          while git rev-parse -q --verify "refs/tags/v$TARGET_VERSION-dev.$N" >/dev/null; do
+            N=$((N+1))
+          done
+          FULL_VERSION="$TARGET_VERSION-dev.$N"
           TAG="v$FULL_VERSION"
-          echo "version=$VERSION"           >> "$GITHUB_OUTPUT"
-          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"                   >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRERELEASE"     >> "$GITHUB_OUTPUT"
-          echo "New version: $FULL_VERSION (tag $TAG)"
 
-          if [ "$VERSION" != "$CURRENT" ]; then
-            sed -i "s|<Version>$CURRENT</Version>|<Version>$VERSION</Version>|" Directory.Build.props
+          echo "upstream_version=$UPSTREAM_VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$TARGET_VERSION"             >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULL_VERSION"          >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"                            >> "$GITHUB_OUTPUT"
+          echo "Nowa wersja: $FULL_VERSION (tag $TAG, na bazie upstream v$UPSTREAM_VERSION)"
+
+          CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
+          if [ "$TARGET_VERSION" != "$CURRENT" ]; then
+            sed -i "s|<Version>$CURRENT</Version>|<Version>$TARGET_VERSION</Version>|" Directory.Build.props
             git config user.name  "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add Directory.Build.props
-            git commit -m "chore: bump version to $VERSION"
-            if ! git push origin main; then
+            git commit -m "chore: bump version to $TARGET_VERSION"
+            if ! git push origin develop; then
               LOCAL_HEAD=$(git rev-parse HEAD)
-              REMOTE_HEAD=$(git ls-remote origin refs/heads/main | awk '{print $1}')
+              REMOTE_HEAD=$(git ls-remote origin refs/heads/develop | awk '{print $1}')
               if [ "$REMOTE_HEAD" != "$LOCAL_HEAD" ]; then
-                echo "::error::Push main nie powiódł się, a origin/main wskazuje na inny commit ($REMOTE_HEAD)."
+                echo "::error::Push develop nie powiódł się, a origin/develop wskazuje na inny commit ($REMOTE_HEAD)."
                 exit 1
               fi
-              echo "::notice::origin/main wskazuje już na $LOCAL_HEAD — kontynuuję wydanie."
+              echo "::notice::origin/develop wskazuje już na $LOCAL_HEAD — kontynuuję wydanie."
             fi
           fi
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "KillerMudClient $FULL_VERSION"
+          git tag -a "$TAG" -m "KillerMudClient $FULL_VERSION (na bazie upstream v$UPSTREAM_VERSION)"
           git push origin "$TAG"
 
       - name: Test
@@ -146,6 +139,55 @@ jobs:
 
           ls -la artifacts
 
+      - name: Build release notes
+        id: notes
+        env:
+          UPSTREAM_VERSION: ${{ steps.version.outputs.upstream_version }}
+        run: |
+          set -euo pipefail
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
+          RANGE="HEAD"
+          [ -n "$PREV_TAG" ] && RANGE="$PREV_TAG..HEAD"
+
+          git log --no-merges --pretty=format:'%s' "$RANGE" \
+            | grep -vE '^(chore: bump version|docs: aktualizacja listy zmian|Dane: (map|killeropedia) )' > all.txt || true
+
+          # Grupowanie po prefiksie conventional-commits — ta sama konwencja, którą
+          # parsuje generator listy zmian na GitHub Pages (patrz krok niżej).
+          grep -iE '^feat(\(|!|:)' all.txt | sed -E 's/^feat(\([^)]*\))?!?:[[:space:]]*//I' > feat.txt  || true
+          grep -iE '^fix(\(|!|:)'  all.txt | sed -E 's/^fix(\([^)]*\))?!?:[[:space:]]*//I'  > fix.txt   || true
+          grep -ivE '^(feat|fix)(\(|!|:)' all.txt \
+            | sed -E 's/^(chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?:[[:space:]]*//I' > other.txt || true
+
+          {
+            echo "## Based on upstream"
+            echo ""
+            echo "v$UPSTREAM_VERSION"
+
+            if [ -s feat.txt ]; then
+              echo ""
+              echo "## Added"
+              echo ""
+              sed 's/^/- /' feat.txt
+            fi
+
+            if [ -s other.txt ]; then
+              echo ""
+              echo "## Changed"
+              echo ""
+              sed 's/^/- /' other.txt
+            fi
+
+            if [ -s fix.txt ]; then
+              echo ""
+              echo "## Fixed"
+              echo ""
+              sed 's/^/- /' fix.txt
+            fi
+          } > release-notes.md
+
+          cat release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -153,21 +195,16 @@ jobs:
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
           FULL_VERSION="${{ steps.version.outputs.full_version }}"
-          FLAGS=""
-          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
-            FLAGS="--prerelease"
-          fi
           gh release create "$TAG" \
             --title "KillerMudClient $FULL_VERSION" \
-            --generate-notes \
-            $FLAGS \
+            --notes-file release-notes.md \
+            --prerelease \
             artifacts/*
 
       - name: Update changelog on GitHub Pages
         env:
           GH_TOKEN: ${{ github.token }}
           FULL_VERSION: ${{ steps.version.outputs.full_version }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
@@ -268,7 +305,7 @@ jobs:
               | sed -E 's/^(chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?:[[:space:]]*//I' > other.txt || true
 
             PRE=""
-            case "$T" in *-*) PRE=' <span class="pre">beta</span>' ;; esac
+            case "$T" in *-*) PRE=' <span class="pre">dev</span>' ;; esac
 
             cat >> docs/changelog.html <<ARTICLE
             <article class="release">
@@ -306,7 +343,7 @@ jobs:
           manifest = {
               "schemaVersion": 1,
               "version": os.environ["FULL_VERSION"],
-              "prerelease": os.environ["PRERELEASE"].lower() == "true",
+              "prerelease": True,
           }
           Path("docs/app-version.json").write_text(
               json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
@@ -319,7 +356,7 @@ jobs:
           git add docs/changelog.html docs/app-version.json
           if ! git diff --cached --quiet; then
             git commit -m "docs: aktualizacja listy zmian dla $TAG"
-            git push origin main
+            git push origin develop
           fi
 
   # Wdraża GitHub Pages w tym samym przebiegu — commit changelogu jest pushowany
