@@ -34,6 +34,29 @@ public sealed class MudOutputViewTests
     }
 
     [AvaloniaFact]
+    public void CompactTerminal_HidesSearchAndUsesIconSendButton()
+    {
+        var terminal = new TerminalPanelView { IsCompact = true };
+        var window = new Window { Width = 360, Height = 720, Content = terminal };
+        window.Show();
+
+        try
+        {
+            window.UpdateLayout();
+
+            Assert.False(terminal.FindControl<TextBox>("SearchBox")!.IsVisible);
+            Assert.False(terminal.FindControl<Button>("SearchPrevButton")!.IsVisible);
+            Assert.False(terminal.FindControl<Button>("SearchNextButton")!.IsVisible);
+            Assert.False(terminal.FindControl<Button>("DesktopSendButton")!.IsVisible);
+            Assert.True(terminal.FindControl<Button>("CompactSendButton")!.IsVisible);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public async Task VitalsBars_HideAndReleaseTheirTerminalColumns()
     {
         var settingsDirectory = Path.Combine(

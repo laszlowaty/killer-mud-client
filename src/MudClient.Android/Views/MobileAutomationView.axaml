@@ -1,0 +1,235 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.Android.Views.MobileAutomationView"
+             x:DataType="vm:MainWindowViewModel">
+  <TabControl SelectedIndex="{Binding SelectedAutomationTabIndex, Mode=TwoWay}"
+              Classes="mud-subtabs">
+    <TabItem Header="Timery">
+      <Grid RowDefinitions="Auto,*">
+        <Button Content="＋ Nowy timer"
+                Command="{Binding StartAddTimerCommand}"
+                Margin="8"
+                MinHeight="44" />
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="8,0,8,16" Spacing="8">
+            <Border Classes="mud-section"
+                    Padding="10"
+                    IsVisible="{Binding IsTimerFormExpanded}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding TimerFormHeader}" Classes="mud-heading" />
+                <TextBox Text="{Binding NewTimerName}" PlaceholderText="Nazwa timera" />
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                  <TextBox Grid.Column="0" Text="{Binding NewTimerMinutes}" PlaceholderText="min" />
+                  <TextBox Grid.Column="1" Text="{Binding NewTimerSeconds}" PlaceholderText="s" />
+                  <TextBox Grid.Column="2" Text="{Binding NewTimerMilliseconds}" PlaceholderText="ms" />
+                </Grid>
+                <TextBox Text="{Binding NewTimerCommands}"
+                         PlaceholderText="Komendy, każda w osobnej linii"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewTimerIsGlobal}" Content="Globalny" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Button Content="{Binding TimerFormButtonText}"
+                          Command="{Binding AddTimerCommand}"
+                          MinHeight="44" />
+                  <Button Grid.Column="1"
+                          Content="Anuluj"
+                          Command="{Binding CancelTimerEditCommand}"
+                          MinHeight="44" />
+                </Grid>
+              </StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Timers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:TimerEntry">
+                  <Border Classes="mud-section" Padding="10" Margin="0,3">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
+                        </StackPanel>
+                        <ToggleButton Grid.Column="1"
+                                      Content="{Binding StatusText}"
+                                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                                      CommandParameter="{Binding}"
+                                      MinHeight="44" />
+                        <Button Grid.Column="2"
+                                Content="✎"
+                                Command="{Binding $parent[UserControl].DataContext.EditTimerCommand}"
+                                CommandParameter="{Binding}"
+                                MinWidth="44"
+                                MinHeight="44" />
+                        <Button Grid.Column="3"
+                                Content="✕"
+                                Classes="mud-danger"
+                                Command="{Binding $parent[UserControl].DataContext.DeleteTimerCommand}"
+                                CommandParameter="{Binding}"
+                                MinWidth="44"
+                                MinHeight="44" />
+                      </Grid>
+                      <TextBlock Text="{Binding CommandsText}"
+                                 Classes="mud-muted"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="Aliasy">
+      <Grid RowDefinitions="Auto,*">
+        <Button Content="＋ Nowy alias"
+                Command="{Binding StartAddAliasCommand}"
+                Margin="8"
+                MinHeight="44" />
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="8,0,8,16" Spacing="8">
+            <Border Classes="mud-section"
+                    Padding="10"
+                    IsVisible="{Binding IsAliasRuleFormVisible}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding RuleFormHeader}" Classes="mud-heading" />
+                <TextBox Text="{Binding NewRuleName}" PlaceholderText="Nazwa aliasu" />
+                <TextBox Text="{Binding NewRulePattern}" PlaceholderText="Wzorzec regex" />
+                <TextBlock Text="{Binding NewRulePatternError}"
+                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                           IsVisible="{Binding HasNewRulePatternError}"
+                           TextWrapping="Wrap" />
+                <TextBox Text="{Binding NewRuleAction}"
+                         PlaceholderText="Komendy"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Button Content="{Binding RuleFormButtonText}"
+                          Command="{Binding AddRuleCommand}"
+                          MinHeight="44" />
+                  <Button Grid.Column="1"
+                          Content="Anuluj"
+                          Command="{Binding CancelRuleEditCommand}"
+                          MinHeight="44" />
+                </Grid>
+              </StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding AliasRules}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:AutomationRuleEntry">
+                  <Border Classes="mud-section" Padding="10" Margin="0,3">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <ToggleButton Grid.Column="1"
+                                    Content="{Binding StatusText}"
+                                    Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
+                                    CommandParameter="{Binding}"
+                                    MinHeight="44" />
+                      <Button Grid.Column="2"
+                              Content="✎"
+                              Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
+                              CommandParameter="{Binding}"
+                              MinWidth="44"
+                              MinHeight="44" />
+                      <Button Grid.Column="3"
+                              Content="✕"
+                              Classes="mud-danger"
+                              Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
+                              CommandParameter="{Binding}"
+                              MinWidth="44"
+                              MinHeight="44" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="Triggery">
+      <Grid RowDefinitions="Auto,*">
+        <Button Content="＋ Nowy trigger"
+                Command="{Binding StartAddTriggerCommand}"
+                Margin="8"
+                MinHeight="44" />
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="8,0,8,16" Spacing="8">
+            <Border Classes="mud-section"
+                    Padding="10"
+                    IsVisible="{Binding IsTriggerRuleFormVisible}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding RuleFormHeader}" Classes="mud-heading" />
+                <TextBox Text="{Binding NewRuleName}" PlaceholderText="Nazwa triggera" />
+                <TextBox Text="{Binding NewRulePattern}" PlaceholderText="Wzorzec regex" />
+                <TextBlock Text="{Binding NewRulePatternError}"
+                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                           IsVisible="{Binding HasNewRulePatternError}"
+                           TextWrapping="Wrap" />
+                <TextBox Text="{Binding NewRuleAction}"
+                         PlaceholderText="Komendy"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Button Content="{Binding RuleFormButtonText}"
+                          Command="{Binding AddRuleCommand}"
+                          MinHeight="44" />
+                  <Button Grid.Column="1"
+                          Content="Anuluj"
+                          Command="{Binding CancelRuleEditCommand}"
+                          MinHeight="44" />
+                </Grid>
+              </StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding TriggerRules}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:AutomationRuleEntry">
+                  <Border Classes="mud-section" Padding="10" Margin="0,3">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <ToggleButton Grid.Column="1"
+                                    Content="{Binding StatusText}"
+                                    Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
+                                    CommandParameter="{Binding}"
+                                    MinHeight="44" />
+                      <Button Grid.Column="2"
+                              Content="✎"
+                              Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
+                              CommandParameter="{Binding}"
+                              MinWidth="44"
+                              MinHeight="44" />
+                      <Button Grid.Column="3"
+                              Content="✕"
+                              Classes="mud-danger"
+                              Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
+                              CommandParameter="{Binding}"
+                              MinWidth="44"
+                              MinHeight="44" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+  </TabControl>
+</UserControl>

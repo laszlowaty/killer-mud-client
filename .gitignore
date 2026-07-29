@@ -6,6 +6,7 @@
 *.suo
 *.log
 artifacts/
+.artifacts/
 
 # Local KillerMUD server checkout (separate repository)
 /tools/KillerMUD/

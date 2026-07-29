@@ -77,6 +77,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
     private readonly IExternalLinkService _externalLinkService;
+    private readonly IPasswordProtector _passwordProtector;
     private CancellationTokenSource? _updateCheckCts;
     private Task? _updateCheckTask;
     private CancellationTokenSource? _contentUpdateCts;
@@ -223,7 +224,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LayoutPresetService? layoutPresetService = null,
         IUpdateCheckService? updateCheckService = null,
         IExternalLinkService? externalLinkService = null,
-        IContentUpdateService? contentUpdateService = null)
+        IContentUpdateService? contentUpdateService = null,
+        string? appBaseDirectory = null,
+        IPasswordProtector? passwordProtector = null)
     {
         _triggers = new TriggerEngine { Aliases = _aliases };
         _profiles = profileService ?? new ProfileService();
@@ -235,6 +238,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _updateCheckService = updateCheckService ?? new UpdateCheckService();
         _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
+        _passwordProtector = passwordProtector ?? new DpapiPasswordProtector();
         Killeropedia = CreateKilleropediaViewModel();
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
@@ -323,7 +327,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _session.ConnectionError += OnConnectionError;
         _session.ConnectionClosed += OnConnectionClosed;
 
-        Map = new MapViewModel(AppContext.BaseDirectory, _locationResolver, _settingsService.DirectoryPath)
+        Map = new MapViewModel(
+            appBaseDirectory ?? AppContext.BaseDirectory,
+            _locationResolver,
+            _settingsService.DirectoryPath)
         {
             LordModeEnabled = _settings.LordModeEnabled,
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
@@ -3704,7 +3711,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var typedPassword = SelectedProfilePassword;
         if (!string.IsNullOrEmpty(typedPassword))
         {
-            profile.EncryptedPassword = PasswordProtector.Protect(typedPassword);
+            profile.EncryptedPassword = _passwordProtector.Protect(typedPassword);
             SelectedProfilePassword = string.Empty;
         }
 
@@ -3735,7 +3742,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Host = NewProfileHost.Trim(),
             Port = NewProfilePort,
             Encoding = NewProfileEncoding,
-            EncryptedPassword = PasswordProtector.Protect(NewProfilePassword),
+            EncryptedPassword = _passwordProtector.Protect(NewProfilePassword),
             NeedsRegistration = true,
             Rules =
             [
@@ -3908,7 +3915,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DeleteBuffSetCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanDeleteBuffSet));
 
-        _activeProfilePassword = PasswordProtector.Unprotect(profile.EncryptedPassword);
+        _activeProfilePassword = _passwordProtector.Unprotect(profile.EncryptedPassword);
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
         _activeProfileLogin = ResolveProfileLogin(profile);
         Host = ResolveProfileHost(profile);
@@ -4122,7 +4129,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Buffs = set.Buffs.Select(buff => buff.Name).ToList(),
             }).ToList(),
             ActiveBuffSetId = SelectedBuffSet?.Id ?? string.Empty,
-            EncryptedPassword = PasswordProtector.Protect(_activeProfilePassword),
+            EncryptedPassword = _passwordProtector.Protect(_activeProfilePassword),
             NeedsRegistration = _activeProfileNeedsRegistration,
         };
 

@@ -4,6 +4,7 @@
              xmlns:models="using:MudClient.App.Models"
              xmlns:vm="using:MudClient.App.ViewModels"
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
+             x:Name="TerminalRoot"
              x:DataType="vm:MainWindowViewModel">
   <Grid RowDefinitions="*,Auto" ColumnDefinitions="Auto,*,Auto">
 
@@ -104,6 +105,7 @@
                  KeyDown="CommandBox_OnKeyDown" />
         <TextBox Grid.Column="1"
                  x:Name="SearchBox"
+                 IsVisible="{Binding !#TerminalRoot.IsCompact}"
                  Width="190"
                  MinHeight="30"
                  PlaceholderText="Search..."
@@ -112,6 +114,7 @@
                  KeyDown="SearchBox_OnKeyDown" />
         <Button Grid.Column="2"
                 x:Name="SearchPrevButton"
+                IsVisible="{Binding !#TerminalRoot.IsCompact}"
                 Classes="mud-small"
                 Content="▲"
                 MinWidth="0"
@@ -120,6 +123,7 @@
                 Click="SearchPrevButton_OnClick" />
         <Button Grid.Column="3"
                 x:Name="SearchNextButton"
+                IsVisible="{Binding !#TerminalRoot.IsCompact}"
                 Classes="mud-small"
                 Content="▼"
                 MinWidth="0"
@@ -127,8 +131,19 @@
                 ToolTip.Tip="Następne dopasowanie (nowsze)"
                 Click="SearchNextButton_OnClick" />
         <Button Grid.Column="4"
+                x:Name="DesktopSendButton"
+                IsVisible="{Binding !#TerminalRoot.IsCompact}"
                 Content="➤ Wyślij"
                 Padding="20,7"
+                Command="{Binding SendCommandCommand}"
+                Click="SendButton_OnClick" />
+        <Button Grid.Column="4"
+                x:Name="CompactSendButton"
+                IsVisible="{Binding #TerminalRoot.IsCompact}"
+                Content="➤"
+                MinWidth="44"
+                MinHeight="44"
+                Padding="12,7"
                 Command="{Binding SendCommandCommand}"
                 Click="SendButton_OnClick" />
       </Grid>

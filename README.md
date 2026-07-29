@@ -17,7 +17,9 @@ Wieloplatformowy klient MUD napisany w C# i Avalonia, tworzony z myślą o [kill
 - połączenie TCP z MUD-em, stanowa obsługa protokołu Telnet,
 - negocjacja `GMCP`, `NAWS`, `TTYPE`, `EOR` i `SUPPRESS-GO-AHEAD`,
 - MCCP2 (kompresja zlib): dekompresja włączana dokładnie na granicy `IAC SB 86 IAC SE`; bajty odebrane po znaczniku w tym samym odczycie TCP trafiają do dekompresora, a zakończenie strumienia zlib przez serwer przywraca odczyt bez kompresji,
-- konta z hasłem szyfrowanym DPAPI (Windows, per użytkownik) i automatycznym logowaniem; profil JSON nigdy nie zawiera hasła w postaci jawnej, a usunięcie profilu wymaga potwierdzenia.
+- konta z hasłem szyfrowanym DPAPI (Windows, per użytkownik) lub Android Keystore
+  i automatycznym logowaniem; profil JSON nigdy nie zawiera hasła w postaci jawnej,
+  a usunięcie profilu wymaga potwierdzenia.
 
 ### Terminal
 
@@ -158,6 +160,33 @@ katalogu i domyślnie usuwa wszystkie artefakty w bloku `finally`. Przełącznik
 i tak wyczyści je przed rozpoczęciem pracy.
 
 W VS Code możesz również nacisnąć `F5` albo uruchomić zadanie `run`. Skróty: `.\run.ps1` / `.\run.bat` (Windows), `./run.sh` (Linux/macOS).
+
+### Android — wczesne MVP
+
+Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfejs:
+
+- zwijaną mapę nad terminalem,
+- terminal z kompaktowym inputem,
+- aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
+
+Killeropedia, pozostałe widgety oraz utrzymywanie połączenia po wygaszeniu ekranu
+nie należą jeszcze do mobilnego MVP. Pierwsze uruchomienie kopiuje do prywatnego
+katalogu aplikacji dołączone zasoby mapy; kolejne uruchomienia używają gotowej kopii.
+Stan sesji jest przechowywany poza widokiem Activity, dlatego odtworzenie Activity
+nie tworzy drugiego połączenia.
+
+Do budowania potrzebne są workload Android, Android SDK i JDK:
+
+```powershell
+dotnet workload install android
+dotnet build src/MudClient.Android/MudClient.Android.csproj `
+  -p:AndroidSdkDirectory="$env:LOCALAPPDATA\Android\Sdk" `
+  -p:JavaSdkDirectory="C:\Program Files\Android\Android Studio\jbr"
+```
+
+Projekt Android jest budowany osobno i celowo nie znajduje się w desktopowym
+`KillerMudClient.sln`, aby maszyny oraz CI bez workloadu Android nadal mogły wykonywać
+zwykłe `dotnet build` i `dotnet test`.
 
 ### Publikacja lokalna
 

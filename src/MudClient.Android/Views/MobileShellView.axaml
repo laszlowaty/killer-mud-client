@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:panels="using:MudClient.App.Views.Panels"
+             xmlns:local="using:MudClient.Android.Views"
+             x:Class="MudClient.Android.Views.MobileShellView"
+             x:DataType="vm:MainWindowViewModel">
+  <Grid RowDefinitions="Auto,Auto,*" Background="{StaticResource MudBrushVoid}">
+    <Border Grid.Row="0" Classes="mud-bar-top" Padding="8,6">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+          <TextBlock Text="KillerMudClient" Classes="mud-brand" />
+          <TextBlock Text="{Binding StatusText}"
+                     Classes="mud-caption"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <ToggleButton x:Name="MapToggle"
+                      Grid.Column="1"
+                      IsChecked="True"
+                      Content="Mapa"
+                      MinHeight="44"
+                      Padding="12,7" />
+        <ToggleButton x:Name="AutomationToggle"
+                      Grid.Column="2"
+                      Content="Automaty"
+                      MinHeight="44"
+                      Padding="12,7" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            Height="230"
+            IsVisible="{Binding #MapToggle.IsChecked}"
+            BorderBrush="{StaticResource MudBrushGoldDim}"
+            BorderThickness="0,0,0,1">
+      <panels:MapPanelView DataContext="{Binding Map}" />
+    </Border>
+
+    <panels:TerminalPanelView Grid.Row="2" IsCompact="True" />
+
+    <Border Grid.RowSpan="3"
+            IsVisible="{Binding #AutomationToggle.IsChecked}"
+            Background="{StaticResource MudBrushVoid}"
+            BorderBrush="{StaticResource MudBrushGoldDim}"
+            BorderThickness="1"
+            Margin="8">
+      <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Classes="mud-bar-top" Padding="10,8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Automaty"
+                       Classes="mud-heading-lg"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Content="Zamknij"
+                    MinHeight="44"
+                    Padding="14,7"
+                    Click="CloseAutomation_OnClick" />
+          </Grid>
+        </Border>
+        <local:MobileAutomationView Grid.Row="1" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.RowSpan="3"
+          IsVisible="{Binding !IsProfileSelected}"
+          Background="#F2080A0B">
+      <ScrollViewer>
+        <StackPanel Margin="20,30" Spacing="12" MaxWidth="520">
+          <TextBlock Text="Wybierz lub utwórz konto" Classes="mud-heading-lg" />
+
+          <StackPanel IsVisible="{Binding HasProfiles}" Spacing="8">
+            <ComboBox ItemsSource="{Binding AvailableProfiles}"
+                      SelectedItem="{Binding SelectedProfileName}"
+                      PlaceholderText="Konto" />
+            <TextBox Text="{Binding SelectedProfileLogin}"
+                     PlaceholderText="Login MUD" />
+            <TextBox Text="{Binding SelectedProfilePassword}"
+                     PasswordChar="●"
+                     PlaceholderText="Hasło (puste zachowuje zapisane)" />
+            <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
+              <TextBox Grid.Column="0" Text="{Binding Host}" PlaceholderText="Host" />
+              <TextBox Grid.Column="1" Text="{Binding Port}" PlaceholderText="Port" />
+            </Grid>
+            <ComboBox ItemsSource="{Binding AvailableEncodings}"
+                      SelectedItem="{Binding Encoding}" />
+            <Button Content="Wybierz i połącz"
+                    Command="{Binding SelectProfileCommand}"
+                    MinHeight="48" />
+          </StackPanel>
+
+          <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,6" />
+          <TextBlock Text="Nowe konto" Classes="mud-heading" />
+          <TextBox Text="{Binding NewProfileName}" PlaceholderText="Nazwa konta w aplikacji" />
+          <TextBox Text="{Binding NewProfileLogin}" PlaceholderText="Login MUD" />
+          <TextBox Text="{Binding NewProfilePassword}"
+                   PasswordChar="●"
+                   PlaceholderText="Hasło" />
+          <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
+            <TextBox Grid.Column="0" Text="{Binding NewProfileHost}" PlaceholderText="Host" />
+            <TextBox Grid.Column="1" Text="{Binding NewProfilePort}" PlaceholderText="Port" />
+          </Grid>
+          <ComboBox ItemsSource="{Binding AvailableEncodings}"
+                    SelectedItem="{Binding NewProfileEncoding}" />
+          <Button Content="Utwórz i połącz"
+                  Command="{Binding CreateProfileCommand}"
+                  MinHeight="48" />
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+
+    <Grid x:Name="LoadingOverlay"
+          Grid.RowSpan="3"
+          Background="{StaticResource MudBrushVoid}">
+      <StackPanel HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="12">
+        <ProgressBar IsIndeterminate="True" Width="220" />
+        <TextBlock x:Name="LoadingText"
+                   Text="Przygotowywanie mapy…"
+                   Classes="mud-muted"
+                   TextAlignment="Center"
+                   MaxWidth="300"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

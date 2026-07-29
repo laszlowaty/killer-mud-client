@@ -11,6 +11,9 @@ namespace MudClient.App.Views.Panels;
 
 public sealed partial class TerminalPanelView : UserControl
 {
+    public static readonly StyledProperty<bool> IsCompactProperty =
+        AvaloniaProperty.Register<TerminalPanelView, bool>(nameof(IsCompact));
+
     /// <summary>
     /// Last-attached terminal panel. The main window uses this to redirect
     /// clicks / raw text input to the command box no matter which dockable
@@ -26,6 +29,12 @@ public sealed partial class TerminalPanelView : UserControl
     private bool _isViewModelSubscribed;
     private int _historyIndex = -1;
     private volatile bool _shouldSelectAllOnNextInput;
+
+    public bool IsCompact
+    {
+        get => GetValue(IsCompactProperty);
+        set => SetValue(IsCompactProperty, value);
+    }
 
     public TerminalPanelView()
     {
