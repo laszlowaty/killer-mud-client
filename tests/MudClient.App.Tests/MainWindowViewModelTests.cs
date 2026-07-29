@@ -1756,6 +1756,15 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         field!.SetValue(_vm, update);
     }
 
+    /// <summary>Sets the private _latestCharacterName field via reflection.</summary>
+    private void SetLatestCharacterName(string? name)
+    {
+        var field = typeof(MainWindowViewModel).GetField("_latestCharacterName",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        field!.SetValue(_vm, name);
+    }
+
     /// <summary>
     /// Replicates the production OnMapPropertyChanged handler's dispatcher
     /// lambda: rebuilds the Group collection from _latestGroupUpdate using
@@ -3137,7 +3146,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // Autowalk — GoToSelectedTargetCommand (new UI IDŹ button)
     //
     // The GoToSelectedTargetCommand should behave exactly like the bare
-    // /idz command: if a temporary target is set, start walking to it;
+    // /walk command: if a temporary target is set, start walking to it;
     // otherwise show usage help.
     // ====================================================================
 
@@ -3153,7 +3162,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         // Assert: a usage/info toast was added
         Assert.Equal(toastCount + 1, _vm.Toasts.Count);
-        Assert.Contains("/idz", _vm.Toasts[^1].Text);
+        Assert.Contains("/walk", _vm.Toasts[^1].Text);
     }
 
     [Fact]
@@ -3186,17 +3195,17 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         // Only the usage toast was added (no "map not loaded" error etc.)
         Assert.Equal(toastCount + 1, _vm.Toasts.Count);
-        Assert.Contains("/idz", _vm.Toasts[^1].Text);
+        Assert.Contains("/walk", _vm.Toasts[^1].Text);
         Assert.DoesNotContain("nie jest załadowana", _vm.Toasts[^1].Text);
     }
 
     // ====================================================================
-    // Autowalk — consistency between GoToSelectedTargetCommand and bare /idz
+    // Autowalk — consistency between GoToSelectedTargetCommand and bare /walk
     //
-    // The GoToSelectedTargetCommand and TryHandleAutowalkCommand("/idz")
+    // The GoToSelectedTargetCommand and TryHandleAutowalkCommand("/walk")
     // share the same HandleGoToSelectedTarget method, so their behaviour
     // is structurally identical.  We verify that TryHandleAutowalkCommand
-    // with "/idz" (no argument) produces the same outcome as the command.
+    // with "/walk" (no argument) produces the same outcome as the command.
     // ====================================================================
 
     private bool InvokeTryHandleAutowalkCommand(string command)
@@ -3217,14 +3226,14 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_IdzDodaj_SavesCurrentLocationForActiveProfile()
+    public void TryHandleAutowalkCommand_WalkDodaj_SavesCurrentLocationForActiveProfile()
     {
         SetCurrentVnum("7007");
         _vm.NewLocationName = "niedokończony formularz";
         _vm.NewLocationVnum = "123";
         _vm.NewLocationIsGlobal = true;
 
-        var consumed = InvokeTryHandleAutowalkCommand("/IDZ_DODAJ Stara Brama");
+        var consumed = InvokeTryHandleAutowalkCommand("/WALK_DODAJ Stara Brama");
 
         Assert.True(consumed);
         var location = Assert.Single(_vm.Locations);
@@ -3238,19 +3247,19 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_IdzDodaj_WithoutName_ShowsUsage()
+    public void TryHandleAutowalkCommand_WalkDodaj_WithoutName_ShowsUsage()
     {
-        var consumed = InvokeTryHandleAutowalkCommand("/idz_dodaj");
+        var consumed = InvokeTryHandleAutowalkCommand("/walk_dodaj");
 
         Assert.True(consumed);
         Assert.Empty(_vm.Locations);
-        Assert.Contains("/idz_dodaj <nazwa>", _vm.Toasts[^1].Text);
+        Assert.Contains("/walk_dodaj <nazwa>", _vm.Toasts[^1].Text);
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_IdzDodaj_WithoutGmcpLocation_ShowsError()
+    public void TryHandleAutowalkCommand_WalkDodaj_WithoutGmcpLocation_ShowsError()
     {
-        var consumed = InvokeTryHandleAutowalkCommand("/idz_dodaj Stara Brama");
+        var consumed = InvokeTryHandleAutowalkCommand("/walk_dodaj Stara Brama");
 
         Assert.True(consumed);
         Assert.Empty(_vm.Locations);
@@ -3258,17 +3267,17 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_BareIdz_WithoutTarget_ShowsSameUsageAsCommand()
+    public void TryHandleAutowalkCommand_BareWalk_WithoutTarget_ShowsSameUsageAsCommand()
     {
         // Arrange: both paths start from the same state (no target)
         Assert.False(_vm.HasTemporaryTarget);
         _vm.Toasts.Clear();
 
-        // Act: invoke the bare /idz path
-        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        // Act: invoke the bare /walk path
+        var consumed = InvokeTryHandleAutowalkCommand("/walk");
         Assert.True(consumed);
 
-        var toastAfterBareIdz = Assert.Single(_vm.Toasts);
+        var toastAfterBareWalk = Assert.Single(_vm.Toasts);
         _vm.Toasts.Clear();
 
         // Act: invoke the command path
@@ -3277,20 +3286,20 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var toastAfterCommand = Assert.Single(_vm.Toasts);
 
         // Assert: both produce the same usage message
-        Assert.Equal(toastAfterBareIdz.Text, toastAfterCommand.Text);
-        Assert.Contains("/idz", toastAfterCommand.Text);
+        Assert.Equal(toastAfterBareWalk.Text, toastAfterCommand.Text);
+        Assert.Contains("/walk", toastAfterCommand.Text);
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_BareIdz_WithTarget_AttemptsWalk()
+    public void TryHandleAutowalkCommand_BareWalk_WithTarget_AttemptsWalk()
     {
         // Arrange: set a temp target
         var tempField = GetTemporaryTargetField();
         tempField.SetValue(_vm, new AutowalkLocation("Temp", "6006"));
         _vm.Toasts.Clear();
 
-        // Act: invoke bare /idz
-        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        // Act: invoke bare /walk
+        var consumed = InvokeTryHandleAutowalkCommand("/walk");
         Assert.True(consumed);
 
         // Without map → "Mapa nie jest załadowana" toast
@@ -3308,7 +3317,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         ]));
         _vm.Toasts.Clear();
 
-        var consumed = InvokeTryHandleAutowalkCommand("/idz gImLi");
+        var consumed = InvokeTryHandleAutowalkCommand("/walk gImLi");
 
         Assert.True(consumed);
         var toast = Assert.Single(_vm.Toasts);
@@ -3337,12 +3346,95 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         ]));
         _vm.Toasts.Clear();
 
-        var consumed = InvokeTryHandleAutowalkCommand("/idz Gimli");
+        var consumed = InvokeTryHandleAutowalkCommand("/walk Gimli");
 
         Assert.True(consumed);
         var toast = Assert.Single(_vm.Toasts);
         Assert.Contains("Brak pozycji GMCP", toast.Text);
         Assert.Contains("Gimli", toast.Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_WalkLeader_WalksToGroupLeader()
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Aragorn", "6017", isLeader: true),
+            CreateCharacterGroupMember("Gimli", "7007")
+        ]));
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/walk leader");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+    }
+
+    [Theory]
+    [InlineData("/walk leader")]
+    [InlineData("/walk LEADER")]
+    public void TryHandleAutowalkCommand_WalkLeader_IsCaseInsensitive(string command)
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Aragorn", "6017", isLeader: true),
+            CreateCharacterGroupMember("Gimli", "7007")
+        ]));
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand(command);
+
+        Assert.True(consumed);
+        Assert.DoesNotContain("Brak informacji o liderze", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_WalkLeader_WithoutGroupInfo_ShowsError()
+    {
+        SetLatestGroupUpdate(null);
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/walk leader");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Brak informacji o liderze grupy", toast.Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_WalkLeader_WhenSelfIsLeader_ShowsInfoMessage()
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Aragorn", "6017", isLeader: true),
+            CreateCharacterGroupMember("Gimli", "7007")
+        ]));
+        SetLatestCharacterName("Aragorn");
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/walk leader");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Jesteś liderem grupy", toast.Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_WalkLeader_WithoutRoom_ShowsGmcpPositionError()
+    {
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Aragorn",
+        [
+            CreateCharacterGroupMember("Aragorn", null, isLeader: true)
+        ]));
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/walk leader");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Brak pozycji GMCP lidera", toast.Text);
+        Assert.Contains("Aragorn", toast.Text);
     }
 
     private static CharacterGroupMember CreateCharacterGroupMember(
@@ -3352,10 +3444,10 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         new(name, null, "zdrowy", null, "wypoczęty", null, null, false, room, isLeader);
 
     // ====================================================================
-    // Autowalk — resuming an interrupted journey with a bare /idz
+    // Autowalk — resuming an interrupted journey with a bare /walk
     //
     // When a walk is cut short (lost route / off-course), the destination is
-    // remembered in _pendingResumeTarget. A bare /idz with no map-picked
+    // remembered in _pendingResumeTarget. A bare /walk with no map-picked
     // target then resumes toward it instead of only printing usage help.
     // ====================================================================
 
@@ -3368,7 +3460,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void TryHandleAutowalkCommand_BareIdz_WithPendingResume_AttemptsWalk()
+    public void TryHandleAutowalkCommand_BareWalk_WithPendingResume_AttemptsWalk()
     {
         // Arrange: a journey was interrupted, so a resume target is pending
         // (and there is no temporary map-picked target).
@@ -3376,15 +3468,15 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         GetPendingResumeTargetField().SetValue(_vm, new AutowalkLocation("Plac Aras", "7007"));
         _vm.Toasts.Clear();
 
-        // Act: bare /idz
-        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+        // Act: bare /walk
+        var consumed = InvokeTryHandleAutowalkCommand("/walk");
         Assert.True(consumed);
 
         // Assert: it announces the resume, then StartAutowalk runs (no map →
         // "Mapa nie jest załadowana"). Crucially it is NOT the usage help.
         Assert.Contains(_vm.Toasts, t => t.Text.Contains("Wznawiam podróż do „Plac Aras”"));
         Assert.Contains(_vm.Toasts, t => t.Text.Contains("Mapa nie jest załadowana"));
-        Assert.DoesNotContain(_vm.Toasts, t => t.Text.Contains("Użycie: /idz"));
+        Assert.DoesNotContain(_vm.Toasts, t => t.Text.Contains("Użycie: /walk"));
     }
 
     [Fact]

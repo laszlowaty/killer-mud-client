@@ -319,7 +319,7 @@
 
                 <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
-                    <TextBlock Grid.Column="0" Text="/idz" FontWeight="Bold"
+                    <TextBlock Grid.Column="0" Text="/walk" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
                                Text="Rozpoczyna marsz do celu wybranego dwuklikiem na mapie albo wznawia przerwaną podróż." />
@@ -328,7 +328,7 @@
 
                 <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
-                    <TextBlock Grid.Column="0" Text="/idz &lt;cel&gt;" FontWeight="Bold"
+                    <TextBlock Grid.Column="0" Text="/walk &lt;cel&gt;" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
                                Text="Rozpoczyna marsz do członka grupy widocznego przez GMCP albo do zapisanej lokacji o podanej nazwie." />
@@ -336,8 +336,17 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/walk leader" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Rozpoczyna marsz do lidera obecnej grupy widocznego przez GMCP." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="180,*" ColumnSpacing="18">
-                    <TextBlock Grid.Column="0" Text="/idz_dodaj &lt;nazwa&gt;" FontWeight="Bold"
+                    <TextBlock Grid.Column="0" Text="/walk_dodaj &lt;nazwa&gt;" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
                                Text="Zapisuje obecną lokację pod podaną nazwą dla aktywnego konta." />

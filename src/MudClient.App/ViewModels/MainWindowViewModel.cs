@@ -159,7 +159,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private AutowalkLocation? _temporaryTarget;
 
     // Destination of a walk that was cut short (lost route / off-course), so a
-    // bare /idz can pick the journey back up. Cleared on arrival, explicit stop,
+    // bare /walk can pick the journey back up. Cleared on arrival, explicit stop,
     // or when a new walk starts — only an abnormal interruption sets it.
     private AutowalkLocation? _pendingResumeTarget;
     private CancellationTokenSource _autowalkCts = new();
@@ -2327,7 +2327,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         PaintRoute(path, 0);
-        AutowalkStatusText = $"Cel: „{_temporaryTarget!.Name}” — {path.Steps.Count} kroków. Wpisz /idz albo kliknij IDŹ DO CELU.";
+        AutowalkStatusText = $"Cel: „{_temporaryTarget!.Name}” — {path.Steps.Count} kroków. Wpisz /walk albo kliknij IDŹ DO CELU.";
     }
 
     private void ShowTeacherOnMap(TeacherEntry teacher)
@@ -2519,7 +2519,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         // Remember where we were headed BEFORE clearing state, but only when the
         // walk was cut short (resumable) — an arrival or an explicit /stop leaves
-        // nothing to continue. A bare /idz then re-plots from the new position.
+        // nothing to continue. A bare /walk then re-plots from the new position.
         if (resumable && _autowalkPath is { To.Vnum: { Length: > 0 } destVnum } cutPath)
         {
             _pendingResumeTarget = new AutowalkLocation(
@@ -2874,7 +2874,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (_autowalkRecomputes >= 5)
             {
                 StopAutowalk(
-                    $"Autowalk przerwany: trasa do „{targetName}” schodzi z kursu przy każdym kroku (mapa niezgodna z serwerem?). Wpisz /idz, aby spróbować dalej.",
+                    $"Autowalk przerwany: trasa do „{targetName}” schodzi z kursu przy każdym kroku (mapa niezgodna z serwerem?). Wpisz /walk, aby spróbować dalej.",
                     "error",
                     resumable: true);
                 return;
@@ -2884,7 +2884,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (path is null)
             {
                 StopAutowalk(
-                    $"Zgubiłem trasę do „{targetName}” — autowalk przerwany. Wpisz /idz, aby kontynuować.",
+                    $"Zgubiłem trasę do „{targetName}” — autowalk przerwany. Wpisz /walk, aby kontynuować.",
                     "error",
                     resumable: true);
                 return;
@@ -2905,7 +2905,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
-    /// Executes the bare /idz action: walks to the temporary map-picked target
+    /// Executes the bare /walk action: walks to the temporary map-picked target
     /// or shows usage help when no target has been picked.
     /// </summary>
     private void HandleGoToSelectedTarget()
@@ -2921,13 +2921,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         else
         {
-            AddToast("Użycie: /idz <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
+            AddToast("Użycie: /walk <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /walk.", "info");
         }
     }
 
     /// <summary>
-    /// Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt;,
-    /// /idz_dodaj &lt;nazwa&gt; and /stop. Returns true when consumed.
+    /// Handles chat-bar commands: /walk &lt;nazwa lokacji lub członka grupy&gt;, /walk leader,
+    /// /walk_dodaj &lt;nazwa&gt; and /stop. Returns true when consumed.
     /// </summary>
     private bool TryHandleAutowalkCommand(string command)
     {
@@ -2937,7 +2937,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return true;
         }
 
-        const string addPrefix = "/idz_dodaj";
+        const string addPrefix = "/walk_dodaj";
         if (command.StartsWith(addPrefix, StringComparison.OrdinalIgnoreCase)
             && (command.Length == addPrefix.Length || char.IsWhiteSpace(command[addPrefix.Length])))
         {
@@ -2946,7 +2946,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 : string.Empty;
             if (name.Length == 0)
             {
-                AddToast("Użycie: /idz_dodaj <nazwa>.", "info");
+                AddToast("Użycie: /walk_dodaj <nazwa>.", "info");
                 return true;
             }
 
@@ -2961,7 +2961,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return true;
         }
 
-        const string prefix = "/idz";
+        const string prefix = "/walk";
         if (!command.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -2971,6 +2971,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (argument.Length == 0)
         {
             HandleGoToSelectedTarget();
+            return true;
+        }
+
+        if (string.Equals(argument, "leader", StringComparison.OrdinalIgnoreCase))
+        {
+            HandleGoToGroupLeader();
             return true;
         }
 
@@ -2999,6 +3005,33 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         StartAutowalk(entry);
         return true;
+    }
+
+    /// <summary>Executes /walk leader: walks to the current group's leader (see
+    /// <see cref="CharacterGroupMember.IsLeader"/> from GMCP Char.Group).</summary>
+    private void HandleGoToGroupLeader()
+    {
+        var leader = _latestGroupUpdate?.Members.FirstOrDefault(member => member.IsLeader);
+        if (leader is null)
+        {
+            AddToast("Brak informacji o liderze grupy.", "error");
+            return;
+        }
+
+        if (string.Equals(leader.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
+        {
+            AddToast("Jesteś liderem grupy.", "info");
+            return;
+        }
+
+        var target = BuildGroupMemberAutowalkTarget(leader);
+        if (target is null)
+        {
+            AddToast($"Brak pozycji GMCP lidera „{leader.Name}”.", "error");
+            return;
+        }
+
+        StartAutowalk(target);
     }
 
     internal AutowalkLocation? BuildGroupMemberAutowalkTarget(CharacterGroupMember member) =>
