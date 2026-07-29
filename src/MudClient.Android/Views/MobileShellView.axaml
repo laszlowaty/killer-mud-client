@@ -5,63 +5,105 @@
              xmlns:local="using:MudClient.Android.Views"
              x:Class="MudClient.Android.Views.MobileShellView"
              x:DataType="vm:MainWindowViewModel">
-  <Grid RowDefinitions="Auto,Auto,*" Background="{StaticResource MudBrushVoid}">
-    <Border Grid.Row="0" Classes="mud-bar-top" Padding="8,6">
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-          <TextBlock Text="KillerMudClient" Classes="mud-brand" />
-          <TextBlock Text="{Binding StatusText}"
-                     Classes="mud-caption"
-                     TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-        <ToggleButton x:Name="MapToggle"
-                      Grid.Column="1"
-                      IsChecked="True"
-                      Content="Mapa"
-                      MinHeight="44"
-                      Padding="12,7" />
-        <ToggleButton x:Name="AutomationToggle"
-                      Grid.Column="2"
-                      Content="Automaty"
-                      MinHeight="44"
-                      Padding="12,7" />
-      </Grid>
-    </Border>
-
-    <Border Grid.Row="1"
-            Height="230"
+  <Grid RowDefinitions="Auto,*" Background="{StaticResource MudBrushVoid}">
+    <Border Grid.Row="0"
+            Height="200"
             IsVisible="{Binding #MapToggle.IsChecked}"
             BorderBrush="{StaticResource MudBrushGoldDim}"
             BorderThickness="0,0,0,1">
-      <panels:MapPanelView DataContext="{Binding Map}" />
+      <panels:MapPanelView DataContext="{Binding Map}" IsCompact="True" />
     </Border>
 
-    <panels:TerminalPanelView Grid.Row="2" IsCompact="True" />
+    <panels:TerminalPanelView Grid.Row="1" IsCompact="True" />
 
-    <Border Grid.RowSpan="3"
-            IsVisible="{Binding #AutomationToggle.IsChecked}"
+    <StackPanel Grid.RowSpan="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Spacing="6"
+                Margin="8">
+      <ToggleButton x:Name="MapToggle"
+                    IsChecked="True"
+                    Width="42"
+                    Height="42"
+                    Padding="0"
+                    Background="#E61A1F22"
+                    BorderBrush="{StaticResource MudBrushGoldDim}"
+                    ToolTip.Tip="Pokaż lub ukryj mapę">
+        <Grid>
+          <TextBlock Text="▲"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding #MapToggle.IsChecked}" />
+          <TextBlock Text="▼"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding !#MapToggle.IsChecked}" />
+        </Grid>
+      </ToggleButton>
+      <Button x:Name="MobileMenuButton"
+              Content="☰"
+              Width="42"
+              Height="42"
+              Padding="0"
+              FontSize="19"
+              Background="#E61A1F22"
+              BorderBrush="{StaticResource MudBrushGoldDim}"
+              ToolTip.Tip="Menu">
+        <Button.Flyout>
+          <Flyout Placement="Bottom">
+            <StackPanel Spacing="6" MinWidth="190">
+              <Button Content="⚙  Ustawienia"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      Click="OpenSettings_OnClick" />
+              <Button Content="⚡  Automaty"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      Click="OpenAutomation_OnClick" />
+              <Button Content="⚑  Autowalk"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      Click="OpenAutowalk_OnClick" />
+            </StackPanel>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
+    </StackPanel>
+
+    <Border x:Name="ToolOverlay"
+            Grid.RowSpan="2"
+            IsVisible="False"
             Background="{StaticResource MudBrushVoid}"
             BorderBrush="{StaticResource MudBrushGoldDim}"
-            BorderThickness="1"
-            Margin="8">
+            BorderThickness="1">
       <Grid RowDefinitions="Auto,*">
-        <Border Grid.Row="0" Classes="mud-bar-top" Padding="10,8">
+        <Border Grid.Row="0" Classes="mud-bar-top" Padding="12,8">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="Automaty"
+            <TextBlock x:Name="ToolOverlayTitle"
+                       Text="Menu"
                        Classes="mud-heading-lg"
                        VerticalAlignment="Center" />
             <Button Grid.Column="1"
                     Content="Zamknij"
                     MinHeight="44"
                     Padding="14,7"
-                    Click="CloseAutomation_OnClick" />
+                    Click="CloseToolOverlay_OnClick" />
           </Grid>
         </Border>
-        <local:MobileAutomationView Grid.Row="1" />
+        <local:MobileSettingsView x:Name="MobileSettingsPanel"
+                                  Grid.Row="1"
+                                  IsVisible="False" />
+        <local:MobileAutomationView x:Name="MobileAutomationPanel"
+                                    Grid.Row="1"
+                                    IsVisible="False" />
+        <panels:AutowalkPanelView x:Name="MobileAutowalkPanel"
+                                  Grid.Row="1"
+                                  IsVisible="False" />
       </Grid>
     </Border>
 
-    <Grid Grid.RowSpan="3"
+    <Grid Grid.RowSpan="2"
           IsVisible="{Binding !IsProfileSelected}"
           Background="#F2080A0B">
       <ScrollViewer>
@@ -109,7 +151,7 @@
     </Grid>
 
     <Grid x:Name="LoadingOverlay"
-          Grid.RowSpan="3"
+          Grid.RowSpan="2"
           Background="{StaticResource MudBrushVoid}">
       <StackPanel HorizontalAlignment="Center"
                   VerticalAlignment="Center"

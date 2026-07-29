@@ -4,13 +4,18 @@
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:map="using:MudClient.Core.Map"
              x:Class="MudClient.App.Views.Panels.MapPanelView"
+             x:Name="MapPanelRoot"
              x:DataType="vm:MapViewModel">
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="Auto,*">
 
     <!-- ========================================================================
           Header bar
           ======================================================================== -->
-    <Border Grid.Row="0" Classes="mud-bar" Padding="10,6">
+    <Border x:Name="MapHeaderBar"
+            Grid.Row="0"
+            Classes="mud-bar"
+            Padding="10,6"
+            IsVisible="{Binding !#MapPanelRoot.IsCompact}">
       <WrapPanel>
 
         <Button x:Name="MapMenuButton"
@@ -175,18 +180,6 @@
           </StackPanel>
         </Border>
       </Panel>
-    </Border>
-
-    <!-- ========================================================================
-         Footer bar: status message
-         ======================================================================== -->
-    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
-      <StackPanel>
-        <TextBlock Classes="mud-faint" Text="{Binding StatusMessage}" />
-        <TextBlock Classes="mud-faint"
-                   IsVisible="{Binding LordModeEnabled}"
-                   Text="{Binding MapEditorStatus}" />
-      </StackPanel>
     </Border>
 
   </Grid>

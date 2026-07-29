@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:services="using:MudClient.App.Services"
+             x:Class="MudClient.Android.Views.MobileSettingsView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="12" Spacing="8">
+      <TextBlock Classes="mud-heading" Text="Terminal" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Czcionka" />
+            <ComboBox ItemsSource="{Binding AvailableFonts}"
+                      SelectedItem="{Binding OutputFontFamily}"
+                      MinHeight="44"
+                      MaxDropDownHeight="320">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}"
+                             FontFamily="{Binding Converter={x:Static services:AppFontFamilyConverter.Instance}}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <CheckBox Content="Zawijaj długie linie"
+                    IsChecked="{Binding OutputWordWrap}" />
+          <CheckBox Content="Pogrubiona czcionka"
+                    IsChecked="{Binding OutputFontBold}" />
+
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Schemat kolorów" />
+            <ComboBox ItemsSource="{Binding AvailableTelnetColorSchemes}"
+                      SelectedItem="{Binding TelnetColorScheme}"
+                      MinHeight="44" />
+          </StackPanel>
+
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label" Text="Rozmiar tekstu" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding OutputFontSizeText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinOutputFontSize}"
+                    Maximum="{Binding MaxOutputFontSize}"
+                    Value="{Binding OutputFontSize}"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
+
+          <Button Content="Przywróć domyślne"
+                  Command="{Binding ResetOutputFontCommand}"
+                  MinHeight="44"
+                  HorizontalAlignment="Right" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="Komendy" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <CheckBox Content="Czyść input po wysłaniu"
+                    IsChecked="{Binding ClearCommandInputAfterSend}" />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Separator komend" />
+            <TextBox Text="{Binding CommandStackingSeparator}"
+                     MaxLength="10"
+                     Width="100"
+                     MinHeight="44"
+                     HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="Mapa" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <CheckBox Content="Członkowie grupy jako cyfry"
+                    IsChecked="{Binding Map.ShowGroupMembersAsNumbers}" />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Tryb wyświetlania" />
+            <ComboBox ItemsSource="{Binding Map.DisplayModes}"
+                      SelectedItem="{Binding Map.SelectedDisplayMode}"
+                      MinHeight="44" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

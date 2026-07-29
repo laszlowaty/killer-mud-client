@@ -5,17 +5,18 @@
              x:Class="MudClient.Android.Views.MobileAutomationView"
              x:DataType="vm:MainWindowViewModel">
   <TabControl SelectedIndex="{Binding SelectedAutomationTabIndex, Mode=TwoWay}"
-              Classes="mud-subtabs">
+              Classes="mud-subtabs"
+              Margin="12">
     <TabItem Header="Timery">
       <Grid RowDefinitions="Auto,*">
         <Button Content="＋ Nowy timer"
                 Command="{Binding StartAddTimerCommand}"
-                Margin="8"
+                Margin="0,0,0,8"
                 MinHeight="44" />
         <ScrollViewer Grid.Row="1">
-          <StackPanel Margin="8,0,8,16" Spacing="8">
+          <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
-                    Padding="10"
+                    Padding="12"
                     IsVisible="{Binding IsTimerFormExpanded}">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding TimerFormHeader}" Classes="mud-heading" />
@@ -45,25 +46,28 @@
             <ItemsControl ItemsSource="{Binding Timers}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:TimerEntry">
-                  <Border Classes="mud-section" Padding="10" Margin="0,3">
+                  <Border Classes="mud-section" Padding="12" Margin="0,3">
                     <StackPanel Spacing="6">
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
-                        </StackPanel>
-                        <ToggleButton Grid.Column="1"
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
+                      <TextBlock Text="{Binding CommandsText}"
+                                 Classes="mud-muted"
+                                 TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <ToggleButton Grid.Column="0"
                                       Content="{Binding StatusText}"
                                       Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
                                       CommandParameter="{Binding}"
+                                      HorizontalAlignment="Left"
+                                      MinWidth="120"
                                       MinHeight="44" />
-                        <Button Grid.Column="2"
+                        <Button Grid.Column="1"
                                 Content="✎"
                                 Command="{Binding $parent[UserControl].DataContext.EditTimerCommand}"
                                 CommandParameter="{Binding}"
                                 MinWidth="44"
                                 MinHeight="44" />
-                        <Button Grid.Column="3"
+                        <Button Grid.Column="2"
                                 Content="✕"
                                 Classes="mud-danger"
                                 Command="{Binding $parent[UserControl].DataContext.DeleteTimerCommand}"
@@ -71,9 +75,6 @@
                                 MinWidth="44"
                                 MinHeight="44" />
                       </Grid>
-                      <TextBlock Text="{Binding CommandsText}"
-                                 Classes="mud-muted"
-                                 TextWrapping="Wrap" />
                     </StackPanel>
                   </Border>
                 </DataTemplate>
@@ -88,12 +89,12 @@
       <Grid RowDefinitions="Auto,*">
         <Button Content="＋ Nowy alias"
                 Command="{Binding StartAddAliasCommand}"
-                Margin="8"
+                Margin="0,0,0,8"
                 MinHeight="44" />
         <ScrollViewer Grid.Row="1">
-          <StackPanel Margin="8,0,8,16" Spacing="8">
+          <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
-                    Padding="10"
+                    Padding="12"
                     IsVisible="{Binding IsAliasRuleFormVisible}">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding RuleFormHeader}" Classes="mud-heading" />
@@ -123,32 +124,34 @@
             <ItemsControl ItemsSource="{Binding AliasRules}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:AutomationRuleEntry">
-                  <Border Classes="mud-section" Padding="10" Margin="0,3">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                      <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <ToggleButton Grid.Column="1"
+                  <Border Classes="mud-section" Padding="12" Margin="0,3">
+                    <StackPanel Spacing="6">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <ToggleButton Grid.Column="0"
                                     Content="{Binding StatusText}"
                                     Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
                                     CommandParameter="{Binding}"
+                                    HorizontalAlignment="Left"
+                                    MinWidth="120"
                                     MinHeight="44" />
-                      <Button Grid.Column="2"
+                        <Button Grid.Column="1"
                               Content="✎"
                               Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
                               CommandParameter="{Binding}"
                               MinWidth="44"
                               MinHeight="44" />
-                      <Button Grid.Column="3"
+                        <Button Grid.Column="2"
                               Content="✕"
                               Classes="mud-danger"
                               Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
                               CommandParameter="{Binding}"
                               MinWidth="44"
                               MinHeight="44" />
-                    </Grid>
+                      </Grid>
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -162,12 +165,12 @@
       <Grid RowDefinitions="Auto,*">
         <Button Content="＋ Nowy trigger"
                 Command="{Binding StartAddTriggerCommand}"
-                Margin="8"
+                Margin="0,0,0,8"
                 MinHeight="44" />
         <ScrollViewer Grid.Row="1">
-          <StackPanel Margin="8,0,8,16" Spacing="8">
+          <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
-                    Padding="10"
+                    Padding="12"
                     IsVisible="{Binding IsTriggerRuleFormVisible}">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding RuleFormHeader}" Classes="mud-heading" />
@@ -197,32 +200,34 @@
             <ItemsControl ItemsSource="{Binding TriggerRules}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:AutomationRuleEntry">
-                  <Border Classes="mud-section" Padding="10" Margin="0,3">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                      <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <ToggleButton Grid.Column="1"
+                  <Border Classes="mud-section" Padding="12" Margin="0,3">
+                    <StackPanel Spacing="6">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <ToggleButton Grid.Column="0"
                                     Content="{Binding StatusText}"
                                     Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
                                     CommandParameter="{Binding}"
+                                    HorizontalAlignment="Left"
+                                    MinWidth="120"
                                     MinHeight="44" />
-                      <Button Grid.Column="2"
+                        <Button Grid.Column="1"
                               Content="✎"
                               Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
                               CommandParameter="{Binding}"
                               MinWidth="44"
                               MinHeight="44" />
-                      <Button Grid.Column="3"
+                        <Button Grid.Column="2"
                               Content="✕"
                               Classes="mud-danger"
                               Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
                               CommandParameter="{Binding}"
                               MinWidth="44"
                               MinHeight="44" />
-                    </Grid>
+                      </Grid>
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

@@ -21,6 +21,32 @@ namespace MudClient.App.Tests;
 public sealed class LordModeMapUiTests
 {
     [AvaloniaFact]
+    public void MapPanel_CompactModeHidesToolbar()
+    {
+        var panel = new MapPanelView();
+        var window = new Window { Width = 360, Height = 240, Content = panel };
+
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+
+            var header = panel.FindControl<Border>("MapHeaderBar");
+            Assert.NotNull(header);
+            Assert.True(header.IsVisible);
+
+            panel.IsCompact = true;
+            window.UpdateLayout();
+
+            Assert.False(header.IsVisible);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void LowerLevelShadow_SelectsOnlyExactPreviousZLevel()
     {
         var currentRoom = CreateRoom(1, areaId: 1, x: 8, z: 1);

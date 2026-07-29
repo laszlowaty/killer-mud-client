@@ -97,7 +97,6 @@
                  x:Name="CommandBox"
                  Classes="terminal-input"
                  Text="{Binding CommandText}"
-                 PlaceholderText="Wpisz komendę i naciśnij Enter… (Shift+Enter: nowa linia)"
                  AcceptsReturn="True"
                  AcceptsTab="False"
                  TextWrapping="Wrap"

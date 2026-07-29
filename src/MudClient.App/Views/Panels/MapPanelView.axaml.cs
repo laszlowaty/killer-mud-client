@@ -7,8 +7,17 @@ namespace MudClient.App.Views.Panels;
 
 public sealed partial class MapPanelView : UserControl
 {
+    public static readonly StyledProperty<bool> IsCompactProperty =
+        AvaloniaProperty.Register<MapPanelView, bool>(nameof(IsCompact));
+
     private MapViewModel? _viewModel;
     private bool _isViewModelSubscribed;
+
+    public bool IsCompact
+    {
+        get => GetValue(IsCompactProperty);
+        set => SetValue(IsCompactProperty, value);
+    }
 
     public MapPanelView()
     {

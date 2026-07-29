@@ -27,8 +27,9 @@ public sealed class MudOutputViewTests
 
         Assert.NotNull(commandBox);
         Assert.NotNull(searchBox);
+        Assert.Null(commandBox!.PlaceholderText);
         Assert.Equal("Search...", searchBox!.PlaceholderText);
-        Assert.Same(commandBox!.Parent, searchBox.Parent);
+        Assert.Same(commandBox.Parent, searchBox.Parent);
         Assert.Equal(0, Grid.GetColumn(commandBox));
         Assert.Equal(1, Grid.GetColumn(searchBox));
     }

@@ -67,14 +67,59 @@ public sealed partial class MobileShellView : UserControl
         _initializationCancellation.Cancel();
     }
 
-    private void CloseAutomation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private void OpenSettings_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        var automationToggle =
-            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("AutomationToggle");
-        if (automationToggle is not null)
+        OpenToolOverlay("Ustawienia", "MobileSettingsPanel");
+    }
+
+    private void OpenAutomation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        OpenToolOverlay("Automaty", "MobileAutomationPanel");
+    }
+
+    private void OpenAutowalk_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        OpenToolOverlay("Autowalk", "MobileAutowalkPanel");
+    }
+
+    private void CloseToolOverlay_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        var overlay = this.FindControl<Border>("ToolOverlay");
+        if (overlay is not null)
         {
-            automationToggle.IsChecked = false;
+            overlay.IsVisible = false;
         }
+    }
+
+    private void OpenToolOverlay(string title, string activePanelName)
+    {
+        foreach (var panelName in new[]
+                 {
+                     "MobileSettingsPanel",
+                     "MobileAutomationPanel",
+                     "MobileAutowalkPanel",
+                 })
+        {
+            var panel = this.FindControl<Control>(panelName);
+            if (panel is not null)
+            {
+                panel.IsVisible = panelName == activePanelName;
+            }
+        }
+
+        var titleBlock = this.FindControl<TextBlock>("ToolOverlayTitle");
+        if (titleBlock is not null)
+        {
+            titleBlock.Text = title;
+        }
+
+        var overlay = this.FindControl<Border>("ToolOverlay");
+        if (overlay is not null)
+        {
+            overlay.IsVisible = true;
+        }
+
+        this.FindControl<Avalonia.Controls.Button>("MobileMenuButton")?.Flyout?.Hide();
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
