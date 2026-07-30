@@ -67,6 +67,8 @@ public sealed class MudDockFactory : Factory, IFactory
             (_root is not null && IsPinned(_root, tool)) || _overlayTools.Contains(tool);
         tool.PinAsOverlay = () => PinToolAsOverlay(tool);
         tool.CanPinAsOverlay = () => IsTransparencyLayout && !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal);
+        tool.CloseOverlay = () => CloseOverlay(tool);
+        tool.CanCloseOverlay = () => _overlayTools.Contains(tool);
         AllTools.Add(tool);
         return tool;
     }
@@ -135,6 +137,31 @@ public sealed class MudDockFactory : Factory, IFactory
         }
 
         Restore(tool);
+        OverlayChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Closes <paramref name="tool"/>'s Terminal overlay card and marks it hidden, without
+    /// re-docking it anywhere. Deliberately distinct from <see cref="ReturnOverlayToLayout"/>:
+    /// TRANSPARENCY mode's dock tree holds only the Terminal (see
+    /// <see cref="CreateTransparencyLayout"/>), so re-docking a closed overlay via
+    /// <see cref="Restore"/> falls back to the Terminal's own ToolDock and injects it there as a
+    /// second, permanently visible tab — the Terminal must stay the sole occupant. The panel
+    /// remains reachable afterward from the "Panele" restore menu.
+    /// </summary>
+    public void CloseOverlay(PanelTool tool)
+    {
+        if (!_overlayTools.Remove(tool))
+        {
+            return;
+        }
+
+        if (!HiddenTools.Contains(tool))
+        {
+            HiddenTools.Add(tool);
+        }
+
+        tool.RefreshDockCommands();
         OverlayChanged?.Invoke(this, EventArgs.Empty);
     }
 

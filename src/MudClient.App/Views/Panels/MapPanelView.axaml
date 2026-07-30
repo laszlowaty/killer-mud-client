@@ -5,21 +5,71 @@
              xmlns:map="using:MudClient.Core.Map"
              x:Class="MudClient.App.Views.Panels.MapPanelView"
              x:DataType="vm:MapViewModel">
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="*,Auto">
 
     <!-- ========================================================================
-          Header bar
+          Map content area (the "Mapa ▾" menu floats over its top-left corner —
+          see below — instead of taking its own header row).
           ======================================================================== -->
-    <Border Grid.Row="0" Classes="mud-bar" Padding="10,6">
-      <WrapPanel>
+    <Border Grid.Row="0" Background="Black">
+      <Panel>
+        <controls:WorldMapControl x:Name="MapControl"
+                                  WidgetFontFamily="{DynamicResource WidgetFontFamilyResource}"
+                                  WidgetFontSize="{DynamicResource WidgetFontSizeResource}"
+                                  WidgetFontWeight="{DynamicResource WidgetFontWeightResource}">
+          <controls:WorldMapControl.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="{Binding LordGotoMenuHeader}"
+                        Command="{Binding LordGotoSelectedRoomCommand}"
+                        IsVisible="{Binding LordModeEnabled}" />
+            </ContextMenu>
+          </controls:WorldMapControl.ContextMenu>
+        </controls:WorldMapControl>
 
-        <Button x:Name="MapMenuButton"
-                Content="Mapa ▾"
-                Padding="10,5"
+        <!-- Loading overlay -->
+        <Border Background="#CC101010"
+                IsVisible="{Binding IsLoading}"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Margin="0,0,8,4">
+                Padding="20,12"
+                CornerRadius="6">
+          <TextBlock Text="{Binding StatusMessage}" Foreground="White" />
+        </Border>
+
+        <!-- Error overlay -->
+        <Border Background="#CC401010"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,12,0,0"
+                Padding="16,10"
+                CornerRadius="6">
+          <StackPanel Spacing="6">
+            <SelectableTextBlock Text="{Binding ErrorMessage}"
+                                  Foreground="White"
+                                  TextWrapping="Wrap"
+                                  MaxWidth="480" />
+            <Button Content="Spróbuj ponownie"
+                    Command="{Binding ReloadCommand}"
+                    HorizontalAlignment="Left"
+                    Padding="12,6" />
+          </StackPanel>
+        </Border>
+
+        <!-- The map's own settings — occupies the same top-right corner spot PanelToolView's
+             generic per-panel settings button uses for every other panel (hidden for Map there;
+             see PanelToolView.axaml.cs), instead of a dedicated "Mapa" header row/button. -->
+        <Button x:Name="MapMenuButton"
+                Classes="mud-small"
+                Content="⚙"
+                Padding="6,2"
+                Margin="0,4,4,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Opacity="0.75"
+                ToolTip.Tip="Ustawienia mapy">
           <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedLeft">
+            <Flyout Placement="BottomEdgeAlignedRight">
               <StackPanel Spacing="6" MinWidth="230">
                 <TextBlock Classes="mud-heading" Text="Obszar" />
                 <ComboBox x:Name="AreaSelector"
@@ -123,70 +173,15 @@
             </Flyout>
           </Button.Flyout>
         </Button>
-
-      </WrapPanel>
-    </Border>
-
-    <!-- ========================================================================
-          Map content area
-          ======================================================================== -->
-    <Border Grid.Row="1" Background="Black">
-      <Panel>
-        <controls:WorldMapControl x:Name="MapControl"
-                                  WidgetFontFamily="{DynamicResource WidgetFontFamilyResource}"
-                                  WidgetFontSize="{DynamicResource WidgetFontSizeResource}"
-                                  WidgetFontWeight="{DynamicResource WidgetFontWeightResource}">
-          <controls:WorldMapControl.ContextMenu>
-            <ContextMenu>
-              <MenuItem Header="{Binding LordGotoMenuHeader}"
-                        Command="{Binding LordGotoSelectedRoomCommand}"
-                        IsVisible="{Binding LordModeEnabled}" />
-            </ContextMenu>
-          </controls:WorldMapControl.ContextMenu>
-        </controls:WorldMapControl>
-
-        <!-- Loading overlay -->
-        <Border Background="#CC101010"
-                IsVisible="{Binding IsLoading}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Padding="20,12"
-                CornerRadius="6">
-          <TextBlock Text="{Binding StatusMessage}" Foreground="White" />
-        </Border>
-
-        <!-- Error overlay -->
-        <Border Background="#CC401010"
-                IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,12,0,0"
-                Padding="16,10"
-                CornerRadius="6">
-          <StackPanel Spacing="6">
-            <SelectableTextBlock Text="{Binding ErrorMessage}"
-                                  Foreground="White"
-                                  TextWrapping="Wrap"
-                                  MaxWidth="480" />
-            <Button Content="Spróbuj ponownie"
-                    Command="{Binding ReloadCommand}"
-                    HorizontalAlignment="Left"
-                    Padding="12,6" />
-          </StackPanel>
-        </Border>
       </Panel>
     </Border>
 
     <!-- ========================================================================
-         Footer bar: status message
+         Footer bar: status message — Lord mode only (load status + map editor readiness).
          ======================================================================== -->
-    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
-      <StackPanel>
-        <TextBlock Classes="mud-faint" Text="{Binding StatusMessage}" />
-        <TextBlock Classes="mud-faint"
-                   IsVisible="{Binding LordModeEnabled}"
-                   Text="{Binding MapEditorStatus}" />
-      </StackPanel>
+    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="10,5"
+            IsVisible="{Binding LordModeEnabled}">
+      <TextBlock Classes="mud-faint" Text="{Binding LordModeStatusMessage}" />
     </Border>
 
   </Grid>

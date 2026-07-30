@@ -1,3 +1,5 @@
+using MudClient.App.Controls;
+
 namespace MudClient.App.Models;
 
 /// <summary>
@@ -95,6 +97,13 @@ public sealed class AppSettings
 
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; }
+
+    /// <summary>Shows each effect's count/duration and description alongside its name in the
+    /// Effects panel, instead of just the name.</summary>
+    public bool ShowExtendedEffects { get; set; }
+
+    /// <summary>Last chosen "Tryb mapy" (Proceduralna/Prosta) — restored on the next launch.</summary>
+    public MapDisplayMode MapDisplayMode { get; set; } = MapDisplayMode.Procedural;
 
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see

@@ -2,6 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:panels="using:MudClient.App.Views.Panels"
              xmlns:docking="using:MudClient.App.Docking"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:map="using:MudClient.Core.Map"
+             xmlns:conv="using:Avalonia.Data.Converters"
              x:Class="MudClient.App.Controls.TerminalOverlayCard"
              x:DataType="docking:PanelTool">
   <Border Background="{StaticResource MudBrushVoid}"
@@ -14,17 +17,165 @@
     <Grid RowDefinitions="Auto,*">
       <Border Grid.Row="0"
               Background="{StaticResource MudBrushSlate}"
-              Padding="8,2">
-        <Grid ColumnDefinitions="*,Auto">
+              Padding="6,1">
+        <Grid ColumnDefinitions="*,Auto,Auto">
           <TextBlock Grid.Column="0" VerticalAlignment="Center"
                      FontFamily="{DynamicResource WidgetFontFamilyResource}"
                      FontSize="{DynamicResource WidgetFontSizeResource}"
                      FontWeight="{DynamicResource WidgetFontWeightResource}"
                      Foreground="{StaticResource MudBrushGoldBright}"
                      Text="{Binding Title}" />
-          <Button Grid.Column="1" Content="✕" Padding="6,2" FontSize="11"
-                  Command="{Binding ReturnToLayoutCommand}"
-                  ToolTip.Tip="Wróć do układu" />
+
+          <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map and
+               Effects, which show their real settings menus via the buttons below instead. -->
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  ToolTip.Tip="Ustawienia panelu (wkrótce)">
+            <Button.IsVisible>
+              <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                <Binding Path="!IsMapTool" />
+                <Binding Path="!IsEffectsTool" />
+              </MultiBinding>
+            </Button.IsVisible>
+          </Button>
+
+          <!-- Effects' real settings — shares MainWindowViewModel as Context with most other
+               panels (unlike Map's own dedicated ViewModel), so its flyout binds through a cast
+               instead of a type-keyed DataTemplate. -->
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  IsVisible="{Binding IsEffectsTool}"
+                  ToolTip.Tip="Ustawienia efektów">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Spacing="6" MinWidth="230">
+                  <CheckBox Content="Rozszerzony widok efektów"
+                            IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
+                  <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
+                             Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- Map's real settings menu, duplicated from MapPanelView's own (hidden there while
+               shown as an overlay card — see MapPanelView.axaml.cs) so it can live in the title
+               bar next to the close button instead of floating over the map content. -->
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  IsVisible="{Binding IsMapTool}"
+                  ToolTip.Tip="Ustawienia mapy">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <ContentControl Content="{Binding Context}">
+                  <ContentControl.DataTemplates>
+                    <DataTemplate x:DataType="vm:MapViewModel">
+                      <StackPanel Spacing="6" MinWidth="230">
+                        <TextBlock Classes="mud-heading" Text="Obszar" />
+                        <ComboBox ItemsSource="{Binding Areas}"
+                                  SelectedItem="{Binding SelectedArea}"
+                                  HorizontalAlignment="Stretch">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="map:MapArea">
+                              <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Classes="mud-heading" Text="Poziom Z" Margin="0,4,0,0" />
+                        <ComboBox ItemsSource="{Binding ZLevels}"
+                                  SelectedIndex="{Binding SelectedZIndex, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch" />
+                        <Border Height="1"
+                                Background="{StaticResource MudBrushSlate}"
+                                Margin="0,4" />
+                        <Button Content="Wycentruj i śledź"
+                                Command="{Binding CenterCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Padding="10,6" />
+                        <ToggleSwitch Content="Tryb lorda"
+                                      IsChecked="{Binding LordModeEnabled}"
+                                      ToolTip.Tip="Udostępnia polecenie goto w menu prawego przycisku mapy." />
+                        <StackPanel Spacing="6" IsVisible="{Binding LordModeEnabled}">
+                          <Border Height="1"
+                                  Background="{StaticResource MudBrushSlate}"
+                                  Margin="0,4" />
+                          <TextBlock Classes="mud-heading" Text="Edytor mapy" />
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding NewMapAreaName, Mode=TwoWay}"
+                                     PlaceholderText="Nazwa nowego obszaru"
+                                     ToolTip.Tip="Nowy obszar można utworzyć, gdy mapowanie jest zatrzymane." />
+                            <Button Grid.Column="1"
+                                    Content="Utwórz obszar"
+                                    Command="{Binding CreateMapAreaCommand}"
+                                    Padding="10,6" />
+                          </Grid>
+                          <ToggleSwitch Content="Przenoś istniejące pokoje do wybranego obszaru"
+                                        IsChecked="{Binding MoveExistingRoomsToNewArea, Mode=TwoWay}"
+                                        IsEnabled="{Binding CanMoveExistingRoomsToNewArea}"
+                                        ToolTip.Tip="Zmienia przypisanie napotkanych vnumów na aktualnie wybrany obszar. Pokój, z którego rozpoczęto mapowanie, pozostaje w dotychczasowym obszarze; zmiany można cofnąć." />
+                          <WrapPanel>
+                            <Button Content="Rozpocznij mapowanie"
+                                    Command="{Binding StartMapEditorCommand}"
+                                    IsVisible="{Binding !IsMapEditorActive}"
+                                    Margin="0,0,6,4"
+                                    Padding="10,6" />
+                            <Button Content="Zatrzymaj mapowanie"
+                                    Command="{Binding StopMapEditorCommand}"
+                                    IsVisible="{Binding IsMapEditorActive}"
+                                    Margin="0,0,6,4"
+                                    Padding="10,6" />
+                          </WrapPanel>
+                          <WrapPanel>
+                            <Button Content="Zapisz"
+                                    Command="{Binding SaveMapEditorCommand}"
+                                    Margin="0,0,6,4"
+                                    Padding="10,6" />
+                            <Button Content="Cofnij"
+                                    Command="{Binding UndoMapEditorCommand}"
+                                    Margin="0,0,6,4"
+                                    Padding="10,6" />
+                            <Button Content="Ponów"
+                                    Command="{Binding RedoMapEditorCommand}"
+                                    Margin="0,0,6,4"
+                                    Padding="10,6" />
+                          </WrapPanel>
+                          <TextBlock Classes="mud-faint"
+                                     Text="{Binding MapEditorStatus}"
+                                     MaxWidth="300"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Classes="mud-faint"
+                                     Text="{Binding MapEditorSourceDescription}"
+                                     MaxWidth="300"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Classes="mud-faint"
+                                    Text="Komendy: /map start|stop|save|undo|redo|cancel|info|check|diff|import|export|discard|resolve|step|area|reassign|room|symbol|label|forget|special (cancel anuluje wszystkie niezapisane zmiany; również /mapa i +map)."
+                                     MaxWidth="300"
+                                     TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch Content="Członkowie grupy jako cyfry"
+                                      IsChecked="{Binding ShowGroupMembersAsNumbers}"
+                                      ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
+                        <Border Height="1"
+                                Background="{StaticResource MudBrushSlate}"
+                                Margin="0,4" />
+                        <TextBlock Classes="mud-heading" Text="Tryb mapy" Margin="0,4,0,0" />
+                        <ComboBox ItemsSource="{Binding DisplayModes}"
+                                  SelectedItem="{Binding SelectedDisplayMode}"
+                                  HorizontalAlignment="Stretch" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ContentControl.DataTemplates>
+                </ContentControl>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <Button Grid.Column="2" Content="✕" Padding="3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  Command="{Binding CloseOverlayCommand}"
+                  ToolTip.Tip="Zamknij (panel zostanie ukryty, Terminal pozostaje na wierzchu)" />
         </Grid>
       </Border>
       <panels:PanelToolView Grid.Row="1" DataContext="{Binding}" />

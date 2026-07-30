@@ -1,5 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
+using MudClient.App.Controls;
 using MudClient.App.Docking;
 
 namespace MudClient.App.Views.Panels;
@@ -19,20 +22,44 @@ public partial class PanelToolView : UserControl
         DataContextChanged += (_, _) => Rebuild();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Rebuild();
+    }
+
     private void Rebuild()
     {
         var host = this.FindControl<ContentControl>("Host")!;
+        var settingsButton = this.FindControl<Button>("SettingsButton")!;
+        var effectsSettingsButton = this.FindControl<Button>("EffectsSettingsButton")!;
 
         if (DataContext is not PanelTool tool)
         {
             Classes.Set("mud-configurable-widget", false);
             _builtViewType = null;
             host.Content = null;
+            settingsButton.IsVisible = false;
+            effectsSettingsButton.IsVisible = false;
             return;
         }
 
         Classes.Set("mud-configurable-widget",
             !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal));
+
+        // A tool rendered inside a Terminal overlay card gets its settings button from the card's
+        // own title bar instead (see TerminalOverlayCard.axaml) — these would otherwise duplicate it.
+        var isOverlaid = this.FindAncestorOfType<TerminalOverlayCard>() is not null;
+
+        // Terminal has no per-panel settings; Map and Effects show their own real settings button
+        // (here, or Effects' below) instead of this inert placeholder.
+        settingsButton.IsVisible =
+            !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
+            && !string.Equals(tool.Id, "Map", StringComparison.Ordinal)
+            && !tool.IsEffectsTool
+            && !isOverlaid;
+
+        effectsSettingsButton.IsVisible = tool.IsEffectsTool && !isOverlaid;
 
         if (host.Content is Control existing && _builtViewType == tool.ViewType)
         {

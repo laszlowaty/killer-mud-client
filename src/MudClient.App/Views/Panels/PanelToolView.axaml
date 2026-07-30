@@ -1,8 +1,49 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:docking="using:MudClient.App.Docking"
+             xmlns:vm="using:MudClient.App.ViewModels"
              x:Class="MudClient.App.Views.Panels.PanelToolView"
              x:DataType="docking:PanelTool"
              Classes="mud-widget-content">
-  <ContentControl x:Name="Host" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+  <Panel>
+    <ContentControl x:Name="Host" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+
+    <!-- Placeholder for future per-panel settings (no behavior yet — every panel gets one so the
+         spot is consistent once real per-panel options land). Hidden for Terminal (no per-panel
+         settings make sense there), for Map (whose own settings button already occupies this same
+         corner — see MapPanelView), and for Effects (real settings button below). -->
+    <Button x:Name="SettingsButton"
+            Classes="mud-small"
+            Content="⚙"
+            Padding="6,2"
+            Margin="0,4,4,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Opacity="0.75"
+            ToolTip.Tip="Ustawienia panelu (wkrótce)" />
+
+    <!-- Effects' real settings — shares MainWindowViewModel as Context with most other panels
+         (unlike Map's own dedicated ViewModel), so it's special-cased by Id rather than by
+         Context's runtime type. -->
+    <Button x:Name="EffectsSettingsButton"
+            Classes="mud-small"
+            Content="⚙"
+            Padding="6,2"
+            Margin="0,4,4,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Opacity="0.75"
+            ToolTip.Tip="Ustawienia efektów">
+      <Button.Flyout>
+        <Flyout Placement="BottomEdgeAlignedRight">
+          <StackPanel Spacing="6" MinWidth="230">
+            <CheckBox Content="Rozszerzony widok efektów"
+                      IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
+                       Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
+          </StackPanel>
+        </Flyout>
+      </Button.Flyout>
+    </Button>
+  </Panel>
 </UserControl>

@@ -164,6 +164,45 @@ public sealed class TerminalOverlayTests
     }
 
     [Fact]
+    public void CloseOverlay_InTransparencyMode_HidesToolWithoutDockingItNextToTerminal()
+    {
+        var factory = CreateTransparencyFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+
+        factory.PinToolAsOverlay(tool);
+        factory.CloseOverlay(tool);
+
+        Assert.DoesNotContain(tool, factory.OverlayTools);
+        Assert.False(Visible(layout, "Gmcp"));
+        Assert.Contains(tool, factory.HiddenTools);
+    }
+
+    [Fact]
+    public void CloseOverlayCommand_HidesAnOverlaidTool()
+    {
+        var factory = CreateTransparencyFactory(out var layout);
+        var tool = GetTool(factory, "Gmcp");
+
+        factory.PinToolAsOverlay(tool);
+        Assert.True(tool.CloseOverlayCommand.CanExecute(null));
+
+        tool.CloseOverlayCommand.Execute(null);
+
+        Assert.DoesNotContain(tool, factory.OverlayTools);
+        Assert.False(Visible(layout, "Gmcp"));
+        Assert.Contains(tool, factory.HiddenTools);
+    }
+
+    [Fact]
+    public void CloseOverlayCommand_CannotExecute_WhenToolIsNotOverlaid()
+    {
+        var factory = CreateTransparencyFactory(out _);
+        var tool = GetTool(factory, "Gmcp");
+
+        Assert.False(tool.CloseOverlayCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void Snapshot_WhileToolIsOverlaid_StillAccountsForItSomewhereInTheTree()
     {
         var factory = CreateTransparencyFactory(out var layout);
