@@ -29,6 +29,12 @@ public sealed class PanelTool : Tool
 
     internal Func<bool>? CanPinAsOverlay { get; set; }
 
+    /// <summary>Set by <see cref="MudDockFactory"/>; closes this tool's Terminal overlay card
+    /// without re-docking it anywhere (see <see cref="MudDockFactory.CloseOverlay"/>).</summary>
+    internal Action? CloseOverlay { get; set; }
+
+    internal Func<bool>? CanCloseOverlay { get; set; }
+
     public PanelTool()
     {
         PinLeftCommand = new RelayCommand(() => PinToEdge?.Invoke(Alignment.Left));
@@ -41,6 +47,9 @@ public sealed class PanelTool : Tool
         PinAsOverlayCommand = new RelayCommand(
             () => PinAsOverlay?.Invoke(),
             () => CanPinAsOverlay?.Invoke() == true);
+        CloseOverlayCommand = new RelayCommand(
+            () => CloseOverlay?.Invoke(),
+            () => CanCloseOverlay?.Invoke() == true);
     }
 
     public IRelayCommand PinLeftCommand { get; }
@@ -55,9 +64,12 @@ public sealed class PanelTool : Tool
 
     public IRelayCommand PinAsOverlayCommand { get; }
 
+    public IRelayCommand CloseOverlayCommand { get; }
+
     internal void RefreshDockCommands()
     {
         ReturnToLayoutCommand.NotifyCanExecuteChanged();
         PinAsOverlayCommand.NotifyCanExecuteChanged();
+        CloseOverlayCommand.NotifyCanExecuteChanged();
     }
 }

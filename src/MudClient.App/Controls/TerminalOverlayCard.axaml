@@ -23,8 +23,8 @@
                      Foreground="{StaticResource MudBrushGoldBright}"
                      Text="{Binding Title}" />
           <Button Grid.Column="1" Content="✕" Padding="6,2" FontSize="11"
-                  Command="{Binding ReturnToLayoutCommand}"
-                  ToolTip.Tip="Wróć do układu" />
+                  Command="{Binding CloseOverlayCommand}"
+                  ToolTip.Tip="Zamknij (panel zostanie ukryty, Terminal pozostaje na wierzchu)" />
         </Grid>
       </Border>
       <panels:PanelToolView Grid.Row="1" DataContext="{Binding}" />
