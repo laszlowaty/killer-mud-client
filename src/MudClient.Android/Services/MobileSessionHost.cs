@@ -36,6 +36,18 @@ public sealed class MobileSessionHost
             var dataDirectory = Path.Combine(appBaseDirectory, "Data");
             Directory.CreateDirectory(dataDirectory);
 
+            Exception? importException = null;
+            try
+            {
+                new SettingsBackupService(dataDirectory).ApplyPendingImport();
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or InvalidDataException)
+            {
+                importException = exception;
+            }
+
             var viewModel = new MainWindowViewModel(
                 profileService: new ProfileService(Path.Combine(dataDirectory, "Profiles")),
                 settingsService: new AppSettingsService(dataDirectory),
@@ -46,6 +58,11 @@ public sealed class MobileSessionHost
 
             viewModel.ShowTerminalVitalsBars = false;
             await viewModel.InitializeAsync(cancellationToken);
+            if (importException is not null)
+            {
+                viewModel.ReportSettingsImportError(importException);
+            }
+
             _viewModel = viewModel;
             return viewModel;
         }

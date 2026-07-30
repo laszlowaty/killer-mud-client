@@ -43,6 +43,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Bump version
         id: version
         run: |
@@ -145,6 +151,62 @@ jobs:
           publish_rid osx-x64
 
           ls -la artifacts
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Publish Android APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          FULL_VERSION="${{ steps.version.outputs.full_version }}"
+          PROJECT="src/MudClient.Android/MudClient.Android.csproj"
+          OUT="publish/android"
+          SIGNING_ARGS=()
+
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] &&
+             [ -n "${ANDROID_KEYSTORE_ALIAS:-}" ] &&
+             [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] &&
+             [ -n "${ANDROID_KEY_PASSWORD:-}" ]; then
+            KEYSTORE="$RUNNER_TEMP/killermud-release.keystore"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+            SIGNING_ARGS=(
+              -p:AndroidKeyStore=true
+              -p:AndroidSigningKeyStore="$KEYSTORE"
+              -p:AndroidSigningKeyAlias="$ANDROID_KEYSTORE_ALIAS"
+              -p:AndroidSigningStorePass=env:ANDROID_KEYSTORE_PASSWORD
+              -p:AndroidSigningKeyPass=env:ANDROID_KEY_PASSWORD
+            )
+          elif [ -n "${ANDROID_KEYSTORE_BASE64:-}${ANDROID_KEYSTORE_ALIAS:-}${ANDROID_KEYSTORE_PASSWORD:-}${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "::error::Podpis Androida jest skonfigurowany częściowo. Ustaw wszystkie cztery sekrety ANDROID_KEYSTORE_* i ANDROID_KEY_PASSWORD."
+            exit 1
+          else
+            echo "::warning::Brak stałego keystore Androida. APK zostanie podpisany domyślnym kluczem deweloperskim i może wymagać odinstalowania poprzedniej wersji."
+          fi
+
+          dotnet publish "$PROJECT" \
+            --configuration Release \
+            --framework net10.0-android \
+            --output "$OUT" \
+            -p:AndroidPackageFormats=apk \
+            -p:ApplicationDisplayVersion="$FULL_VERSION" \
+            -p:ApplicationVersion="$GITHUB_RUN_NUMBER" \
+            -p:Version="$FULL_VERSION" \
+            "${SIGNING_ARGS[@]}"
+
+          APK=$(find "$OUT" -type f -name '*-Signed.apk' -print -quit)
+          if [ -z "$APK" ]; then
+            echo "::error::Publish Androida nie utworzył podpisanego APK."
+            find "$OUT" -maxdepth 2 -type f -print
+            exit 1
+          fi
+
+          cp "$APK" "artifacts/KillerMudClient-$FULL_VERSION-android.apk"
+          ls -lh "artifacts/KillerMudClient-$FULL_VERSION-android.apk"
 
       - name: Create GitHub Release
         env:

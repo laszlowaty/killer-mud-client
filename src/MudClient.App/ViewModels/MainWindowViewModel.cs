@@ -3916,6 +3916,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(CanDeleteBuffSet));
 
         _activeProfilePassword = _passwordProtector.Unprotect(profile.EncryptedPassword);
+        if (!string.IsNullOrEmpty(profile.EncryptedPassword)
+            && string.IsNullOrEmpty(_activeProfilePassword))
+        {
+            AddToast(
+                $"Nie można odczytać zapisanego hasła konta „{profile.Name}”. Wpisz je ponownie.",
+                "warning");
+        }
+
         _activeProfileNeedsRegistration = profile.NeedsRegistration;
         _activeProfileLogin = ResolveProfileLogin(profile);
         Host = ResolveProfileHost(profile);

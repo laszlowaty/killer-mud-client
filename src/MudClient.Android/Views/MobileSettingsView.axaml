@@ -86,6 +86,31 @@
           </StackPanel>
         </StackPanel>
       </Border>
+
+      <TextBlock Classes="mud-heading" Text="Dane" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Import kopii z wersji desktopowej"
+                     FontWeight="SemiBold" />
+          <TextBlock Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     Text="Profile, automaty, timery, autowalk i ustawienia zostaną zastąpione danymi z ZIP-a. Hasła z Windows trzeba wpisać ponownie." />
+          <Button x:Name="SelectImportButton"
+                  Content="Wybierz kopię ZIP"
+                  MinHeight="44"
+                  Click="SelectImport_OnClick" />
+          <Button x:Name="ApplyImportButton"
+                  Content="Zastosuj import i uruchom ponownie"
+                  Classes="mud-danger"
+                  MinHeight="44"
+                  IsVisible="False"
+                  Click="ApplyImport_OnClick" />
+          <TextBlock x:Name="ImportStatusText"
+                     Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     IsVisible="False" />
+        </StackPanel>
+      </Border>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

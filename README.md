@@ -122,7 +122,10 @@ aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
 
 ## Pobieranie
 
-Gotowe paczki (self-contained, jeden plik wykonywalny, bez instalacji) są na [stronie projektu](https://laszlowaty.github.io/killer-mud-client/) oraz w [GitHub Releases](https://github.com/laszlowaty/killer-mud-client/releases): `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64`.
+Gotowe paczki są na [stronie projektu](https://laszlowaty.github.io/killer-mud-client/)
+oraz w [GitHub Releases](https://github.com/laszlowaty/killer-mud-client/releases):
+self-contained dla `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64` oraz instalowalny
+APK dla Androida.
 
 Po uruchomieniu aplikacja nieblokująco sprawdza publiczne wydania GitHub. Gdy jest
 dostępna nowsza wersja (również beta), w górnym pasku pojawia się powiadomienie
@@ -175,6 +178,12 @@ katalogu aplikacji dołączone zasoby mapy; kolejne uruchomienia używają gotow
 Stan sesji jest przechowywany poza widokiem Activity, dlatego odtworzenie Activity
 nie tworzy drugiego połączenia.
 
+Mobilne **Ustawienia → Dane** pozwalają wybrać kopię ZIP wyeksportowaną z wersji
+desktopowej. Archiwum jest najpierw walidowane, a dopiero osobne potwierdzenie
+zastępuje profile, automaty, timery, cele autowalk i ustawienia podczas restartu
+aplikacji. Hasła zapisane przez Windows DPAPI nie są przenośne do Android Keystore
+i po imporcie trzeba wpisać je ponownie.
+
 Do budowania potrzebne są workload Android, Android SDK i JDK:
 
 ```powershell
@@ -204,7 +213,21 @@ Oficjalne wydania buduje workflow **Release** (zakładka Actions → Release →
 
 - wybierasz kanał: `beta` → pre-release z tagiem `vX.Y.Z-beta.N` (numer bety nadawany automatycznie), `release` → pełne wydanie z tagiem `vX.Y.Z`,
 - wybierasz podbicie wersji: `patch` / `minor` / `major` / `none` — workflow aktualizuje `Directory.Build.props`, commituje i taguje,
-- po przejściu testów budowane są paczki `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64` i publikowane jako GitHub Release z automatycznymi notatkami.
+- po przejściu testów budowane są paczki `win-x64`, `linux-x64`, `osx-arm64`,
+  `osx-x64` oraz `KillerMudClient-X.Y.Z-android.apk` i publikowane jako GitHub
+  Release z automatycznymi notatkami.
+
+Workflow może podpisać kolejne APK tym samym kluczem, jeżeli repozytorium ma ustawione
+sekrety `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_ALIAS`,
+`ANDROID_KEYSTORE_PASSWORD` i `ANDROID_KEY_PASSWORD`. Bez nich powstaje instalowalny
+APK podpisany kluczem deweloperskim runnera; kolejna wersja może wtedy wymagać
+odinstalowania poprzedniej aplikacji.
+
+Na Windows stały klucz i wszystkie cztery sekrety można utworzyć lub ponownie
+zsynchronizować przez `.\configure-android-signing.ps1`. Klucz jest przechowywany poza
+repozytorium w `%LOCALAPPDATA%\KillerMudClient\Signing`, a lokalna kopia hasła jest
+chroniona przez Windows DPAPI. Oba utworzone tam pliki trzeba zachować jako prywatną
+kopię bezpieczeństwa.
 
 Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull requeście do `main`, a workflow **Deploy GitHub Pages** publikuje stronę projektu z katalogu `docs/`.
 
