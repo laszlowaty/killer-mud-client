@@ -90,43 +90,10 @@
       </ItemsControl>
     </Grid>
 
-    <!-- Command bar. Search/prev/next/send are fixed-width columns bunched on the left, with
-         the flexible CommandBox last (right side) — so they stay clear of the Terminal overlay
-         stack, which is right-aligned in TRANSPARENCY mode and would otherwise cover them
-         whenever the stack doesn't reach the very bottom of the panel. -->
+    <!-- Command bar -->
     <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
-                 x:Name="SearchBox"
-                 Width="190"
-                 MinHeight="30"
-                 PlaceholderText="Wyszukaj..."
-                 ToolTip.Tip="Szukaj w terminalu (Enter/▲: starsze, Shift+Enter/▼: nowsze)"
-                 TextChanged="SearchBox_OnTextChanged"
-                 KeyDown="SearchBox_OnKeyDown" />
-        <Button Grid.Column="1"
-                x:Name="SearchPrevButton"
-                Classes="mud-small"
-                Content="▲"
-                MinWidth="0"
-                Padding="8,7"
-                ToolTip.Tip="Poprzednie dopasowanie (starsze)"
-                Click="SearchPrevButton_OnClick" />
-        <Button Grid.Column="2"
-                x:Name="SearchNextButton"
-                Classes="mud-small"
-                Content="▼"
-                MinWidth="0"
-                Padding="8,7"
-                ToolTip.Tip="Następne dopasowanie (nowsze)"
-                Click="SearchNextButton_OnClick" />
-        <Button Grid.Column="3"
-                Content="➤"
-                Padding="20,7"
-                ToolTip.Tip="Wyślij"
-                Command="{Binding SendCommandCommand}"
-                Click="SendButton_OnClick" />
-        <TextBox Grid.Column="4"
                  x:Name="CommandBox"
                  Classes="terminal-input"
                  Text="{Binding CommandText}"
@@ -136,6 +103,36 @@
                  TextWrapping="Wrap"
                  MaxHeight="120"
                  KeyDown="CommandBox_OnKeyDown" />
+        <TextBox Grid.Column="1"
+                 x:Name="SearchBox"
+                 Width="190"
+                 MinHeight="30"
+                 PlaceholderText="Wyszukaj..."
+                 ToolTip.Tip="Szukaj w terminalu (Enter/▲: starsze, Shift+Enter/▼: nowsze)"
+                 TextChanged="SearchBox_OnTextChanged"
+                 KeyDown="SearchBox_OnKeyDown" />
+        <Button Grid.Column="2"
+                x:Name="SearchPrevButton"
+                Classes="mud-small"
+                Content="▲"
+                MinWidth="0"
+                Padding="8,7"
+                ToolTip.Tip="Poprzednie dopasowanie (starsze)"
+                Click="SearchPrevButton_OnClick" />
+        <Button Grid.Column="3"
+                x:Name="SearchNextButton"
+                Classes="mud-small"
+                Content="▼"
+                MinWidth="0"
+                Padding="8,7"
+                ToolTip.Tip="Następne dopasowanie (nowsze)"
+                Click="SearchNextButton_OnClick" />
+        <Button Grid.Column="4"
+                Content="➤"
+                Padding="20,7"
+                ToolTip.Tip="Wyślij"
+                Command="{Binding SendCommandCommand}"
+                Click="SendButton_OnClick" />
       </Grid>
     </Border>
 
