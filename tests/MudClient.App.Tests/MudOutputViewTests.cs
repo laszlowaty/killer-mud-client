@@ -19,8 +19,12 @@ namespace MudClient.App.Tests;
 public sealed class MudOutputViewTests
 {
     [AvaloniaFact]
-    public void SearchBox_IsOnRightSideOfTerminalInput()
+    public void SearchBox_IsOnLeftSideOfTerminalInput()
     {
+        // Search/prev/next/send are bunched on the left and CommandBox is the flexible column on
+        // the right, so they stay clear of the Terminal overlay stack (right-aligned in
+        // TRANSPARENCY mode), which would otherwise cover them whenever the stack's height
+        // doesn't reach the very bottom of the panel.
         var terminal = new TerminalPanelView();
         var commandBox = terminal.FindControl<TextBox>("CommandBox");
         var searchBox = terminal.FindControl<TextBox>("SearchBox");
@@ -29,8 +33,8 @@ public sealed class MudOutputViewTests
         Assert.NotNull(searchBox);
         Assert.Equal("Wyszukaj...", searchBox!.PlaceholderText);
         Assert.Same(commandBox!.Parent, searchBox.Parent);
-        Assert.Equal(0, Grid.GetColumn(commandBox));
-        Assert.Equal(1, Grid.GetColumn(searchBox));
+        Assert.Equal(0, Grid.GetColumn(searchBox));
+        Assert.Equal(4, Grid.GetColumn(commandBox));
     }
 
     [AvaloniaFact]
