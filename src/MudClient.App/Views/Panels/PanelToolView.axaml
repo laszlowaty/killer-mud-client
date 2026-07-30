@@ -4,5 +4,18 @@
              x:Class="MudClient.App.Views.Panels.PanelToolView"
              x:DataType="docking:PanelTool"
              Classes="mud-widget-content">
-  <ContentControl x:Name="Host" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+  <Panel>
+    <ContentControl x:Name="Host" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+
+    <!-- Placeholder for future per-panel settings (no behavior yet — every panel gets one so the
+         spot is consistent once real per-panel options land). -->
+    <Button Classes="mud-small"
+            Content="⚙"
+            Padding="6,2"
+            Margin="0,4,4,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Opacity="0.75"
+            ToolTip.Tip="Ustawienia panelu (wkrótce)" />
+  </Panel>
 </UserControl>
