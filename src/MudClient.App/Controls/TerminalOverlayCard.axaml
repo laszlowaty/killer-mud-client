@@ -48,7 +48,13 @@
                   ToolTip.Tip="Ustawienia efektów">
             <Button.Flyout>
               <Flyout Placement="BottomEdgeAlignedRight">
-                <StackPanel Spacing="6" MinWidth="230">
+                <!-- Flyout content renders outside this card's own visual tree, so it can't rely
+                     on the app's usual "mud-configurable-widget" descendant styling (see
+                     Docking.axaml) — the shared widget font is applied explicitly here instead. -->
+                <StackPanel Spacing="6" MinWidth="230"
+                            TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                            TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                            TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
                   <CheckBox Content="Rozszerzony widok efektów"
                             IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
                   <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
@@ -70,7 +76,14 @@
                 <ContentControl Content="{Binding Context}">
                   <ContentControl.DataTemplates>
                     <DataTemplate x:DataType="vm:MapViewModel">
-                      <StackPanel Spacing="6" MinWidth="230">
+                      <!-- Flyout content renders outside this card's own visual tree, so it can't
+                           rely on the app's usual "mud-configurable-widget" descendant styling
+                           (see Docking.axaml) — the shared widget font is applied explicitly
+                           here instead. -->
+                      <StackPanel Spacing="6" MinWidth="230"
+                                  TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                                  TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                                  TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
                         <TextBlock Classes="mud-heading" Text="Obszar" />
                         <ComboBox ItemsSource="{Binding Areas}"
                                   SelectedItem="{Binding SelectedArea}"

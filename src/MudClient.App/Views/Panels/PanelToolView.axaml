@@ -20,6 +20,9 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
             Opacity="0.75"
+            FontFamily="{DynamicResource WidgetFontFamilyResource}"
+            FontSize="{DynamicResource WidgetFontSizeResource}"
+            FontWeight="{DynamicResource WidgetFontWeightResource}"
             ToolTip.Tip="Ustawienia panelu (wkrótce)" />
 
     <!-- Effects' real settings — shares MainWindowViewModel as Context with most other panels
@@ -33,10 +36,20 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
             Opacity="0.75"
+            FontFamily="{DynamicResource WidgetFontFamilyResource}"
+            FontSize="{DynamicResource WidgetFontSizeResource}"
+            FontWeight="{DynamicResource WidgetFontWeightResource}"
             ToolTip.Tip="Ustawienia efektów">
       <Button.Flyout>
         <Flyout Placement="BottomEdgeAlignedRight">
-          <StackPanel Spacing="6" MinWidth="230">
+          <!-- Flyout content renders outside PanelToolView's own visual tree, so it can't rely
+               on the app's usual "mud-configurable-widget" descendant styling (see
+               Docking.axaml) — the shared widget font is applied explicitly here instead, and
+               inherited by the CheckBox/TextBlock below since neither sets its own. -->
+          <StackPanel Spacing="6" MinWidth="230"
+                      TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                      TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                      TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
             <CheckBox Content="Rozszerzony widok efektów"
                       IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
             <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
