@@ -88,10 +88,14 @@
                     </DataTemplate>
                   </ComboBox.ItemTemplate>
                 </ComboBox>
-                <TextBlock Classes="mud-heading" Text="Poziom Z" Margin="0,4,0,0" />
+                <TextBlock Classes="mud-heading" Text="Poziom" Margin="0,4,0,0" />
                 <ComboBox x:Name="ZSelector"
                           ItemsSource="{Binding ZLevels}"
                           SelectedIndex="{Binding SelectedZIndex, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch" />
+                <TextBlock Classes="mud-heading" Text="Tryb mapy" Margin="0,4,0,0" />
+                <ComboBox ItemsSource="{Binding DisplayModes}"
+                          SelectedItem="{Binding SelectedDisplayMode}"
                           HorizontalAlignment="Stretch" />
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
@@ -104,6 +108,9 @@
                 <ToggleSwitch Content="Autowalk po dwukliku"
                               IsChecked="{Binding AutoWalkOnMapDoubleClick}"
                               ToolTip.Tip="Włączone: dwuklik na pokoju od razu rozpoczyna marsz. Wyłączone: dwuklik tylko podpowiada trasę, do potwierdzenia przyciskiem IDŹ DO CELU." />
+                <ToggleSwitch Content="Członkowie grupy jako cyfry"
+                              IsChecked="{Binding ShowGroupMembersAsNumbers}"
+                              ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
                 <ToggleSwitch Content="Tryb lorda"
                               IsChecked="{Binding LordModeEnabled}"
                               ToolTip.Tip="Udostępnia polecenie walk w menu prawego przycisku mapy." />
@@ -168,16 +175,6 @@
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                 </StackPanel>
-                <ToggleSwitch Content="Członkowie grupy jako cyfry"
-                              IsChecked="{Binding ShowGroupMembersAsNumbers}"
-                              ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
-                <Border Height="1"
-                        Background="{StaticResource MudBrushSlate}"
-                        Margin="0,4" />
-                <TextBlock Classes="mud-heading" Text="Tryb mapy" Margin="0,4,0,0" />
-                <ComboBox ItemsSource="{Binding DisplayModes}"
-                          SelectedItem="{Binding SelectedDisplayMode}"
-                          HorizontalAlignment="Stretch" />
               </StackPanel>
             </Flyout>
           </Button.Flyout>
