@@ -19,11 +19,11 @@
                 <ContextMenu x:DataType="models:GroupMember"
                              Opened="GroupContextMenu_OnOpened"
                              Closed="GroupContextMenu_OnClosed">
-                  <MenuItem Header="goto room"
+                  <MenuItem Header="walk room"
                             Command="{Binding #GroupPanel.DataContext.LordGotoGroupRoomCommand}"
                             CommandParameter="{Binding}"
                             IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
-                  <MenuItem Header="{Binding Name, StringFormat='goto {0}'}"
+                  <MenuItem Header="{Binding Name, StringFormat='walk {0}'}"
                             Command="{Binding #GroupPanel.DataContext.LordGotoGroupMemberCommand}"
                             CommandParameter="{Binding}"
                             IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />

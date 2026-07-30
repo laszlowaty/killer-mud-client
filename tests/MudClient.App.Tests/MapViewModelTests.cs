@@ -130,7 +130,7 @@ public sealed class MapViewModelTests
         vm.LordGotoSelectedRoomCommand.Execute(null);
 
         Assert.Equal([room], requests);
-        Assert.Equal("Goto: Test Room [100]", vm.LordGotoMenuHeader);
+        Assert.Equal("Walk: Test Room [100]", vm.LordGotoMenuHeader);
     }
 
     [Fact]

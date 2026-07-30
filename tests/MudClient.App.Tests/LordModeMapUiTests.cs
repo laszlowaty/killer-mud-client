@@ -167,7 +167,7 @@ public sealed class LordModeMapUiTests
 
             var menuItem = Assert.Single(contextMenu.Items.OfType<MenuItem>());
             Assert.True(menuItem.IsVisible);
-            Assert.Equal("Goto: Sala prób [6017]", menuItem.Header);
+            Assert.Equal("Walk: Sala prób [6017]", menuItem.Header);
             Assert.NotNull(menuItem.Command);
 
             menuItem.Command.Execute(menuItem.CommandParameter);
@@ -271,8 +271,8 @@ public sealed class LordModeMapUiTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.All(menuItems, item => Assert.True(item.IsVisible));
-            Assert.Equal("goto room", menuItems[0].Header);
-            Assert.Equal("goto Aragorn", menuItems[1].Header);
+            Assert.Equal("walk room", menuItems[0].Header);
+            Assert.Equal("walk Aragorn", menuItems[1].Header);
             Assert.Same(member, menuItems[0].CommandParameter);
             Assert.Same(member, menuItems[1].CommandParameter);
             Assert.Same(viewModel.LordGotoGroupRoomCommand, menuItems[0].Command);
