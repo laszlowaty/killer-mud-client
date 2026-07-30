@@ -328,6 +328,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             LordModeEnabled = _settings.LordModeEnabled,
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
+            SelectedDisplayMode = MapDisplayModeOption.All.First(option => option.Mode == _settings.MapDisplayMode),
         };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
@@ -337,6 +338,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordGotoRequested += OnLordGotoRequested;
         Map.LordModeChanged += OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged += OnMapGroupMarkerDisplayChanged;
+        Map.DisplayModeChanged += OnMapDisplayModeChanged;
         Map.MapEditorActiveChanged += OnMapEditorActiveChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
@@ -2282,6 +2284,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         _settings.ShowGroupMembersAsNumbers = showAsNumbers;
+        SaveSettings();
+    }
+
+    private void OnMapDisplayModeChanged(MapDisplayMode mode)
+    {
+        if (_settings.MapDisplayMode == mode)
+        {
+            return;
+        }
+
+        _settings.MapDisplayMode = mode;
         SaveSettings();
     }
 
@@ -6312,6 +6325,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordGotoRequested -= OnLordGotoRequested;
         Map.LordModeChanged -= OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged -= OnMapGroupMarkerDisplayChanged;
+        Map.DisplayModeChanged -= OnMapDisplayModeChanged;
 
         _autowalkCts.Cancel();
         _bookRefreshCts?.Cancel();

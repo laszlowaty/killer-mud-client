@@ -444,10 +444,18 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
     public IReadOnlyList<MapDisplayModeOption> DisplayModes { get; } = MapDisplayModeOption.All;
 
+    public event Action<MapDisplayMode>? DisplayModeChanged;
+
     public MapDisplayModeOption SelectedDisplayMode
     {
         get => _selectedDisplayMode;
-        set => SetProperty(ref _selectedDisplayMode, value);
+        set
+        {
+            if (SetProperty(ref _selectedDisplayMode, value))
+            {
+                DisplayModeChanged?.Invoke(value.Mode);
+            }
+        }
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
