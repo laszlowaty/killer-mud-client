@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -21,6 +22,7 @@ public sealed partial class TerminalPanelView : UserControl
     private readonly MudOutputView _mudOutput;
     private readonly TextBox _commandBox;
     private readonly TextBox _searchBox;
+    private readonly Grid _commandBarWidthSplit;
     private readonly DispatcherTimer _timerCountdownRefresh;
     private MainWindowViewModel? _viewModel;
     private bool _isViewModelSubscribed;
@@ -36,6 +38,8 @@ public sealed partial class TerminalPanelView : UserControl
             ?? throw new InvalidOperationException("CommandBox not found.");
         _searchBox = this.FindControl<TextBox>("SearchBox")
             ?? throw new InvalidOperationException("SearchBox not found.");
+        _commandBarWidthSplit = this.FindControl<Grid>("CommandBarWidthSplit")
+            ?? throw new InvalidOperationException("CommandBarWidthSplit not found.");
         _commandBox.AddHandler(
             InputElement.KeyDownEvent,
             CommandBox_OnPreviewKeyDown,
@@ -145,7 +149,10 @@ public sealed partial class TerminalPanelView : UserControl
 
         _viewModel.OutputReceived += OnOutputReceived;
         _viewModel.ProfileActivated += OnProfileActivated;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _viewModel.TerminalOverlays.CollectionChanged += OnTerminalOverlaysChanged;
         _isViewModelSubscribed = true;
+        ApplyCommandBarWidthSplit();
     }
 
     private void UnsubscribeFromViewModel()
@@ -157,7 +164,39 @@ public sealed partial class TerminalPanelView : UserControl
 
         _viewModel.OutputReceived -= OnOutputReceived;
         _viewModel.ProfileActivated -= OnProfileActivated;
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.TerminalOverlays.CollectionChanged -= OnTerminalOverlaysChanged;
         _isViewModelSubscribed = false;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.TerminalOverlayColumnWidthFraction))
+        {
+            ApplyCommandBarWidthSplit();
+        }
+    }
+
+    private void OnTerminalOverlaysChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs eventArgs) =>
+        ApplyCommandBarWidthSplit();
+
+    /// <summary>Keeps the command bar's own left/right column split in sync with the Terminal
+    /// overlay stack's width fraction (see TerminalOverlayHost.ApplyColumnWidth) — the command
+    /// bar's controls live only in the left column, so the stack's reserved column on the right
+    /// never has to share space with them. Reserves nothing when no panel is currently pinned as
+    /// an overlay, matching the stack itself, which collapses to nothing in that case too.</summary>
+    private void ApplyCommandBarWidthSplit()
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        var fraction = _viewModel.TerminalOverlays.Count > 0
+            ? _viewModel.TerminalOverlayColumnWidthFraction
+            : 0;
+        _commandBarWidthSplit.ColumnDefinitions[0].Width = new GridLength(1 - fraction, GridUnitType.Star);
+        _commandBarWidthSplit.ColumnDefinitions[1].Width = new GridLength(fraction, GridUnitType.Star);
     }
 
     private async void OnProfileActivated(string profileName)
