@@ -22,17 +22,26 @@ public partial class PanelToolView : UserControl
     private void Rebuild()
     {
         var host = this.FindControl<ContentControl>("Host")!;
+        var settingsButton = this.FindControl<Button>("SettingsButton")!;
 
         if (DataContext is not PanelTool tool)
         {
             Classes.Set("mud-configurable-widget", false);
             _builtViewType = null;
             host.Content = null;
+            settingsButton.IsVisible = false;
             return;
         }
 
         Classes.Set("mud-configurable-widget",
             !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal));
+
+        // Terminal has no per-panel settings; Map already shows its own settings button in this
+        // same corner (see MapPanelView) with its menu content wired in, so the generic
+        // placeholder here would just sit on top of it.
+        settingsButton.IsVisible =
+            !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
+            && !string.Equals(tool.Id, "Map", StringComparison.Ordinal);
 
         if (host.Content is Control existing && _builtViewType == tool.ViewType)
         {

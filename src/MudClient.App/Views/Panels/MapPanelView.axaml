@@ -56,18 +56,20 @@
           </StackPanel>
         </Border>
 
-        <!-- The map's own menu, floating over its top-left corner instead of a dedicated
-             header row — pairs with the generic per-panel settings button PanelToolView
-             floats over the top-right corner. -->
+        <!-- The map's own settings — occupies the same top-right corner spot PanelToolView's
+             generic per-panel settings button uses for every other panel (hidden for Map there;
+             see PanelToolView.axaml.cs), instead of a dedicated "Mapa" header row/button. -->
         <Button x:Name="MapMenuButton"
-                Content="Mapa ▾"
-                Padding="10,5"
-                Margin="6"
-                HorizontalAlignment="Left"
+                Classes="mud-small"
+                Content="⚙"
+                Padding="6,2"
+                Margin="0,4,4,0"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Opacity="0.9">
+                Opacity="0.75"
+                ToolTip.Tip="Ustawienia mapy">
           <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedLeft">
+            <Flyout Placement="BottomEdgeAlignedRight">
               <StackPanel Spacing="6" MinWidth="230">
                 <TextBlock Classes="mud-heading" Text="Obszar" />
                 <ComboBox x:Name="AreaSelector"

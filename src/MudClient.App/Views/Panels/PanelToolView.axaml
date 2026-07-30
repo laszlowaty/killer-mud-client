@@ -8,8 +8,11 @@
     <ContentControl x:Name="Host" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
 
     <!-- Placeholder for future per-panel settings (no behavior yet — every panel gets one so the
-         spot is consistent once real per-panel options land). -->
-    <Button Classes="mud-small"
+         spot is consistent once real per-panel options land). Hidden for Terminal (no per-panel
+         settings make sense there) and for Map (whose own settings button already occupies this
+         same corner — see MapPanelView). -->
+    <Button x:Name="SettingsButton"
+            Classes="mud-small"
             Content="⚙"
             Padding="6,2"
             Margin="0,4,4,0"
