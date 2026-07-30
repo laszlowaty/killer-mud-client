@@ -13,6 +13,10 @@ public sealed class PanelTool : Tool
 {
     public required Type ViewType { get; init; }
 
+    /// <summary>True for the Map tool specifically — used to pick which settings flyout content
+    /// (real map options vs. the generic placeholder) a settings button shows.</summary>
+    public bool IsMapTool => string.Equals(Id, "Map", StringComparison.Ordinal);
+
     /// <summary>
     /// Set by <see cref="MudDockFactory"/>; moves this tool into a collapsed tab on the
     /// requested edge. Used by the explicit edge choices in panel menus.

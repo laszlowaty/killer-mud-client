@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
+using MudClient.App.Controls;
 using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views.Panels;
@@ -38,6 +39,10 @@ public sealed partial class MapPanelView : UserControl
         base.OnAttachedToVisualTree(e);
         SubscribeToViewModel();
         SyncControlFromViewModel();
+
+        // Rendered inside a Terminal overlay card, MapMenuButton would duplicate the card's own
+        // settings button in its title bar (see TerminalOverlayCard.axaml) — hide this one there.
+        MapMenuButton.IsVisible = this.FindAncestorOfType<TerminalOverlayCard>() is null;
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

@@ -1,5 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
+using MudClient.App.Controls;
 using MudClient.App.Docking;
 
 namespace MudClient.App.Views.Panels;
@@ -19,6 +22,12 @@ public partial class PanelToolView : UserControl
         DataContextChanged += (_, _) => Rebuild();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Rebuild();
+    }
+
     private void Rebuild()
     {
         var host = this.FindControl<ContentControl>("Host")!;
@@ -36,12 +45,14 @@ public partial class PanelToolView : UserControl
         Classes.Set("mud-configurable-widget",
             !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal));
 
-        // Terminal has no per-panel settings; Map already shows its own settings button in this
-        // same corner (see MapPanelView) with its menu content wired in, so the generic
-        // placeholder here would just sit on top of it.
+        // Terminal has no per-panel settings; Map already shows its own settings button (here or
+        // in TerminalOverlayCard's title bar). A tool rendered inside a Terminal overlay card gets
+        // its settings button from the card's own title bar instead (see TerminalOverlayCard.axaml)
+        // — this generic one would otherwise duplicate it.
         settingsButton.IsVisible =
             !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
-            && !string.Equals(tool.Id, "Map", StringComparison.Ordinal);
+            && !string.Equals(tool.Id, "Map", StringComparison.Ordinal)
+            && this.FindAncestorOfType<TerminalOverlayCard>() is null;
 
         if (host.Content is Control existing && _builtViewType == tool.ViewType)
         {
