@@ -329,6 +329,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             LordModeEnabled = _settings.LordModeEnabled,
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
             SelectedDisplayMode = MapDisplayModeOption.All.First(option => option.Mode == _settings.MapDisplayMode),
+            AutoWalkOnMapDoubleClick = _settings.AutoWalkOnMapDoubleClick,
         };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
@@ -339,6 +340,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordModeChanged += OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged += OnMapGroupMarkerDisplayChanged;
         Map.DisplayModeChanged += OnMapDisplayModeChanged;
+        Map.AutoWalkOnMapDoubleClickChanged += OnMapAutoWalkOnDoubleClickChanged;
         Map.MapEditorActiveChanged += OnMapEditorActiveChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
@@ -2268,6 +2270,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnMapRoomDoubleClicked(MapRoom room)
     {
         PreviewRouteToRoom(room);
+
+        if (Map.AutoWalkOnMapDoubleClick && _temporaryTarget is not null)
+        {
+            StartAutowalk(_temporaryTarget);
+        }
     }
 
     private void OnLordGotoRequested(MapRoom room)
@@ -2277,7 +2284,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        QueueTriggeredCommands([$"goto {room.Vnum}"]);
+        QueueTriggeredCommands([$"walk {room.Vnum}"]);
     }
 
     private void OnMapLordModeChanged(bool enabled)
@@ -2313,6 +2320,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         _settings.MapDisplayMode = mode;
+        SaveSettings();
+    }
+
+    private void OnMapAutoWalkOnDoubleClickChanged(bool enabled)
+    {
+        if (_settings.AutoWalkOnMapDoubleClick == enabled)
+        {
+            return;
+        }
+
+        _settings.AutoWalkOnMapDoubleClick = enabled;
         SaveSettings();
     }
 
@@ -5309,10 +5327,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     internal static string? BuildLordGotoGroupRoomCommand(GroupMember? member) =>
-        IsSafeVnum(member?.Room) ? $"goto {member!.Room}" : null;
+        IsSafeVnum(member?.Room) ? $"walk {member!.Room}" : null;
 
     internal static string? BuildLordGotoGroupMemberCommand(GroupMember? member) =>
-        IsSafeCharacterName(member?.Name) ? $"goto {member!.Name}" : null;
+        IsSafeCharacterName(member?.Name) ? $"walk {member!.Name}" : null;
 
     private static bool IsSafeVnum(string? value) =>
         !string.IsNullOrWhiteSpace(value) && value.All(char.IsAsciiDigit);
@@ -6344,6 +6362,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordModeChanged -= OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged -= OnMapGroupMarkerDisplayChanged;
         Map.DisplayModeChanged -= OnMapDisplayModeChanged;
+        Map.AutoWalkOnMapDoubleClickChanged -= OnMapAutoWalkOnDoubleClickChanged;
 
         _autowalkCts.Cancel();
         _bookRefreshCts?.Cancel();

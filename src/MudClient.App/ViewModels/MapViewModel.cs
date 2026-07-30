@@ -48,6 +48,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     private bool _followPlayer = true;
     private bool _lordModeEnabled;
     private bool _showGroupMembersAsNumbers;
+    private bool _autoWalkOnMapDoubleClick = true;
     private bool _isUsingWorkingMap;
     private bool _isUsingRecoveryMap;
     private string _newMapAreaName = string.Empty;
@@ -110,6 +111,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public event Action<bool>? LordModeChanged;
 
     public event Action<bool>? GroupMarkerDisplayChanged;
+
+    public event Action<bool>? AutoWalkOnMapDoubleClickChanged;
 
     public event Action<bool>? MapEditorActiveChanged;
 
@@ -333,9 +336,23 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         }
     }
 
+    /// <summary>Basic (default, on): double-clicking a room on the map starts walking there
+    /// immediately. Off: double-click only previews the route until confirmed.</summary>
+    public bool AutoWalkOnMapDoubleClick
+    {
+        get => _autoWalkOnMapDoubleClick;
+        set
+        {
+            if (SetProperty(ref _autoWalkOnMapDoubleClick, value))
+            {
+                AutoWalkOnMapDoubleClickChanged?.Invoke(value);
+            }
+        }
+    }
+
     public string LordGotoMenuHeader => SelectedRoom is { } room
-        ? $"Goto: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
-        : "Goto";
+        ? $"Walk: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
+        : "Walk";
 
     private bool CanLordGotoSelectedRoom() =>
         LordModeEnabled && IsSafeVnum(SelectedRoom?.Vnum);

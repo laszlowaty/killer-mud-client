@@ -105,6 +105,10 @@ public sealed class AppSettings
     /// <summary>Last chosen "Tryb mapy" (Proceduralna/Prosta) — restored on the next launch.</summary>
     public MapDisplayMode MapDisplayMode { get; set; } = MapDisplayMode.Procedural;
 
+    /// <summary>Double-clicking a room on the map immediately starts walking there, instead of
+    /// only previewing the route until confirmed.</summary>
+    public bool AutoWalkOnMapDoubleClick { get; set; } = true;
+
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
     /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and

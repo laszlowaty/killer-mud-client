@@ -1450,8 +1450,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         Assert.True(_vm.LordGotoGroupRoomCommand.CanExecute(member));
         Assert.True(_vm.LordGotoGroupMemberCommand.CanExecute(member));
-        Assert.Equal("goto 6017", MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
-        Assert.Equal("goto Aragorn", MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
+        Assert.Equal("walk 6017", MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
+        Assert.Equal("walk Aragorn", MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
     }
 
     [Fact]
@@ -3062,7 +3062,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     [Fact]
     public void OnMapRoomDoubleClicked_WhenNotWalking_SetsTargetAndPreviews()
     {
-        // Arrange
+        // Arrange — disable auto-walk-on-double-click so this exercises the preview-only path.
+        _vm.Map.AutoWalkOnMapDoubleClick = false;
         Assert.False(_vm.IsAutowalking);
         var room = CreateTestRoom(100, "2002", "Test Room");
         var toastCount = _vm.Toasts.Count;
@@ -3086,9 +3087,28 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void OnMapRoomDoubleClicked_DefaultsToStartingAutowalkImmediately()
+    {
+        // AutoWalkOnMapDoubleClick defaults to true — double-click should attempt to start
+        // walking right away rather than only preview. With no map/pathfinder loaded here,
+        // that attempt surfaces as StartAutowalk's own failure toast.
+        Assert.True(_vm.Map.AutoWalkOnMapDoubleClick);
+        var room = CreateTestRoom(100, "2002", "Test Room");
+        var toastCount = _vm.Toasts.Count;
+
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        Assert.True(_vm.HasTemporaryTarget);
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("nie jest załadowana", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
     public void OnMapRoomDoubleClicked_WhenWalking_ClearsOldRouteAndSetsNewTarget()
     {
-        // Arrange: set up walking state via reflection (simulate active autowalk)
+        // Arrange: disable auto-walk-on-double-click so this exercises the preview-only path;
+        // set up walking state via reflection (simulate active autowalk)
+        _vm.Map.AutoWalkOnMapDoubleClick = false;
         var pathField = GetAutowalkPathField();
         pathField.SetValue(_vm, CreateDummyPath());
         _vm.Map.RouteRooms = [CreateTestRoom(1, "1000")];
