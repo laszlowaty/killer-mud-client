@@ -213,7 +213,13 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public string StatusMessage
     {
         get => _statusMessage;
-        private set => SetProperty(ref _statusMessage, value);
+        private set
+        {
+            if (SetProperty(ref _statusMessage, value))
+            {
+                OnPropertyChanged(nameof(LordModeStatusMessage));
+            }
+        }
     }
 
     public MapArea? SelectedArea
@@ -364,6 +370,10 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public int MapEditorStep => _mapEditor?.Step ?? 2;
 
     public string MapEditorStatus => _mapEditor?.Status ?? "Edytor mapy nie jest jeszcze gotowy.";
+
+    /// <summary>Combined footer text shown only in Lord mode (see MapPanelView's footer bar) —
+    /// the load status and the map editor's readiness/state joined into one line.</summary>
+    public string LordModeStatusMessage => $"{StatusMessage} oraz {MapEditorStatus}";
 
     public bool IsUsingWorkingMap
     {
@@ -1299,6 +1309,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         OnPropertyChanged(nameof(IsMapEditorAwaitingRoomInfo));
         OnPropertyChanged(nameof(MapEditorStep));
         OnPropertyChanged(nameof(MapEditorStatus));
+        OnPropertyChanged(nameof(LordModeStatusMessage));
         OnPropertyChanged(nameof(MapEditorSourceDescription));
         OnPropertyChanged(nameof(CanMoveExistingRoomsToNewArea));
         OnPropertyChanged(nameof(MoveExistingRoomsToNewArea));

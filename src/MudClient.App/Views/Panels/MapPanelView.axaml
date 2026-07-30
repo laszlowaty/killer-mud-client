@@ -177,15 +177,11 @@
     </Border>
 
     <!-- ========================================================================
-         Footer bar: status message
+         Footer bar: status message — Lord mode only (load status + map editor readiness).
          ======================================================================== -->
-    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="10,5">
-      <StackPanel>
-        <TextBlock Classes="mud-faint" Text="{Binding StatusMessage}" />
-        <TextBlock Classes="mud-faint"
-                   IsVisible="{Binding LordModeEnabled}"
-                   Text="{Binding MapEditorStatus}" />
-      </StackPanel>
+    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="10,5"
+            IsVisible="{Binding LordModeEnabled}">
+      <TextBlock Classes="mud-faint" Text="{Binding LordModeStatusMessage}" />
     </Border>
 
   </Grid>
