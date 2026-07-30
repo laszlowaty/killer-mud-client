@@ -4,6 +4,7 @@
              xmlns:docking="using:MudClient.App.Docking"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:map="using:MudClient.Core.Map"
+             xmlns:conv="using:Avalonia.Data.Converters"
              x:Class="MudClient.App.Controls.TerminalOverlayCard"
              x:DataType="docking:PanelTool">
   <Border Background="{StaticResource MudBrushVoid}"
@@ -25,12 +26,37 @@
                      Foreground="{StaticResource MudBrushGoldBright}"
                      Text="{Binding Title}" />
 
-          <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map, which
-               shows its real settings menu via the button below instead. -->
+          <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map and
+               Effects, which show their real settings menus via the buttons below instead. -->
           <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
-                  IsVisible="{Binding !IsMapTool}"
-                  ToolTip.Tip="Ustawienia panelu (wkrótce)" />
+                  ToolTip.Tip="Ustawienia panelu (wkrótce)">
+            <Button.IsVisible>
+              <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                <Binding Path="!IsMapTool" />
+                <Binding Path="!IsEffectsTool" />
+              </MultiBinding>
+            </Button.IsVisible>
+          </Button>
+
+          <!-- Effects' real settings — shares MainWindowViewModel as Context with most other
+               panels (unlike Map's own dedicated ViewModel), so its flyout binds through a cast
+               instead of a type-keyed DataTemplate. -->
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  IsVisible="{Binding IsEffectsTool}"
+                  ToolTip.Tip="Ustawienia efektów">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Spacing="6" MinWidth="230">
+                  <CheckBox Content="Rozszerzony widok efektów"
+                            IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
+                  <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
+                             Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
 
           <!-- Map's real settings menu, duplicated from MapPanelView's own (hidden there while
                shown as an overlay card — see MapPanelView.axaml.cs) so it can live in the title

@@ -142,16 +142,6 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Classes="mud-heading" Text="Efekty" Margin="0,6,0,0" />
-      <Border Classes="mud-section" Padding="10">
-        <StackPanel Spacing="10">
-          <CheckBox Content="Rozszerzony widok efektów"
-                    IsChecked="{Binding ShowExtendedEffects}" />
-          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                     Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje liczbę/czas trwania i opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
-        </StackPanel>
-      </Border>
-
       <TextBlock Classes="mud-heading" Text="Komendy" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10">
         <StackPanel Spacing="10">

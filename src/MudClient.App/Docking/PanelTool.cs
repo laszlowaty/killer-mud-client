@@ -17,6 +17,11 @@ public sealed class PanelTool : Tool
     /// (real map options vs. the generic placeholder) a settings button shows.</summary>
     public bool IsMapTool => string.Equals(Id, "Map", StringComparison.Ordinal);
 
+    /// <summary>True for the Effects tool specifically — same purpose as <see cref="IsMapTool"/>,
+    /// but Effects shares its Context (MainWindowViewModel) with most other panels, so it can't be
+    /// distinguished by Context's runtime type the way Map's dedicated MapViewModel is.</summary>
+    public bool IsEffectsTool => string.Equals(Id, "Effects", StringComparison.Ordinal);
+
     /// <summary>
     /// Set by <see cref="MudDockFactory"/>; moves this tool into a collapsed tab on the
     /// requested edge. Used by the explicit edge choices in panel menus.
