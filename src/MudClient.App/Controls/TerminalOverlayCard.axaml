@@ -16,7 +16,7 @@
     <Grid RowDefinitions="Auto,*">
       <Border Grid.Row="0"
               Background="{StaticResource MudBrushSlate}"
-              Padding="8,2">
+              Padding="6,1">
         <Grid ColumnDefinitions="*,Auto,Auto">
           <TextBlock Grid.Column="0" VerticalAlignment="Center"
                      FontFamily="{DynamicResource WidgetFontFamilyResource}"
@@ -27,14 +27,16 @@
 
           <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map, which
                shows its real settings menu via the button below instead. -->
-          <Button Grid.Column="1" Content="⚙" Padding="6,2" Margin="0,0,4,0" FontSize="11"
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
                   IsVisible="{Binding !IsMapTool}"
                   ToolTip.Tip="Ustawienia panelu (wkrótce)" />
 
           <!-- Map's real settings menu, duplicated from MapPanelView's own (hidden there while
                shown as an overlay card — see MapPanelView.axaml.cs) so it can live in the title
                bar next to the close button instead of floating over the map content. -->
-          <Button Grid.Column="1" Content="⚙" Padding="6,2" Margin="0,0,4,0" FontSize="11"
+          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
                   IsVisible="{Binding IsMapTool}"
                   ToolTip.Tip="Ustawienia mapy">
             <Button.Flyout>
@@ -144,7 +146,8 @@
             </Button.Flyout>
           </Button>
 
-          <Button Grid.Column="2" Content="✕" Padding="6,2" FontSize="11"
+          <Button Grid.Column="2" Content="✕" Padding="3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
                   Command="{Binding CloseOverlayCommand}"
                   ToolTip.Tip="Zamknij (panel zostanie ukryty, Terminal pozostaje na wierzchu)" />
         </Grid>
