@@ -12,6 +12,14 @@ namespace MudClient.App.ViewModels;
 
 public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
+    /// <summary>Set once by <see cref="MainWindowViewModel"/> after constructing this instance.
+    /// Lets Map's own settings flyout (see MapPanelView.axaml / TerminalOverlayCard.axaml) reach
+    /// the Autowalk state and commands (Locations, Deaths, travel status) that live there instead
+    /// of being duplicated onto MapViewModel — those panels' functionality was moved into this
+    /// flyout, but the underlying state remains ordinary MainWindowViewModel state shared by
+    /// other bindings too. Null only in tests that construct a MapViewModel standalone.</summary>
+    public MainWindowViewModel? MainViewModel { get; set; }
+
     private readonly string _packagedMapDirectory;
     private readonly ContentPathResolver? _contentPaths;
     private readonly string? _mapEditorPath;

@@ -419,7 +419,7 @@ public sealed class DockRestoreTests
     public void CloseRestoreCloseRestore_Cycle()
     {
         var factory = CreateFactory(out var layout);
-        var ids = new[] { "Automation", "Autowalk", "Notes", "Gmcp", "Settings" };
+        var ids = new[] { "Automation", "Notes", "Gmcp", "Settings" };
 
         foreach (var id in ids)
         {

@@ -3567,10 +3567,11 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
     // Autowalk — Vitals exposure and binding check (No test)
     //
-    // The new UI button "⚑ IDŹ" added to AutowalkPanelView.axaml is bound
-    // to GoToSelectedTargetCommand.  XAML binding correctness is validated
-    // by the build (XAML compile step).  The ViewModel property existence
-    // is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
+    // The "⚑ IDŹ" button in Map's own settings flyout (MapPanelView.axaml /
+    // TerminalOverlayCard.axaml — moved there from the former Autowalk panel)
+    // is bound to GoToSelectedTargetCommand. XAML binding correctness is
+    // validated by the build (XAML compile step). The ViewModel property
+    // existence is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
     // ====================================================================
 
     // ====================================================================

@@ -286,7 +286,7 @@ public sealed class PinnedTabUiTests : IDisposable
 
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Gmcp"), Alignment.Left);
-        factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Autowalk"), Alignment.Right);
+        factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Chat"), Alignment.Right);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Automation"), Alignment.Top);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Notes"), Alignment.Bottom);
         var snapshot = factory.Snapshot(viewModel.Layout);
@@ -325,7 +325,7 @@ public sealed class PinnedTabUiTests : IDisposable
             new LayoutPreset
             {
                 Name = "B",
-                Snapshot = CreateSnapshotWithPins(("Autowalk", Alignment.Right)),
+                Snapshot = CreateSnapshotWithPins(("Chat", Alignment.Right)),
             },
         });
         var viewModel = new MainWindowViewModel(
@@ -374,7 +374,7 @@ public sealed class PinnedTabUiTests : IDisposable
 
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Gmcp"), Alignment.Left);
-        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Autowalk"), Alignment.Right);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Chat"), Alignment.Right);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Automation"), Alignment.Top);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Notes"), Alignment.Bottom);
         viewModel.NewLayoutName = "boczne";
@@ -389,7 +389,7 @@ public sealed class PinnedTabUiTests : IDisposable
             dockable => dockable.Id == "Gmcp");
         Assert.Contains(
             viewModel.Layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
-            dockable => dockable.Id == "Autowalk");
+            dockable => dockable.Id == "Chat");
         Assert.Contains(
             viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => dockable.Id == "Automation");
@@ -397,7 +397,7 @@ public sealed class PinnedTabUiTests : IDisposable
             viewModel.Layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => dockable.Id == "Notes");
         Assert.Equal(
-            new HashSet<string> { "Gmcp", "Autowalk", "Automation", "Notes" },
+            new HashSet<string> { "Gmcp", "Chat", "Automation", "Notes" },
             RenderedPinItems(window)
                 .Select(control => Assert.IsType<PanelTool>(control.DataContext).Id)
                 .ToHashSet());

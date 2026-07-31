@@ -330,6 +330,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
             SelectedDisplayMode = MapDisplayModeOption.All.First(option => option.Mode == _settings.MapDisplayMode),
             AutoWalkOnMapDoubleClick = _settings.AutoWalkOnMapDoubleClick,
+            MainViewModel = this,
         };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;

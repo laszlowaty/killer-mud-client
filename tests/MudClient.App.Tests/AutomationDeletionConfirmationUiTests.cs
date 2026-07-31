@@ -3,6 +3,8 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -18,6 +20,8 @@ public sealed class AutomationDeletionConfirmationUiTests
     [AvaloniaFact]
     public async Task DeleteAutowalkTarget_RequiresConfirmation()
     {
+        // Locations/death-marks moved from the old dedicated Autowalk panel into Map's own
+        // settings flyout — opened here the same way a user would, via MapMenuButton's Flyout.
         var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_AutowalkDeleteConfirmation_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var viewModel = new MainWindowViewModel(
@@ -28,9 +32,9 @@ public sealed class AutomationDeletionConfirmationUiTests
         viewModel.Locations.Add(location);
         var confirmations = new Queue<bool>([false, true]);
         var prompts = new List<(string Type, string Name)>();
-        var panel = new AutowalkPanelView
+        var panel = new MapPanelView
         {
-            DataContext = viewModel,
+            DataContext = viewModel.Map,
             ConfirmDeletionAsync = (_, itemType, itemName) =>
             {
                 prompts.Add((itemType, itemName));
@@ -43,7 +47,12 @@ public sealed class AutomationDeletionConfirmationUiTests
         window.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         window.UpdateLayout();
-        var deleteButton = window.GetLogicalDescendants().OfType<Button>().First(button =>
+
+        var mapMenuButton = panel.FindControl<Button>("MapMenuButton")!;
+        mapMenuButton.Flyout!.ShowAt(mapMenuButton);
+        Dispatcher.UIThread.RunJobs();
+
+        var deleteButton = window.GetVisualDescendants().OfType<Button>().First(button =>
             ReferenceEquals(button.DataContext, location) && Equals(button.Content, "✕"));
 
         deleteButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

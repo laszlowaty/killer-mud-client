@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
+using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views.Panels;
@@ -10,6 +12,10 @@ public sealed partial class MapPanelView : UserControl
 {
     private MapViewModel? _viewModel;
     private bool _isViewModelSubscribed;
+
+    /// <summary>Overridable in tests — see AutomationDeletionConfirmationUiTests.</summary>
+    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
+        DeleteConfirmationDialog.ShowAsync;
 
     public MapPanelView()
     {
@@ -141,4 +147,66 @@ public sealed partial class MapPanelView : UserControl
         MapControl.CenterOnRoom(room);
     }
 
+    // ========================================================================
+    // Autowalk locations / death marks — moved here from the former Autowalk
+    // panel; the underlying state and commands still live on MainWindowViewModel
+    // (see MapViewModel.MainViewModel), shared with TerminalOverlayCard's copy
+    // of this same settings flyout.
+    // ========================================================================
+
+    private void GoToLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutowalkLocation location &&
+            _viewModel?.MainViewModel is { } mainViewModel)
+        {
+            mainViewModel.GoToLocationCommand.Execute(location);
+        }
+    }
+
+    private void GoToDeath_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is DeathMarkEntry entry &&
+            _viewModel?.MainViewModel is { } mainViewModel)
+        {
+            mainViewModel.GoToDeathCommand.Execute(entry);
+        }
+    }
+
+    private void DeleteDeath_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is DeathMarkEntry entry &&
+            _viewModel?.MainViewModel is { } mainViewModel)
+        {
+            mainViewModel.DeleteDeathCommand.Execute(entry);
+        }
+    }
+
+    private async void DeleteLocation_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button button &&
+            button.DataContext is AutowalkLocation location &&
+            _viewModel?.MainViewModel is { } mainViewModel)
+        {
+            if (TopLevel.GetTopLevel(this) is not Window owner)
+            {
+                return;
+            }
+
+            button.IsEnabled = false;
+            try
+            {
+                if (await ConfirmDeletionAsync(owner, "cel autowalk", location.Name))
+                {
+                    mainViewModel.DeleteLocationCommand.Execute(location);
+                }
+            }
+            finally
+            {
+                button.IsEnabled = true;
+            }
+        }
+    }
 }
