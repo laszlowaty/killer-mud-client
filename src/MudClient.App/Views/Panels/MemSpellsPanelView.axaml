@@ -13,28 +13,32 @@
       <ItemsControl ItemsSource="{Binding MemSpells}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:MemSpellCircle">
-            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
-              <StackPanel Spacing="2">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="{Binding Header}"
-                             Foreground="{StaticResource MudBrushArcaneBlueBright}" />
-                  <TextBlock Grid.Column="1" Text="{Binding CountDisplay}"
-                             Classes="mud-faint" />
-                </Grid>
+            <!-- Everything for one Krąg on a single flowing line — WrapPanel only breaks to a
+                 second line if the content genuinely doesn't fit, maximizing how many circles
+                 are visible at once instead of spending up to 4 lines per circle. -->
+            <Border Classes="mud-section" Padding="6,3" Margin="0,1">
+              <WrapPanel>
+                <TextBlock Text="{Binding Header}"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                           Margin="0,0,4,0" />
+                <TextBlock Text="{Binding CountDisplay}"
+                           Classes="mud-faint"
+                           Margin="0,0,8,0" />
                 <TextBlock Text="{Binding MemedDisplay}"
-                           TextWrapping="Wrap"
-                           IsVisible="{Binding HasMemed}" />
+                           IsVisible="{Binding HasMemed}"
+                           Margin="0,0,8,0"
+                           ToolTip.Tip="Zapamiętane" />
                 <TextBlock Text="{Binding MemingDisplay}"
-                           TextWrapping="Wrap"
                            Foreground="{StaticResource MudBrushGoldBright}"
-                           ToolTip.Tip="W trakcie zapamiętywania"
-                           IsVisible="{Binding HasMeming}" />
+                           IsVisible="{Binding HasMeming}"
+                           Margin="0,0,8,0"
+                           ToolTip.Tip="W trakcie zapamiętywania" />
                 <TextBlock Text="{Binding UnmemedDisplay}"
-                           TextWrapping="Wrap"
                            Foreground="{StaticResource MudBrushCrimsonBright}"
-                           ToolTip.Tip="Niezapamiętane"
-                           IsVisible="{Binding HasUnmemed}" />
-              </StackPanel>
+                           IsVisible="{Binding HasUnmemed}"
+                           ToolTip.Tip="Rzucone / niezapamiętane" />
+              </WrapPanel>
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
