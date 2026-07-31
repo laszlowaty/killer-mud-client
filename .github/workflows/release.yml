@@ -12,7 +12,7 @@ on:
           - beta
           - release
       bump:
-        description: 'Podbicie wersji w Directory.Build.props'
+        description: 'Podbicie wersji przy rozpoczęciu nowej serii'
         required: true
         type: choice
         default: patch
@@ -56,12 +56,25 @@ jobs:
           CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
           echo "Current version: $CURRENT"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          case "${{ inputs.bump }}" in
-            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH+1)) ;;
-            none)  ;;
-          esac
+
+          # Kontynuuj otwartą serię beta bieżącej wersji. Bez tego domyślne
+          # "patch" zmieniało 0.6.4-beta.1 w 0.6.5-beta.1 zamiast beta.2.
+          CONTINUE_BETA=false
+          if [ "${{ inputs.channel }}" = "beta" ] \
+             && ! git rev-parse -q --verify "refs/tags/v$CURRENT" >/dev/null \
+             && git tag --list "v$CURRENT-beta.*" | grep -q .; then
+            CONTINUE_BETA=true
+            echo "Continuing open beta series for $CURRENT"
+          fi
+
+          if [ "$CONTINUE_BETA" = "false" ]; then
+            case "${{ inputs.bump }}" in
+              major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH+1)) ;;
+              none)  ;;
+            esac
+          fi
           VERSION="$MAJOR.$MINOR.$PATCH"
 
           if [ "${{ inputs.channel }}" = "beta" ]; then
