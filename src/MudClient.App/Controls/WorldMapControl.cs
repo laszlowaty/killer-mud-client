@@ -72,6 +72,7 @@ public sealed class WorldMapControl : Control
     private MapRoom? _selectedRoom;
     private IReadOnlyList<MapRoom>? _route;
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
+    private IReadOnlyList<DeathMapMarker> _deathMarkers = [];
     private bool _showGroupMembersAsNumbers;
     private MapDisplayMode _displayMode;
     private bool _isSimpleMap;
@@ -300,6 +301,16 @@ public sealed class WorldMapControl : Control
         set
         {
             _groupMarkers = value ?? [];
+            RequestInvalidateVisual();
+        }
+    }
+
+    public IReadOnlyList<DeathMapMarker> DeathMarkers
+    {
+        get => _deathMarkers;
+        set
+        {
+            _deathMarkers = value ?? [];
             RequestInvalidateVisual();
         }
     }
@@ -635,6 +646,7 @@ public sealed class WorldMapControl : Control
             DrawLabels(context);
             DrawRoute(context, EmptyOffsets);
             DrawOverviewSelectionAndCurrent(context);
+            DrawDeathMarkers(context, EmptyOffsets);
             DrawGroupMarkers(context, EmptyOffsets);
             DrawCompass(context);
             return;
@@ -654,6 +666,7 @@ public sealed class WorldMapControl : Control
         DrawLabels(context);
         DrawRoute(context, roomLookup);
         DrawSelectionAndCurrent(context, roomsWithOffsets);
+        DrawDeathMarkers(context, roomLookup);
         DrawGroupMarkers(context, roomLookup);
         if (!_isSimpleMap)
         {
@@ -1371,6 +1384,41 @@ public sealed class WorldMapControl : Control
                         markerCenter.X + markerRadius + markerGap,
                         labelRect.Y + (labelRect.Height - name.Height) / 2));
             }
+        }
+    }
+
+    /// <summary>Draws one small skull badge per room with a recorded death, centered on the room
+    /// tile itself (unlike <see cref="DrawGroupMarkers"/>, which floats a named label above the
+    /// room) — a location doesn't need a name, so one glyph per room is enough even if several
+    /// deaths happened there.</summary>
+    private void DrawDeathMarkers(DrawingContext context, IReadOnlyDictionary<int, MapOffset> offsets)
+    {
+        var visibleRooms = _deathMarkers
+            .Where(marker => marker.Room.AreaId == _areaId && marker.Room.Coordinates.Z == _z)
+            .Select(marker => marker.Room)
+            .DistinctBy(room => room.Id);
+
+        foreach (var room in visibleRooms)
+        {
+            var roomOffset = offsets.GetValueOrDefault(room.Id, MapOffset.Zero);
+            var center = WorldToScreen(
+                room.Coordinates.X + roomOffset.X * 0.6,
+                room.Coordinates.Y + roomOffset.Y * 0.6);
+
+            var radius = Math.Clamp(_settings.RoomSize * _zoom * 0.32, 5, 11);
+            context.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(210, 60, 0, 0)),
+                new Pen(Brushes.Crimson, 1),
+                center, radius, radius);
+
+            var glyph = new FormattedText(
+                "☠",
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(WidgetFontFamily, FontStyle.Normal, FontWeight.Bold),
+                radius * 1.4,
+                Brushes.White);
+            context.DrawText(glyph, new Point(center.X - glyph.Width / 2, center.Y - glyph.Height / 2));
         }
     }
 

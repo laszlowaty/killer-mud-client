@@ -3565,6 +3565,67 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
+    // Death marks on the map (Map.DeathMarkers) — the settings-flyout list
+    // (MainViewModel.Deaths) is the source of truth; Map.MainViewModel wiring
+    // (set in the constructor) keeps DeathMarkers resolved against it.
+    // ====================================================================
+
+    private static MapIndex CreateMapIndexWithRoom(string vnum, string? name = "Crypt")
+    {
+        var room = new MapRoom
+        {
+            Id = 1,
+            AreaId = 1,
+            Name = name,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement(vnum),
+            },
+        };
+        var area = new MapArea { Id = 1, Name = "Test Area", Rooms = [room] };
+        return new MapIndex(new MapDocument { Areas = [area] });
+    }
+
+    private static void SetMapIndex(MapViewModel map, MapIndex index) =>
+        typeof(MapViewModel).GetProperty(nameof(MapViewModel.MapIndex))!.SetValue(map, index);
+
+    [Fact]
+    public void AddingDeath_AppearsAsMapMarker_WhenVnumResolves()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+
+        _vm.Deaths.Add(new DeathMarkEntry("100", "Crypt", "2026-01-01 12:00"));
+
+        var marker = Assert.Single(_vm.Map.DeathMarkers);
+        Assert.Equal("100", marker.Room.Vnum);
+        Assert.Contains("Crypt", marker.Display);
+    }
+
+    [Fact]
+    public void AddingDeath_UnresolvableVnum_ProducesNoMapMarker()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+
+        _vm.Deaths.Add(new DeathMarkEntry("999", null, "2026-01-01 12:00"));
+
+        Assert.Empty(_vm.Map.DeathMarkers);
+    }
+
+    [Fact]
+    public void DeletingDeath_RemovesItsMapMarker()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+        var entry = new DeathMarkEntry("100", "Crypt", "2026-01-01 12:00");
+        _vm.Deaths.Add(entry);
+        Assert.Single(_vm.Map.DeathMarkers);
+
+        _vm.DeleteDeathCommand.Execute(entry);
+
+        Assert.Empty(_vm.Map.DeathMarkers);
+    }
+
+    // ====================================================================
     // Autowalk — Vitals exposure and binding check (No test)
     //
     // The "⚑ IDŹ" button in Map's own settings flyout (MapPanelView.axaml /
