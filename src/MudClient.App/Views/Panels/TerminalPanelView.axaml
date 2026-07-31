@@ -91,7 +91,11 @@
     </Grid>
 
     <!-- Command bar -->
-    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6">
+    <Border x:Name="CommandBar"
+            Grid.Column="1"
+            Grid.Row="1"
+            Classes="mud-bar-bottom"
+            Padding="8,6">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"

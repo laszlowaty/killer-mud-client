@@ -74,6 +74,24 @@ public sealed class OutputPanePerformanceTests
     }
 
     [AvaloniaFact]
+    public void ShrinkingViewport_RemainsPinnedToBottom()
+    {
+        var buffer = new OutputBuffer(100);
+        for (var i = 0; i < 30; i++)
+        {
+            buffer.Append($"line {i}", default);
+            buffer.CompleteLine();
+        }
+
+        var pane = new OutputPaneControl { Buffer = buffer, WordWrap = true };
+        pane.Arrange(new Rect(0, 0, 160, 240));
+        pane.Arrange(new Rect(0, 0, 160, 80));
+
+        var expectedBottom = Math.Max(0, pane.Extent.Height - pane.Viewport.Height);
+        Assert.Equal(expectedBottom, pane.Offset.Y, precision: 5);
+    }
+
+    [AvaloniaFact]
     public void HiddenLiveTail_DoesNotRecalculateUntilSplitIsShown()
     {
         var output = new MudOutputView();

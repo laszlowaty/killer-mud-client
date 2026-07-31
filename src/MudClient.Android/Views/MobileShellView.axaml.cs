@@ -5,7 +5,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Android.Util;
+using MudClient.App.Models;
 using MudClient.App.ViewModels;
 using MudClient.Android.Services;
 
@@ -18,6 +20,10 @@ public sealed partial class MobileShellView : UserControl
     private bool _initializationStarted;
     private bool _mapInitializationStarted;
     private bool _movementPadDragging;
+    private bool _isImeVisible;
+    private bool _restoreMapAfterIme;
+    private int _imeBottomInsetPixels;
+    private double _viewportHeightWithoutIme;
     private Point _movementPadDragStart;
     private Vector _movementPadTranslationAtDragStart;
     private MainWindowViewModel? _viewModel;
@@ -33,6 +39,7 @@ public sealed partial class MobileShellView : UserControl
         InitializeComponent();
         AttachedToVisualTree += OnAttachedToVisualTree;
         DetachedFromVisualTree += OnDetachedFromVisualTree;
+        SizeChanged += OnViewportSizeChanged;
     }
 
     private async void OnAttachedToVisualTree(
@@ -51,6 +58,7 @@ public sealed partial class MobileShellView : UserControl
                 _initializationCancellation.Token);
             DataContext = _viewModel;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            UpdateMovementPadVisibility();
             var loadingOverlay = this.FindControl<Grid>("LoadingOverlay");
             if (loadingOverlay is not null)
             {
@@ -99,6 +107,111 @@ public sealed partial class MobileShellView : UserControl
         if (eventArgs.PropertyName == nameof(MainWindowViewModel.IsProfileSelected))
         {
             StartMapInitializationWhenConnected();
+            UpdateMovementPadVisibility();
+        }
+    }
+
+    public void SetImeState(bool isVisible, int bottomInsetPixels)
+    {
+        var wasVisible = _isImeVisible;
+        _isImeVisible = isVisible;
+        _imeBottomInsetPixels = Math.Max(0, bottomInsetPixels);
+
+        var mapToggle = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapToggle");
+        if (mapToggle is not null)
+        {
+            if (isVisible && !wasVisible)
+            {
+                _restoreMapAfterIme = mapToggle.IsChecked == true;
+                mapToggle.IsChecked = false;
+            }
+            else if (!isVisible && wasVisible)
+            {
+                mapToggle.IsChecked = _restoreMapAfterIme;
+                _restoreMapAfterIme = false;
+            }
+
+            mapToggle.IsEnabled = !isVisible;
+        }
+
+        UpdateMovementPadVisibility();
+        Dispatcher.UIThread.Post(
+            ApplyImeInsetFallback,
+            DispatcherPriority.Background);
+    }
+
+    private void UpdateMovementPadVisibility()
+    {
+        var movementPad = this.FindControl<Border>("MovementPad");
+        if (movementPad is not null)
+        {
+            movementPad.IsVisible = !_isImeVisible
+                                    && _viewModel?.IsProfileSelected == true;
+        }
+    }
+
+    private void ApplyImeInsetFallback()
+    {
+        var viewport = this.FindControl<Border>("ImeViewport");
+        var root = this.FindControl<Grid>("MobileRoot");
+        var terminal = this.FindControl<MudClient.App.Views.Panels.TerminalPanelView>(
+            "MobileTerminal");
+        if (viewport is null
+            || root is null
+            || terminal is null
+            || viewport.Bounds.Height <= 0)
+        {
+            return;
+        }
+
+        if (!_isImeVisible)
+        {
+            root.Height = double.NaN;
+            terminal.Height = double.NaN;
+            terminal.SetCommandBarBottomOffset(0);
+            return;
+        }
+
+        if (_imeBottomInsetPixels <= 0 || _viewportHeightWithoutIme <= 0)
+        {
+            root.Height = double.NaN;
+            terminal.Height = double.NaN;
+            terminal.SetCommandBarBottomOffset(0);
+            return;
+        }
+
+        var density = global::Android.App.Application.Context
+                          .Resources?.DisplayMetrics?.Density
+                      ?? 1;
+        var imeInset = _imeBottomInsetPixels / Math.Max(1, density);
+        var missingInset = ViewportInsetCalculator.CalculateMissingBottomInset(
+            _viewportHeightWithoutIme,
+            viewport.Bounds.Height,
+            imeInset);
+
+        // adjustResize normally supplies the whole reduction. Android 15+
+        // edge-to-edge can instead expose only IME insets. An explicit height
+        // is required here because the Android TopLevel can retain the old
+        // DesiredSize and otherwise arrange the Auto command row below its clip.
+        var availableHeight = Math.Max(0, viewport.Bounds.Height - missingInset);
+        root.Height = availableHeight;
+        terminal.Height = availableHeight;
+        terminal.SetCommandBarBottomOffset(missingInset);
+    }
+
+    private void OnViewportSizeChanged(object? sender, SizeChangedEventArgs eventArgs)
+    {
+        if (!_isImeVisible && eventArgs.NewSize.Height > 0)
+        {
+            _viewportHeightWithoutIme = eventArgs.NewSize.Height;
+            return;
+        }
+
+        if (_isImeVisible)
+        {
+            Dispatcher.UIThread.Post(
+                ApplyImeInsetFallback,
+                DispatcherPriority.Background);
         }
     }
 
@@ -204,8 +317,14 @@ public sealed partial class MobileShellView : UserControl
         var minY = edgeMargin - pad.Bounds.Y;
         var maxY = Bounds.Height - edgeMargin - pad.Bounds.Bottom;
 
-        transform.X = Math.Clamp(requestedTranslation.X, minX, maxX);
-        transform.Y = Math.Clamp(requestedTranslation.Y, minY, maxY);
+        transform.X = ViewportPositionCalculator.ClampOrCenter(
+            requestedTranslation.X,
+            minX,
+            maxX);
+        transform.Y = ViewportPositionCalculator.ClampOrCenter(
+            requestedTranslation.Y,
+            minY,
+            maxY);
     }
 
     private void EndMovementPadDrag(IPointer pointer)
@@ -217,6 +336,35 @@ public sealed partial class MobileShellView : UserControl
     private void OpenSettings_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         OpenToolOverlay("Ustawienia", "MobileSettingsPanel");
+    }
+
+    private async void SwitchProfile_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        var viewModel = _viewModel;
+        this.FindControl<Avalonia.Controls.Button>("MobileMenuButton")?.Flyout?.Hide();
+        HideToolOverlay();
+
+        if (viewModel is null || viewModel.IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            if (viewModel.IsConnected && viewModel.DisconnectCommand.CanExecute(null))
+            {
+                await viewModel.DisconnectCommand.ExecuteAsync(null);
+            }
+
+            if (viewModel.SwitchProfileCommand.CanExecute(null))
+            {
+                viewModel.SwitchProfileCommand.Execute(null);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.Error("KillerMudClient", $"Nie udało się zmienić profilu: {exception}");
+        }
     }
 
     private void OpenAutomation_OnClick(object? sender, RoutedEventArgs eventArgs)

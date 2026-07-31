@@ -182,6 +182,13 @@ Interfejs konta i terminala pojawia się przed zakończeniem indeksowania mapy, 
 może jeszcze przez chwilę wyświetlać własny stan ładowania.
 Stan sesji jest przechowywany poza widokiem Activity, dlatego odtworzenie Activity
 nie tworzy drugiego połączenia.
+Po zimnym uruchomieniu aplikacja zawsze pokazuje wybór profilu. W trakcie pracy
+można wrócić do tego ekranu przez **Menu → Zmień profil**; aktywne połączenie
+zostanie wcześniej bezpiecznie rozłączone.
+Po otwarciu klawiatury ekranowej Activity zmniejsza powierzchnię aplikacji o obszar
+IME. Mobilna powłoka zwija wtedy mapę i ukrywa pad ruchu, aby input oraz koniec
+terminala pozostały widoczne. Na urządzeniach edge-to-edge brakującą część zmniejszenia
+uzupełniają insets IME; po zamknięciu klawiatury wcześniejszy stan mapy jest przywracany.
 
 Mobilne **Ustawienia → Dane** pozwalają wybrać kopię ZIP wyeksportowaną z wersji
 desktopowej. Archiwum jest najpierw walidowane, a dopiero osobne potwierdzenie

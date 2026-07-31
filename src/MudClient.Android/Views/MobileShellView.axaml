@@ -5,7 +5,10 @@
              xmlns:local="using:MudClient.Android.Views"
              x:Class="MudClient.Android.Views.MobileShellView"
              x:DataType="vm:MainWindowViewModel">
-  <Grid RowDefinitions="Auto,*" Background="{StaticResource MudBrushVoid}">
+  <Border x:Name="ImeViewport"
+          Background="{StaticResource MudBrushVoid}">
+    <Grid x:Name="MobileRoot"
+          RowDefinitions="Auto,*">
     <Border Grid.Row="0"
             Height="200"
             IsVisible="{Binding #MapToggle.IsChecked}"
@@ -14,7 +17,9 @@
       <panels:MapPanelView DataContext="{Binding Map}" IsCompact="True" />
     </Border>
 
-    <panels:TerminalPanelView Grid.Row="1" IsCompact="True" />
+    <panels:TerminalPanelView x:Name="MobileTerminal"
+                              Grid.Row="1"
+                              IsCompact="True" />
 
     <Border x:Name="MovementPad"
             Grid.RowSpan="2"
@@ -26,7 +31,7 @@
             Background="#F51A1F22"
             BorderBrush="{StaticResource MudBrushGoldDim}"
             BorderThickness="1"
-            IsVisible="{Binding IsProfileSelected}"
+            IsVisible="False"
             SizeChanged="MovementPad_OnSizeChanged">
       <Border.RenderTransform>
         <TranslateTransform />
@@ -223,6 +228,11 @@
         <Button.Flyout>
           <Flyout Placement="Bottom">
             <StackPanel Spacing="6" MinWidth="190">
+              <Button Content="👤  Zmień profil"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      IsEnabled="{Binding !IsBusy}"
+                      Click="SwitchProfile_OnClick" />
               <Button Content="⚙  Ustawienia"
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
@@ -341,5 +351,6 @@
                    TextWrapping="Wrap" />
       </StackPanel>
     </Grid>
-  </Grid>
+    </Grid>
+  </Border>
 </UserControl>

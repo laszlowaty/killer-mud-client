@@ -1,5 +1,4 @@
 using Android.Content;
-using Android.Util;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 
@@ -7,9 +6,6 @@ namespace MudClient.Android.Services;
 
 public sealed class MobileSessionHost
 {
-    private const string SessionPreferencesName = "mobile-session";
-    private const string ActiveProfilePreferenceKey = "active-profile";
-
     private readonly Context _context;
     private readonly SemaphoreSlim _initializationGate = new(1, 1);
     private MainWindowViewModel? _viewModel;
@@ -69,15 +65,6 @@ public sealed class MobileSessionHost
                 viewModel.ReportSettingsImportError(importException);
             }
 
-            viewModel.PropertyChanged += (_, eventArgs) =>
-            {
-                if (eventArgs.PropertyName == nameof(MainWindowViewModel.ActiveProfileName))
-                {
-                    PersistActiveProfile(viewModel.ActiveProfileName);
-                }
-            };
-            RestoreActiveProfile(viewModel, profileService);
-
             _viewModel = viewModel;
             return viewModel;
         }
@@ -115,50 +102,4 @@ public sealed class MobileSessionHost
         await viewModel.InitializeAsync(CancellationToken.None);
     }
 
-    private void RestoreActiveProfile(
-        MainWindowViewModel viewModel,
-        ProfileService profileService)
-    {
-        var profileName = GetSessionPreferences().GetString(
-            ActiveProfilePreferenceKey,
-            null);
-        if (string.IsNullOrWhiteSpace(profileName) || !profileService.Exists(profileName))
-        {
-            return;
-        }
-
-        viewModel.SelectedProfileName = profileName;
-        if (viewModel.SelectProfileCommand.CanExecute(null))
-        {
-            viewModel.SelectProfileCommand.Execute(null);
-        }
-    }
-
-    private void PersistActiveProfile(string? profileName)
-    {
-        try
-        {
-            var editor = GetSessionPreferences().Edit();
-            if (string.IsNullOrWhiteSpace(profileName))
-            {
-                editor?.Remove(ActiveProfilePreferenceKey);
-            }
-            else
-            {
-                editor?.PutString(ActiveProfilePreferenceKey, profileName);
-            }
-
-            editor?.Apply();
-        }
-        catch (Exception exception)
-        {
-            // Losing this convenience state must not interrupt an active MUD session.
-            Log.Warn("KillerMudClient", $"Nie udało się zapisać aktywnego profilu: {exception}");
-        }
-    }
-
-    private ISharedPreferences GetSessionPreferences() =>
-        _context.GetSharedPreferences(SessionPreferencesName, FileCreationMode.Private)
-        ?? throw new InvalidOperationException(
-            "Android nie udostępnił magazynu stanu sesji.");
 }

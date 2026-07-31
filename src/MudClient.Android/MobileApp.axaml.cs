@@ -11,6 +11,8 @@ public sealed partial class MobileApp : Avalonia.Application
 {
     private MobileSessionHost? _sessionHost;
     private WeakReference<MobileShellView>? _currentShellView;
+    private bool _isImeVisible;
+    private int _imeBottomInsetPixels;
 
     public override void Initialize()
     {
@@ -27,6 +29,7 @@ public sealed partial class MobileApp : Avalonia.Application
             {
                 var shellView = new MobileShellView(_sessionHost);
                 _currentShellView = new WeakReference<MobileShellView>(shellView);
+                shellView.SetImeState(_isImeVisible, _imeBottomInsetPixels);
                 return shellView;
             };
         }
@@ -37,6 +40,20 @@ public sealed partial class MobileApp : Avalonia.Application
     public bool TryNavigateBackToTerminal() =>
         _currentShellView?.TryGetTarget(out var shellView) == true
         && shellView.TryNavigateBackToTerminal();
+
+    public void SetImeState(bool isVisible, int bottomInsetPixels)
+    {
+        _isImeVisible = isVisible;
+        _imeBottomInsetPixels = Math.Max(0, bottomInsetPixels);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_currentShellView?.TryGetTarget(out var shellView) == true)
+            {
+                shellView.SetImeState(_isImeVisible, _imeBottomInsetPixels);
+            }
+        });
+    }
 
     private static void OnUnhandledException(
         object? sender,

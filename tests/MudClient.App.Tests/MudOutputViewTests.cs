@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using MudClient.App.Controls;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -32,6 +33,24 @@ public sealed class MudOutputViewTests
         Assert.Same(commandBox.Parent, searchBox.Parent);
         Assert.Equal(0, Grid.GetColumn(commandBox));
         Assert.Equal(1, Grid.GetColumn(searchBox));
+    }
+
+    [AvaloniaFact]
+    public void CommandBarBottomOffset_TranslatesExistingInputBar()
+    {
+        var terminal = new TerminalPanelView();
+        var commandBar = terminal.FindControl<Border>("CommandBar");
+
+        terminal.SetCommandBarBottomOffset(120);
+
+        var transform = Assert.IsType<TranslateTransform>(commandBar!.RenderTransform);
+        Assert.Equal(-120, transform.Y);
+        Assert.Equal(1000, commandBar.GetValue(Panel.ZIndexProperty));
+
+        terminal.SetCommandBarBottomOffset(0);
+
+        Assert.Null(commandBar.RenderTransform);
+        Assert.Equal(0, commandBar.GetValue(Panel.ZIndexProperty));
     }
 
     [AvaloniaFact]
