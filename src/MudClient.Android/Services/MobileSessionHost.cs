@@ -9,6 +9,7 @@ public sealed class MobileSessionHost
     private readonly Context _context;
     private readonly SemaphoreSlim _initializationGate = new(1, 1);
     private MainWindowViewModel? _viewModel;
+    private Task? _viewModelInitialization;
 
     public MobileSessionHost(Context context)
     {
@@ -31,8 +32,9 @@ public sealed class MobileSessionHost
                 return _viewModel;
             }
 
-            var appBaseDirectory = await MobileAssetBootstrap
-                .EnsureMapAssetsAsync(_context, cancellationToken);
+            var appBaseDirectory = _context.FilesDir?.AbsolutePath
+                ?? throw new InvalidOperationException(
+                    "Android nie udostępnił katalogu danych aplikacji.");
             var dataDirectory = Path.Combine(appBaseDirectory, "Data");
             Directory.CreateDirectory(dataDirectory);
 
@@ -57,7 +59,6 @@ public sealed class MobileSessionHost
                 passwordProtector: new AndroidKeystorePasswordProtector());
 
             viewModel.ShowTerminalVitalsBars = false;
-            await viewModel.InitializeAsync(cancellationToken);
             if (importException is not null)
             {
                 viewModel.ReportSettingsImportError(importException);
@@ -70,5 +71,33 @@ public sealed class MobileSessionHost
         {
             _initializationGate.Release();
         }
+    }
+
+    public async Task EnsureViewModelInitializedAsync(CancellationToken cancellationToken)
+    {
+        Task initialization;
+
+        await _initializationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var viewModel = _viewModel
+                ?? throw new InvalidOperationException(
+                    "Model sesji mobilnej nie został jeszcze utworzony.");
+            initialization = _viewModelInitialization
+                ??= InitializeViewModelAsync(viewModel);
+        }
+        finally
+        {
+            _initializationGate.Release();
+        }
+
+        await initialization.WaitAsync(cancellationToken);
+    }
+
+    private async Task InitializeViewModelAsync(MainWindowViewModel viewModel)
+    {
+        await MobileAssetBootstrap
+            .EnsureMapAssetsAsync(_context, CancellationToken.None);
+        await viewModel.InitializeAsync(CancellationToken.None);
     }
 }

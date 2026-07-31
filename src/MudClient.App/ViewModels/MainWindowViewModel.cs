@@ -73,6 +73,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
+    private readonly AsyncRelayCommand<string> _sendMovementCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
     private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
@@ -99,6 +100,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _idleTimeText = "Idle: —";
     private long _lastCommandSentTimestamp;
     private bool _isConnected;
+    private MovementButtonLayout _movementButtons = MovementButtonLayout.Create();
     private bool _isBusy;
     private string? _startupErrorMessage;
     private string? _startupErrorDetails;
@@ -251,6 +253,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _connectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
         _disconnectCommand = new AsyncRelayCommand(DisconnectAsync, CanDisconnect);
         _sendCommandCommand = new AsyncRelayCommand(SendCurrentCommandAsync, CanSendCommand);
+        _sendMovementCommand = new AsyncRelayCommand<string>(
+            SendMovementCommandAsync,
+            CanSendMovementCommand);
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
         ExaminePersonCommand = new RelayCommand<string>(ExecuteExaminePerson);
         KillPersonCommand = new RelayCommand<string>(ExecuteKillPerson);
@@ -974,7 +979,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IAsyncRelayCommand ConnectCommand => _connectCommand;
     public IAsyncRelayCommand DisconnectCommand => _disconnectCommand;
     public IAsyncRelayCommand SendCommandCommand => _sendCommandCommand;
+    public IAsyncRelayCommand<string> SendMovementCommand => _sendMovementCommand;
     public IAsyncRelayCommand RetryStartupCommand => _retryStartupCommand;
+
+    public MovementButtonLayout MovementButtons
+    {
+        get => _movementButtons;
+        private set => SetProperty(ref _movementButtons, value);
+    }
 
     public bool HasStartupError => !string.IsNullOrWhiteSpace(StartupErrorMessage);
 
@@ -1440,18 +1452,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void PopulateAvailableFonts()
     {
         var fonts = new List<string>();
-        try
+        if (!OperatingSystem.IsAndroid())
         {
-            fonts = Avalonia.Media.FontManager.Current.SystemFonts
-                .Select(f => f.Name)
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .Distinct()
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-        catch (Exception)
-        {
-            // Headless environment (e.g. unit tests) — fall back to a curated list.
+            try
+            {
+                fonts = Avalonia.Media.FontManager.Current.SystemFonts
+                    .Select(f => f.Name)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct()
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch (Exception)
+            {
+                // Headless environment (e.g. unit tests) — fall back to a curated list.
+            }
         }
 
         if (fonts.Count == 0)
@@ -2588,6 +2603,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         Dispatcher.UIThread.Post(() =>
         {
+            MovementButtons = MovementButtonLayout.Create(exits);
+
             if (!_autowalkWaitingForGate || _autowalkPath is null ||
                 _autowalkStep >= _autowalkPath.Steps.Count)
             {
@@ -5065,6 +5082,54 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private bool CanSendMovementCommand(string? command) =>
+        IsConnected &&
+        !IsBusy &&
+        _bookRefreshCts is null &&
+        !string.IsNullOrWhiteSpace(command);
+
+    private async Task SendMovementCommandAsync(
+        string? command,
+        CancellationToken cancellationToken)
+    {
+        if (!CanSendMovementCommand(command))
+        {
+            return;
+        }
+
+        var mapperDecision = Map.PrepareMapEditorCommand(command!);
+        if (!mapperDecision.Allow)
+        {
+            EmitSystem($"Mapper: {mapperDecision.Message}", 33);
+            return;
+        }
+
+        EmitCommandEcho(command!);
+        try
+        {
+            await _session.SendCommandAsync(command!, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            if (Map.IsMapEditorAwaitingRoomInfo)
+            {
+                Map.CancelPendingMapMovement("Anulowano wysyłanie ruchu mappera.");
+            }
+
+            throw;
+        }
+        catch (Exception exception)
+        {
+            if (Map.IsMapEditorAwaitingRoomInfo)
+            {
+                Map.CancelPendingMapMovement(
+                    $"Nie udało się wysłać ruchu mappera: {exception.Message}");
+            }
+
+            EmitSystem(exception.Message, 31);
+        }
+    }
+
     private bool CanExecuteLordGotoGroupRoom(GroupMember? member) =>
         LordModeEnabled && BuildLordGotoGroupRoomCommand(member) is not null;
 
@@ -5939,6 +6004,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var cancellation = new CancellationTokenSource();
         _bookRefreshCts = cancellation;
         _sendCommandCommand.NotifyCanExecuteChanged();
+        _sendMovementCommand.NotifyCanExecuteChanged();
         Killeropedia.BeginBookRefresh();
         var lockTaken = false;
 
@@ -5973,6 +6039,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             _bookRefreshCts = null;
             _sendCommandCommand.NotifyCanExecuteChanged();
+            _sendMovementCommand.NotifyCanExecuteChanged();
             cancellation.Dispose();
             if (Killeropedia.IsBookRefreshRunning)
             {
@@ -5998,6 +6065,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _connectCommand.NotifyCanExecuteChanged();
         _disconnectCommand.NotifyCanExecuteChanged();
         _sendCommandCommand.NotifyCanExecuteChanged();
+        _sendMovementCommand.NotifyCanExecuteChanged();
         SwitchProfileCommand.NotifyCanExecuteChanged();
     }
 

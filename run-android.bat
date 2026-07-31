@@ -18,8 +18,8 @@ if not exist "%JAVA_SDK%\bin\java.exe" set "JAVA_SDK=%ProgramFiles%\Android\Andr
 set "ADB=%ANDROID_SDK%\platform-tools\adb.exe"
 set "EMULATOR=%ANDROID_SDK%\emulator\emulator.exe"
 set "PROJECT=src\MudClient.Android\MudClient.Android.csproj"
+set "PACKAGE_ID=pl.killermud.client"
 set "ARTIFACTS=%CD%\.artifacts\android-run"
-set "APK=%ARTIFACTS%\bin\MudClient.Android\debug\pl.killermud.client-Signed.apk"
 
 where dotnet >nul 2>nul
 if errorlevel 1 (
@@ -64,43 +64,27 @@ echo  KillerMudClient Android
 echo  Emulator: %AVD_NAME%
 echo ============================================================
 echo.
-echo [1/4] Budowanie Core, App i Android...
-dotnet build "%PROJECT%" ^
-  -c Debug ^
-  -m:1 ^
-  --artifacts-path "%ARTIFACTS%" ^
-  -p:AndroidSdkDirectory="%ANDROID_SDK%" ^
-  -p:JavaSdkDirectory="%JAVA_SDK%"
-if errorlevel 1 (
-  echo.
-  echo ERROR: Build Androida nie powiodl sie.
-  goto :fail
-)
-
-if not exist "%APK%" (
-  echo ERROR: Build zakonczyl sie bez oczekiwanego APK:
-  echo   %APK%
-  goto :fail
-)
-
-echo.
-echo [2/4] Przygotowywanie widocznego emulatora...
+echo [1/5] Zimny start widocznego emulatora...
 "%ADB%" start-server >nul
 
-rem Ukryty emulator nie moze zostac pokazany po starcie. Zamykamy tylko taki
-rem proces i uruchamiamy ten sam AVD ponownie z normalnym oknem.
-powershell -NoLogo -NoProfile -Command ^
-  "$p = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'qemu-system*.exe' -and $_.CommandLine -match '(^|\s)-no-window(\s|$)' }; if ($p) { exit 0 } else { exit 1 }"
+rem Quick Boot potrafi przywrocic zawieszony SystemUI/GPU. Taki emulator pokazuje
+rem czarne okno aplikacji albo przechwytuje focus pol tekstowych. Kazdy run zaczyna
+rem wiec od zimnego startu AVD, ale nie czysci danych samego emulatora.
+"%ADB%" -e get-state >nul 2>nul
 if not errorlevel 1 (
-  echo Wykryto emulator bez okna. Ponowne uruchamianie w trybie widocznym...
+  echo Zamykanie poprzedniej instancji emulatora...
   "%ADB%" -e emu kill >nul 2>nul
-  timeout /t 3 /nobreak >nul
+  for /l %%I in (1,1,30) do (
+    "%ADB%" -e get-state >nul 2>nul
+    if errorlevel 1 goto :emulator_stopped
+    powershell -NoLogo -NoProfile -Command "Start-Sleep -Seconds 1"
+  )
+  echo ERROR: Poprzedni emulator nie zamknal sie w ciagu 30 sekund.
+  goto :fail
 )
 
-"%ADB%" -e get-state >nul 2>nul
-if errorlevel 1 (
-  start "Android Emulator - %AVD_NAME%" "%EMULATOR%" -avd "%AVD_NAME%"
-)
+:emulator_stopped
+start "Android Emulator - %AVD_NAME%" "%EMULATOR%" -avd "%AVD_NAME%" -no-snapshot-load
 
 set "DEVICE_READY="
 for /l %%I in (1,1,120) do (
@@ -109,7 +93,7 @@ for /l %%I in (1,1,120) do (
     set "DEVICE_READY=1"
     goto :device_ready
   )
-  timeout /t 1 /nobreak >nul
+  powershell -NoLogo -NoProfile -Command "Start-Sleep -Seconds 1"
 )
 
 :device_ready
@@ -121,11 +105,15 @@ if not defined DEVICE_READY (
 echo Oczekiwanie na pelne uruchomienie Androida...
 set "BOOT_READY="
 for /l %%I in (1,1,180) do (
-  for /f "usebackq delims=" %%B in (`"%ADB%" -e shell getprop sys.boot_completed 2^>nul`) do (
-    if "%%B"=="1" set "BOOT_READY=1"
+  "%ADB%" -e shell getprop sys.boot_completed 2>nul | findstr /x /c:"1" >nul
+  if not errorlevel 1 (
+    "%ADB%" -e shell getprop init.svc.bootanim 2>nul | findstr /x /c:"stopped" >nul
+    if not errorlevel 1 (
+      set "BOOT_READY=1"
+      goto :boot_ready
+    )
   )
-  if defined BOOT_READY goto :boot_ready
-  timeout /t 1 /nobreak >nul
+  powershell -NoLogo -NoProfile -Command "Start-Sleep -Seconds 1"
 )
 
 :boot_ready
@@ -135,28 +123,79 @@ if not defined BOOT_READY (
 )
 
 echo.
-echo [3/4] Instalowanie APK...
-"%ADB%" -e install -r "%APK%"
-if errorlevel 1 (
-  echo ERROR: Instalacja APK nie powiodla sie.
+echo [2/5] Usuwanie poprzedniej instalacji...
+"%ADB%" -e shell pm path "%PACKAGE_ID%" 2>nul | findstr /b /c:"package:" >nul
+if not errorlevel 1 (
+  "%ADB%" -e uninstall "%PACKAGE_ID%"
+  if errorlevel 1 (
+    echo ERROR: Nie udalo sie usunac poprzedniej instalacji.
+    goto :fail
+  )
+) else (
+  echo Aplikacja nie byla jeszcze zainstalowana.
+)
+
+set "ANDROID_ABI="
+for /f "usebackq delims=" %%A in (`"%ADB%" -e shell getprop ro.product.cpu.abi 2^>nul`) do set "ANDROID_ABI=%%A"
+if /i "%ANDROID_ABI%"=="x86_64" (
+  set "ANDROID_RID=android-x64"
+) else if /i "%ANDROID_ABI%"=="arm64-v8a" (
+  set "ANDROID_RID=android-arm64"
+) else (
+  echo ERROR: Nieobslugiwana architektura emulatora: %ANDROID_ABI%
   goto :fail
 )
 
 echo.
-echo [4/4] Uruchamianie KillerMudClient...
-"%ADB%" -e shell am force-stop pl.killermud.client >nul
-"%ADB%" -e shell monkey -p pl.killermud.client -c android.intent.category.LAUNCHER 1 >nul
+echo [3/5] Szybkie budowanie i instalowanie dla %ANDROID_ABI%...
+dotnet build "%PROJECT%" ^
+  -t:Install ^
+  -c Debug ^
+  -r "%ANDROID_RID%" ^
+  -m:1 ^
+  --artifacts-path "%ARTIFACTS%" ^
+  -p:EmbedAssembliesIntoApk=false ^
+  -p:AdbTarget=-e ^
+  -p:AndroidSdkDirectory="%ANDROID_SDK%" ^
+  -p:JavaSdkDirectory="%JAVA_SDK%"
+if errorlevel 1 (
+  echo.
+  echo ERROR: Build lub instalacja Androida nie powiodly sie.
+  goto :fail
+)
+
+echo.
+echo [4/5] Uruchamianie KillerMudClient...
+"%ADB%" -e shell am force-stop "%PACKAGE_ID%" >nul
+"%ADB%" -e shell monkey -p "%PACKAGE_ID%" -c android.intent.category.LAUNCHER 1 >nul
 if errorlevel 1 (
   echo ERROR: Nie udalo sie uruchomic aplikacji.
   goto :fail
 )
 
 echo.
-echo Gotowe. Emulator i KillerMudClient sa uruchomione.
-echo APK:
-echo   %APK%
+echo [5/5] Sprawdzanie okna aplikacji...
+set "APP_READY="
+for /l %%I in (1,1,30) do (
+  "%ADB%" -e shell dumpsys window 2>nul | findstr /i /c:"mCurrentFocus" | findstr /i /c:"%PACKAGE_ID%" >nul
+  if not errorlevel 1 (
+    set "APP_READY=1"
+    goto :app_ready
+  )
+  powershell -NoLogo -NoProfile -Command "Start-Sleep -Seconds 1"
+)
+
+:app_ready
+if not defined APP_READY (
+  echo ERROR: Okno aplikacji nie przejelo focusu w ciagu 30 sekund.
+  echo Sprawdz emulator i logcat; skrypt nie uznaje czarnego ekranu za udany start.
+  goto :fail
+)
+
 echo.
-pause
+echo Gotowe. Emulator i KillerMudClient sa uruchomione.
+echo.
+if not "%KMC_NO_PAUSE%"=="1" pause
 popd
 exit /b 0
 
@@ -164,6 +203,6 @@ exit /b 0
 echo.
 echo Operacja przerwana.
 echo.
-pause
+if not "%KMC_NO_PAUSE%"=="1" pause
 popd
 exit /b 1

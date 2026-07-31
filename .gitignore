@@ -1,7 +1,11 @@
 **/bin/
 **/obj/
 .vs/
-.idea/
+.idea/*
+!.idea/gradle.xml
+.gradle/
+/build/
+local.properties
 *.user
 *.suo
 *.log

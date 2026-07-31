@@ -16,6 +16,176 @@
 
     <panels:TerminalPanelView Grid.Row="1" IsCompact="True" />
 
+    <Border x:Name="MovementPad"
+            Grid.RowSpan="2"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Margin="0,56,10,72"
+            Padding="7"
+            CornerRadius="14"
+            Background="#F51A1F22"
+            BorderBrush="{StaticResource MudBrushGoldDim}"
+            BorderThickness="1"
+            IsVisible="{Binding IsProfileSelected}"
+            SizeChanged="MovementPad_OnSizeChanged">
+      <Border.RenderTransform>
+        <TranslateTransform />
+      </Border.RenderTransform>
+      <Grid RowDefinitions="30,54,54,54,54"
+            ColumnDefinitions="58,58,58"
+            RowSpacing="4"
+            ColumnSpacing="4">
+        <Border x:Name="MovementPadDragHandle"
+                Grid.Row="0"
+                Grid.ColumnSpan="3"
+                Width="54"
+                Height="26"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                CornerRadius="8"
+                Background="#FF30373D"
+                BorderBrush="{StaticResource MudBrushGoldDim}"
+                BorderThickness="1"
+                Cursor="SizeAll"
+                ToolTip.Tip="Przytrzymaj i przeciągnij pad"
+                PointerPressed="MovementPadDragHandle_OnPointerPressed"
+                PointerMoved="MovementPadDragHandle_OnPointerMoved"
+                PointerReleased="MovementPadDragHandle_OnPointerReleased"
+                PointerCaptureLost="MovementPadDragHandle_OnPointerCaptureLost">
+          <TextBlock Text="⠿"
+                     FontSize="17"
+                     Foreground="{StaticResource MudBrushGold}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+        </Border>
+
+        <Button Grid.Row="1"
+                Grid.Column="1"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.North.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="15"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.North.Label}">
+          <TextBlock Text="{Binding MovementButtons.North.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+        <Button Grid.Row="2"
+                Grid.Column="0"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.West.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="15"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.West.Label}">
+          <TextBlock Text="{Binding MovementButtons.West.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+        <Border Grid.Row="2"
+                Grid.Column="1"
+                Width="20"
+                Height="20"
+                CornerRadius="10"
+                Background="{StaticResource MudBrushGoldDim}"
+                Opacity="0.55"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsHitTestVisible="False" />
+        <Button Grid.Row="2"
+                Grid.Column="2"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.East.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="15"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.East.Label}">
+          <TextBlock Text="{Binding MovementButtons.East.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+        <Button Grid.Row="3"
+                Grid.Column="1"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.South.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="15"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.South.Label}">
+          <TextBlock Text="{Binding MovementButtons.South.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+        <Button Grid.Row="4"
+                Grid.Column="0"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.Up.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="14"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.Up.Label}">
+          <TextBlock Text="{Binding MovementButtons.Up.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+        <Button Grid.Row="4"
+                Grid.Column="2"
+                Command="{Binding SendMovementCommand}"
+                CommandParameter="{Binding MovementButtons.Down.Command}"
+                Width="54"
+                Height="54"
+                MinWidth="54"
+                MinHeight="54"
+                Padding="3"
+                FontSize="14"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                ToolTip.Tip="{Binding MovementButtons.Down.Label}">
+          <TextBlock Text="{Binding MovementButtons.Down.Label}"
+                     FontWeight="SemiBold"
+                     MaxWidth="46"
+                     TextAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+        </Button>
+      </Grid>
+    </Border>
+
     <StackPanel Grid.RowSpan="2"
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
@@ -115,10 +285,10 @@
                       SelectedItem="{Binding SelectedProfileName}"
                       PlaceholderText="Konto" />
             <TextBox Text="{Binding SelectedProfileLogin}"
-                     PlaceholderText="Login MUD" />
+                                 PlaceholderText="Login MUD" />
             <TextBox Text="{Binding SelectedProfilePassword}"
-                     PasswordChar="●"
-                     PlaceholderText="Hasło (puste zachowuje zapisane)" />
+                                 PasswordChar="●"
+                                 PlaceholderText="Hasło (puste zachowuje zapisane)" />
             <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
               <TextBox Grid.Column="0" Text="{Binding Host}" PlaceholderText="Host" />
               <TextBox Grid.Column="1" Text="{Binding Port}" PlaceholderText="Port" />
@@ -132,14 +302,20 @@
 
           <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,6" />
           <TextBlock Text="Nowe konto" Classes="mud-heading" />
-          <TextBox Text="{Binding NewProfileName}" PlaceholderText="Nazwa konta w aplikacji" />
-          <TextBox Text="{Binding NewProfileLogin}" PlaceholderText="Login MUD" />
+          <TextBox Text="{Binding NewProfileName}"
+                               PlaceholderText="Nazwa konta w aplikacji" />
+          <TextBox Text="{Binding NewProfileLogin}"
+                               PlaceholderText="Login MUD" />
           <TextBox Text="{Binding NewProfilePassword}"
-                   PasswordChar="●"
-                   PlaceholderText="Hasło" />
+                               PasswordChar="●"
+                               PlaceholderText="Hasło" />
           <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
-            <TextBox Grid.Column="0" Text="{Binding NewProfileHost}" PlaceholderText="Host" />
-            <TextBox Grid.Column="1" Text="{Binding NewProfilePort}" PlaceholderText="Port" />
+            <TextBox Grid.Column="0"
+                                 Text="{Binding NewProfileHost}"
+                                 PlaceholderText="Host" />
+            <TextBox Grid.Column="1"
+                                 Text="{Binding NewProfilePort}"
+                                 PlaceholderText="Port" />
           </Grid>
           <ComboBox ItemsSource="{Binding AvailableEncodings}"
                     SelectedItem="{Binding NewProfileEncoding}" />

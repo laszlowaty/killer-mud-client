@@ -170,11 +170,16 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
 
 - zwijaną mapę nad terminalem,
 - terminal z kompaktowym inputem,
+- prawostronny pad ruchu `n/s/w/e/up/down`, którego etykiety i komendy są
+  podmieniane przez nazwane wyjścia z GMCP `Room.Info`; pad można przesuwać
+  po ekranie, przytrzymując uchwyt z kropkami,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
 Killeropedia, pozostałe widgety oraz utrzymywanie połączenia po wygaszeniu ekranu
 nie należą jeszcze do mobilnego MVP. Pierwsze uruchomienie kopiuje do prywatnego
 katalogu aplikacji dołączone zasoby mapy; kolejne uruchomienia używają gotowej kopii.
+Interfejs konta i terminala pojawia się przed zakończeniem indeksowania mapy, która
+może jeszcze przez chwilę wyświetlać własny stan ładowania.
 Stan sesji jest przechowywany poza widokiem Activity, dlatego odtworzenie Activity
 nie tworzy drugiego połączenia.
 
@@ -191,6 +196,32 @@ dotnet workload install android
 dotnet build src/MudClient.Android/MudClient.Android.csproj `
   -p:AndroidSdkDirectory="$env:LOCALAPPDATA\Android\Sdk" `
   -p:JavaSdkDirectory="C:\Program Files\Android\Android Studio\jbr"
+```
+
+`run-android.bat [nazwa-AVD]` wykonuje zimny start emulatora bez wczytywania snapshotu
+Quick Boot, zawsze usuwa poprzednią instalację, a następnie używa debugowego Fast
+Deployment i buduje tylko ABI uruchomionego emulatora. Zimny start nie czyści danych
+AVD, ale zapobiega przywracaniu zawieszonego SystemUI/GPU, które może powodować czarny
+ekran i brak focusu pól tekstowych. Skrypt kończy się sukcesem dopiero wtedy, gdy okno
+aplikacji faktycznie przejmie focus. Pełne osadzanie bibliotek w APK pozostaje
+włączone dla konfiguracji Release.
+
+### Android Studio
+
+Otwórz w Android Studio katalog główny repozytorium, nie sam katalog
+`src/MudClient.Android`. Po synchronizacji Gradle wybierz współdzieloną konfigurację
+**KillerMudClient Android** i użyj **Run**. Konfiguracja uruchamia zadanie
+`runAndroid`, które korzysta z istniejącego `run-android.bat`, domyślnego AVD
+`Pixel_8` i wykonuje pełny reinstall aplikacji.
+
+Android Studio służy tu jako launcher Gradle, emulator i Logcat. Kod aplikacji nadal
+jest projektem Avalonia/.NET budowanym przez `dotnet`, dlatego Android Studio nie
+zapewnia dla plików C# pełnej obsługi edytora ani debuggera .NET. Sam build bez
+instalacji jest dostępny w panelu Gradle jako `android > buildAndroid`. Inny emulator
+można wskazać z terminala:
+
+```powershell
+.\gradlew.bat runAndroid -Pavd=Pixel_9_Pro_Fold
 ```
 
 Projekt Android jest budowany osobno i celowo nie znajduje się w desktopowym
