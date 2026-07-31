@@ -644,10 +644,65 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var entry = _settings.TerminalOverlays.FirstOrDefault(e => e.PanelId == tool.Id)
                 ?? new TerminalOverlayEntry { PanelId = tool.Id! };
             newEntries.Add(entry);
-            TerminalOverlays.Add(new TerminalOverlayViewModel(tool, entry, SaveSettings));
+            TerminalOverlays.Add(new TerminalOverlayViewModel(tool, entry, SaveSettings, HandleOverlayMove));
         }
 
         _settings.TerminalOverlays = newEntries;
+    }
+
+    /// <summary>Handles a card's move ▲▼◀▶ buttons. Up/Down reorder within the overlay's current
+    /// side's stack (a pin-order swap in <see cref="_dockFactory"/>); Left/Right move it to the
+    /// other side entirely — the Terminal itself never moves and always stays centered between
+    /// the two stacks.</summary>
+    private void HandleOverlayMove(TerminalOverlayViewModel overlay, OverlayMoveDirection direction)
+    {
+        switch (direction)
+        {
+            case OverlayMoveDirection.Up:
+                SwapOverlayWithNeighbor(overlay, -1);
+                break;
+            case OverlayMoveDirection.Down:
+                SwapOverlayWithNeighbor(overlay, 1);
+                break;
+            case OverlayMoveDirection.Left:
+                MoveOverlayToSide(overlay, OverlaySide.Left);
+                break;
+            case OverlayMoveDirection.Right:
+                MoveOverlayToSide(overlay, OverlaySide.Right);
+                break;
+        }
+    }
+
+    /// <summary>Swaps <paramref name="overlay"/> with the sibling <paramref name="step"/> places
+    /// away within its own side's stack (-1 = up/earlier, +1 = down/later). A no-op at either end
+    /// of that side's stack.</summary>
+    private void SwapOverlayWithNeighbor(TerminalOverlayViewModel overlay, int step)
+    {
+        var sameSide = TerminalOverlays.Where(o => o.Side == overlay.Side).ToList();
+        var index = sameSide.IndexOf(overlay);
+        var neighborIndex = index + step;
+        if (index < 0 || neighborIndex < 0 || neighborIndex >= sameSide.Count)
+        {
+            return;
+        }
+
+        _dockFactory.SwapOverlayOrder(overlay.Panel, sameSide[neighborIndex].Panel);
+    }
+
+    /// <summary>Moves <paramref name="overlay"/> to the other side's stack. Unlike
+    /// <see cref="SwapOverlayWithNeighbor"/> (which goes through <see cref="_dockFactory"/> and
+    /// its own <see cref="MudDockFactory.OverlayChanged"/> notification), the side lives purely in
+    /// settings, so this rebuilds and saves directly.</summary>
+    private void MoveOverlayToSide(TerminalOverlayViewModel overlay, OverlaySide side)
+    {
+        if (overlay.Side == side)
+        {
+            return;
+        }
+
+        overlay.SetSide(side);
+        SyncTerminalOverlaysFromFactory();
+        SaveSettings();
     }
 
     /// <summary>Re-applies the panels remembered as Terminal overlays (if any) after the dock
@@ -1366,6 +1421,50 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.TerminalOverlayColumnHeightFraction = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Mirrors <see cref="TerminalOverlayColumnWidthFraction"/> for the left overlay
+    /// stack — panels moved there via a card's ◀ arrow (see <see cref="OverlaySide"/>).</summary>
+    public double TerminalOverlayLeftColumnWidthFraction
+    {
+        get => _settings.TerminalOverlayLeftColumnWidthFraction;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinTerminalOverlayLeftColumnWidthFraction,
+                AppSettings.MaxTerminalOverlayLeftColumnWidthFraction);
+            if (Math.Abs(_settings.TerminalOverlayLeftColumnWidthFraction - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayLeftColumnWidthFraction = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Mirrors <see cref="TerminalOverlayColumnHeightFraction"/> for the left overlay
+    /// stack.</summary>
+    public double TerminalOverlayLeftColumnHeightFraction
+    {
+        get => _settings.TerminalOverlayLeftColumnHeightFraction;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinTerminalOverlayLeftColumnHeightFraction,
+                AppSettings.MaxTerminalOverlayLeftColumnHeightFraction);
+            if (Math.Abs(_settings.TerminalOverlayLeftColumnHeightFraction - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.TerminalOverlayLeftColumnHeightFraction = clamped;
             OnPropertyChanged();
             SaveSettings();
         }

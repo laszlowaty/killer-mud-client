@@ -20,7 +20,7 @@
       <Border Grid.Row="0"
               Background="{StaticResource MudBrushSlate}"
               Padding="6,1">
-        <Grid ColumnDefinitions="*,Auto,Auto">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
           <TextBlock Grid.Column="0" VerticalAlignment="Center"
                      FontFamily="{DynamicResource WidgetFontFamilyResource}"
                      FontSize="{DynamicResource WidgetFontSizeResource}"
@@ -28,9 +28,29 @@
                      Foreground="{StaticResource MudBrushGoldBright}"
                      Text="{Binding Title}" />
 
+          <!-- Move this overlay: ▲▼ reorder within its own side's stack, ◀▶ move it to the
+               other side entirely. The Terminal itself never moves and always stays centered
+               between the two stacks. Bound through this card's own Overlay property (set by
+               TerminalOverlayHost alongside DataContext) rather than DataContext itself, since
+               DataContext stays the plain PanelTool every other binding here already expects. -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,3,0">
+            <Button Content="◀" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
+                    ToolTip.Tip="Przenieś na lewo od terminala"
+                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveLeftCommand}" />
+            <Button Content="▲" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
+                    ToolTip.Tip="Przesuń w górę"
+                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveUpCommand}" />
+            <Button Content="▼" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
+                    ToolTip.Tip="Przesuń w dół"
+                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveDownCommand}" />
+            <Button Content="▶" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
+                    ToolTip.Tip="Przenieś na prawo od terminala"
+                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveRightCommand}" />
+          </StackPanel>
+
           <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map and
                Effects, which show their real settings menus via the buttons below instead. -->
-          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+          <Button Grid.Column="2" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
                   ToolTip.Tip="Ustawienia panelu (wkrótce)">
             <Button.IsVisible>
@@ -44,7 +64,7 @@
           <!-- Effects' real settings — shares MainWindowViewModel as Context with most other
                panels (unlike Map's own dedicated ViewModel), so its flyout binds through a cast
                instead of a type-keyed DataTemplate. -->
-          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+          <Button Grid.Column="2" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
                   IsVisible="{Binding IsEffectsTool}"
                   ToolTip.Tip="Ustawienia efektów">
@@ -69,7 +89,7 @@
           <!-- Map's real settings menu, duplicated from MapPanelView's own (hidden there while
                shown as an overlay card — see MapPanelView.axaml.cs) so it can live in the title
                bar next to the close button instead of floating over the map content. -->
-          <Button Grid.Column="1" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+          <Button Grid.Column="2" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
                   IsVisible="{Binding IsMapTool}"
                   ToolTip.Tip="Ustawienia mapy">
@@ -342,7 +362,7 @@
             </Button.Flyout>
           </Button>
 
-          <Button Grid.Column="2" Content="✕" Padding="3,0" FontSize="10"
+          <Button Grid.Column="3" Content="✕" Padding="3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
                   Command="{Binding CloseOverlayCommand}"
                   ToolTip.Tip="Zamknij (panel zostanie ukryty, Terminal pozostaje na wierzchu)" />

@@ -10,6 +10,7 @@ using Dock.Model.Mvvm.Controls;
 using Dock.Settings;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
+using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
@@ -460,6 +461,48 @@ public sealed class PinnedTabUiTests : IDisposable
             .Select(tool => tool.Id)
             .ToHashSet();
         Assert.Equal(nonTerminalIds, topPinnedIds);
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveCommands_ReorderWithinSideAndSwitchSides()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+
+        // Both default to the right side, in pin order: Gmcp, then Notes.
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(OverlaySide.Right, o.Side));
+
+        // Moving the second one up swaps it with the first.
+        viewModel.TerminalOverlays[1].MoveUpCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Notes", "Gmcp"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        // Moving the (now first) one down swaps it back.
+        viewModel.TerminalOverlays[0].MoveDownCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        // Moving Gmcp left puts it on its own side — Notes stays put on the right.
+        var gmcpOverlay = viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp");
+        gmcpOverlay.MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(OverlaySide.Left, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").Side);
+        Assert.Equal(OverlaySide.Right, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").Side);
+
+        // Moving it back right restores the shared single-side ordering.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(OverlaySide.Right, o.Side));
     }
 
     [AvaloniaFact]

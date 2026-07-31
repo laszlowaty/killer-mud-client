@@ -165,6 +165,22 @@ public sealed class MudDockFactory : Factory, IFactory
         OverlayChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Swaps two overlaid tools' relative pin order — used by a card's move up/down
+    /// arrows to reorder within its side's stack (see MainWindowViewModel's overlay-move
+    /// handling). A no-op unless both are currently overlaid.</summary>
+    public void SwapOverlayOrder(PanelTool a, PanelTool b)
+    {
+        var indexA = _overlayTools.IndexOf(a);
+        var indexB = _overlayTools.IndexOf(b);
+        if (indexA < 0 || indexB < 0)
+        {
+            return;
+        }
+
+        (_overlayTools[indexA], _overlayTools[indexB]) = (_overlayTools[indexB], _overlayTools[indexA]);
+        OverlayChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
     /// Auto-hides <paramref name="tool"/> as a collapsed tab on the chosen screen
     /// <paramref name="edge"/>. Dock 12 derives the pin edge from the owner ToolDock's

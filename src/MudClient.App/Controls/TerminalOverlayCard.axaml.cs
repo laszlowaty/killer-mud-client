@@ -18,6 +18,13 @@ public sealed partial class TerminalOverlayCard : UserControl
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
 
+    /// <summary>Set by <see cref="TerminalOverlayHost"/> alongside <see cref="UserControl.DataContext"/>
+    /// (which stays the plain <see cref="PanelTool"/> so every existing binding in this file keeps
+    /// working unchanged) — this is the one place the card's ▲▼◀▶ move buttons reach the
+    /// move commands from, via a `$parent[TerminalOverlayCard].Overlay...` binding. Set once at
+    /// construction and never changed afterward, so a plain CLR property is enough.</summary>
+    public TerminalOverlayViewModel? Overlay { get; set; }
+
     public TerminalOverlayCard()
     {
         InitializeComponent();

@@ -5,16 +5,18 @@
              x:DataType="vm:MainWindowViewModel">
   <!--
     Renders every panel pinned as a Terminal overlay (MainWindowViewModel.TerminalOverlays, only
-    ever populated in TRANSPARENCY mode) as a right-aligned, resizable stack. Resize handles are
-    plain Border elements driven by hand-rolled pointer-drag code in
+    ever populated in TRANSPARENCY mode) as two independently resizable stacks flanking the
+    Terminal — which always stays centered — one per TerminalOverlayViewModel.Side. Resize
+    handles are plain Border elements driven by hand-rolled pointer-drag code in
     TerminalOverlayHost.axaml.cs — Avalonia's GridSplitter proved unreliable for resizing two
     star-sized siblings here, so this computes fractions/weights directly from pointer deltas
     instead (see PointerMoved handlers). Each handle is a wide (6px) transparent hit area around a
     barely-visible 1px line, brightening on hover, so it stays easy to grab without dominating
     the view.
-    RootGrid columns: empty passthrough | width handle | stack area.
-    StackArea rows: card stack | height handle | empty passthrough below (revealed by shrinking
-    the stack's height fraction — the handle sits right below the lowest card).
+    RootGrid columns: left stack | left width handle | center passthrough (Terminal) |
+    right width handle | right stack.
+    Each StackArea's rows: card stack | height handle | empty passthrough below (revealed by
+    shrinking that side's height fraction — the handle sits right below its lowest card).
     Areas with no Background pass pointer input straight through to the terminal.
   -->
   <UserControl.Styles>
@@ -26,17 +28,38 @@
       <Setter Property="Opacity" Value="1" />
     </Style>
   </UserControl.Styles>
-  <Grid x:Name="RootGrid" ColumnDefinitions="*,6,*">
-    <Border x:Name="WidthHandle" Grid.Column="1"
+  <Grid x:Name="RootGrid" ColumnDefinitions="*,6,*,6,*">
+    <Grid x:Name="LeftStackArea" Grid.Column="0" MinWidth="160" RowDefinitions="*,6,*">
+      <Grid x:Name="LeftOverlayColumn" Grid.Row="0" />
+      <Border x:Name="LeftHeightHandle" Grid.Row="1"
+              Classes="mud-overlay-handle"
+              Background="Transparent"
+              Cursor="SizeNorthSouth">
+        <Border Classes="mud-overlay-handle-line"
+                Height="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+      </Border>
+    </Grid>
+
+    <Border x:Name="LeftWidthHandle" Grid.Column="1"
             Classes="mud-overlay-handle"
             Background="Transparent"
-            Cursor="SizeWestEast"
-            IsVisible="{Binding TerminalOverlays.Count}">
+            Cursor="SizeWestEast">
       <Border Classes="mud-overlay-handle-line"
               Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
     </Border>
-    <Grid x:Name="StackArea" Grid.Column="2" MinWidth="160" RowDefinitions="*,6,*"
-          IsVisible="{Binding TerminalOverlays.Count}">
+
+    <!-- Grid.Column="2": center passthrough, deliberately empty — the Terminal beneath always
+         shows through here and stays visually centered regardless of either side's width. -->
+
+    <Border x:Name="WidthHandle" Grid.Column="3"
+            Classes="mud-overlay-handle"
+            Background="Transparent"
+            Cursor="SizeWestEast">
+      <Border Classes="mud-overlay-handle-line"
+              Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+    </Border>
+
+    <Grid x:Name="StackArea" Grid.Column="4" MinWidth="160" RowDefinitions="*,6,*">
       <Grid x:Name="OverlayColumn" Grid.Row="0" />
       <Border x:Name="HeightHandle" Grid.Row="1"
               Classes="mud-overlay-handle"

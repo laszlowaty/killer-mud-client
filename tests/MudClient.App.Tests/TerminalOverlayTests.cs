@@ -122,6 +122,33 @@ public sealed class TerminalOverlayTests
     }
 
     [Fact]
+    public void SwapOverlayOrder_SwapsTheTwoTools_PositionsInOverlayTools()
+    {
+        var factory = CreateTransparencyFactory(out _);
+        var first = GetTool(factory, "Gmcp");
+        var second = GetTool(factory, "Notes");
+        factory.PinToolAsOverlay(first);
+        factory.PinToolAsOverlay(second);
+
+        factory.SwapOverlayOrder(first, second);
+
+        Assert.Equal([second, first], factory.OverlayTools);
+    }
+
+    [Fact]
+    public void SwapOverlayOrder_UnknownTool_IsNoOp()
+    {
+        var factory = CreateTransparencyFactory(out _);
+        var overlaid = GetTool(factory, "Gmcp");
+        var notOverlaid = GetTool(factory, "Notes");
+        factory.PinToolAsOverlay(overlaid);
+
+        factory.SwapOverlayOrder(overlaid, notOverlaid);
+
+        Assert.Equal([overlaid], factory.OverlayTools);
+    }
+
+    [Fact]
     public void ReturnOverlayToLayout_InTransparencyMode_DocksToolBackNextToTerminal()
     {
         var factory = CreateTransparencyFactory(out var layout);
