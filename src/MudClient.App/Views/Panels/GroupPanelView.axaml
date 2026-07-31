@@ -14,7 +14,7 @@
       <ItemsControl x:Name="GroupMembersList" ItemsSource="{Binding Group}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:GroupMember">
-            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+            <Border Classes="mud-section" Padding="6,3" Margin="0,1">
               <Border.ContextMenu>
                 <ContextMenu x:DataType="models:GroupMember"
                              Opened="GroupContextMenu_OnOpened"
@@ -29,40 +29,43 @@
                             IsVisible="{Binding #GroupPanel.DataContext.LordModeEnabled}" />
                 </ContextMenu>
               </Border.ContextMenu>
-              <StackPanel Spacing="2">
-                <!-- Row 1: leader marker + name + NPC marker -->
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                  <TextBlock Text="{Binding LeaderMarker}"
-                             Foreground="{StaticResource MudBrushGoldBright}"
-                             />
-                  <TextBlock Text="{Binding Name}" />
-                  <TextBlock Text="{Binding NpcDisplay}"
-                             Foreground="{StaticResource MudBrushParchmentDim}" />
-                </StackPanel>
-                <!-- Row 2: HP + MV bars -->
-                <StackPanel Spacing="2">
-                  <ProgressBar Minimum="0" Maximum="100" Height="6" CornerRadius="3"
+              <StackPanel Spacing="3">
+                <!-- Everything but the bars on one line: leader marker, name, NPC tag, position,
+                     mem, room. Room takes the remaining space and ellipsizes — everything else is
+                     short and fixed-width, so this is the one column worth letting grow. -->
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="{Binding LeaderMarker}"
+                             Foreground="{StaticResource MudBrushGoldBright}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                  <Border Grid.Column="2" Classes="mud-status-chip" Padding="4,0"
+                          IsVisible="{Binding IsNpc}">
+                    <TextBlock Text="NPC" FontSize="9" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushAmberWarn}" />
+                  </Border>
+                  <TextBlock Grid.Column="3" Foreground="{StaticResource MudBrushParchmentDim}"
+                             ToolTip.Tip="Pozycja"
+                             Text="{Binding PositionDisplay}" />
+                  <TextBlock Grid.Column="4" Foreground="{StaticResource MudBrushArcaneBlueBright}"
+                             Text="{Binding MemDisplay}"
+                             IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Grid.Column="5" Foreground="{StaticResource MudBrushParchmentFaint}"
+                             ToolTip.Tip="Pokój"
+                             Text="{Binding RoomDisplay}"
+                             TextTrimming="CharacterEllipsis"
+                             HorizontalAlignment="Right" />
+                </Grid>
+                <!-- HP + MV side by side instead of stacked — halves the height these two bars
+                     cost, so more members fit in the panel at once. -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                  <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Height="5" CornerRadius="2"
                                Value="{Binding HpPercent}"
                                Foreground="{StaticResource MudBrushCrimson}"
                                ToolTip.Tip="{Binding HpDisplay}" />
-                  <ProgressBar Minimum="0" Maximum="100" Height="6" CornerRadius="3"
+                  <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Height="5" CornerRadius="2"
                                Value="{Binding MvPercent}"
                                Foreground="{StaticResource MudBrushEmerald}"
                                ToolTip.Tip="{Binding MvDisplay}" />
-                </StackPanel>
-                <TextBlock Foreground="{StaticResource MudBrushArcaneBlueBright}"
-                           Text="{Binding MemDisplay}"
-                           IsVisible="{Binding MemDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-                <!-- Row 3: position + room -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Foreground="{StaticResource MudBrushParchmentDim}"
-                             ToolTip.Tip="Pozycja"
-                             Text="{Binding PositionDisplay}" />
-                  <TextBlock Foreground="{StaticResource MudBrushParchmentFaint}"
-                             ToolTip.Tip="Pokój"
-                             Text="{Binding RoomDisplay}" />
-                </StackPanel>
+                </Grid>
               </StackPanel>
             </Border>
           </DataTemplate>

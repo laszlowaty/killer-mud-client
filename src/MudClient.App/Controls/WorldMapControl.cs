@@ -1329,7 +1329,9 @@ public sealed class WorldMapControl : Control
             for (var index = 0; index < markers.Length; index++)
             {
                 var marker = markers[index];
-                var brush = marker.IsLeader ? Brushes.Gold : Brushes.DeepSkyBlue;
+                var brush = marker.IsLeader ? Brushes.Gold
+                    : marker.IsNpc ? Brushes.Orange
+                    : Brushes.DeepSkyBlue;
                 var name = new FormattedText(
                     marker.GetLabel(_showGroupMembersAsNumbers),
                     System.Globalization.CultureInfo.CurrentCulture,
@@ -1341,10 +1343,15 @@ public sealed class WorldMapControl : Control
                 const double markerRadius = 4;
                 const double horizontalPadding = 4;
                 const double markerGap = 4;
+                // NPCs (e.g. a summoned/charmed pet) render indented under whichever entry is
+                // stacked above them — GMCP carries no owner/master field to pair a pet with its
+                // controller, so this is positional (Char.Group's own member order) rather than a
+                // verified ownership link.
+                const double npcIndent = 14;
                 var labelHeight = Math.Max(14, name.Height + 4);
                 var labelWidth = horizontalPadding + markerRadius * 2 + markerGap + name.Width + horizontalPadding;
                 var labelRect = new Rect(
-                    center.X - labelWidth / 2,
+                    center.X - labelWidth / 2 + (marker.IsNpc ? npcIndent : 0),
                     labelBottom - (index + 1) * (labelHeight + 2),
                     labelWidth,
                     labelHeight);

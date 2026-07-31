@@ -472,6 +472,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             .Select(item => new GroupMapMarker(
                 item.Member.Name,
                 item.Member.IsLeader,
+                item.Member.IsNpc,
                 item.Room!,
                 item.Number))
             .ToArray();
