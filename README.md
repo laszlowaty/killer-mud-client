@@ -59,8 +59,7 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj UI** przywraca domyślny):
 
 - **Postać** — statystyki postaci,
-- **Kondycja** — HP/MV i stan witalny,
-- **Efekty** — aktywne efekty,
+- **Efekty i Kondycja** — dolegliwości (głód, pragnienie, upojenie itp.) oraz aktywne efekty,
 - **Buffy** — lista wymaganych buffów z podświetleniem brakujących; komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
 - **Drużyna** — skład i stan grupy,

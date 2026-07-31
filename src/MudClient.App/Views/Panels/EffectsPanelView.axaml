@@ -28,12 +28,39 @@
       <Setter Property="Foreground" Value="{StaticResource MudBrushCrimsonBright}" />
     </Style>
   </UserControl.Styles>
-  <!-- Effects (live from Char.Affects GMCP) -->
   <ScrollViewer>
-    <StackPanel Spacing="2" Margin="12">
-      <TextBlock Classes="mud-faint" Text="Brak aktywnych efektów."
-                 IsVisible="{Binding !Effects.Count}" />
-      <ItemsControl ItemsSource="{Binding Effects}">
+    <StackPanel Spacing="10" Margin="12">
+      <!-- Condition (live from Char.Condition GMCP) -->
+      <StackPanel Spacing="4">
+        <TextBlock Classes="mud-heading" Text="Kondycja" />
+        <TextBlock Classes="mud-faint" Text="W pełni sił — brak dolegliwości."
+                   IsVisible="{Binding !Conditions.Count}" />
+        <ItemsControl ItemsSource="{Binding Conditions}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Border Background="{StaticResource MudBrushStoneLight}"
+                      BorderBrush="{StaticResource MudBrushCrimson}"
+                      BorderThickness="1"
+                      CornerRadius="3" Padding="7,3" Margin="0,2,4,2">
+                <TextBlock Text="{Binding}"
+                           Foreground="{StaticResource MudBrushCrimsonBright}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- Effects (live from Char.Affects GMCP) -->
+      <StackPanel Spacing="2">
+        <TextBlock Classes="mud-heading" Text="Efekty" />
+        <TextBlock Classes="mud-faint" Text="Brak aktywnych efektów."
+                   IsVisible="{Binding !Effects.Count}" />
+        <ItemsControl ItemsSource="{Binding Effects}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:StatusEffect">
             <Border Classes="effect-entry"
@@ -82,7 +109,8 @@
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
-      </ItemsControl>
+        </ItemsControl>
+      </StackPanel>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

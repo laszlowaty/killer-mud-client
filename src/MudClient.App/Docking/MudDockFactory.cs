@@ -330,8 +330,7 @@ public sealed class MudDockFactory : Factory, IFactory
         NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
         NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
         NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
-        NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
-        NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
+        NewTool("Effects", "✨ Efekty i Kondycja", typeof(Views.Panels.EffectsPanelView), _mainContext);
         NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
         NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
         NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
@@ -395,7 +394,6 @@ public sealed class MudDockFactory : Factory, IFactory
         var roomInfoTool = Tool("RoomInfo");
         var terminalTool = Tool("Terminal");
         var infoTool = Tool("CharInfo");
-        var conditionTool = Tool("Condition");
         var effectsTool = Tool("Effects");
         var buffsTool = Tool(BuffsToolId);
         var groupTool = Tool("Group");
@@ -432,7 +430,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Proportion = 0.5,
             ActiveDockable = infoTool,
             VisibleDockables = CreateList<IDockable>(
-                infoTool, conditionTool, effectsTool, buffsTool, groupTool, memSpellsTool),
+                infoTool, effectsTool, buffsTool, groupTool, memSpellsTool),
             Alignment = Alignment.Right,
         };
 
