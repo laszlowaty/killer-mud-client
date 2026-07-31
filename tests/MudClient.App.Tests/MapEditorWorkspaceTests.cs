@@ -6,6 +6,7 @@ using MudClient.Core.Map;
 
 namespace MudClient.App.Tests;
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class MapEditorWorkspaceTests
 {
     [AvaloniaFact]
