@@ -28,15 +28,16 @@
                      Foreground="{StaticResource MudBrushGoldBright}"
                      Text="{Binding Title}" />
 
-          <!-- Move this overlay: ▲▼ reorder within its own side's stack, ◀▶ move it to the
-               other side entirely. The Terminal itself never moves and always stays centered
-               between the two stacks. Wired via Click handlers reading this card's own Overlay
-               property (set by TerminalOverlayHost alongside DataContext) directly in code-behind
-               — a `$parent[TerminalOverlayCard].Overlay.MoveXCommand` binding compiled fine but
-               never actually fired the commands at runtime, leaving the buttons looking inert. -->
+          <!-- Move this overlay: ▲▼ reorder within its own column, ◀▶ move it one column further
+               from (◀) or closer to (▶) the right edge — all columns float on the right side of
+               the Terminal, which itself never moves or resizes (see TerminalOverlayHost). Wired
+               via Click handlers reading this card's own Overlay property (set by
+               TerminalOverlayHost alongside DataContext) directly in code-behind — a
+               `$parent[TerminalOverlayCard].Overlay.MoveXCommand` binding compiled fine but never
+               actually fired the commands at runtime, leaving the buttons looking inert. -->
           <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,3,0">
             <Button Content="◀" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
-                    ToolTip.Tip="Przenieś na lewo od terminala"
+                    ToolTip.Tip="Przenieś do kolumny bardziej w lewo"
                     Click="MoveLeft_OnClick" />
             <Button Content="▲" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
                     ToolTip.Tip="Przesuń w górę"
@@ -45,7 +46,7 @@
                     ToolTip.Tip="Przesuń w dół"
                     Click="MoveDown_OnClick" />
             <Button Content="▶" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
-                    ToolTip.Tip="Przenieś na prawo od terminala"
+                    ToolTip.Tip="Przenieś do kolumny bardziej w prawo"
                     Click="MoveRight_OnClick" />
           </StackPanel>
 

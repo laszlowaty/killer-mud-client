@@ -11,7 +11,6 @@ using Dock.Model.Mvvm.Controls;
 using Dock.Settings;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
-using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
@@ -465,7 +464,7 @@ public sealed class PinnedTabUiTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void OverlayMoveCommands_ReorderWithinSideAndSwitchSides()
+    public void OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns()
     {
         var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
@@ -479,9 +478,9 @@ public sealed class PinnedTabUiTests : IDisposable
         factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
         Pump(window);
 
-        // Both default to the right side, in pin order: Gmcp, then Notes.
+        // Both default to column 0 (hugging the right edge), in pin order: Gmcp, then Notes.
         Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
-        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(OverlaySide.Right, o.Side));
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
 
         // Moving the second one up swaps it with the first.
         viewModel.TerminalOverlays[1].MoveUpCommand.Execute(null);
@@ -493,23 +492,78 @@ public sealed class PinnedTabUiTests : IDisposable
         Pump(window);
         Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
 
-        // Moving Gmcp left puts it on its own side — Notes stays put on the right.
+        // Moving Gmcp left creates a new column further from the edge — Notes stays in column 0.
         var gmcpOverlay = viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp");
         gmcpOverlay.MoveLeftCommand.Execute(null);
         Pump(window);
-        Assert.Equal(OverlaySide.Left, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").Side);
-        Assert.Equal(OverlaySide.Right, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").Side);
+        Assert.Equal(1, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").ColumnIndex);
+        Assert.Equal(0, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").ColumnIndex);
 
-        // Moving it back right restores the shared single-side ordering.
+        // Moving it back right rejoins column 0.
         viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
         Pump(window);
-        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(OverlaySide.Right, o.Side));
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveCommands_MultipleColumns_CreateAndCompact()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Group").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
+
+        int ColumnOf(string id) => viewModel.TerminalOverlays.Single(o => o.Panel.Id == id).ColumnIndex;
+
+        // Gmcp moves left, alone: column 0 -> 1. Nothing anchors an empty column in between, so a
+        // second "move left" by the same lone occupant would just collapse back to 1 (there is
+        // nothing further left to make room for) — that case is covered by
+        // OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns above instead.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal((Group: 0, Gmcp: 1, Notes: 0), (Group: ColumnOf("Group"), Gmcp: ColumnOf("Gmcp"), Notes: ColumnOf("Notes")));
+
+        // Notes moves left too: joins Gmcp's column (0 -> 1), since that's the next column over.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(1, ColumnOf("Gmcp"));
+        Assert.Equal(1, ColumnOf("Notes"));
+
+        // Notes moves left again: this time Gmcp is still occupying column 1, so column 2 is a
+        // genuine third column, not immediately compacted away.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
+        Assert.Equal(1, ColumnOf("Gmcp"));
+        Assert.Equal(2, ColumnOf("Notes"));
+
+        // Gmcp moves right, rejoining Group's column (1 -> 0). Column 1 is now empty; compaction
+        // must renumber Notes' column 2 down to 1 so no gap is left.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
+        Assert.Equal(0, ColumnOf("Gmcp"));
+        Assert.Equal(1, ColumnOf("Notes"));
+
+        // Group (already at column 0, the right edge) can't move right any further — no-op.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Group").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
     }
 
     [AvaloniaFact]
     public void OverlayMoveButtons_ClickingTheRenderedButton_InvokesTheMoveCommand()
     {
-        // Unlike OverlayMoveCommands_ReorderWithinSideAndSwitchSides above (which calls
+        // Unlike OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns above (which calls
         // MoveUpCommand.Execute(null) directly on the ViewModel), this test clicks the actual
         // rendered Button in TerminalOverlayCard's visual tree — the ▲▼◀▶ buttons once shipped
         // with a Command="{Binding $parent[TerminalOverlayCard].Overlay.MoveUpCommand}" binding
@@ -541,13 +595,13 @@ public sealed class PinnedTabUiTests : IDisposable
         var leftButton = window.GetVisualDescendants().OfType<TerminalOverlayCard>()
             .Single(card => card.Overlay?.Panel.Id == "Gmcp")
             .GetVisualDescendants().OfType<Button>()
-            .Single(button => ToolTip.GetTip(button) as string == "Przenieś na lewo od terminala");
+            .Single(button => ToolTip.GetTip(button) as string == "Przenieś do kolumny bardziej w lewo");
 
         leftButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Pump(window);
 
-        Assert.Equal(OverlaySide.Left, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").Side);
-        Assert.Equal(OverlaySide.Right, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").Side);
+        Assert.Equal(1, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").ColumnIndex);
+        Assert.Equal(0, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").ColumnIndex);
     }
 
     [AvaloniaFact]

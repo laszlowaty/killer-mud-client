@@ -264,17 +264,6 @@
               IsVisible="{Binding Toasts.Count}" />
     </StackPanel>
 
-    <!-- ========================================================================
-         Row 2: Footer bar
-         ======================================================================== -->
-    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5">
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
-        <TextBlock Classes="mud-faint" Text="Telnet + ANSI + GMCP  •  KillerMudClient" />
-        <TextBlock Classes="mud-faint" Text="{Binding Vitals.Name, StringFormat='Postać: {0}'}" />
-        <TextBlock Classes="mud-faint" Text="{Binding StatusText}" />
-      </Grid>
-    </Border>
-
     <controls:LargeTabbedWidget Grid.RowSpan="3"
                                 Title="Killeropedia"
                                 IsBookStyle="True"

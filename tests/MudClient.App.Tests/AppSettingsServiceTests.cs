@@ -263,13 +263,17 @@ public sealed class AppSettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public void Load_OutOfRangeColumnWidthFraction_ClampsToLimits()
+    public void Load_OutOfRangeOverlayColumnWidth_ClampsToLimits()
     {
-        SaveRaw(new AppSettings { TerminalOverlayColumnWidthFraction = 5 });
+        SaveRaw(new AppSettings
+        {
+            TerminalOverlays = [new TerminalOverlayEntry { PanelId = "Notes", ColumnWidth = 5000 }],
+        });
 
         var settings = _service.Load();
 
-        Assert.Equal(AppSettings.MaxTerminalOverlayColumnWidthFraction, settings.TerminalOverlayColumnWidthFraction);
+        var overlay = Assert.Single(settings.TerminalOverlays);
+        Assert.Equal(AppSettings.MaxTerminalOverlayColumnWidth, overlay.ColumnWidth);
     }
 
     [Fact]
@@ -279,11 +283,10 @@ public sealed class AppSettingsServiceTests : IDisposable
         {
             TerminalOverlays =
             [
-                new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 1.5 },
-                new TerminalOverlayEntry { PanelId = "Group", HeightWeight = 0.5 },
+                new TerminalOverlayEntry { PanelId = "Notes", HeightWeight = 1.5, ColumnIndex = 0, ColumnWidth = 280 },
+                new TerminalOverlayEntry { PanelId = "Group", HeightWeight = 0.5, ColumnIndex = 1, ColumnWidth = 400 },
             ],
             TerminalOverlayOpacity = 0.6,
-            TerminalOverlayColumnWidthFraction = 0.3,
         };
 
         _service.Save(original);
@@ -292,10 +295,13 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(2, loaded.TerminalOverlays.Count);
         Assert.Equal("Notes", loaded.TerminalOverlays[0].PanelId);
         Assert.Equal(1.5, loaded.TerminalOverlays[0].HeightWeight, precision: 6);
+        Assert.Equal(0, loaded.TerminalOverlays[0].ColumnIndex);
+        Assert.Equal(280, loaded.TerminalOverlays[0].ColumnWidth, precision: 6);
         Assert.Equal("Group", loaded.TerminalOverlays[1].PanelId);
         Assert.Equal(0.5, loaded.TerminalOverlays[1].HeightWeight, precision: 6);
+        Assert.Equal(1, loaded.TerminalOverlays[1].ColumnIndex);
+        Assert.Equal(400, loaded.TerminalOverlays[1].ColumnWidth, precision: 6);
         Assert.Equal(0.6, loaded.TerminalOverlayOpacity, precision: 6);
-        Assert.Equal(0.3, loaded.TerminalOverlayColumnWidthFraction, precision: 6);
     }
 
     // ====================================================================

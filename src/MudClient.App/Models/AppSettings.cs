@@ -23,33 +23,20 @@ public sealed class AppSettings
     public const double MinTerminalOverlayOpacity = 0.2;
     public const double MaxTerminalOverlayOpacity = 1.0;
 
-    /// <summary>Default/limits for the right overlay column's overall width, as a fraction (0..1)
-    /// of the Terminal's own width (see <see cref="TerminalOverlayColumnWidthFraction"/>). The
-    /// Terminal itself always stays centered between the left and right columns.</summary>
-    public const double DefaultTerminalOverlayColumnWidthFraction = 0.42;
-    public const double MinTerminalOverlayColumnWidthFraction = 0.2;
-    public const double MaxTerminalOverlayColumnWidthFraction = 0.7;
+    /// <summary>Default/limits for one overlay column's width in pixels (see
+    /// <see cref="TerminalOverlayEntry.ColumnWidth"/>). Columns float on top of the Terminal and
+    /// never resize it, so this is a plain pixel size rather than a fraction of anything.</summary>
+    public const double DefaultTerminalOverlayColumnWidth = 320;
+    public const double MinTerminalOverlayColumnWidth = 200;
+    public const double MaxTerminalOverlayColumnWidth = 900;
 
-    /// <summary>Default/limits for the left overlay column's width — see
-    /// <see cref="TerminalOverlayLeftColumnWidthFraction"/>. Defaults to 0 (no width) since most
-    /// users never move a panel to the left side; it only matters once something's there.</summary>
-    public const double DefaultTerminalOverlayLeftColumnWidthFraction = 0.0;
-    public const double MinTerminalOverlayLeftColumnWidthFraction = 0.0;
-    public const double MaxTerminalOverlayLeftColumnWidthFraction = 0.7;
-
-    /// <summary>Default/limits for the right overlay column's overall height, as a fraction
-    /// (0..1) of the Terminal's own height (see
-    /// <see cref="TerminalOverlayColumnHeightFraction"/>). The stack is anchored to the top, so
-    /// shrinking this reveals terminal below the last card.</summary>
+    /// <summary>Default/limits for one overlay column's overall height, as a fraction (0..1) of
+    /// the Terminal's own height (see <see cref="TerminalOverlayEntry.ColumnHeightFraction"/>).
+    /// The stack is anchored to the top, so shrinking this reveals terminal below the last
+    /// card.</summary>
     public const double DefaultTerminalOverlayColumnHeightFraction = 1.0;
     public const double MinTerminalOverlayColumnHeightFraction = 0.2;
     public const double MaxTerminalOverlayColumnHeightFraction = 1.0;
-
-    /// <summary>Default/limits for the left overlay column's height — see
-    /// <see cref="TerminalOverlayLeftColumnHeightFraction"/>.</summary>
-    public const double DefaultTerminalOverlayLeftColumnHeightFraction = 1.0;
-    public const double MinTerminalOverlayLeftColumnHeightFraction = 0.2;
-    public const double MaxTerminalOverlayLeftColumnHeightFraction = 1.0;
 
     /// <summary>Default/limits for one overlay's height relative to the others stacked in the
     /// same column (a Grid star weight — see <see cref="TerminalOverlayEntry.HeightWeight"/>).</summary>
@@ -133,21 +120,4 @@ public sealed class AppSettings
     /// <summary>0 (fully transparent) .. 1 (opaque). Shared by every overlay — lets the terminal
     /// text show through. One setting for all of them, not one per panel.</summary>
     public double TerminalOverlayOpacity { get; set; } = DefaultTerminalOverlayOpacity;
-
-    /// <summary>Width of the right overlay column as a fraction (0..1) of the Terminal's own
-    /// width. Shared by every overlay pinned to <see cref="OverlaySide.Right"/>.</summary>
-    public double TerminalOverlayColumnWidthFraction { get; set; } = DefaultTerminalOverlayColumnWidthFraction;
-
-    /// <summary>Height of the right overlay column as a fraction (0..1) of the Terminal's own
-    /// height. The stack is anchored to the top; dragging the handle below the last card shrinks
-    /// this to reveal terminal beneath it.</summary>
-    public double TerminalOverlayColumnHeightFraction { get; set; } = DefaultTerminalOverlayColumnHeightFraction;
-
-    /// <summary>Width of the left overlay column — see <see cref="TerminalOverlayColumnWidthFraction"/>,
-    /// mirrored for <see cref="OverlaySide.Left"/>.</summary>
-    public double TerminalOverlayLeftColumnWidthFraction { get; set; } = DefaultTerminalOverlayLeftColumnWidthFraction;
-
-    /// <summary>Height of the left overlay column — see <see cref="TerminalOverlayColumnHeightFraction"/>,
-    /// mirrored for <see cref="OverlaySide.Left"/>.</summary>
-    public double TerminalOverlayLeftColumnHeightFraction { get; set; } = DefaultTerminalOverlayLeftColumnHeightFraction;
 }
