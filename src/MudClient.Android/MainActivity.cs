@@ -12,4 +12,19 @@ namespace MudClient.Android;
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public sealed class MainActivity : AvaloniaMainActivity
 {
+    public MainActivity()
+    {
+        BackRequested += OnBackRequested;
+    }
+
+    private static void OnBackRequested(
+        object? sender,
+        AndroidBackRequestedEventArgs eventArgs)
+    {
+        if (Avalonia.Application.Current is MobileApp app
+            && app.TryNavigateBackToTerminal())
+        {
+            eventArgs.Handled = true;
+        }
+    }
 }

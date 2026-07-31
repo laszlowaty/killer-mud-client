@@ -231,11 +231,26 @@ public sealed partial class MobileShellView : UserControl
 
     private void CloseToolOverlay_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
+        HideToolOverlay();
+    }
+
+    public bool TryNavigateBackToTerminal()
+    {
         var overlay = this.FindControl<Border>("ToolOverlay");
-        if (overlay is not null)
+        if (overlay?.IsVisible == true)
         {
-            overlay.IsVisible = false;
+            HideToolOverlay();
+            return true;
         }
+
+        var menuFlyout = this.FindControl<Avalonia.Controls.Button>("MobileMenuButton")?.Flyout;
+        if (menuFlyout?.IsOpen == true)
+        {
+            menuFlyout.Hide();
+            return true;
+        }
+
+        return false;
     }
 
     private void OpenToolOverlay(string title, string activePanelName)
@@ -267,6 +282,15 @@ public sealed partial class MobileShellView : UserControl
         }
 
         this.FindControl<Avalonia.Controls.Button>("MobileMenuButton")?.Flyout?.Hide();
+    }
+
+    private void HideToolOverlay()
+    {
+        var overlay = this.FindControl<Border>("ToolOverlay");
+        if (overlay is not null)
+        {
+            overlay.IsVisible = false;
+        }
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);

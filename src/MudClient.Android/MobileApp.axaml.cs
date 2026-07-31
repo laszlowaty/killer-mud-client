@@ -10,6 +10,7 @@ namespace MudClient.Android;
 public sealed partial class MobileApp : Avalonia.Application
 {
     private MobileSessionHost? _sessionHost;
+    private WeakReference<MobileShellView>? _currentShellView;
 
     public override void Initialize()
     {
@@ -22,11 +23,20 @@ public sealed partial class MobileApp : Avalonia.Application
         if (ApplicationLifetime is IActivityApplicationLifetime activityLifetime)
         {
             _sessionHost ??= new MobileSessionHost(global::Android.App.Application.Context);
-            activityLifetime.MainViewFactory = () => new MobileShellView(_sessionHost);
+            activityLifetime.MainViewFactory = () =>
+            {
+                var shellView = new MobileShellView(_sessionHost);
+                _currentShellView = new WeakReference<MobileShellView>(shellView);
+                return shellView;
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    public bool TryNavigateBackToTerminal() =>
+        _currentShellView?.TryGetTarget(out var shellView) == true
+        && shellView.TryNavigateBackToTerminal();
 
     private static void OnUnhandledException(
         object? sender,
