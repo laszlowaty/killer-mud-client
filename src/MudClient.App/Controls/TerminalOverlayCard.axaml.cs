@@ -30,6 +30,14 @@ public sealed partial class TerminalOverlayCard : UserControl
         InitializeComponent();
     }
 
+    private void MoveUp_OnClick(object? sender, RoutedEventArgs eventArgs) => Overlay?.MoveUpCommand.Execute(null);
+
+    private void MoveDown_OnClick(object? sender, RoutedEventArgs eventArgs) => Overlay?.MoveDownCommand.Execute(null);
+
+    private void MoveLeft_OnClick(object? sender, RoutedEventArgs eventArgs) => Overlay?.MoveLeftCommand.Execute(null);
+
+    private void MoveRight_OnClick(object? sender, RoutedEventArgs eventArgs) => Overlay?.MoveRightCommand.Execute(null);
+
     // ========================================================================
     // Map's Autowalk locations / death marks — this card's DataContext is the
     // PanelTool itself, whose Context is the MapViewModel instance for the Map

@@ -30,22 +30,23 @@
 
           <!-- Move this overlay: ▲▼ reorder within its own side's stack, ◀▶ move it to the
                other side entirely. The Terminal itself never moves and always stays centered
-               between the two stacks. Bound through this card's own Overlay property (set by
-               TerminalOverlayHost alongside DataContext) rather than DataContext itself, since
-               DataContext stays the plain PanelTool every other binding here already expects. -->
+               between the two stacks. Wired via Click handlers reading this card's own Overlay
+               property (set by TerminalOverlayHost alongside DataContext) directly in code-behind
+               — a `$parent[TerminalOverlayCard].Overlay.MoveXCommand` binding compiled fine but
+               never actually fired the commands at runtime, leaving the buttons looking inert. -->
           <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,3,0">
             <Button Content="◀" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
                     ToolTip.Tip="Przenieś na lewo od terminala"
-                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveLeftCommand}" />
+                    Click="MoveLeft_OnClick" />
             <Button Content="▲" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
                     ToolTip.Tip="Przesuń w górę"
-                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveUpCommand}" />
+                    Click="MoveUp_OnClick" />
             <Button Content="▼" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
                     ToolTip.Tip="Przesuń w dół"
-                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveDownCommand}" />
+                    Click="MoveDown_OnClick" />
             <Button Content="▶" Padding="2,0" FontSize="9" MinWidth="0" MinHeight="0"
                     ToolTip.Tip="Przenieś na prawo od terminala"
-                    Command="{Binding $parent[controls:TerminalOverlayCard].Overlay.MoveRightCommand}" />
+                    Click="MoveRight_OnClick" />
           </StackPanel>
 
           <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map and

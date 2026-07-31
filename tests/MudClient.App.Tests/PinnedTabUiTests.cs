@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Dock.Avalonia.Controls;
@@ -503,6 +504,50 @@ public sealed class PinnedTabUiTests : IDisposable
         viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
         Pump(window);
         Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(OverlaySide.Right, o.Side));
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveButtons_ClickingTheRenderedButton_InvokesTheMoveCommand()
+    {
+        // Unlike OverlayMoveCommands_ReorderWithinSideAndSwitchSides above (which calls
+        // MoveUpCommand.Execute(null) directly on the ViewModel), this test clicks the actual
+        // rendered Button in TerminalOverlayCard's visual tree — the ▲▼◀▶ buttons once shipped
+        // with a Command="{Binding $parent[TerminalOverlayCard].Overlay.MoveUpCommand}" binding
+        // that compiled cleanly but never fired at runtime, and a ViewModel-level test couldn't
+        // catch that. The buttons are now wired via plain Click handlers in code-behind instead.
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        var notesCard = window.GetVisualDescendants().OfType<TerminalOverlayCard>()
+            .Single(card => card.Overlay?.Panel.Id == "Notes");
+        var upButton = notesCard.GetVisualDescendants().OfType<Button>()
+            .Single(button => ToolTip.GetTip(button) as string == "Przesuń w górę");
+
+        upButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(["Notes", "Gmcp"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        var leftButton = window.GetVisualDescendants().OfType<TerminalOverlayCard>()
+            .Single(card => card.Overlay?.Panel.Id == "Gmcp")
+            .GetVisualDescendants().OfType<Button>()
+            .Single(button => ToolTip.GetTip(button) as string == "Przenieś na lewo od terminala");
+
+        leftButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(OverlaySide.Left, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").Side);
+        Assert.Equal(OverlaySide.Right, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").Side);
     }
 
     [AvaloniaFact]
