@@ -172,7 +172,8 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
 - terminal z kompaktowym inputem,
 - prawostronny pad ruchu `n/s/w/e/up/down`, którego etykiety i komendy są
   podmieniane przez nazwane wyjścia z GMCP `Room.Info`; pad można przesuwać
-  po ekranie, przytrzymując uchwyt z kropkami,
+  po ekranie, przytrzymując uchwyt z kropkami; dla zamkniętego wyjścia pierwsze
+  kliknięcie wysyła `open <kierunek>`, a kolejne wykonuje ruch,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
 Killeropedia, pozostałe widgety oraz utrzymywanie połączenia po wygaszeniu ekranu
@@ -188,7 +189,9 @@ zostanie wcześniej bezpiecznie rozłączone.
 Po otwarciu klawiatury ekranowej Activity zmniejsza powierzchnię aplikacji o obszar
 IME. Mobilna powłoka zwija wtedy mapę i ukrywa pad ruchu, aby input oraz koniec
 terminala pozostały widoczne. Na urządzeniach edge-to-edge brakującą część zmniejszenia
-uzupełniają insets IME; po zamknięciu klawiatury wcześniejszy stan mapy jest przywracany.
+uzupełniają insets IME. Input pozostaje częścią zmniejszonego układu bezpośrednio nad
+klawiaturą, która nie jest zamykana po Enter ani po dotknięciu przycisku wysyłania.
+Po zamknięciu klawiatury wcześniejszy stan mapy jest przywracany.
 
 Mobilne **Ustawienia → Dane** pozwalają wybrać kopię ZIP wyeksportowaną z wersji
 desktopowej. Archiwum jest najpierw walidowane, a dopiero osobne potwierdzenie

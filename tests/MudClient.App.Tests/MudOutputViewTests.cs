@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Input.TextInput;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -36,21 +37,17 @@ public sealed class MudOutputViewTests
     }
 
     [AvaloniaFact]
-    public void CommandBarBottomOffset_TranslatesExistingInputBar()
+    public void CompactCommandInput_KeepsAndroidImeActiveAcrossSend()
     {
-        var terminal = new TerminalPanelView();
-        var commandBar = terminal.FindControl<Border>("CommandBar");
+        var terminal = new TerminalPanelView { IsCompact = true };
+        var commandBox = terminal.FindControl<TextBox>("CommandBox")!;
+        var sendButton = terminal.FindControl<Button>("CompactSendButton")!;
 
-        terminal.SetCommandBarBottomOffset(120);
-
-        var transform = Assert.IsType<TranslateTransform>(commandBar!.RenderTransform);
-        Assert.Equal(-120, transform.Y);
-        Assert.Equal(1000, commandBar.GetValue(Panel.ZIndexProperty));
-
-        terminal.SetCommandBarBottomOffset(0);
-
-        Assert.Null(commandBar.RenderTransform);
-        Assert.Equal(0, commandBar.GetValue(Panel.ZIndexProperty));
+        Assert.False(TextInputOptions.GetMultiline(commandBox));
+        Assert.Equal(
+            TextInputReturnKeyType.Send,
+            TextInputOptions.GetReturnKeyType(commandBox));
+        Assert.False(sendButton.Focusable);
     }
 
     [AvaloniaFact]

@@ -168,7 +168,6 @@ public sealed partial class MobileShellView : UserControl
         {
             root.Height = double.NaN;
             terminal.Height = double.NaN;
-            terminal.SetCommandBarBottomOffset(0);
             return;
         }
 
@@ -176,7 +175,6 @@ public sealed partial class MobileShellView : UserControl
         {
             root.Height = double.NaN;
             terminal.Height = double.NaN;
-            terminal.SetCommandBarBottomOffset(0);
             return;
         }
 
@@ -193,10 +191,11 @@ public sealed partial class MobileShellView : UserControl
         // edge-to-edge can instead expose only IME insets. An explicit height
         // is required here because the Android TopLevel can retain the old
         // DesiredSize and otherwise arrange the Auto command row below its clip.
+        // Shrinking the terminal keeps its Auto-sized command row in normal layout,
+        // directly above the IME, and reduces the output row by the command row too.
         var availableHeight = Math.Max(0, viewport.Bounds.Height - missingInset);
         root.Height = availableHeight;
         terminal.Height = availableHeight;
-        terminal.SetCommandBarBottomOffset(missingInset);
     }
 
     private void OnViewportSizeChanged(object? sender, SizeChangedEventArgs eventArgs)

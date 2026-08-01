@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
@@ -23,7 +22,6 @@ public sealed partial class TerminalPanelView : UserControl
     public static TerminalPanelView? Current { get; private set; }
 
     private readonly MudOutputView _mudOutput;
-    private readonly Border _commandBar;
     private readonly TextBox _commandBox;
     private readonly TextBox _searchBox;
     private readonly DispatcherTimer _timerCountdownRefresh;
@@ -43,8 +41,6 @@ public sealed partial class TerminalPanelView : UserControl
         InitializeComponent();
         _mudOutput = this.FindControl<MudOutputView>("MudOutput")
             ?? throw new InvalidOperationException("MudOutput not found.");
-        _commandBar = this.FindControl<Border>("CommandBar")
-            ?? throw new InvalidOperationException("CommandBar not found.");
         _commandBox = this.FindControl<TextBox>("CommandBox")
             ?? throw new InvalidOperationException("CommandBox not found.");
         _searchBox = this.FindControl<TextBox>("SearchBox")
@@ -73,16 +69,6 @@ public sealed partial class TerminalPanelView : UserControl
 
     /// <summary>Checks whether <paramref name="box"/> is this terminal's command box.</summary>
     public bool IsCommandBox(TextBox? box) => ReferenceEquals(box, _commandBox);
-
-    public void SetCommandBarBottomOffset(double bottomOffset)
-    {
-        _commandBar.RenderTransform = bottomOffset > 0
-            ? new TranslateTransform(0, -bottomOffset)
-            : null;
-        _commandBar.SetValue(
-            Panel.ZIndexProperty,
-            bottomOffset > 0 ? 1000 : 0);
-    }
 
     /// <summary>
     /// Marks that the next text input should select all text in the command box
@@ -348,12 +334,23 @@ public sealed partial class TerminalPanelView : UserControl
         {
             _viewModel.CommandText = string.Empty;
             _commandBox.Clear();
-            _commandBox.Focus();
+            if (!_commandBox.IsFocused)
+            {
+                _commandBox.Focus();
+            }
+
             _shouldSelectAllOnNextInput = false;
         }
         else
         {
-            FocusCommandBoxAndSelectAll();
+            if (_commandBox.IsFocused)
+            {
+                SelectAllCommandText();
+            }
+            else
+            {
+                FocusCommandBoxAndSelectAll();
+            }
         }
 
         _historyIndex = -1;

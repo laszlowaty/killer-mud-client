@@ -35,4 +35,40 @@ public sealed class MovementButtonLayoutTests
         Assert.Equal(new MovementButtonState("żółta góra", "zolta gora"), layout.Up);
         Assert.Equal(new MovementButtonState("n", "n"), layout.North);
     }
+
+    [Fact]
+    public void Create_ClosedExits_OpenBeforeMoving()
+    {
+        var layout = MovementButtonLayout.Create(
+        [
+            new RoomExitInfo("w", null, true, true),
+            new RoomExitInfo("e", "karczma", true, true),
+        ]);
+
+        Assert.Equal(new MovementButtonState("w", "open w", "w"), layout.West);
+        Assert.Equal(
+            new MovementButtonState("karczma", "open e", "karczma"),
+            layout.East);
+    }
+
+    [Fact]
+    public void MarkOpened_ChangesOnlyMatchingButtonToMovementCommand()
+    {
+        var layout = MovementButtonLayout.Create(
+        [
+            new RoomExitInfo("w", null, true, true),
+            new RoomExitInfo("e", "karczma", true, true),
+        ]);
+
+        var opened = layout.MarkOpened("open w");
+        var namedOpened = layout.MarkOpened("open e");
+
+        Assert.Equal(new MovementButtonState("w", "w"), opened.West);
+        Assert.Equal(
+            new MovementButtonState("karczma", "open e", "karczma"),
+            opened.East);
+        Assert.Equal(
+            new MovementButtonState("karczma", "karczma"),
+            namedOpened.East);
+    }
 }

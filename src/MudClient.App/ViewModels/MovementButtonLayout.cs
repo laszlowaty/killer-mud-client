@@ -4,7 +4,10 @@ using System.Text;
 
 namespace MudClient.App.ViewModels;
 
-public sealed record MovementButtonState(string Label, string Command);
+public sealed record MovementButtonState(
+    string Label,
+    string Command,
+    string? MoveCommandAfterOpening = null);
 
 public sealed record MovementButtonLayout(
     MovementButtonState North,
@@ -29,17 +32,26 @@ public sealed record MovementButtonLayout(
         foreach (var exit in exits ?? [])
         {
             var direction = CanonicalDirection(exit.Dir);
-            if (!buttons.TryGetValue(direction, out var defaultButton) ||
-                string.IsNullOrWhiteSpace(exit.Name) ||
-                CanonicalDirection(exit.Name) == direction)
+            if (!buttons.TryGetValue(direction, out var defaultButton))
             {
                 continue;
             }
 
-            var label = exit.Name.Trim();
-            buttons[direction] = new MovementButtonState(
-                label,
-                ToMudCommand(label));
+            var label = defaultButton.Label;
+            var moveCommand = defaultButton.Command;
+            if (!string.IsNullOrWhiteSpace(exit.Name) &&
+                CanonicalDirection(exit.Name) != direction)
+            {
+                label = exit.Name.Trim();
+                moveCommand = ToMudCommand(label);
+            }
+
+            buttons[direction] = exit.IsClosed
+                ? new MovementButtonState(
+                    label,
+                    $"open {defaultButton.Command}",
+                    moveCommand)
+                : new MovementButtonState(label, moveCommand);
         }
 
         return new MovementButtonLayout(
@@ -50,6 +62,23 @@ public sealed record MovementButtonLayout(
             buttons["U"],
             buttons["D"]);
     }
+
+    public MovementButtonLayout MarkOpened(string openingCommand) =>
+        new(
+            MarkOpened(North, openingCommand),
+            MarkOpened(South, openingCommand),
+            MarkOpened(West, openingCommand),
+            MarkOpened(East, openingCommand),
+            MarkOpened(Up, openingCommand),
+            MarkOpened(Down, openingCommand));
+
+    private static MovementButtonState MarkOpened(
+        MovementButtonState button,
+        string openingCommand) =>
+        button.MoveCommandAfterOpening is { } moveCommand &&
+        string.Equals(button.Command, openingCommand, StringComparison.OrdinalIgnoreCase)
+            ? new MovementButtonState(button.Label, moveCommand)
+            : button;
 
     private static string CanonicalDirection(string direction) =>
         direction.Trim().ToLowerInvariant() switch

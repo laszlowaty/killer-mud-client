@@ -5108,6 +5108,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await _session.SendCommandAsync(command!, cancellationToken);
+            var openedLayout = MovementButtons.MarkOpened(command!);
+            if (!Equals(openedLayout, MovementButtons))
+            {
+                MovementButtons = openedLayout;
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

@@ -3,6 +3,7 @@
              xmlns:controls="using:MudClient.App.Controls"
              xmlns:models="using:MudClient.App.Models"
              xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:textInput="using:Avalonia.Input.TextInput"
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:Name="TerminalRoot"
              x:DataType="vm:MainWindowViewModel">
@@ -105,6 +106,8 @@
                  AcceptsTab="False"
                  TextWrapping="Wrap"
                  MaxHeight="120"
+                 textInput:TextInputOptions.Multiline="False"
+                 textInput:TextInputOptions.ReturnKeyType="Send"
                  KeyDown="CommandBox_OnKeyDown" />
         <TextBox Grid.Column="1"
                  x:Name="SearchBox"
@@ -146,6 +149,7 @@
                 Content="➤"
                 MinWidth="44"
                 MinHeight="44"
+                Focusable="False"
                 Padding="12,7"
                 Command="{Binding SendCommandCommand}"
                 Click="SendButton_OnClick" />
