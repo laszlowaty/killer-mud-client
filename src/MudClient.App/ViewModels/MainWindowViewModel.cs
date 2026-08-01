@@ -966,7 +966,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ShowTeacherOnMap,
             lore,
             new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"),
-            quests);
+            quests,
+            ShowBookLocationOnMap);
     }
 
     private LoreCatalogData LoadLoreCatalog(string? downloadedDirectory)
@@ -2415,6 +2416,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Map.RouteRooms = null;
             AddToast($"Lokalizacja nauczyciela „{teacher.Name}” nie jest dostępna na mapie.", "error");
+            return;
+        }
+
+        PreviewRouteToRoom(room);
+    }
+
+    private void ShowBookLocationOnMap(BookLoadLocationEntry location)
+    {
+        IsKilleropediaOpen = false;
+        _dockFactory.ShowTool("Map");
+
+        if (location.RoomVnum is not { Length: > 0 } roomVnum
+            || Map.FocusRoomByVnum(roomVnum) is not { } room)
+        {
+            Map.RouteRooms = null;
+            AddToast("Ta lokalizacja księgi nie jest dostępna na mapie.", "error");
             return;
         }
 

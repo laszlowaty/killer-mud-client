@@ -15,6 +15,7 @@ public sealed class KilleropediaViewModel : ObservableObject
     private readonly BookCatalogStore _bookCatalogStore;
     private readonly Func<Task>? _refreshBooksAsync;
     private readonly Action<TeacherEntry>? _showTeacherOnMap;
+    private readonly Action<BookLoadLocationEntry>? _showBookLocationOnMap;
     private readonly AsyncRelayCommand _refreshBooksCommand;
     private readonly List<BookEntry> _allBooks = [];
     private string _teacherSearchText = string.Empty;
@@ -48,13 +49,15 @@ public sealed class KilleropediaViewModel : ObservableObject
         Action<TeacherEntry>? showTeacherOnMap = null,
         LoreCatalogData? loreCatalog = null,
         string? mapDirectory = null,
-        IReadOnlyList<QuestEntry>? quests = null)
+        IReadOnlyList<QuestEntry>? quests = null,
+        Action<BookLoadLocationEntry>? showBookLocationOnMap = null)
     {
         _allTeachers = teachers;
         _allQuests = quests ?? QuestCatalogLoader.Load();
         _bookCatalogStore = bookCatalogStore;
         _refreshBooksAsync = refreshBooksAsync;
         _showTeacherOnMap = showTeacherOnMap;
+        _showBookLocationOnMap = showBookLocationOnMap;
         var resolvedLoreCatalog = loreCatalog ?? LoreCatalogLoader.Load();
         _allLoreEntries = resolvedLoreCatalog.Entries;
         _loreById = _allLoreEntries.ToDictionary(entry => entry.Id, StringComparer.Ordinal);
@@ -70,6 +73,9 @@ public sealed class KilleropediaViewModel : ObservableObject
         ShowTeacherOnMapCommand = new RelayCommand<TeacherEntry>(
             ShowTeacherOnMap,
             teacher => teacher?.HasRoomLocation == true && _showTeacherOnMap is not null);
+        ShowBookLocationOnMapCommand = new RelayCommand<BookLoadLocationEntry>(
+            ShowBookLocationOnMap,
+            location => location?.HasRoomLocation == true && _showBookLocationOnMap is not null);
         NavigateLoreCommand = new RelayCommand<LoreLink>(
             NavigateLore,
             link => link is not null && _loreById.ContainsKey(link.TargetId));
@@ -194,6 +200,8 @@ public sealed class KilleropediaViewModel : ObservableObject
     public string FilteredTeacherCountText => $"Nauczyciele: {FilteredTeachers.Count} z {_allTeachers.Count}";
 
     public IRelayCommand<TeacherEntry> ShowTeacherOnMapCommand { get; }
+
+    public IRelayCommand<BookLoadLocationEntry> ShowBookLocationOnMapCommand { get; }
 
     public ObservableCollection<BookEntry> FilteredBooks { get; } = [];
 
@@ -416,6 +424,14 @@ public sealed class KilleropediaViewModel : ObservableObject
         if (teacher?.HasRoomLocation == true)
         {
             _showTeacherOnMap?.Invoke(teacher);
+        }
+    }
+
+    private void ShowBookLocationOnMap(BookLoadLocationEntry? location)
+    {
+        if (location?.HasRoomLocation == true)
+        {
+            _showBookLocationOnMap?.Invoke(location);
         }
     }
 

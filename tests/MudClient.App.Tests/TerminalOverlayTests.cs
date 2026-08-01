@@ -122,6 +122,23 @@ public sealed class TerminalOverlayTests
     }
 
     [Fact]
+    public void ShowTool_AlreadyOverlaid_LeavesItAsAnOverlayInstead()
+    {
+        // ShowTool is used by actions like Killeropedia's "Pokaż na mapie" to reveal a panel. An
+        // overlaid tool has been removed from the dock tree entirely, so without this check
+        // ShowTool would treat it as "not shown" and Restore() it into some other dock — tearing
+        // it out of its overlay position instead of just leaving it where the user already has it.
+        var factory = CreateTransparencyFactory(out _);
+        var map = GetTool(factory, "Map");
+        factory.PinToolAsOverlay(map);
+
+        var shown = factory.ShowTool("Map");
+
+        Assert.True(shown);
+        Assert.Contains(map, factory.OverlayTools);
+    }
+
+    [Fact]
     public void SwapOverlayOrder_SwapsTheTwoTools_PositionsInOverlayTools()
     {
         var factory = CreateTransparencyFactory(out _);

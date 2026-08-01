@@ -630,6 +630,16 @@ public sealed class MudDockFactory : Factory, IFactory
             return false;
         }
 
+        if (_overlayTools.Contains(tool))
+        {
+            // Already visible as a floating Terminal overlay. An overlaid tool has been removed
+            // from the dock tree entirely, so the checks below would otherwise treat it as
+            // "not shown" and Restore() it into some other dock — Restore has no notion of
+            // overlays, so that would tear the card out of its overlay position instead of just
+            // leaving it where the user already has it.
+            return true;
+        }
+
         if (IsPinned(_root, tool) || !ContainsDockable(_root, tool))
         {
             Restore(tool);
