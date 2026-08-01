@@ -91,8 +91,14 @@ public sealed class FolderTreeViewUiTests
             && slider.Maximum == AppSettings.MaxAutowalkRestSeconds);
         Assert.Contains(
             window.GetLogicalDescendants().OfType<Button>(),
-            button => Equals(button.Content, "Rzuć refresh na drużynę")
+            button => Equals(button.Content, "Rozkaż drużynie rzucić refresh")
                 && ReferenceEquals(button.Command, viewModel.CastRefreshOnGroupCommand));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Autostand — rozkaż drużynie wstać, gdy Ty wstajesz"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Autosit — rozkaż drużynie usiąść, gdy Ty siadasz"));
 
         window.Close();
         await viewModel.DisposeAsync();

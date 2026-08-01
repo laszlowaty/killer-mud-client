@@ -133,6 +133,14 @@ public sealed class AppSettings
     /// memorized.</summary>
     public int AutowalkRestSeconds { get; set; } = DefaultAutowalkRestSeconds;
 
+    /// <summary>When standing up while leading a group, orders every other group member to stand
+    /// too ("order &lt;name&gt; stand"). Only fires while the local character is the GMCP-reported
+    /// group leader.</summary>
+    public bool AutoStandOrderEnabled { get; set; }
+
+    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for sitting down ("order &lt;name&gt; sit").</summary>
+    public bool AutoSitOrderEnabled { get; set; }
+
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
     /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and

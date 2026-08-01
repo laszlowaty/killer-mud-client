@@ -103,7 +103,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void BuildGroupRefreshTargets_ExcludesSelfAndNpcs()
+    public void BuildOtherGroupMemberNames_ExcludesSelfAndNpcs()
     {
         var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
         {
@@ -112,15 +112,15 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
         });
 
-        var targets = MainWindowViewModel.BuildGroupRefreshTargets(group, "Hero");
+        var targets = MainWindowViewModel.BuildOtherGroupMemberNames(group, "Hero");
 
         Assert.Equal(["Companion"], targets);
     }
 
     [Fact]
-    public void BuildGroupRefreshTargets_NullGroup_ReturnsEmpty()
+    public void BuildOtherGroupMemberNames_NullGroup_ReturnsEmpty()
     {
-        Assert.Empty(MainWindowViewModel.BuildGroupRefreshTargets(null, "Hero"));
+        Assert.Empty(MainWindowViewModel.BuildOtherGroupMemberNames(null, "Hero"));
     }
 
     [Fact]
@@ -144,6 +144,45 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         await _vm.CastRefreshOnGroupCommand.ExecuteAsync(null);
 
         Assert.Contains(_vm.Toasts, toast => toast.Text.Contains("Brak członków drużyny"));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_Disabled_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "stand", enabled: false));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_NotTheLeader_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Companion", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "stand", enabled: true));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_AsLeader_OrdersEveryOtherMember()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var commands = MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "sit", enabled: true);
+
+        Assert.Equal(["order Companion sit"], commands);
     }
 
     [Fact]

@@ -1596,6 +1596,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool AutoStandOrderEnabled
+    {
+        get => _settings.AutoStandOrderEnabled;
+        set
+        {
+            if (_settings.AutoStandOrderEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoStandOrderEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoSitOrderEnabled
+    {
+        get => _settings.AutoSitOrderEnabled;
+        set
+        {
+            if (_settings.AutoSitOrderEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoSitOrderEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public int MinAutowalkLowMovementThresholdPercent => AppSettings.MinAutowalkLowMovementThresholdPercent;
 
     public int MaxAutowalkLowMovementThresholdPercent => AppSettings.MaxAutowalkLowMovementThresholdPercent;
@@ -3928,18 +3960,20 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         await SendTriggeredCommandAsync($"cast \"{entry.Name}\" self");
     }
 
-    /// <summary>Casts refresh on every other (non-NPC) group member in turn, so everyone can keep
-    /// moving under their own power during a long group trip instead of relying on autowalk's own
-    /// self-only recovery (see <see cref="AutowalkRecoveryPolicy"/>).</summary>
+    /// <summary>Orders every other (non-NPC) group member to cast refresh on themselves, in turn,
+    /// so everyone can keep moving under their own power during a long group trip instead of
+    /// relying on autowalk's own self-only recovery (see <see cref="AutowalkRecoveryPolicy"/>).
+    /// Uses the group "order" command rather than casting it directly at each member — the caster
+    /// still needs their own refresh memorized and cast on "self" once ordered.</summary>
     private async Task CastRefreshOnGroupAsync()
     {
         if (!IsConnected)
         {
-            AddToast("Nie połączono — nie można rzucić refresh.", "error");
+            AddToast("Nie połączono — nie można wysłać rozkazu.", "error");
             return;
         }
 
-        var targets = BuildGroupRefreshTargets(_latestGroupUpdate, _latestCharacterName);
+        var targets = BuildOtherGroupMemberNames(_latestGroupUpdate, _latestCharacterName);
         if (targets.Count == 0)
         {
             AddToast("Brak członków drużyny do odświeżenia.", "info");
@@ -3948,11 +3982,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var name in targets)
         {
-            await SendTriggeredCommandAsync($"cast 'refresh' {name}");
+            await SendTriggeredCommandAsync($"order {name} cast refresh");
         }
     }
 
-    internal static IReadOnlyList<string> BuildGroupRefreshTargets(
+    /// <summary>Every other (non-NPC) member of the current group — the set that "order" fan-out
+    /// commands (refresh, autostand/autosit) target one at a time.</summary>
+    internal static IReadOnlyList<string> BuildOtherGroupMemberNames(
         CharacterGroupUpdate? group, string? selfName) =>
         group?.Members
             .Where(member => !member.IsNpc
@@ -3960,6 +3996,43 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             .Select(member => member.Name)
             .ToArray()
         ?? [];
+
+    /// <summary>Orders every other group member to match a stand/sit change of our own, but only
+    /// while we're the GMCP-reported group leader — "order" only works for the leader, and firing
+    /// it as a follower would just spam failing commands.</summary>
+    private void TryAutoOrderGroupPosition(string command, bool enabled)
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var commands = BuildGroupPositionOrderCommands(
+            _latestGroupUpdate, _latestCharacterName, command, enabled);
+        if (commands.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(commands);
+    }
+
+    /// <summary>Pure decision behind <see cref="TryAutoOrderGroupPosition"/>: empty unless
+    /// <paramref name="enabled"/>, we're the group's own leader, and there's at least one other
+    /// member to order.</summary>
+    internal static IReadOnlyList<string> BuildGroupPositionOrderCommands(
+        CharacterGroupUpdate? group, string? selfName, string command, bool enabled)
+    {
+        if (!enabled || group is null
+            || !string.Equals(group.Leader, selfName, StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+
+        return BuildOtherGroupMemberNames(group, selfName)
+            .Select(name => $"order {name} {command}")
+            .ToArray();
+    }
 
     // ========================================================================
     // Profiles
@@ -5693,11 +5766,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (nowSitting && !wasSitting)
         {
             OnAutowalkSitting();
+            TryAutoOrderGroupPosition("sit", _settings.AutoSitOrderEnabled);
         }
 
         if (nowStanding && !wasStanding)
         {
             OnAutowalkStanding();
+            TryAutoOrderGroupPosition("stand", _settings.AutoStandOrderEnabled);
         }
 
         if (wasFighting && !nowFighting && !nowSitting)

@@ -423,12 +423,25 @@
 
           <TextBlock Classes="mud-heading" Text="Drużyna w podróży" Margin="0,6,0,0" />
           <Border Classes="mud-section" Padding="10">
-            <StackPanel Spacing="6">
-              <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                         Text="Rzuca refresh na każdego innego członka drużyny po kolei, żeby wszyscy mogli poruszać się o własnych siłach, a nie tylko Ty." />
-              <Button Content="Rzuć refresh na drużynę"
-                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                      Command="{Binding CastRefreshOnGroupCommand}" />
+            <StackPanel Spacing="10">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wysyła „order &lt;gracz&gt; cast refresh” do każdego innego członka drużyny po kolei, żeby każdy rzucił refresh na siebie zamiast czekać, aż zrobisz to za niego." />
+                <Button Content="Rozkaż drużynie rzucić refresh"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Command="{Binding CastRefreshOnGroupCommand}" />
+              </StackPanel>
+
+              <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+              <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutoStandOrderEnabled}"
+                          Content="Autostand — rozkaż drużynie wstać, gdy Ty wstajesz" />
+                <CheckBox IsChecked="{Binding AutoSitOrderEnabled}"
+                          Content="Autosit — rozkaż drużynie usiąść, gdy Ty siadasz" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” / „order &lt;gracz&gt; sit” do każdego innego członka." />
+              </StackPanel>
             </StackPanel>
           </Border>
         </StackPanel>
