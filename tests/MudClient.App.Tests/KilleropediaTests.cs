@@ -33,8 +33,8 @@ public sealed class KilleropediaTests : IDisposable
     {
         var teachers = TeacherCatalogLoader.Load();
 
-        Assert.Equal(151, teachers.Count);
-        Assert.Equal(1892, teachers.Sum(teacher => teacher.Skills.Count));
+        Assert.Equal(152, teachers.Count);
+        Assert.Equal(1908, teachers.Sum(teacher => teacher.Skills.Count));
 
         var renegade = Assert.Single(teachers, teacher => teacher.MobVnum == "19216");
         Assert.Contains(renegade.Skills, skill => skill.Name == "whirlwind");
@@ -51,6 +51,8 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Equal(5, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "bladefury")));
         Assert.Equal(5, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "desert bond")));
         Assert.Equal(4, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "loth prayer")));
+        Assert.Equal(4, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "claws mastery")));
+        Assert.Equal(12, teachers.Sum(teacher => teacher.Skills.Count(skill => skill.Name == "seize soul")));
 
         var yergiz = Assert.Single(teachers, teacher => teacher.MobVnum == "52");
         Assert.Contains(yergiz.Skills, skill => skill == new TeacherSkillEntry(
@@ -63,6 +65,56 @@ public sealed class KilleropediaTests : IDisposable
         var lothTeacher = Assert.Single(teachers, teacher => teacher.MobVnum == "66989");
         Assert.Contains(lothTeacher.Skills, skill => skill == new TeacherSkillEntry(
             "loth prayer", 70, 95, 55, 65));
+
+        (string MobVnum, int Min, int Max, int RequiredSkill, int Price)[] clawsMasteryTeachers =
+        [
+            ("2508", 0, 45, 35, 60),
+            ("1660", 40, 70, 40, 65),
+            ("42832", 60, 85, 60, 80),
+            ("16288", 80, 95, 80, 90),
+        ];
+
+        foreach (var item in clawsMasteryTeachers)
+        {
+            var teacher = Assert.Single(teachers, teacher => teacher.MobVnum == item.MobVnum);
+            Assert.Contains(teacher.Skills, skill => skill == new TeacherSkillEntry(
+                "claws mastery",
+                item.Min,
+                item.Max,
+                item.RequiredSkill,
+                item.Price));
+        }
+
+        (string MobVnum, int Min, int Max, int RequiredSkill, int Price)[] seizeSoulTeachers =
+        [
+            ("14067", 0, 30, 30, 20),
+            ("27586", 0, 30, 30, 20),
+            ("6779", 0, 30, 30, 30),
+            ("34713", 0, 30, 30, 30),
+            ("250", 0, 30, 30, 30),
+            ("16703", 0, 40, 0, 0),
+            ("2024", 28, 55, 30, 45),
+            ("16817", 30, 65, 43, 60),
+            ("33013", 45, 75, 45, 65),
+            ("11150", 50, 85, 50, 75),
+            ("25900", 70, 95, 75, 65),
+            ("43072", 75, 95, 75, 85),
+        ];
+
+        foreach (var item in seizeSoulTeachers)
+        {
+            var teacher = Assert.Single(teachers, teacher => teacher.MobVnum == item.MobVnum);
+            Assert.Contains(teacher.Skills, skill => skill == new TeacherSkillEntry(
+                "seize soul",
+                item.Min,
+                item.Max,
+                item.RequiredSkill,
+                item.Price));
+        }
+
+        var blackKnightTeacher = Assert.Single(teachers, teacher => teacher.MobVnum == "34713");
+        Assert.Equal("Czarny rycerz", blackKnightTeacher.Name);
+        Assert.Equal("Szkoła - Czarny Rycerz", blackKnightTeacher.Area);
     }
 
     [Fact]
@@ -198,7 +250,7 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Equal(Avalonia.Media.FontWeight.Bold, view.FontWeight);
 
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();
-        Assert.Equal(151, list.ItemCount);
+        Assert.Equal(152, list.ItemCount);
         Assert.NotNull(viewModel.SelectedTeacher);
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
