@@ -47,6 +47,18 @@ public sealed class AutowalkRecoveryPolicyTests
         Assert.Equal(LowMovementAction.None, action);
     }
 
+    [Fact]
+    public void GetLowMovementAction_CustomThreshold_UsesItInsteadOfTenPercent()
+    {
+        // 20/100 = 20% is above the default 10% threshold, but at/below a configured 25% one.
+        Assert.Equal(
+            LowMovementAction.None,
+            AutowalkRecoveryPolicy.GetLowMovementAction(20, 100, []));
+        Assert.Equal(
+            LowMovementAction.Rest,
+            AutowalkRecoveryPolicy.GetLowMovementAction(20, 100, [], thresholdPercent: 25));
+    }
+
     [Theory]
     [InlineData("Brama jest zamknięta na klucz.")]
     [InlineData("Brama jest zamknieta na klucz.")]

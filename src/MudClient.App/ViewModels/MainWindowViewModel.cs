@@ -287,6 +287,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DeleteBuffSetCommand = new RelayCommand(DeleteSelectedBuffSet, () => BuffSets.Count > 1);
         RecastBuffsCommand = new AsyncRelayCommand(RecastMissingBuffsAsync);
         RecastSingleBuffCommand = new AsyncRelayCommand<BuffWatchEntry>(RecastSingleBuffAsync);
+        CastRefreshOnGroupCommand = new AsyncRelayCommand(CastRefreshOnGroupAsync);
         var defaultBuffSet = new BuffSetEntry { Name = "Domyślny" };
         BuffSets.Add(defaultBuffSet);
         _selectedBuffSet = defaultBuffSet;
@@ -1579,6 +1580,68 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool AutowalkMovementRecoveryEnabled
+    {
+        get => _settings.AutowalkMovementRecoveryEnabled;
+        set
+        {
+            if (_settings.AutowalkMovementRecoveryEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkMovementRecoveryEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public int MinAutowalkLowMovementThresholdPercent => AppSettings.MinAutowalkLowMovementThresholdPercent;
+
+    public int MaxAutowalkLowMovementThresholdPercent => AppSettings.MaxAutowalkLowMovementThresholdPercent;
+
+    public int AutowalkLowMovementThresholdPercent
+    {
+        get => _settings.AutowalkLowMovementThresholdPercent;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinAutowalkLowMovementThresholdPercent,
+                AppSettings.MaxAutowalkLowMovementThresholdPercent);
+            if (_settings.AutowalkLowMovementThresholdPercent == clamped)
+            {
+                return;
+            }
+
+            _settings.AutowalkLowMovementThresholdPercent = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public int MinAutowalkRestSeconds => AppSettings.MinAutowalkRestSeconds;
+
+    public int MaxAutowalkRestSeconds => AppSettings.MaxAutowalkRestSeconds;
+
+    public int AutowalkRestSeconds
+    {
+        get => _settings.AutowalkRestSeconds;
+        set
+        {
+            var clamped = Math.Clamp(
+                value, AppSettings.MinAutowalkRestSeconds, AppSettings.MaxAutowalkRestSeconds);
+            if (_settings.AutowalkRestSeconds == clamped)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestSeconds = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool LordModeEnabled
     {
         get => _settings.LordModeEnabled;
@@ -2678,10 +2741,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        if (!skipMovementCheck)
+        if (!skipMovementCheck && _settings.AutowalkMovementRecoveryEnabled)
         {
             var action = AutowalkRecoveryPolicy.GetLowMovementAction(
-                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells);
+                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells,
+                _settings.AutowalkLowMovementThresholdPercent);
             if (action != LowMovementAction.None)
             {
                 _autowalkRecoveringMovement = true;
@@ -2747,10 +2811,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             else
             {
+                var restSeconds = _settings.AutowalkRestSeconds;
                 Dispatcher.UIThread.Post(() =>
-                    AutowalkStatusText = "Mało ruchu — odpoczywam 30 sekund.");
+                    AutowalkStatusText = $"Mało ruchu — odpoczywam {restSeconds} sekund.");
                 await SendTriggeredCommandAsync("rest", cancellationToken);
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(restSeconds), cancellationToken);
 
                 // The character is still resting — stand up before walking on.
                 await SendTriggeredCommandAsync("stand", cancellationToken);
@@ -3649,6 +3714,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand DeleteBuffSetCommand { get; }
     public AsyncRelayCommand RecastBuffsCommand { get; }
     public AsyncRelayCommand<BuffWatchEntry> RecastSingleBuffCommand { get; }
+    public AsyncRelayCommand CastRefreshOnGroupCommand { get; }
 
     /// <summary>Header badge for the buffs section, e.g. "2/3" (active/required).</summary>
     public string BuffsBadge => RequiredBuffs.Count == 0
@@ -3861,6 +3927,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         await SendTriggeredCommandAsync($"cast \"{entry.Name}\" self");
     }
+
+    /// <summary>Casts refresh on every other (non-NPC) group member in turn, so everyone can keep
+    /// moving under their own power during a long group trip instead of relying on autowalk's own
+    /// self-only recovery (see <see cref="AutowalkRecoveryPolicy"/>).</summary>
+    private async Task CastRefreshOnGroupAsync()
+    {
+        if (!IsConnected)
+        {
+            AddToast("Nie połączono — nie można rzucić refresh.", "error");
+            return;
+        }
+
+        var targets = BuildGroupRefreshTargets(_latestGroupUpdate, _latestCharacterName);
+        if (targets.Count == 0)
+        {
+            AddToast("Brak członków drużyny do odświeżenia.", "info");
+            return;
+        }
+
+        foreach (var name in targets)
+        {
+            await SendTriggeredCommandAsync($"cast 'refresh' {name}");
+        }
+    }
+
+    internal static IReadOnlyList<string> BuildGroupRefreshTargets(
+        CharacterGroupUpdate? group, string? selfName) =>
+        group?.Members
+            .Where(member => !member.IsNpc
+                && !string.Equals(member.Name, selfName, StringComparison.OrdinalIgnoreCase))
+            .Select(member => member.Name)
+            .ToArray()
+        ?? [];
 
     // ========================================================================
     // Profiles

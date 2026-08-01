@@ -21,10 +21,11 @@ public static class AutowalkRecoveryPolicy
     public static LowMovementAction GetLowMovementAction(
         int? movement,
         int? maximumMovement,
-        IReadOnlyList<MemorizedSpell> memorizedSpells)
+        IReadOnlyList<MemorizedSpell> memorizedSpells,
+        int thresholdPercent = 10)
     {
         if (movement is null || maximumMovement is null || maximumMovement <= 0 ||
-            (long)movement.Value * 100 > (long)maximumMovement.Value * 10)
+            (long)movement.Value * 100 > (long)maximumMovement.Value * thresholdPercent)
         {
             return LowMovementAction.None;
         }

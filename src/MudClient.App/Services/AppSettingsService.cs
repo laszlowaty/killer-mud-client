@@ -103,6 +103,16 @@ public sealed class AppSettingsService
                         AppSettings.MinTerminalOverlayOpacity,
                         AppSettings.MaxTerminalOverlayOpacity);
 
+                    settings.AutowalkLowMovementThresholdPercent = Math.Clamp(
+                        settings.AutowalkLowMovementThresholdPercent,
+                        AppSettings.MinAutowalkLowMovementThresholdPercent,
+                        AppSettings.MaxAutowalkLowMovementThresholdPercent);
+
+                    settings.AutowalkRestSeconds = Math.Clamp(
+                        settings.AutowalkRestSeconds,
+                        AppSettings.MinAutowalkRestSeconds,
+                        AppSettings.MaxAutowalkRestSeconds);
+
                     return settings;
                 }
             }

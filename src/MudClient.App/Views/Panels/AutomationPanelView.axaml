@@ -374,5 +374,65 @@
         </StackPanel>
       </ScrollViewer>
     </TabItem>
+
+    <TabItem Header="Podróż">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="8" Margin="10,8,10,12">
+          <TextBlock Classes="mud-heading" Text="Autowalk — odzyskiwanie ruchu" />
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Przed każdym krokiem autowalk sprawdza punkty ruchu (MV). Gdy spadną do progu poniżej, rzuca refresh (jeśli zapamiętany), a w przeciwnym razie odpoczywa przez ustawiony czas — po czym trasa wznawia się sama." />
+
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="10">
+              <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutowalkMovementRecoveryEnabled}"
+                          Content="Automatyczne odzyskiwanie ruchu podczas autowalk" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wyłączenie sprawia, że autowalk idzie dalej bez sprawdzania punktów ruchu — w trasie można utknąć bez MV." />
+              </StackPanel>
+
+              <StackPanel Spacing="3" IsEnabled="{Binding AutowalkMovementRecoveryEnabled}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="mud-label" Text="Próg niskiego ruchu" />
+                  <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                    <TextBlock Text="{Binding AutowalkLowMovementThresholdPercent, StringFormat='{}{0}%'}" />
+                  </Border>
+                </Grid>
+                <Slider Minimum="{Binding MinAutowalkLowMovementThresholdPercent}"
+                        Maximum="{Binding MaxAutowalkLowMovementThresholdPercent}"
+                        Value="{Binding AutowalkLowMovementThresholdPercent}"
+                        TickFrequency="1" IsSnapToTickEnabled="True" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Autowalk zaczyna odzyskiwać ruch, gdy aktualne MV spadną do tego procentu maksimum lub niżej." />
+
+                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                  <TextBlock Classes="mud-label" Text="Czas odpoczynku" />
+                  <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                    <TextBlock Text="{Binding AutowalkRestSeconds, StringFormat='{}{0} s'}" />
+                  </Border>
+                </Grid>
+                <Slider Minimum="{Binding MinAutowalkRestSeconds}"
+                        Maximum="{Binding MaxAutowalkRestSeconds}"
+                        Value="{Binding AutowalkRestSeconds}"
+                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Używane tylko, gdy refresh nie jest zapamiętany: klient wysyła rest, czeka tyle sekund, wstaje i wznawia trasę." />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Classes="mud-heading" Text="Drużyna w podróży" Margin="0,6,0,0" />
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                         Text="Rzuca refresh na każdego innego członka drużyny po kolei, żeby wszyscy mogli poruszać się o własnych siłach, a nie tylko Ty." />
+              <Button Content="Rzuć refresh na drużynę"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                      Command="{Binding CastRefreshOnGroupCommand}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
   </TabControl>
 </UserControl>

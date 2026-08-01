@@ -111,6 +111,28 @@ public sealed class AppSettings
     /// only previewing the route until confirmed.</summary>
     public bool AutoWalkOnMapDoubleClick { get; set; } = true;
 
+    /// <summary>Enables autowalk's built-in low-movement recovery (cast refresh if memorized,
+    /// otherwise rest then stand back up) before each step. Disabling lets autowalk keep walking
+    /// without ever pausing for this — see <see cref="MudClient.Core.Automation.AutowalkRecoveryPolicy"/>.</summary>
+    public bool AutowalkMovementRecoveryEnabled { get; set; } = true;
+
+    /// <summary>Default/limits for <see cref="AutowalkLowMovementThresholdPercent"/>.</summary>
+    public const int DefaultAutowalkLowMovementThresholdPercent = 10;
+    public const int MinAutowalkLowMovementThresholdPercent = 1;
+    public const int MaxAutowalkLowMovementThresholdPercent = 50;
+
+    /// <summary>Movement percentage (of max) at or below which autowalk triggers recovery.</summary>
+    public int AutowalkLowMovementThresholdPercent { get; set; } = DefaultAutowalkLowMovementThresholdPercent;
+
+    /// <summary>Default/limits for <see cref="AutowalkRestSeconds"/>.</summary>
+    public const int DefaultAutowalkRestSeconds = 30;
+    public const int MinAutowalkRestSeconds = 5;
+    public const int MaxAutowalkRestSeconds = 300;
+
+    /// <summary>How long autowalk rests (in seconds) before standing back up, when "refresh" isn't
+    /// memorized.</summary>
+    public int AutowalkRestSeconds { get; set; } = DefaultAutowalkRestSeconds;
+
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
     /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and

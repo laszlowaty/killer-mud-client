@@ -103,6 +103,70 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void BuildGroupRefreshTargets_ExcludesSelfAndNpcs()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var targets = MainWindowViewModel.BuildGroupRefreshTargets(group, "Hero");
+
+        Assert.Equal(["Companion"], targets);
+    }
+
+    [Fact]
+    public void BuildGroupRefreshTargets_NullGroup_ReturnsEmpty()
+    {
+        Assert.Empty(MainWindowViewModel.BuildGroupRefreshTargets(null, "Hero"));
+    }
+
+    [Fact]
+    public async Task CastRefreshOnGroupCommand_NotConnected_ShowsErrorToast()
+    {
+        await _vm.CastRefreshOnGroupCommand.ExecuteAsync(null);
+
+        Assert.Contains(_vm.Toasts, toast => toast.Text.Contains("Nie połączono"));
+    }
+
+    [Fact]
+    public async Task CastRefreshOnGroupCommand_ConnectedWithNoOtherMembers_ShowsInfoToast()
+    {
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+        }));
+
+        await _vm.CastRefreshOnGroupCommand.ExecuteAsync(null);
+
+        Assert.Contains(_vm.Toasts, toast => toast.Text.Contains("Brak członków drużyny"));
+    }
+
+    [Fact]
+    public void AutowalkLowMovementThresholdPercent_Setter_ClampsToLimits()
+    {
+        _vm.AutowalkLowMovementThresholdPercent = 999;
+        Assert.Equal(AppSettings.MaxAutowalkLowMovementThresholdPercent, _vm.AutowalkLowMovementThresholdPercent);
+
+        _vm.AutowalkLowMovementThresholdPercent = -5;
+        Assert.Equal(AppSettings.MinAutowalkLowMovementThresholdPercent, _vm.AutowalkLowMovementThresholdPercent);
+    }
+
+    [Fact]
+    public void AutowalkRestSeconds_Setter_ClampsToLimits()
+    {
+        _vm.AutowalkRestSeconds = 9999;
+        Assert.Equal(AppSettings.MaxAutowalkRestSeconds, _vm.AutowalkRestSeconds);
+
+        _vm.AutowalkRestSeconds = 0;
+        Assert.Equal(AppSettings.MinAutowalkRestSeconds, _vm.AutowalkRestSeconds);
+    }
+
+    [Fact]
     public void Constructor_PopulatesMockNotes()
     {
         Assert.NotEmpty(_vm.Notes);
