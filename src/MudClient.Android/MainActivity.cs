@@ -2,6 +2,7 @@ using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Avalonia.Android;
+using AndroidX.Activity;
 using AndroidX.Core.View;
 using SoftInput = Android.Views.SoftInput;
 
@@ -18,6 +19,7 @@ public sealed class MainActivity : AvaloniaMainActivity
 {
     private ImeInsetsListener? _imeInsetsListener;
     private global::Android.Views.View? _decorView;
+    private OnBackPressedCallback? _backPressedCallback;
 
     public MainActivity()
     {
@@ -54,6 +56,24 @@ public sealed class MainActivity : AvaloniaMainActivity
         base.OnDestroy();
     }
 
+    protected override void OnStart()
+    {
+        base.OnStart();
+
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            _backPressedCallback ??= new KeepAppVisibleBackPressedCallback(
+                NavigateBackToTerminal);
+            OnBackPressedDispatcher.AddCallback(this, _backPressedCallback);
+        }
+    }
+
+    protected override void OnStop()
+    {
+        _backPressedCallback?.Remove();
+        base.OnStop();
+    }
+
     private static void OnImeInsetsChanged(bool isVisible, int bottomInsetPixels)
     {
         if (Avalonia.Application.Current is MobileApp app)
@@ -66,10 +86,24 @@ public sealed class MainActivity : AvaloniaMainActivity
         object? sender,
         AndroidBackRequestedEventArgs eventArgs)
     {
-        if (Avalonia.Application.Current is MobileApp app
-            && app.TryNavigateBackToTerminal())
+        NavigateBackToTerminal();
+        eventArgs.Handled = true;
+    }
+
+    private static void NavigateBackToTerminal()
+    {
+        if (Avalonia.Application.Current is MobileApp app)
         {
-            eventArgs.Handled = true;
+            app.TryNavigateBackToTerminal();
+        }
+    }
+
+    private sealed class KeepAppVisibleBackPressedCallback(Action onBackPressed)
+        : OnBackPressedCallback(true)
+    {
+        public override void HandleOnBackPressed()
+        {
+            onBackPressed();
         }
     }
 
