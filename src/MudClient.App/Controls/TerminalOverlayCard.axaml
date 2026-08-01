@@ -50,8 +50,8 @@
                     Click="MoveRight_OnClick" />
           </StackPanel>
 
-          <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map and
-               Effects, which show their real settings menus via the buttons below instead. -->
+          <!-- Generic per-panel settings placeholder (no behavior yet) — hidden for Map, Effects,
+               and Mem, which show their real settings menus via the buttons below instead. -->
           <Button Grid.Column="2" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
                   MinWidth="0" MinHeight="0"
                   ToolTip.Tip="Ustawienia panelu (wkrótce)">
@@ -59,6 +59,7 @@
               <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
                 <Binding Path="!IsMapTool" />
                 <Binding Path="!IsEffectsTool" />
+                <Binding Path="!IsMemTool" />
               </MultiBinding>
             </Button.IsVisible>
           </Button>
@@ -84,6 +85,62 @@
                   <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
                              Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
                 </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- Mem's real settings — buff-set management moved in from the former Buffs tool.
+               Shares MainWindowViewModel as Context like Effects above, same special-casing. -->
+          <Button Grid.Column="2" Content="⚙" Padding="3,0" Margin="0,0,3,0" FontSize="10"
+                  MinWidth="0" MinHeight="0"
+                  IsVisible="{Binding IsMemTool}"
+                  ToolTip.Tip="Ustawienia zestawów buffów">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <ScrollViewer MaxHeight="480">
+                <StackPanel Spacing="6" MinWidth="240" MaxWidth="300"
+                            TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                            TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                            TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
+                  <TextBlock Classes="mud-heading" Text="Nowy zestaw buffów" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding ((vm:MainWindowViewModel)Context).NewBuffSetName, Mode=TwoWay}"
+                             PlaceholderText="Nazwa zestawu"
+                             KeyDown="NewBuffSetBox_OnKeyDown" />
+                    <Button Grid.Column="1" Content="Utwórz" Padding="10,6" Click="CreateBuffSet_OnClick" />
+                  </Grid>
+
+                  <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+                  <TextBlock Classes="mud-heading" Text="Aktywny zestaw" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding ((vm:MainWindowViewModel)Context).BuffSetNameDraft, Mode=TwoWay}"
+                             PlaceholderText="Nazwa zestawu"
+                             KeyDown="BuffSetNameBox_OnKeyDown" />
+                    <Button Grid.Column="1" Content="Zmień nazwę" Padding="10,6" Click="RenameBuffSet_OnClick" />
+                  </Grid>
+                  <Button Content="Usuń zestaw"
+                          HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding ((vm:MainWindowViewModel)Context).CanDeleteBuffSet}"
+                          Click="DeleteBuffSet_OnClick" />
+                  <TextBlock Classes="mud-faint"
+                             Text="Ostatniego zestawu nie można usunąć."
+                             IsVisible="{Binding !((vm:MainWindowViewModel)Context).CanDeleteBuffSet}" />
+
+                  <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+                  <TextBlock Classes="mud-heading" Text="Dodaj do aktywnego zestawu" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding ((vm:MainWindowViewModel)Context).NewBuffName, Mode=TwoWay}"
+                             PlaceholderText="Nazwa buffa (np. armor)"
+                             KeyDown="NewBuffBox_OnKeyDown" />
+                    <Button Grid.Column="1" Content="Dodaj" Padding="10,6" Click="AddBuff_OnClick" />
+                  </Grid>
+                </StackPanel>
+                </ScrollViewer>
               </Flyout>
             </Button.Flyout>
           </Button>

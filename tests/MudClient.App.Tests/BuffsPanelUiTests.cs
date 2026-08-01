@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Docking;
@@ -15,6 +16,79 @@ namespace MudClient.App.Tests;
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class BuffsPanelUiTests
 {
+    // The buff-set management UI (create/rename/delete a set, add a buff) moved from the old
+    // dedicated Buffs panel into Mem's own settings gear (MemSettingsButton, see PanelToolView.axaml)
+    // when the two tools merged. Clicking the actual rendered TextBox/Button here (rather than
+    // calling the ViewModel commands directly) catches a bad binding path or Click wiring in that
+    // hand-written flyout — see TerminalOverlayCard's ▲▼◀▶ buttons earlier this session for why a
+    // ViewModel-level test alone would not have caught that class of bug.
+    [AvaloniaFact]
+    public async Task MemSettingsFlyout_CreateSetThenAddBuff_ThroughRenderedControls()
+    {
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            "KillerMudClient-MemSettingsFlyoutUiTests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(
+            new ProfileService(directory),
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var tool = new PanelTool
+        {
+            Id = "MemSpells",
+            Title = "📜 Mem i Buffy",
+            ViewType = typeof(MemSpellsPanelView),
+            Context = viewModel,
+        };
+        var host = new PanelToolView { DataContext = tool };
+        var window = new Window { Width = 640, Height = 800, Content = host };
+
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.UpdateLayout();
+
+            var settingsButton = host.FindControl<Button>("MemSettingsButton")!;
+            Assert.True(settingsButton.IsVisible);
+            settingsButton.Flyout!.ShowAt(settingsButton);
+            Dispatcher.UIThread.RunJobs();
+
+            // Both the "new set" and "rename active set" TextBoxes share the same placeholder —
+            // the new-set one starts empty (NewBuffSetName), the rename one starts pre-filled with
+            // the active set's current name (BuffSetNameDraft).
+            var newSetBox = window.GetVisualDescendants().OfType<TextBox>()
+                .Single(box => box.PlaceholderText == "Nazwa zestawu" && string.IsNullOrEmpty(box.Text));
+            newSetBox.Text = "PvP";
+            var createButton = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => Equals(button.Content, "Utwórz"));
+            createButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(viewModel.BuffSets, set => set.Name == "PvP");
+            Assert.Equal("PvP", viewModel.SelectedBuffSet?.Name);
+
+            var addBuffBox = window.GetVisualDescendants().OfType<TextBox>()
+                .Single(box => box.PlaceholderText == "Nazwa buffa (np. armor)");
+            addBuffBox.Text = "armor";
+            var addButton = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => Equals(button.Content, "Dodaj"));
+            addButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(viewModel.RequiredBuffs, buff => buff.Name == "armor");
+        }
+        finally
+        {
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+            await viewModel.DisposeAsync();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [AvaloniaFact]
     public void BuffRows_RenderNamesInsideClickableButtons()
     {
@@ -39,7 +113,7 @@ public sealed class BuffsPanelUiTests
         window.Show();
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.SetActiveDockable(
-            factory.AllTools.Single(tool => tool.Id == MudDockFactory.BuffsToolId));
+            factory.AllTools.Single(tool => tool.Id == "MemSpells"));
         for (var i = 0; i < 15; i++)
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -49,7 +123,7 @@ public sealed class BuffsPanelUiTests
 
         try
         {
-            var panel = window.GetVisualDescendants().OfType<BuffsPanelView>()
+            var panel = window.GetVisualDescendants().OfType<MemSpellsPanelView>()
                 .First(control => control.IsEffectivelyVisible);
             var recastButtons = panel.GetVisualDescendants().OfType<Button>()
                 .Where(button => button.IsEffectivelyVisible
@@ -62,9 +136,6 @@ public sealed class BuffsPanelUiTests
 
             Assert.Equal(2, recastButtons.Count);
             Assert.Same(viewModel.SelectedBuffSet, setSelector.SelectedItem);
-            Assert.Contains(
-                panel.GetVisualDescendants().OfType<Button>(),
-                button => button.IsEffectivelyVisible && button.Content?.ToString() == "+ Dodaj buff");
 
             foreach (var recastButton in recastButtons)
             {

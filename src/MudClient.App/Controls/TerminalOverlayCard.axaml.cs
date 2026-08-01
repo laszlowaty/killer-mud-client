@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using MudClient.App.Docking;
 using MudClient.App.Models;
@@ -98,6 +99,111 @@ public sealed partial class TerminalOverlayCard : UserControl
             {
                 button.IsEnabled = true;
             }
+        }
+    }
+
+    // ========================================================================
+    // Mem's settings — buff-set management moved here from the former Buffs
+    // panel. DataContext is the PanelTool itself; Context is MainWindowViewModel
+    // (shared with most other panels, unlike Map's own dedicated ViewModel) —
+    // see PanelToolView.axaml.cs for the non-overlay copy of these same
+    // handlers.
+    // ========================================================================
+
+    private void NewBuffSetBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.CreateBuffSetCommand.CanExecute(null))
+        {
+            viewModel.CreateBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void CreateBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.CreateBuffSetCommand.CanExecute(null))
+        {
+            viewModel.CreateBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void BuffSetNameBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.RenameBuffSetCommand.CanExecute(null))
+        {
+            viewModel.RenameBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void RenameBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.RenameBuffSetCommand.CanExecute(null))
+        {
+            viewModel.RenameBuffSetCommand.Execute(null);
+        }
+    }
+
+    private async void DeleteBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not PanelTool { Context: MainWindowViewModel viewModel }
+            || viewModel.SelectedBuffSet is not { } selected
+            || !viewModel.DeleteBuffSetCommand.CanExecute(null)
+            || TopLevel.GetTopLevel(this) is not Window owner
+            || sender is not Button button)
+        {
+            return;
+        }
+
+        button.IsEnabled = false;
+        try
+        {
+            if (await ConfirmDeletionAsync(owner, "zestaw buffów", selected.Name))
+            {
+                viewModel.DeleteBuffSetCommand.Execute(null);
+            }
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
+    }
+
+    private void NewBuffBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.AddBuffCommand.CanExecute(null))
+        {
+            viewModel.AddBuffCommand.Execute(null);
+        }
+    }
+
+    private void AddBuff_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.AddBuffCommand.CanExecute(null))
+        {
+            viewModel.AddBuffCommand.Execute(null);
         }
     }
 }

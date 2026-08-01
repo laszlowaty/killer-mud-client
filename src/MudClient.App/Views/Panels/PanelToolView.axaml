@@ -58,5 +58,70 @@
         </Flyout>
       </Button.Flyout>
     </Button>
+
+    <!-- Mem's real settings — buff-set management moved in from the former Buffs tool. Shares
+         MainWindowViewModel as Context like Effects above, so it's special-cased the same way. -->
+    <Button x:Name="MemSettingsButton"
+            Classes="mud-small"
+            Content="⚙"
+            Padding="6,2"
+            Margin="0,4,4,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Opacity="0.75"
+            FontFamily="{DynamicResource WidgetFontFamilyResource}"
+            FontSize="{DynamicResource WidgetFontSizeResource}"
+            FontWeight="{DynamicResource WidgetFontWeightResource}"
+            ToolTip.Tip="Ustawienia zestawów buffów">
+      <Button.Flyout>
+        <Flyout Placement="BottomEdgeAlignedRight">
+          <!-- Flyout content renders outside PanelToolView's own visual tree, so it can't rely
+               on the app's usual "mud-configurable-widget" descendant styling — the shared widget
+               font is applied explicitly here instead. -->
+          <StackPanel Spacing="6" MinWidth="240" MaxWidth="300"
+                      TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                      TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                      TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
+            <TextBlock Classes="mud-heading" Text="Nowy zestaw buffów" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBox Grid.Column="0"
+                       Text="{Binding ((vm:MainWindowViewModel)Context).NewBuffSetName, Mode=TwoWay}"
+                       PlaceholderText="Nazwa zestawu"
+                       KeyDown="NewBuffSetBox_OnKeyDown" />
+              <Button Grid.Column="1" Content="Utwórz" Padding="10,6" Click="CreateBuffSet_OnClick" />
+            </Grid>
+
+            <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+            <TextBlock Classes="mud-heading" Text="Aktywny zestaw" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBox Grid.Column="0"
+                       Text="{Binding ((vm:MainWindowViewModel)Context).BuffSetNameDraft, Mode=TwoWay}"
+                       PlaceholderText="Nazwa zestawu"
+                       KeyDown="BuffSetNameBox_OnKeyDown" />
+              <Button Grid.Column="1" Content="Zmień nazwę" Padding="10,6" Click="RenameBuffSet_OnClick" />
+            </Grid>
+            <Button Content="Usuń zestaw"
+                    HorizontalAlignment="Stretch"
+                    IsEnabled="{Binding ((vm:MainWindowViewModel)Context).CanDeleteBuffSet}"
+                    Click="DeleteBuffSet_OnClick" />
+            <TextBlock Classes="mud-faint"
+                       Text="Ostatniego zestawu nie można usunąć."
+                       IsVisible="{Binding !((vm:MainWindowViewModel)Context).CanDeleteBuffSet}" />
+
+            <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+            <TextBlock Classes="mud-heading" Text="Dodaj do aktywnego zestawu" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBox Grid.Column="0"
+                       Text="{Binding ((vm:MainWindowViewModel)Context).NewBuffName, Mode=TwoWay}"
+                       PlaceholderText="Nazwa buffa (np. armor)"
+                       KeyDown="NewBuffBox_OnKeyDown" />
+              <Button Grid.Column="1" Content="Dodaj" Padding="10,6" Click="AddBuff_OnClick" />
+            </Grid>
+          </StackPanel>
+        </Flyout>
+      </Button.Flyout>
+    </Button>
   </Panel>
 </UserControl>

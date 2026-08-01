@@ -60,10 +60,9 @@ Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj
 
 - **Postać** — statystyki postaci,
 - **Efekty i Kondycja** — dolegliwości (głód, pragnienie, upojenie itp.) oraz aktywne efekty,
-- **Buffy** — lista wymaganych buffów z podświetleniem brakujących; komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
 - **Drużyna** — skład i stan grupy,
-- **Mem** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono,
+- **Mem i Buffy** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono; lista wymaganych buffów z podświetleniem brakujących (komenda `/recast` jednym ruchem rzuca wszystkie brakujące) — zarządzanie zestawami buffów (nowy/zmiana nazwy/usunięcie/dodanie buffa) w ustawieniach panelu,
 - **GMCP** — surowy podgląd pakietów GMCP.
 
 ### Killeropedia

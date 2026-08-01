@@ -22,6 +22,11 @@ public sealed class PanelTool : Tool
     /// distinguished by Context's runtime type the way Map's dedicated MapViewModel is.</summary>
     public bool IsEffectsTool => string.Equals(Id, "Effects", StringComparison.Ordinal);
 
+    /// <summary>True for the Mem tool specifically — same purpose as <see cref="IsEffectsTool"/>,
+    /// now that its settings flyout also carries the buff-set management moved in from the former
+    /// Buffs tool.</summary>
+    public bool IsMemTool => string.Equals(Id, "MemSpells", StringComparison.Ordinal);
+
     /// <summary>
     /// Set by <see cref="MudDockFactory"/>; moves this tool into a collapsed tab on the
     /// requested edge. Used by the explicit edge choices in panel menus.

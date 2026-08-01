@@ -618,7 +618,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyOverlayFromSettings();
 
         // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
-        UpdateBuffsToolTitle();
+        UpdateMemToolTitle();
     }
 
     private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
@@ -3664,23 +3664,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(BuffsBadge));
         OnPropertyChanged(nameof(BuffsAlert));
-        UpdateBuffsToolTitle();
+        UpdateMemToolTitle();
     }
 
     /// <summary>
-    /// Mirrors the buff state onto the dock tab title ("🛡 Buffy 2/3"), so the
+    /// Mirrors the buff state onto the Mem dock tab title ("📜 Mem i Buffy 2/3"), so the
     /// missing-buff signal is visible even when another tab covers the panel.
     /// </summary>
-    private void UpdateBuffsToolTitle()
+    private void UpdateMemToolTitle()
     {
         var tool = _dockFactory.AllTools.FirstOrDefault(
-            t => string.Equals(t.Id, MudDockFactory.BuffsToolId, StringComparison.Ordinal));
+            t => string.Equals(t.Id, "MemSpells", StringComparison.Ordinal));
         if (tool is null)
         {
             return;
         }
 
-        tool.Title = RequiredBuffs.Count == 0 ? "🛡 Buffy" : $"🛡 Buffy {BuffsBadge}";
+        tool.Title = RequiredBuffs.Count == 0 ? "📜 Mem i Buffy" : $"📜 Mem i Buffy {BuffsBadge}";
     }
 
     public string NewBuffName

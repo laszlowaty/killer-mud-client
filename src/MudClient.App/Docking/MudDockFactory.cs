@@ -25,9 +25,6 @@ public sealed class MudDockFactory : Factory, IFactory
         _mainContext = mainContext;
     }
 
-    /// <summary>Id of the required-buffs tool; its tab title carries a live x/y badge.</summary>
-    public const string BuffsToolId = "Buffs";
-
     public List<PanelTool> AllTools { get; } = new();
 
     public ObservableCollection<PanelTool> HiddenTools { get; } = new();
@@ -331,9 +328,8 @@ public sealed class MudDockFactory : Factory, IFactory
         NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
         NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
         NewTool("Effects", "✨ Efekty i Kondycja", typeof(Views.Panels.EffectsPanelView), _mainContext);
-        NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
         NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
-        NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
+        NewTool("MemSpells", "📜 Mem i Buffy", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
         NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
         NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
         NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
@@ -395,7 +391,6 @@ public sealed class MudDockFactory : Factory, IFactory
         var terminalTool = Tool("Terminal");
         var infoTool = Tool("CharInfo");
         var effectsTool = Tool("Effects");
-        var buffsTool = Tool(BuffsToolId);
         var groupTool = Tool("Group");
         var memSpellsTool = Tool("MemSpells");
         var automationTool = Tool("Automation");
@@ -430,7 +425,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Proportion = 0.5,
             ActiveDockable = infoTool,
             VisibleDockables = CreateList<IDockable>(
-                infoTool, effectsTool, buffsTool, groupTool, memSpellsTool),
+                infoTool, effectsTool, groupTool, memSpellsTool),
             Alignment = Alignment.Right,
         };
 
