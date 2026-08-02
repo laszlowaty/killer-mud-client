@@ -69,6 +69,15 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_AutowalkMovementRecoveryOptionsAreDisabledByDefault()
+    {
+        var settings = new AppSettings();
+
+        Assert.False(settings.AutowalkUseRefreshes);
+        Assert.False(settings.AutowalkUseRecuperate);
+    }
+
+    [Fact]
     public void Constructor_GroupOrdersAreDisabledByDefault()
     {
         Assert.False(new AppSettings().GroupOrdersEnabled);

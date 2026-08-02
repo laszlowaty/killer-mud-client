@@ -21,7 +21,8 @@ public sealed class AutowalkRecoveryPolicyTests
             new MemorizedSpell(1, 3, "Refresh", Memed: true, Meming: false),
         };
 
-        var action = AutowalkRecoveryPolicy.GetLowMovementAction(10, 100, spells);
+        var action = AutowalkRecoveryPolicy.GetLowMovementAction(
+            10, 100, spells, useRefreshes: true);
 
         Assert.Equal(LowMovementAction.CastRefresh, action);
     }
@@ -34,7 +35,22 @@ public sealed class AutowalkRecoveryPolicyTests
             new MemorizedSpell(1, 3, "refresh", Memed: false, Meming: true),
         };
 
-        var action = AutowalkRecoveryPolicy.GetLowMovementAction(5, 50, spells);
+        var action = AutowalkRecoveryPolicy.GetLowMovementAction(
+            5, 50, spells, useRefreshes: true);
+
+        Assert.Equal(LowMovementAction.Rest, action);
+    }
+
+    [Fact]
+    public void GetLowMovementAction_RefreshesDisabled_RestsDespiteReadySpell()
+    {
+        var spells = new[]
+        {
+            new MemorizedSpell(1, 3, "refresh", Memed: true, Meming: false),
+        };
+
+        var action = AutowalkRecoveryPolicy.GetLowMovementAction(
+            10, 100, spells, useRefreshes: false);
 
         Assert.Equal(LowMovementAction.Rest, action);
     }
@@ -42,9 +58,18 @@ public sealed class AutowalkRecoveryPolicyTests
     [Fact]
     public void GetLowMovementAction_AboveTenPercent_DoesNothing()
     {
-        var action = AutowalkRecoveryPolicy.GetLowMovementAction(11, 100, []);
+        var action = AutowalkRecoveryPolicy.GetLowMovementAction(
+            11, 100, [], useRefreshes: true);
 
         Assert.Equal(LowMovementAction.None, action);
+    }
+
+    [Theory]
+    [InlineData(false, "rest")]
+    [InlineData(true, "rest", "recuperate")]
+    public void GetRestCommands_ReturnsConfiguredSequence(bool useRecuperate, params string[] expected)
+    {
+        Assert.Equal(expected, AutowalkRecoveryPolicy.GetRestCommands(useRecuperate));
     }
 
     [Theory]

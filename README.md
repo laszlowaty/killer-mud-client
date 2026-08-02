@@ -47,7 +47,7 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 - opcjonalny **Tryb lorda** w menu mapy udostępnia pod prawym przyciskiem pokoju polecenie `goto <vnum>`; uprawnienia do wykonania komendy nadal weryfikuje serwer,
 - dostępny wyłącznie w Trybie lorda edytor mapy koreluje ręczną komendę ruchu z następnym GMCP `Room.Info`, tworzy nowe pokoje i połączenia oraz zapisuje roboczą mapę w `%AppData%/KillerMudClient/MapEditor/world-map.json`; podczas mapowania timery, triggery, autowalk i komendy przycisków są blokowane; brak `Room.Info` po 8 sekundach anuluje tylko oczekujący ruch, teleport do znanego pokoju synchronizuje punkt startowy, a teleport do nieznanego pokoju lub rozłączenie bezpiecznie zatrzymuje mapowanie,
 - niezapisane zmiany mappera są automatycznie odkładane w skompresowanym checkpointcie `MapEditor/recovery.json.gz`; po restarcie klient odtwarza mapę oraz do pięciu ostatnich stanów undo, a ręczny zapis zachowuje historię bez oznaczania mapy jako awaryjnie odzyskanej,
-- pathfinding i automatyczne chodzenie po kliknięciu pokoju, także przez przejścia między poziomami `z`, z politykami odzyskiwania: odpoczynek/`refresh` przy niskim `mv` oraz obsługa zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).
+- pathfinding i automatyczne chodzenie po kliknięciu pokoju, także przez przejścia między poziomami `z`, z konfigurowalnym odzyskiwaniem ruchu przez odpoczynek, `refresh` i `recuperate` oraz obsługą zamkniętych bram (szczegóły w sekcji [Mapa świata](#mapa-świata)).
 - zapisane cele autowalk można usuwać dopiero po potwierdzeniu operacji.
 
 ### Panele postaci (GMCP)
@@ -341,7 +341,7 @@ Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum p
 
 ### Odzyskiwanie ruchu i zamknięte bramy w autowalku
 
-Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka 30 sekund i wznawia trasę. Gdy GMCP `Char.Condition` zgłosi `position: POS_SITTING`, autowalk wysyła `stand` i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
+Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym i włączonej opcji **Używaj refreshy** rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`. Opcja **Używaj recuperate** dodaje komendę `recuperate` bezpośrednio po `rest`. Po 30 sekundach autowalk wznawia trasę. Obie opcje są domyślnie wyłączone i zapisywane w ustawieniach aplikacji. Gdy GMCP `Char.Condition` zgłosi `position: POS_SITTING`, autowalk wysyła `stand` i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
 
 Jeżeli próba otwarcia bramy kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
 

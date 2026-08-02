@@ -62,6 +62,12 @@ public sealed class AppSettings
     /// <summary>Commands sent immediately after an automatic "as" command.</summary>
     public string AutoAssistFollowUpCommands { get; set; } = string.Empty;
 
+    /// <summary>Lets autowalk cast a memorized refresh instead of resting at low movement.</summary>
+    public bool AutowalkUseRefreshes { get; set; }
+
+    /// <summary>Sends recuperate immediately after autowalk starts resting at low movement.</summary>
+    public bool AutowalkUseRecuperate { get; set; }
+
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 

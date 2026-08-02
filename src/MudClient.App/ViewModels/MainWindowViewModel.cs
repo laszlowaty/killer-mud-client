@@ -1331,6 +1331,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool AutowalkUseRefreshes
+    {
+        get => _settings.AutowalkUseRefreshes;
+        set
+        {
+            if (_settings.AutowalkUseRefreshes == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkUseRefreshes = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutowalkUseRecuperate
+    {
+        get => _settings.AutowalkUseRecuperate;
+        set
+        {
+            if (_settings.AutowalkUseRecuperate == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkUseRecuperate = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public string AutoAssistExcludedMobNamesText
     {
         get => string.Join(Environment.NewLine, _settings.AutoAssistExcludedMobNames);
@@ -2439,11 +2471,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (!skipMovementCheck)
         {
             var action = AutowalkRecoveryPolicy.GetLowMovementAction(
-                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells);
+                _latestMovement,
+                _latestMaximumMovement,
+                _latestMemorizedSpells,
+                AutowalkUseRefreshes);
             if (action != LowMovementAction.None)
             {
                 _autowalkRecoveringMovement = true;
-                _ = RecoverMovementAndContinueAsync(action, _autowalkCts.Token);
+                _ = RecoverMovementAndContinueAsync(
+                    action,
+                    AutowalkUseRecuperate,
+                    _autowalkCts.Token);
                 return;
             }
         }
@@ -2493,6 +2531,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RecoverMovementAndContinueAsync(
         LowMovementAction action,
+        bool useRecuperate,
         CancellationToken cancellationToken)
     {
         try
@@ -2507,7 +2546,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 Dispatcher.UIThread.Post(() =>
                     AutowalkStatusText = "Mało ruchu — odpoczywam 30 sekund.");
-                await SendTriggeredCommandAsync("rest", cancellationToken);
+                foreach (var command in AutowalkRecoveryPolicy.GetRestCommands(useRecuperate))
+                {
+                    await SendTriggeredCommandAsync(command, cancellationToken);
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
 
                 // The character is still resting — stand up before walking on.

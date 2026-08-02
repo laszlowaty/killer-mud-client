@@ -151,6 +151,8 @@ public sealed class AppSettingsServiceTests : IDisposable
             AutoAssistEnabled = true,
             AutoAssistExcludedMobNames = ["Wielki smok", "Ork"],
             AutoAssistFollowUpCommands = "wesprzyj;czar 'ochrona'",
+            AutowalkUseRefreshes = true,
+            AutowalkUseRecuperate = true,
             GroupOrdersEnabled = true,
             ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
@@ -173,6 +175,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(loaded.AutoAssistEnabled);
         Assert.Equal(["Wielki smok", "Ork"], loaded.AutoAssistExcludedMobNames);
         Assert.Equal("wesprzyj;czar 'ochrona'", loaded.AutoAssistFollowUpCommands);
+        Assert.True(loaded.AutowalkUseRefreshes);
+        Assert.True(loaded.AutowalkUseRecuperate);
         Assert.True(loaded.GroupOrdersEnabled);
         Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);

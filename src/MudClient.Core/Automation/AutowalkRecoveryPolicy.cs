@@ -21,7 +21,8 @@ public static class AutowalkRecoveryPolicy
     public static LowMovementAction GetLowMovementAction(
         int? movement,
         int? maximumMovement,
-        IReadOnlyList<MemorizedSpell> memorizedSpells)
+        IReadOnlyList<MemorizedSpell> memorizedSpells,
+        bool useRefreshes)
     {
         if (movement is null || maximumMovement is null || maximumMovement <= 0 ||
             (long)movement.Value * 100 > (long)maximumMovement.Value * 10)
@@ -29,10 +30,14 @@ public static class AutowalkRecoveryPolicy
             return LowMovementAction.None;
         }
 
-        return HasMemorizedSpell(memorizedSpells, "refresh")
+        return useRefreshes && HasMemorizedSpell(memorizedSpells, "refresh")
             ? LowMovementAction.CastRefresh
             : LowMovementAction.Rest;
     }
+
+    /// <summary>Commands sent in order when autowalk has to recover movement by resting.</summary>
+    public static IReadOnlyList<string> GetRestCommands(bool useRecuperate) =>
+        useRecuperate ? ["rest", "recuperate"] : ["rest"];
 
     /// <summary>True when the GMCP position reports the character is in combat.</summary>
     public static bool IsCombatPosition(string? position) =>
