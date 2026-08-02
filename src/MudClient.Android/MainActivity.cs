@@ -1,5 +1,7 @@
 using Android.App;
 using Android.Content.PM;
+using Android.Content.Res;
+using Android.Graphics;
 using Android.OS;
 using Avalonia.Android;
 using AndroidX.Activity;
@@ -17,7 +19,7 @@ namespace MudClient.Android;
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public sealed class MainActivity : AvaloniaMainActivity
 {
-    private ImeInsetsListener? _imeInsetsListener;
+    private ImeInsetsObserver? _imeInsetsObserver;
     private global::Android.Views.View? _decorView;
     private OnBackPressedCallback? _backPressedCallback;
 
@@ -36,10 +38,14 @@ public sealed class MainActivity : AvaloniaMainActivity
             return;
         }
 
-        _imeInsetsListener = new ImeInsetsListener(OnImeInsetsChanged);
+        _imeInsetsObserver = new ImeInsetsObserver(
+            _decorView,
+            OnImeInsetsChanged);
         ViewCompat.SetOnApplyWindowInsetsListener(
             _decorView,
-            _imeInsetsListener);
+            _imeInsetsObserver);
+        _decorView.ViewTreeObserver?.AddOnGlobalLayoutListener(
+            _imeInsetsObserver);
         ViewCompat.RequestApplyInsets(_decorView);
     }
 
@@ -48,12 +54,25 @@ public sealed class MainActivity : AvaloniaMainActivity
         if (_decorView is not null)
         {
             ViewCompat.SetOnApplyWindowInsetsListener(_decorView, null);
+            if (_decorView.ViewTreeObserver?.IsAlive == true
+                && _imeInsetsObserver is not null)
+            {
+                _decorView.ViewTreeObserver.RemoveOnGlobalLayoutListener(
+                    _imeInsetsObserver);
+            }
+
             _decorView = null;
         }
 
-        _imeInsetsListener?.Dispose();
-        _imeInsetsListener = null;
+        _imeInsetsObserver?.Dispose();
+        _imeInsetsObserver = null;
         base.OnDestroy();
+    }
+
+    public override void OnConfigurationChanged(Configuration newConfig)
+    {
+        _imeInsetsObserver?.ResetLayoutBaseline();
+        base.OnConfigurationChanged(newConfig);
     }
 
     protected override void OnStart()
@@ -107,10 +126,18 @@ public sealed class MainActivity : AvaloniaMainActivity
         }
     }
 
-    private sealed class ImeInsetsListener(
+    private sealed class ImeInsetsObserver(
+        global::Android.Views.View decorView,
         Action<bool, int> onImeInsetsChanged)
-        : Java.Lang.Object, IOnApplyWindowInsetsListener
+        : Java.Lang.Object,
+          IOnApplyWindowInsetsListener,
+          global::Android.Views.ViewTreeObserver.IOnGlobalLayoutListener
     {
+        private readonly Rect _visibleWindowFrame = new();
+        private bool? _lastVisibility;
+        private int _lastBottomInset;
+        private int _largestDecorHeight;
+
         public WindowInsetsCompat? OnApplyWindowInsets(
             global::Android.Views.View? view,
             WindowInsetsCompat? windowInsets)
@@ -122,10 +149,89 @@ public sealed class MainActivity : AvaloniaMainActivity
 
             var imeType = WindowInsetsCompat.Type.Ime();
             var imeInsets = windowInsets.GetInsets(imeType);
-            onImeInsetsChanged(
-                windowInsets.IsVisible(imeType),
-                imeInsets?.Bottom ?? 0);
+            if (windowInsets.IsVisible(imeType))
+            {
+                Publish(true, imeInsets?.Bottom ?? 0);
+            }
+            else
+            {
+                // During the closing animation the insets flag can become false
+                // before the window regains its full height. Measure the layout
+                // before restoring the map so it cannot flash over the keyboard.
+                OnGlobalLayout();
+            }
+
             return windowInsets;
+        }
+
+        public void OnGlobalLayout()
+        {
+            var rootInsets = ViewCompat.GetRootWindowInsets(decorView);
+            var imeType = WindowInsetsCompat.Type.Ime();
+            if (rootInsets?.IsVisible(imeType) == true)
+            {
+                Publish(
+                    true,
+                    rootInsets.GetInsets(imeType)?.Bottom ?? 0);
+                return;
+            }
+
+            decorView.GetWindowVisibleDisplayFrame(_visibleWindowFrame);
+            var location = new int[2];
+            decorView.GetLocationOnScreen(location);
+            var decorBottom = location[1] + decorView.Height;
+            var obscuredBottom = Math.Max(
+                0,
+                decorBottom - _visibleWindowFrame.Bottom);
+            var systemBarsBottom = rootInsets?
+                                       .GetInsets(WindowInsetsCompat.Type.SystemBars())
+                                       ?.Bottom
+                                   ?? 0;
+            _largestDecorHeight = Math.Max(
+                _largestDecorHeight,
+                decorView.Height);
+            var overlayInset = Math.Max(
+                0,
+                obscuredBottom - systemBarsBottom);
+            var resizeInset = Math.Max(
+                0,
+                _largestDecorHeight - decorView.Height);
+            var keyboardInset = Math.Max(overlayInset, resizeInset);
+            var density = decorView.Resources?.DisplayMetrics?.Density ?? 1;
+            var visibilityThreshold = 100 * Math.Max(1, density);
+
+            Publish(
+                keyboardInset >= visibilityThreshold,
+                keyboardInset);
+        }
+
+        public void ResetLayoutBaseline()
+        {
+            _largestDecorHeight = 0;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _visibleWindowFrame.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void Publish(bool isVisible, int bottomInset)
+        {
+            bottomInset = Math.Max(0, bottomInset);
+            if (_lastVisibility == isVisible
+                && _lastBottomInset == bottomInset)
+            {
+                return;
+            }
+
+            _lastVisibility = isVisible;
+            _lastBottomInset = bottomInset;
+            onImeInsetsChanged(isVisible, bottomInset);
         }
     }
 }
