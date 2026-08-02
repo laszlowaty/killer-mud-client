@@ -127,11 +127,18 @@
                  Text="Brak zapisanych lokacji. Dodaj obecną pozycję albo wpisz vnum docelowego pokoju."
                  IsVisible="{Binding !Locations.Count}" />
 
-      <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
-              HorizontalAlignment="Left"
-              ToolTip.Tip="Utwórz folder na lokacje"
-              Command="{Binding CreateFolderCommand}"
-              CommandParameter="{x:Static models:FolderKind.Autowalk}" />
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+                ToolTip.Tip="Utwórz folder na lokacje"
+                Command="{Binding CreateFolderCommand}"
+                CommandParameter="{x:Static models:FolderKind.Autowalk}" />
+        <Button Classes="mud-small" Content="⇩ JSON" Padding="10,4"
+                ToolTip.Tip="Eksportuj wszystkie lokacje i foldery do pliku JSON"
+                Click="ExportAll_OnClick" />
+        <Button Classes="mud-small" Content="⇧ JSON" Padding="10,4"
+                ToolTip.Tip="Importuj wszystkie lokacje i foldery z pliku JSON"
+                Click="Import_OnClick" />
+      </StackPanel>
 
       <controls:FolderTreeView Nodes="{Binding AutowalkTree}"
                                ItemTemplate="{StaticResource LocationItemTemplate}"

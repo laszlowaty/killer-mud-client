@@ -4681,7 +4681,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (folder.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers))
             {
-                throw new InvalidOperationException("Eksport jest dostępny tylko dla aliasów, triggerów i timerów.");
+                throw new InvalidOperationException("Tego folderu nie można wyeksportować.");
             }
 
             var ids = CollectSubtreeFolderIds(folder);
@@ -4718,6 +4718,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             },
             _ => throw new InvalidOperationException("Tego elementu nie można wyeksportować."),
         };
+    }
+
+    /// <summary>Creates a JSON-ready package with every autowalk target and its folder tree.</summary>
+    public AutomationTransferPackage CreateAutowalkTransferPackage()
+    {
+        var package = new AutomationTransferPackage { Kind = FolderKind.Autowalk };
+        package.Folders.AddRange(Folders
+            .Where(folder => folder.Kind == FolderKind.Autowalk)
+            .Select(ToProfileFolder));
+        package.Locations.AddRange(Locations
+            .Select(location => CloneProfileLocation(ToProfileLocation(location), location.FolderId)));
+        return package;
     }
 
     private void AddTransferItems(AutomationTransferPackage package, HashSet<string> folderIds)
@@ -4785,6 +4797,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 clone.Type = "trigger";
                 AutomationRules.Add(MakeRuleEntry(clone, ImportedItemIsGlobal(clone.FolderId, clone.IsGlobal)));
             }
+
+            foreach (var location in package.Locations)
+            {
+                var folderId = RemapFolderId(location.FolderId, idMap);
+                var isGlobal = ImportedItemIsGlobal(folderId, location.IsGlobal);
+                Locations.Add(MakeLocationEntry(CloneProfileLocation(location, folderId), isGlobal));
+            }
         }
         finally
         {
@@ -4825,6 +4844,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Commands = [.. source.Commands],
         CommandsText = source.CommandsText,
         IsEnabled = source.IsEnabled,
+        IsGlobal = source.IsGlobal,
+        FolderId = folderId,
+    };
+
+    private static ProfileLocation CloneProfileLocation(ProfileLocation source, string? folderId) => new()
+    {
+        Name = source.Name,
+        Vnum = source.Vnum,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
     };

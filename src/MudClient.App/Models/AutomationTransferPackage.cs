@@ -1,7 +1,7 @@
 namespace MudClient.App.Models;
 
 /// <summary>
-/// Versioned JSON interchange format for aliases, triggers and timers. A
+/// Versioned JSON interchange format for aliases, triggers, timers and autowalk targets. A
 /// package may contain one loose item or an entire folder subtree.
 /// </summary>
 public sealed class AutomationTransferPackage
@@ -17,4 +17,6 @@ public sealed class AutomationTransferPackage
     public List<ProfileRule> Triggers { get; set; } = [];
 
     public List<ProfileTimer> Timers { get; set; } = [];
+
+    public List<ProfileLocation> Locations { get; set; } = [];
 }

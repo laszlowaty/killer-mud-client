@@ -36,9 +36,9 @@ public sealed class AutomationTransferService
 
     public static void ValidatePackage(AutomationTransferPackage package)
     {
-        if (package.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers))
+        if (package.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers or FolderKind.Autowalk))
         {
-            throw new JsonException("Paczka może zawierać wyłącznie aliasy, triggery albo timery.");
+            throw new JsonException("Paczka może zawierać wyłącznie aliasy, triggery, timery albo cele autowalka.");
         }
 
         if (package.Folders.Any(folder => folder.Kind != package.Kind))
@@ -74,7 +74,8 @@ public sealed class AutomationTransferService
 
         if (package.Kind != FolderKind.Aliases && package.Aliases.Count > 0 ||
             package.Kind != FolderKind.Triggers && package.Triggers.Count > 0 ||
-            package.Kind != FolderKind.Timers && package.Timers.Count > 0)
+            package.Kind != FolderKind.Timers && package.Timers.Count > 0 ||
+            package.Kind != FolderKind.Autowalk && package.Locations.Count > 0)
         {
             throw new JsonException("Typ zawartości paczki nie zgadza się z jej rodzajem.");
         }

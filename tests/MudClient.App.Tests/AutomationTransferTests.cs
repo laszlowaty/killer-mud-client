@@ -85,4 +85,42 @@ public sealed class AutomationTransferTests : IAsyncDisposable
         await Assert.ThrowsAsync<JsonException>(() =>
             _service.ReadAsync(stream, TestContext.Current.CancellationToken));
     }
+
+    [Fact]
+    public async Task AutowalkPackage_RoundTripsAllLocationsWithRemappedFolders()
+    {
+        _vm.CreateFolderCommand.Execute(FolderKind.Autowalk);
+        var root = _vm.Folders.Single();
+        _vm.CreateSubfolderCommand.Execute(root);
+        var child = _vm.Folders.Single(folder => folder.ParentId == root.Id);
+        root.IsGlobal = true;
+        child.IsGlobal = true;
+        var location = new AutowalkLocation("Plac Arras", "1234", isGlobal: true)
+        {
+            FolderId = child.Id,
+        };
+        _vm.Locations.Add(location);
+
+        var looseLocation = new AutowalkLocation("Gospoda", "4321");
+        _vm.Locations.Add(looseLocation);
+
+        var exported = _vm.CreateAutowalkTransferPackage();
+        await using var stream = new MemoryStream();
+        await _service.WriteAsync(stream, exported, TestContext.Current.CancellationToken);
+        stream.Position = 0;
+        var imported = await _service.ReadAsync(stream, TestContext.Current.CancellationToken);
+        _vm.ImportAutomationTransferPackage(imported);
+
+        Assert.Equal(4, _vm.Folders.Count);
+        Assert.Equal(4, _vm.Locations.Count);
+        var importedLocation = _vm.Locations
+            .Single(entry => entry.Name == location.Name && !ReferenceEquals(entry, location));
+        Assert.Equal("Plac Arras", importedLocation.Name);
+        Assert.Equal("1234", importedLocation.Vnum);
+        Assert.NotEqual(child.Id, importedLocation.FolderId);
+        Assert.True(importedLocation.IsGlobal);
+        var importedLooseLocation = _vm.Locations
+            .Single(entry => entry.Name == looseLocation.Name && !ReferenceEquals(entry, looseLocation));
+        Assert.Null(importedLooseLocation.FolderId);
+    }
 }
