@@ -6,11 +6,11 @@
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
   <Panel>
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
 
     <!-- HP vertical indicator (left) – spans full panel height -->
     <Border x:Name="HitPointsBar"
-            Grid.Column="0" Grid.RowSpan="2"
+            Grid.Column="0" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="2,0,0,0"
@@ -47,53 +47,50 @@
                               OutputFontWeight="{Binding OutputFontWeight}"
                               TelnetColorScheme="{Binding TelnetColorScheme}"
                               WordWrap="{Binding OutputWordWrap}" />
+    </Grid>
 
-      <ItemsControl ItemsSource="{Binding Timers}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,10,22,0"
-                    IsHitTestVisible="False">
+    <!-- Active timers — a compact strip just above the command bar instead of floating over the
+         top-right of the output, where pinned overlay columns used to cover it (see
+         TerminalOverlayHost). Only enabled timers show; toggling one off here hides it until it's
+         re-enabled from the Automaty panel. -->
+    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,3"
+            IsVisible="{Binding Timers.Count}">
+      <ItemsControl ItemsSource="{Binding Timers}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <StackPanel />
+            <WrapPanel />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:TimerEntry">
-            <Border IsVisible="{Binding IsEnabled}"
-                    MinWidth="112"
-                    Margin="0,0,0,4"
-                    Padding="7,4"
-                    CornerRadius="4"
-                    Background="{StaticResource MudBrushVoid}"
-                    BorderBrush="{StaticResource MudBrushGoldDim}"
-                    BorderThickness="1"
-                    Opacity="0.9"
-                    ToolTip.Tip="{Binding Name}">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <TextBlock Grid.Column="0"
-                           Text="{Binding ShortName}"
-                           FontSize="11"
-                           Foreground="{StaticResource MudBrushParchmentDim}" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding RemainingText}"
-                           MinWidth="42"
-                           TextAlignment="Right"
-                           FontFamily="Consolas"
-                           FontSize="11"
-                           FontWeight="Bold"
-                           Foreground="{StaticResource MudBrushGoldBright}" />
-              </Grid>
-            </Border>
+            <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,12,0"
+                        IsVisible="{Binding IsEnabled}"
+                        ToolTip.Tip="{Binding Name}">
+              <Button Content="⏸" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      ToolTip.Tip="Wstrzymaj timer"
+                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                      CommandParameter="{Binding}" />
+              <TextBlock Text="{Binding ShortName}" FontSize="9" VerticalAlignment="Center"
+                         Foreground="{StaticResource MudBrushParchmentDim}" />
+              <TextBlock Text="{Binding RemainingText}" FontSize="9" VerticalAlignment="Center"
+                         FontFamily="Consolas"
+                         Foreground="{StaticResource MudBrushGoldBright}" />
+              <Button Content="⟳" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      ToolTip.Tip="Zresetuj odliczanie"
+                      Command="{Binding $parent[UserControl].DataContext.RestartTimerCommand}"
+                      CommandParameter="{Binding}" />
+            </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-    </Grid>
+    </Border>
 
     <!-- Command bar. Uses its full width always — overlay columns float on top of the Terminal
          without reserving any space from it (see TerminalOverlayHost), so there is no need to
          make room for them here. -->
-    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6">
+    <Border Grid.Column="1" Grid.Row="2" Classes="mud-bar-bottom" Padding="8,6">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"

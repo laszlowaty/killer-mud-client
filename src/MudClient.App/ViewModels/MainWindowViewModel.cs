@@ -266,6 +266,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         StartAddTimerCommand = new RelayCommand(StartAddTimer);
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
         ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
+        RestartTimerCommand = new RelayCommand<TimerEntry>(RestartTimer);
         EditTimerCommand = new RelayCommand<TimerEntry>(EditTimer);
         CancelTimerEditCommand = new RelayCommand(CancelTimerEdit);
         AddRuleCommand = new RelayCommand(AddRule, CanAddRule);
@@ -2077,6 +2078,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand StartAddTimerCommand { get; }
     public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
     public RelayCommand<TimerEntry> ToggleTimerCommand { get; }
+    public RelayCommand<TimerEntry> RestartTimerCommand { get; }
     public RelayCommand<TimerEntry> EditTimerCommand { get; }
     public RelayCommand CancelTimerEditCommand { get; }
 
@@ -2272,6 +2274,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AddToast(entry.IsEnabled
             ? $"Timer „{entry.Name}” włączony (co {entry.IntervalText})."
             : $"Timer „{entry.Name}” wyłączony.", "info");
+    }
+
+    /// <summary>Resets an active timer's countdown back to its full interval, without disabling
+    /// it — bound to the small "restart countdown" icon in the terminal's timer strip.</summary>
+    private void RestartTimer(TimerEntry? entry)
+    {
+        if (entry is null || !entry.IsEnabled)
+        {
+            return;
+        }
+
+        SyncTimer(entry);
+        AddToast($"Timer „{entry.Name}” zresetowany (co {entry.IntervalText}).", "info");
     }
 
     private static string TimerKey(TimerEntry entry) => $"user-timer:{entry.Id}";
