@@ -138,8 +138,16 @@ public sealed class AppSettings
     /// group leader.</summary>
     public bool AutoStandOrderEnabled { get; set; }
 
-    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for sitting down ("order &lt;name&gt; sit").</summary>
+    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for sitting down — orders every other
+    /// group member to rest ("order &lt;name&gt; rest"), not to sit, since resting is what actually
+    /// recovers their movement.</summary>
     public bool AutoSitOrderEnabled { get; set; }
+
+    /// <summary>Orders a group member to cast refresh on themselves ("order &lt;name&gt; cast
+    /// refresh") as soon as GMCP reports their movement at the worst tier ("zamęczony"). Fires once
+    /// per exhaustion (not on every GMCP update) and re-arms once they recover or leave the
+    /// group.</summary>
+    public bool AutoGroupRefreshOnExhaustedEnabled { get; set; }
 
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see

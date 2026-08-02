@@ -186,6 +186,26 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void OnGroupChanged_ExhaustedMemberWithAutoRefreshEnabled_DoesNotThrow()
+    {
+        // Real regression guard for the OnGroupChanged -> TryAutoOrderExhaustedGroupRefresh wiring
+        // (GroupExhaustionRefreshPolicyTests covers the actual decision logic in isolation).
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoGroupRefreshOnExhaustedEnabled = true;
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, 4, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, 0, null, false, null, IsLeader: false),
+        });
+
+        var method = typeof(MainWindowViewModel).GetMethod("OnGroupChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(_vm, [group]);
+    }
+
+    [Fact]
     public void AutowalkLowMovementThresholdPercent_Setter_ClampsToLimits()
     {
         _vm.AutowalkLowMovementThresholdPercent = 999;

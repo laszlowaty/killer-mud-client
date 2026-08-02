@@ -95,10 +95,13 @@ public sealed class FolderTreeViewUiTests
                 && ReferenceEquals(button.Command, viewModel.CastRefreshOnGroupCommand));
         Assert.Contains(
             window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Auto — rozkaż refresh, gdy ktoś w drużynie jest zamęczony"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
             checkBox => Equals(checkBox.Content, "Autostand — rozkaż drużynie wstać, gdy Ty wstajesz"));
         Assert.Contains(
             window.GetLogicalDescendants().OfType<CheckBox>(),
-            checkBox => Equals(checkBox.Content, "Autosit — rozkaż drużynie usiąść, gdy Ty siadasz"));
+            checkBox => Equals(checkBox.Content, "Autosit — rozkaż drużynie odpocząć, gdy Ty siadasz"));
 
         window.Close();
         await viewModel.DisposeAsync();

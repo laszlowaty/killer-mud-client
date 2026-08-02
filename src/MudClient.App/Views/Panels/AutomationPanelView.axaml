@@ -430,6 +430,10 @@
                 <Button Content="Rozkaż drużynie rzucić refresh"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                         Command="{Binding CastRefreshOnGroupCommand}" />
+                <CheckBox IsChecked="{Binding AutoGroupRefreshOnExhaustedEnabled}"
+                          Content="Auto — rozkaż refresh, gdy ktoś w drużynie jest zamęczony" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Gdy GMCP zgłosi czyjeś MV jako „zamęczony”, klient jednorazowo wyśle mu „order &lt;gracz&gt; cast refresh” — ponownie dopiero po odpoczynku i kolejnym wyczerpaniu." />
               </StackPanel>
 
               <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
@@ -438,9 +442,9 @@
                 <CheckBox IsChecked="{Binding AutoStandOrderEnabled}"
                           Content="Autostand — rozkaż drużynie wstać, gdy Ty wstajesz" />
                 <CheckBox IsChecked="{Binding AutoSitOrderEnabled}"
-                          Content="Autosit — rozkaż drużynie usiąść, gdy Ty siadasz" />
+                          Content="Autosit — rozkaż drużynie odpocząć, gdy Ty siadasz" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” / „order &lt;gracz&gt; sit” do każdego innego członka." />
+                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” / „order &lt;gracz&gt; rest” do każdego innego członka." />
               </StackPanel>
             </StackPanel>
           </Border>

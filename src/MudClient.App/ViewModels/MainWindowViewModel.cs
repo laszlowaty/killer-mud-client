@@ -35,6 +35,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
+    private readonly GroupExhaustionRefreshPolicy _groupExhaustionRefresh = new();
     private readonly ProfileService _profiles;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
@@ -1623,6 +1624,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.AutoSitOrderEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoGroupRefreshOnExhaustedEnabled
+    {
+        get => _settings.AutoGroupRefreshOnExhaustedEnabled;
+        set
+        {
+            if (_settings.AutoGroupRefreshOnExhaustedEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoGroupRefreshOnExhaustedEnabled = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -3986,6 +4003,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>Orders any group member whose GMCP movement just dropped to "zamęczony" to cast
+    /// refresh on themselves — see <see cref="GroupExhaustionRefreshPolicy"/> for the once-per-
+    /// exhaustion debounce. Runs on whatever thread delivers the GMCP group update, matching
+    /// <see cref="TryAutoAssist"/>.</summary>
+    private void TryAutoOrderExhaustedGroupRefresh(CharacterGroupUpdate update)
+    {
+        var names = _groupExhaustionRefresh.GetMembersToOrder(
+            _settings.AutoGroupRefreshOnExhaustedEnabled && IsConnected, update, _latestCharacterName);
+        if (names.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(names.Select(name => $"order {name} cast refresh").ToArray());
+    }
+
     /// <summary>Every other (non-NPC) member of the current group — the set that "order" fan-out
     /// commands (refresh, autostand/autosit) target one at a time.</summary>
     internal static IReadOnlyList<string> BuildOtherGroupMemberNames(
@@ -5766,7 +5799,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (nowSitting && !wasSitting)
         {
             OnAutowalkSitting();
-            TryAutoOrderGroupPosition("sit", _settings.AutoSitOrderEnabled);
+            // "rest", not "sit" — resting is what actually recovers the group's movement.
+            TryAutoOrderGroupPosition("rest", _settings.AutoSitOrderEnabled);
         }
 
         if (nowStanding && !wasStanding)
@@ -6167,6 +6201,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         _latestGroupUpdate = update;
         TryAutoAssist();
+        TryAutoOrderExhaustedGroupRefresh(update);
         Dispatcher.UIThread.Post(() =>
         {
             GroupEmptyMessage = string.IsNullOrWhiteSpace(update.UnavailableReason)
