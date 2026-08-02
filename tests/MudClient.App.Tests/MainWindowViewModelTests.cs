@@ -20,7 +20,9 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     {
         _tempDir = Path.Combine(Path.GetTempPath(), "KillerMudClient_VMTest_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDir);
-        _vm = new MainWindowViewModel(settingsService: new AppSettingsService(_tempDir));
+        _vm = new MainWindowViewModel(
+            profileService: new ProfileService(_tempDir),
+            settingsService: new AppSettingsService(_tempDir));
     }
 
     public async ValueTask DisposeAsync()

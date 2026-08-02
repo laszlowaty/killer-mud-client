@@ -16,11 +16,13 @@ using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
 using MudClient.Core.Networking;
+using MudClient.Core.Text;
 
 namespace MudClient.App.ViewModels;
 
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
+    private const int MaximumChatHistoryLines = 500;
     private static readonly Uri DiscordInviteUri = new("https://discord.gg/6NRnxZeMTC");
     internal const string CharacterRollAgainCommand = "n";
     internal static IReadOnlyList<string> CharacterCreationFinishCommands { get; } =
@@ -115,6 +117,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
+    private readonly List<string> _chatHistory = [];
 
     public event EventHandler? CharacterRollerConfigurationRequested;
 
@@ -885,6 +888,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public event Action<string>? OutputReceived;
+
+    public event Action<string>? ChatOutputReceived;
+
+    /// <summary>
+    /// Last conversation lines from the current application session. Keeping this outside the
+    /// view lets a restored Chat widget show messages received while it was closed or hidden.
+    /// </summary>
+    public IReadOnlyList<string> ChatHistory => _chatHistory;
 
     /// <summary>Raised when a profile becomes active; the view auto-connects then.</summary>
     public event Action<string>? ProfileActivated;
@@ -5466,6 +5477,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnLineReceived(string line)
     {
+        if (ChatLineClassifier.IsChatLine(line))
+        {
+            Dispatcher.UIThread.Post(() => AddChatLine(line));
+        }
+
         // The creator-only book refresh owns complete response lines while active. Raw text still
         // reaches the terminal through TextReceived, but booklist output must not fire user triggers.
         if (_bookCatalogRefreshCoordinator.TryCaptureLine(line))
@@ -5500,6 +5516,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         QueueTriggeredCommands(commands);
+    }
+
+    private void AddChatLine(string line)
+    {
+        var output = line + "\n";
+        _chatHistory.Add(output);
+        while (_chatHistory.Count > MaximumChatHistoryLines)
+        {
+            _chatHistory.RemoveAt(0);
+        }
+
+        ChatOutputReceived?.Invoke(output);
     }
 
     /// <summary>

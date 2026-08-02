@@ -27,6 +27,7 @@ public sealed class MudDockFactory : Factory, IFactory
 
     /// <summary>Id of the required-buffs tool; its tab title carries a live x/y badge.</summary>
     public const string BuffsToolId = "Buffs";
+    public const string ChatToolId = "Chat";
 
     public List<PanelTool> AllTools { get; } = new();
 
@@ -213,6 +214,7 @@ public sealed class MudDockFactory : Factory, IFactory
         var mapTool = NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
         var roomInfoTool = NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
         var terminalTool = NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
+        var chatTool = NewTool(ChatToolId, "💬 Czat", typeof(Views.Panels.ChatPanelView), _mainContext);
         var infoTool = NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
         var conditionTool = NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
         var effectsTool = NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
@@ -239,7 +241,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Id = "CenterPane",
             Proportion = 0.5,
             ActiveDockable = terminalTool,
-            VisibleDockables = CreateList<IDockable>(terminalTool),
+            VisibleDockables = CreateList<IDockable>(terminalTool, chatTool),
             Alignment = Alignment.Left,
         };
 
@@ -694,11 +696,15 @@ public sealed class MudDockFactory : Factory, IFactory
         var hidden = new HashSet<string>(snapshot.HiddenToolIds);
         var pinned = new HashSet<string>(snapshot.PinnedTools.Select(p => p.Id));
         var known = AllTools.Select(t => t.Id!).ToHashSet();
+        var accountedFor = new HashSet<string>(referenced.Union(hidden).Union(pinned));
+        var missing = new HashSet<string>(known.Except(accountedFor));
 
         // Every known tool must appear exactly once across the visible tree, the hidden
-        // list, and the pinned list — otherwise the snapshot predates a panel change.
+        // list, and the pinned list. Chat is the one migration exception: layouts saved
+        // before it existed keep their exact arrangement and receive Chat as a hidden tool.
         if (referenced.Overlaps(hidden) || referenced.Overlaps(pinned) || hidden.Overlaps(pinned)
-            || !new HashSet<string>(referenced.Union(hidden).Union(pinned)).SetEquals(known))
+            || accountedFor.Except(known).Any()
+            || (missing.Count > 0 && !missing.SetEquals([ChatToolId])))
         {
             return false;
         }
@@ -721,6 +727,10 @@ public sealed class MudDockFactory : Factory, IFactory
             {
                 HiddenTools.Add(tool);
             }
+        }
+        foreach (var id in missing)
+        {
+            HiddenTools.Add(toolsById[id]);
         }
 
         RestorePinnedTools(root, snapshot.PinnedTools, toolsById);

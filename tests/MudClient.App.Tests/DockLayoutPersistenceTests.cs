@@ -131,6 +131,25 @@ public sealed class DockLayoutPersistenceTests : IDisposable
     }
 
     [Fact]
+    public void TryApplySnapshot_MigratesPreChatLayoutWithChatHidden()
+    {
+        var factory1 = CreateFactory(out var layout1);
+        var snapshot = factory1.Snapshot(layout1);
+        RemovePanel(snapshot.Root!, MudDockFactory.ChatToolId);
+
+        var factory2 = CreateFactory(out var layout2);
+
+        Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
+        Assert.Contains(
+            factory2.HiddenTools,
+            panel => panel.Id == MudDockFactory.ChatToolId);
+        Assert.DoesNotContain(
+            PanelsIn(layout2),
+            panel => panel.Id == MudDockFactory.ChatToolId);
+        Assert.Contains(PanelsIn(layout2), panel => panel.Id == "Terminal");
+    }
+
+    [Fact]
     public void TryApplySnapshot_RejectsPanelBothVisibleAndHidden()
     {
         var factory1 = CreateFactory(out var layout1);

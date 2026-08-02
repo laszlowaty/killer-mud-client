@@ -37,6 +37,18 @@ public sealed class DockRestoreTests
         Assert.Equal(typeof(MudClient.App.Views.Panels.RoomInfoPanelView), room.ViewType);
     }
 
+    [Fact]
+    public void CreateLayout_DefaultIncludesChatAsInactiveTerminalTab()
+    {
+        var factory = CreateFactory(out var layout);
+        var center = Assert.IsType<ToolDock>(FindIn(layout, "CenterPane"));
+
+        Assert.Equal("Terminal", center.ActiveDockable?.Id);
+        Assert.Equal(
+            ["Terminal", MudDockFactory.ChatToolId],
+            center.VisibleDockables!.Select(dockable => dockable.Id));
+    }
+
     // Close every tool of the right-top dock one by one, then restore each. The dock
     // empties and Dock removes it partway through — the classic "sometimes doesn't work".
     [Fact]

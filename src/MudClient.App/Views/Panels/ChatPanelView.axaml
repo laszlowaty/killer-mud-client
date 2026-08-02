@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:MudClient.App.Controls"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.ChatPanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <controls:MudOutputView x:Name="ChatOutput"
+                          OutputFontFamily="{Binding OutputFontFamilyValue}"
+                          OutputFontSize="{Binding OutputFontSize}"
+                          OutputFontWeight="{Binding OutputFontWeight}"
+                          TelnetColorScheme="{Binding TelnetColorScheme}"
+                          WordWrap="{Binding OutputWordWrap}" />
+</UserControl>

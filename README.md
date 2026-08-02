@@ -32,6 +32,10 @@ SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexi
 
 - kolory ANSI SGR: 16 kolorów z wybieralnymi schematami (ciepły, colorblind w skali szarości i jaskrawy wzorowany na domyślnej palecie Mudleta), mudletowe rozjaśnianie kolorów 30–37 przez SGR bold, 256 kolorów, RGB, underline i reset,
 - filtry kanałów nad terminalem: Wszystko / Walka / Czaty / System,
+- dokowalny widget **Czat** przechwytujący pełne linie rozmów (mówienie, pytania,
+  krzyki i kanały `[Nadawca]: treść`) z kolorami ANSI, przewijaniem i kopiowaniem;
+  w układzie **DEFAULT** jest zakładką obok terminala, a układy zapisane przez starsze
+  wersje zachowują swój wygląd i otrzymują go jako ukryty panel w menu **Panele**,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
 - zwirtualizowany bufor wyjścia: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`) — koszt dopisania tekstu nie zależy od wielkości scrollbacka, więc wielogodzinne sesje nie spowalniają UI,
 - zaznaczanie i kopiowanie tekstu lub kolorowego fragmentu terminala jako obrazu do schowka systemowego (przeciąganie myszą + menu kontekstowe).
