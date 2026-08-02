@@ -6,6 +6,7 @@ using Android.OS;
 using Avalonia.Android;
 using AndroidX.Activity;
 using AndroidX.Core.View;
+using MudClient.App.Models;
 using SoftInput = Android.Views.SoftInput;
 
 namespace MudClient.Android;
@@ -148,10 +149,9 @@ public sealed class MainActivity : AvaloniaMainActivity
             }
 
             var imeType = WindowInsetsCompat.Type.Ime();
-            var imeInsets = windowInsets.GetInsets(imeType);
             if (windowInsets.IsVisible(imeType))
             {
-                Publish(true, imeInsets?.Bottom ?? 0);
+                Publish(true, GetImeInsetAboveSystemBars(windowInsets));
             }
             else
             {
@@ -172,7 +172,7 @@ public sealed class MainActivity : AvaloniaMainActivity
             {
                 Publish(
                     true,
-                    rootInsets.GetInsets(imeType)?.Bottom ?? 0);
+                    GetImeInsetAboveSystemBars(rootInsets));
                 return;
             }
 
@@ -232,6 +232,22 @@ public sealed class MainActivity : AvaloniaMainActivity
             _lastVisibility = isVisible;
             _lastBottomInset = bottomInset;
             onImeInsetsChanged(isVisible, bottomInset);
+        }
+
+        private static int GetImeInsetAboveSystemBars(
+            WindowInsetsCompat windowInsets)
+        {
+            var imeBottom = windowInsets
+                                .GetInsets(WindowInsetsCompat.Type.Ime())
+                                ?.Bottom
+                            ?? 0;
+            var systemBarsBottom = windowInsets
+                                       .GetInsets(WindowInsetsCompat.Type.SystemBars())
+                                       ?.Bottom
+                                   ?? 0;
+            return (int)ViewportInsetCalculator.CalculateInsetAboveSystemBars(
+                imeBottom,
+                systemBarsBottom);
         }
     }
 }

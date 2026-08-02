@@ -5,6 +5,26 @@ namespace MudClient.App.Tests.Models;
 public sealed class ViewportInsetCalculatorTests
 {
     [Fact]
+    public void ImeInsetIncludingNavigationBar_RemovesAlreadyExcludedSystemBar()
+    {
+        var result = ViewportInsetCalculator.CalculateInsetAboveSystemBars(
+            requestedInset: 883,
+            systemBarsInset: 63);
+
+        Assert.Equal(820, result);
+    }
+
+    [Fact]
+    public void SystemBarLargerThanInset_DoesNotProduceNegativeHeight()
+    {
+        var result = ViewportInsetCalculator.CalculateInsetAboveSystemBars(
+            requestedInset: 40,
+            systemBarsInset: 63);
+
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
     public void NativeResizeCoveringIme_DoesNotAddFallback()
     {
         var result = ViewportInsetCalculator.CalculateMissingBottomInset(

@@ -2,6 +2,13 @@ namespace MudClient.App.Models;
 
 public static class ViewportInsetCalculator
 {
+    public static double CalculateInsetAboveSystemBars(
+        double requestedInset,
+        double systemBarsInset)
+    {
+        return Math.Max(0, requestedInset - Math.Max(0, systemBarsInset));
+    }
+
     public static double CalculateMissingBottomInset(
         double viewportHeightWithoutInset,
         double currentViewportHeight,

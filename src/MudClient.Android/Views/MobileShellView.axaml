@@ -6,8 +6,10 @@
              x:Class="MudClient.Android.Views.MobileShellView"
              x:DataType="vm:MainWindowViewModel">
   <Border x:Name="ImeViewport"
-          Background="{StaticResource MudBrushVoid}">
+          Background="{StaticResource MudBrushVoid}"
+          SizeChanged="ImeViewport_OnSizeChanged">
     <Grid x:Name="MobileRoot"
+          VerticalAlignment="Top"
           RowDefinitions="Auto,*">
     <Border Grid.Row="0"
             Height="200"

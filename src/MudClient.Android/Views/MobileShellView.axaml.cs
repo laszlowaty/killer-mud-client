@@ -39,7 +39,6 @@ public sealed partial class MobileShellView : UserControl
         InitializeComponent();
         AttachedToVisualTree += OnAttachedToVisualTree;
         DetachedFromVisualTree += OnDetachedFromVisualTree;
-        SizeChanged += OnViewportSizeChanged;
     }
 
     private async void OnAttachedToVisualTree(
@@ -191,6 +190,9 @@ public sealed partial class MobileShellView : UserControl
         // edge-to-edge can instead expose only IME insets. An explicit height
         // is required here because the Android TopLevel can retain the old
         // DesiredSize and otherwise arrange the Auto command row below its clip.
+        // MobileRoot is top-aligned so the explicitly shorter viewport consumes
+        // the space above the IME instead of being centered and leaving a blank
+        // strip where the collapsed map used to be.
         // Shrinking the terminal keeps its Auto-sized command row in normal layout,
         // directly above the IME, and reduces the output row by the command row too.
         var availableHeight = Math.Max(0, viewport.Bounds.Height - missingInset);
@@ -198,7 +200,7 @@ public sealed partial class MobileShellView : UserControl
         terminal.Height = availableHeight;
     }
 
-    private void OnViewportSizeChanged(object? sender, SizeChangedEventArgs eventArgs)
+    private void ImeViewport_OnSizeChanged(object? sender, SizeChangedEventArgs eventArgs)
     {
         if (!_isImeVisible && eventArgs.NewSize.Height > 0)
         {
