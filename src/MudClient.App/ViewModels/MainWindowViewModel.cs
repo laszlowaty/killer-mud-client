@@ -22,6 +22,9 @@ namespace MudClient.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
     private static readonly Uri DiscordInviteUri = new("https://discord.gg/6NRnxZeMTC");
+    internal const string CharacterRollAgainCommand = "n";
+    internal static IReadOnlyList<string> CharacterCreationFinishCommands { get; } =
+        ["t", " ", "12", "t"];
 
     private readonly MudSession _session = new();
     private readonly AliasEngine _aliases = new();
@@ -35,6 +38,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
+    private readonly CharacterRoller _characterRoller = new();
+    private readonly object _characterRollerLock = new();
     private readonly ProfileService _profiles;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
@@ -110,6 +115,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
+
+    public event EventHandler? CharacterRollerConfigurationRequested;
 
     // --- New UI additions ---
     private string _headerAreaText = "--- Niepołączono ---";
@@ -4910,6 +4917,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            lock (_characterRollerLock)
+            {
+                // Keep the last targets as popup defaults, but require confirmation
+                // again for every new MUD connection.
+                _characterRoller.ResetForNewSession();
+            }
+
             _session.EncodingMode = Encoding;
             await _session.ConnectAsync(Host.Trim(), Port);
             IsConnected = true;
@@ -5038,6 +5052,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var segment in segments)
         {
+            if (TryHandleCharacterRollerCommand(segment))
+            {
+                continue;
+            }
+
             if (await TryHandleMapEditorCommandAsync(segment))
             {
                 continue;
@@ -5175,6 +5194,90 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             EmitSystem(exception.Message, 31);
+        }
+    }
+
+    internal CharacterRollerConfiguration CharacterRollerConfiguration
+    {
+        get
+        {
+            lock (_characterRollerLock)
+            {
+                return _characterRoller.Configuration;
+            }
+        }
+    }
+
+    internal CharacterRoll? LastCharacterRoll
+    {
+        get
+        {
+            lock (_characterRollerLock)
+            {
+                return _characterRoller.LastRoll;
+            }
+        }
+    }
+
+    internal bool TryHandleCharacterRollerCommand(string command)
+    {
+        if (!string.Equals(command, "/reroll", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        lock (_characterRollerLock)
+        {
+            _characterRoller.PauseForConfiguration();
+        }
+
+        CharacterRollerConfigurationRequested?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    internal void ApplyCharacterRollerConfiguration(CharacterRollerConfiguration configuration)
+    {
+        CharacterRollerAction action;
+        lock (_characterRollerLock)
+        {
+            action = _characterRoller.Configure(configuration);
+        }
+
+        HandleCharacterRollerAction(action);
+    }
+
+    internal void ObserveCharacterRollLine(string line)
+    {
+        CharacterRollerAction action;
+        lock (_characterRollerLock)
+        {
+            action = _characterRoller.ObserveLine(line);
+        }
+
+        HandleCharacterRollerAction(action);
+    }
+
+    private void HandleCharacterRollerAction(CharacterRollerAction action)
+    {
+        switch (action)
+        {
+            case CharacterRollerAction.RequestConfiguration:
+                Dispatcher.UIThread.Post(
+                    () => CharacterRollerConfigurationRequested?.Invoke(this, EventArgs.Empty));
+                break;
+
+            case CharacterRollerAction.RollAgain:
+                QueueTriggeredCommands([CharacterRollAgainCommand]);
+                break;
+
+            case CharacterRollerAction.FinishCharacterCreation:
+                QueueTriggeredCommands(CharacterCreationFinishCommands);
+                break;
+
+            case CharacterRollerAction.Accepted:
+                Dispatcher.UIThread.Post(
+                    () => AddToast("Docelowe statystyki osiągnięte. Rolowanie zatrzymane.", "info"));
+                break;
         }
     }
 
@@ -5380,6 +5483,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
         }
+
+        ObserveCharacterRollLine(line);
 
         if (GroupOrdersEnabled
             && GroupOrderPolicy.TryGetCommand(

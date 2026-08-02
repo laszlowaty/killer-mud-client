@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MudClient.App.Controls.CharacterRollerDialog"
+        Title="Automatyczne rolowanie postaci"
+        Width="500"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <Border Padding="20">
+    <StackPanel Spacing="14">
+      <TextBlock Text="Docelowe statystyki"
+                 FontSize="18"
+                 FontWeight="SemiBold" />
+      <TextBlock Text="Rolowanie będzie powtarzane, dopóki każda nieignorowana wartość nie osiągnie podanego minimum."
+                 TextWrapping="Wrap" />
+      <TextBlock x:Name="LastRollText"
+                 Classes="mud-faint"
+                 TextWrapping="Wrap"
+                 IsVisible="False" />
+
+      <Grid ColumnDefinitions="Auto,90,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+            ColumnSpacing="12"
+            RowSpacing="8">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Statystyka" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="0" Grid.Column="1" Text="Minimum" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="Ignorowana" FontWeight="SemiBold" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Suma" VerticalAlignment="Center" />
+        <TextBox x:Name="SumTextBox" Grid.Row="1" Grid.Column="1" />
+        <CheckBox x:Name="SumIgnoredCheckBox" Grid.Row="1" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="STR" VerticalAlignment="Center" />
+        <TextBox x:Name="StrengthTextBox" Grid.Row="2" Grid.Column="1" />
+        <CheckBox x:Name="StrengthIgnoredCheckBox" Grid.Row="2" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="INT" VerticalAlignment="Center" />
+        <TextBox x:Name="IntelligenceTextBox" Grid.Row="3" Grid.Column="1" />
+        <CheckBox x:Name="IntelligenceIgnoredCheckBox" Grid.Row="3" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="WIS" VerticalAlignment="Center" />
+        <TextBox x:Name="WisdomTextBox" Grid.Row="4" Grid.Column="1" />
+        <CheckBox x:Name="WisdomIgnoredCheckBox" Grid.Row="4" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="DEX" VerticalAlignment="Center" />
+        <TextBox x:Name="DexterityTextBox" Grid.Row="5" Grid.Column="1" />
+        <CheckBox x:Name="DexterityIgnoredCheckBox" Grid.Row="5" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="CON" VerticalAlignment="Center" />
+        <TextBox x:Name="ConstitutionTextBox" Grid.Row="6" Grid.Column="1" />
+        <CheckBox x:Name="ConstitutionIgnoredCheckBox" Grid.Row="6" Grid.Column="2"
+                  VerticalAlignment="Center" />
+
+        <TextBlock Grid.Row="7" Grid.Column="0" Text="CHA" VerticalAlignment="Center" />
+        <TextBox x:Name="CharismaTextBox" Grid.Row="7" Grid.Column="1" />
+        <CheckBox x:Name="CharismaIgnoredCheckBox" Grid.Row="7" Grid.Column="2"
+                  VerticalAlignment="Center" />
+      </Grid>
+
+      <CheckBox x:Name="FinishCharacterCreationCheckBox"
+                Content="Po uzyskaniu statystyk dokończ tworzenie postaci (t → spacja → 12 → t)" />
+      <TextBlock x:Name="ValidationText"
+                 Foreground="#ef6f6c"
+                 TextWrapping="Wrap"
+                 IsVisible="False" />
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Right"
+                  Spacing="8">
+        <Button Content="Anuluj"
+                IsCancel="True"
+                Click="Cancel_OnClick" />
+        <Button x:Name="StartButton"
+                Content="Rozpocznij rolowanie"
+                IsDefault="True"
+                Click="Start_OnClick" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

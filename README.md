@@ -86,7 +86,7 @@ aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu
 ### Pomoc aplikacji
 
 Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/idz`,
-`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop`, `/recast` oraz komend mappera `/map`.
+`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop`, `/recast`, `/reroll` oraz komend mappera `/map`.
 W Trybie lorda mapper obsługuje `start`, `stop`, `save`, `undo`, `redo`, `cancel`,
 `status`, `info`, `check`, `diff`, `import`, `export`, `discard`, `resolve`,
 `step <1-20>`, `area`, `reassign`, `room`, `symbol`, `label`, `forget` i `special`; jako
@@ -113,6 +113,10 @@ aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
 
 ### Automatyzacja
 
+- **Roller postaci** — wykrywa trzywierszowy blok `STR/INT`, `WIS/DEX`, `CON/CHA`
+  podczas tworzenia postaci i otwiera konfigurację minimów (także sumy); każdą
+  wartość można zignorować, a po udanym losowaniu opcjonalnie wysłać sekwencję
+  kończącą tworzenie postaci. `/reroll` zatrzymuje automat i ponownie otwiera popup,
 - **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy; aktywne timery mają countdown przy prawej krawędzi terminala, a usunięcie pojedynczego wpisu wymaga potwierdzenia,
 - **Foldery** — timery, aliasy, triggery, cele autowalk i notatki można układać w zagnieżdżonych folderach metodą drag&drop; folder obsługuje grupowe usuwanie, globalność oraz włączanie/wyłączanie tam, gdzie ma to zastosowanie, a usunięcie folderu timerów, aliasów lub triggerów wymaga potwierdzenia,
 - **Import i eksport** — pojedyncze aliasy, triggery i timery oraz całe drzewa ich folderów można przenosić w wersjonowanym formacie JSON; podczas importu identyfikatory folderów są bezpiecznie mapowane na nowe,

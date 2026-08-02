@@ -11,6 +11,7 @@ using MudClient.App.Controls;
 using MudClient.App.Docking;
 using MudClient.App.ViewModels;
 using MudClient.App.Views.Panels;
+using MudClient.Core.Automation;
 
 namespace MudClient.App.Views;
 
@@ -20,9 +21,16 @@ public partial class MainWindow : Window
     private Dock.Avalonia.Controls.DockControl? _mainDock;
     private CancellationTokenSource? _pinnedPanelAuditCts;
     private bool _closingAfterRecoveryFlush;
+    private bool _characterRollerDialogOpen;
     private readonly DispatcherTimer _idleRefreshTimer;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
+    internal Func<
+        Window,
+        CharacterRollerConfiguration,
+        CharacterRoll?,
+        Task<CharacterRollerConfiguration?>> ConfigureCharacterRollerAsync { get; set; } =
+        CharacterRollerDialog.ShowAsync;
 
     public Exception? DeferredSettingsImportError { get; init; }
 
@@ -140,17 +148,50 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.CharacterRollerConfigurationRequested -= OnCharacterRollerConfigurationRequested;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.CharacterRollerConfigurationRequested += OnCharacterRollerConfigurationRequested;
             // Pinned edge tabs use fixed proportions of the live dock area: one third of its
             // width at the sides and half its height at the top/bottom. The view supplies the
             // dimensions because the UI-agnostic factory cannot see the rendered DockControl.
             _viewModel.ConfigurePinnedPreviewSize(GetPinnedPreviewSize);
             SchedulePinnedPanelAudit();
+        }
+    }
+
+    private async void OnCharacterRollerConfigurationRequested(object? sender, EventArgs eventArgs)
+    {
+        var viewModel = _viewModel;
+        if (viewModel is null || _characterRollerDialogOpen)
+        {
+            return;
+        }
+
+        _characterRollerDialogOpen = true;
+        try
+        {
+            var configuration = await ConfigureCharacterRollerAsync(
+                this,
+                viewModel.CharacterRollerConfiguration,
+                viewModel.LastCharacterRoll);
+
+            if (configuration is not null && ReferenceEquals(viewModel, _viewModel))
+            {
+                viewModel.ApplyCharacterRollerConfiguration(configuration);
+            }
+        }
+        catch (Exception exception)
+        {
+            viewModel.ReportStartupError(exception);
+        }
+        finally
+        {
+            _characterRollerDialogOpen = false;
         }
     }
 
@@ -437,6 +478,7 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.CharacterRollerConfigurationRequested -= OnCharacterRollerConfigurationRequested;
             _ = _viewModel.DisposeAsync();
         }
 
