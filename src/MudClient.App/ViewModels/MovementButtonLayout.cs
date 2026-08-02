@@ -49,7 +49,7 @@ public sealed record MovementButtonLayout(
             buttons[direction] = exit.IsClosed
                 ? new MovementButtonState(
                     label,
-                    $"open {defaultButton.Command}",
+                    CreateOpeningCommand(exit, defaultButton.Command),
                     moveCommand)
                 : new MovementButtonState(label, moveCommand);
         }
@@ -114,4 +114,11 @@ public sealed record MovementButtonLayout(
 
         return command.ToString().Normalize(NormalizationForm.FormC);
     }
+
+    private static string CreateOpeningCommand(
+        RoomExitInfo exit,
+        string fallbackDirection) =>
+        string.IsNullOrWhiteSpace(exit.Name)
+            ? $"open {fallbackDirection}"
+            : $"open \"{ToMudCommand(exit.Name.Trim())}\"";
 }
