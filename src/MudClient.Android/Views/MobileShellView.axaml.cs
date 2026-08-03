@@ -25,6 +25,7 @@ public sealed partial class MobileShellView : UserControl
     private bool _floatingButtonDragging;
     private bool _isImeVisible;
     private bool _restoreMapAfterIme;
+    private bool _restorePanelFullscreenAfterIme;
     private int _imeBottomInsetPixels;
     private double _viewportHeightWithoutIme;
     private Point _movementPadDragStart;
@@ -135,17 +136,30 @@ public sealed partial class MobileShellView : UserControl
         _imeBottomInsetPixels = Math.Max(0, bottomInsetPixels);
 
         var mapToggle = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapToggle");
+        var fullscreenToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>(
+                "PanelFullscreenToggle");
         if (mapToggle is not null)
         {
             if (isVisible && !wasVisible)
             {
                 _restoreMapAfterIme = mapToggle.IsChecked == true;
+                _restorePanelFullscreenAfterIme =
+                    fullscreenToggle?.IsChecked == true;
+                SetPanelFullscreen(false);
                 mapToggle.IsChecked = false;
             }
             else if (!isVisible && wasVisible)
             {
                 mapToggle.IsChecked = _restoreMapAfterIme;
+                if (_restoreMapAfterIme
+                    && _restorePanelFullscreenAfterIme)
+                {
+                    SetPanelFullscreen(true);
+                }
+
                 _restoreMapAfterIme = false;
+                _restorePanelFullscreenAfterIme = false;
             }
 
             mapToggle.IsEnabled = !isVisible;
@@ -744,7 +758,121 @@ public sealed partial class MobileShellView : UserControl
             return true;
         }
 
+        var fullscreenToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>(
+                "PanelFullscreenToggle");
+        if (fullscreenToggle?.IsChecked == true)
+        {
+            SetPanelFullscreen(false);
+            return true;
+        }
+
         return false;
+    }
+
+    private void MapTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        SelectAuxiliaryTab(showBuffs: false);
+
+    private void BuffsTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        SelectAuxiliaryTab(showBuffs: true);
+
+    private void SelectAuxiliaryTab(bool showBuffs)
+    {
+        var mapButton =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapTabButton");
+        var buffsButton =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("BuffsTabButton");
+        var mapPanel = this.FindControl<Control>("MobileMapPanel");
+        var buffsPanel = this.FindControl<Control>("MobileBuffsPanel");
+
+        if (mapButton is not null)
+        {
+            mapButton.IsChecked = !showBuffs;
+        }
+
+        if (buffsButton is not null)
+        {
+            buffsButton.IsChecked = showBuffs;
+        }
+
+        if (mapPanel is not null)
+        {
+            mapPanel.IsVisible = !showBuffs;
+        }
+
+        if (buffsPanel is not null)
+        {
+            buffsPanel.IsVisible = showBuffs;
+        }
+    }
+
+    private void PanelFullscreen_OnClick(
+        object? sender,
+        RoutedEventArgs eventArgs) =>
+        ApplyAuxiliaryPanelLayout();
+
+    private void AuxiliaryPanelToggle_OnClick(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        var mapToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapToggle");
+        var fullscreenToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>(
+                "PanelFullscreenToggle");
+        if (mapToggle?.IsChecked != true && fullscreenToggle?.IsChecked == true)
+        {
+            SetPanelFullscreen(false);
+        }
+    }
+
+    private void SetPanelFullscreen(bool isFullscreen)
+    {
+        var fullscreenToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>(
+                "PanelFullscreenToggle");
+        if (fullscreenToggle is not null)
+        {
+            fullscreenToggle.IsChecked = isFullscreen;
+        }
+
+        ApplyAuxiliaryPanelLayout();
+    }
+
+    private void ApplyAuxiliaryPanelLayout()
+    {
+        var panel = this.FindControl<Border>("AuxiliaryPanel");
+        var root = this.FindControl<Grid>("MobileRoot");
+        var viewport = this.FindControl<Border>("ImeViewport");
+        var terminal =
+            this.FindControl<MudClient.App.Views.Panels.TerminalPanelView>(
+                "MobileTerminal");
+        var fullscreenToggle =
+            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>(
+                "PanelFullscreenToggle");
+        if (panel is null || root is null || terminal is null)
+        {
+            return;
+        }
+
+        var isFullscreen = fullscreenToggle?.IsChecked == true;
+        panel.Height = isFullscreen ? double.NaN : 200;
+        root.RowDefinitions[0].Height = isFullscreen
+            ? new GridLength(1, GridUnitType.Star)
+            : GridLength.Auto;
+        root.RowDefinitions[1].Height = isFullscreen
+            ? new GridLength(0)
+            : new GridLength(1, GridUnitType.Star);
+        if (isFullscreen && viewport is not null && viewport.Bounds.Height > 0)
+        {
+            root.Height = viewport.Bounds.Height;
+        }
+        else if (!_isImeVisible)
+        {
+            root.Height = double.NaN;
+        }
+
+        terminal.IsVisible = !isFullscreen;
     }
 
     private void OpenToolOverlay(string title, string activePanelName)

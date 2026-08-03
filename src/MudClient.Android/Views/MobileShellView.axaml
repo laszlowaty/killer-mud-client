@@ -9,14 +9,67 @@
           Background="{StaticResource MudBrushVoid}"
           SizeChanged="ImeViewport_OnSizeChanged">
     <Grid x:Name="MobileRoot"
-          VerticalAlignment="Top"
-          RowDefinitions="Auto,*">
-    <Border Grid.Row="0"
+          VerticalAlignment="Top">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <Border x:Name="AuxiliaryPanel"
+            Grid.Row="0"
             Height="200"
             IsVisible="{Binding #MapToggle.IsChecked}"
+            Background="{StaticResource MudBrushVoid}"
             BorderBrush="{StaticResource MudBrushGoldDim}"
             BorderThickness="0,0,0,1">
-      <panels:MapPanelView DataContext="{Binding Map}" IsCompact="True" />
+      <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,Auto,*,Auto"
+              ColumnSpacing="4"
+              Margin="8,6,108,5">
+          <ToggleButton x:Name="MapTabButton"
+                        Grid.Column="0"
+                        Content="MAPA"
+                        IsChecked="True"
+                        MinHeight="34"
+                        Padding="12,4"
+                        Click="MapTab_OnClick" />
+          <ToggleButton x:Name="BuffsTabButton"
+                        Grid.Column="1"
+                        Content="BUFFY"
+                        MinHeight="34"
+                        Padding="12,4"
+                        Click="BuffsTab_OnClick" />
+          <ToggleButton x:Name="PanelFullscreenToggle"
+                        Grid.Column="3"
+                        Width="38"
+                        Height="34"
+                        Padding="0"
+                        Click="PanelFullscreen_OnClick"
+                        ToolTip.Tip="Rozciągnij panel na cały ekran">
+            <Grid>
+              <TextBlock Text="⛶"
+                         FontSize="18"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding !#PanelFullscreenToggle.IsChecked}" />
+              <TextBlock Text="▣"
+                         FontSize="16"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding #PanelFullscreenToggle.IsChecked}" />
+            </Grid>
+          </ToggleButton>
+        </Grid>
+
+        <panels:MapPanelView x:Name="MobileMapPanel"
+                             Grid.Row="1"
+                             DataContext="{Binding Map}"
+                             IsCompact="True" />
+        <panels:BuffsPanelView x:Name="MobileBuffsPanel"
+                              Grid.Row="1"
+                              IsVisible="False" />
+      </Grid>
     </Border>
 
     <panels:TerminalPanelView x:Name="MobileTerminal"
@@ -211,7 +264,8 @@
                     Padding="0"
                     Background="#E61A1F22"
                     BorderBrush="{StaticResource MudBrushGoldDim}"
-                    ToolTip.Tip="Pokaż lub ukryj mapę">
+                    Click="AuxiliaryPanelToggle_OnClick"
+                    ToolTip.Tip="Pokaż lub ukryj panel mapy i buffów">
         <Grid>
           <TextBlock Text="▲"
                      HorizontalAlignment="Center"

@@ -176,7 +176,9 @@ W VS Code możesz również nacisnąć `F5` albo uruchomić zadanie `run`. Skró
 
 Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfejs:
 
-- zwijaną mapę nad terminalem,
+- zwijany panel nad terminalem z zakładkami **Mapa** i **Buffy**; panel można
+  rozciągnąć na cały ekran, a mobilny widget buffów używa tych samych zestawów
+  (folderów) profilu co wersja desktopowa,
 - terminal z kompaktowym inputem,
 - prawostronny pad ruchu `n/s/w/e/up/down`, którego etykiety i komendy są
   podmieniane przez nazwane wyjścia z GMCP `Room.Info`; pad można przesuwać
@@ -199,11 +201,13 @@ Po zimnym uruchomieniu aplikacja zawsze pokazuje wybór profilu. W trakcie pracy
 można wrócić do tego ekranu przez **Menu → Zmień profil**; aktywne połączenie
 zostanie wcześniej bezpiecznie rozłączone.
 Po otwarciu klawiatury ekranowej Activity zmniejsza powierzchnię aplikacji o obszar
-IME. Mobilna powłoka zwija wtedy mapę i ukrywa pad ruchu, aby input oraz koniec
-terminala pozostały widoczne. Na urządzeniach edge-to-edge brakującą część zmniejszenia
-uzupełniają insets IME. Input pozostaje częścią zmniejszonego układu bezpośrednio nad
-klawiaturą, która nie jest zamykana po Enter ani po dotknięciu przycisku wysyłania.
-Po zamknięciu klawiatury wcześniejszy stan mapy jest przywracany.
+IME. Mobilna powłoka zwija wtedy panel mapy/buffów i ukrywa pad ruchu, aby input
+oraz koniec terminala pozostały widoczne. Na urządzeniach edge-to-edge brakującą
+część zmniejszenia uzupełniają insets IME. Input pozostaje częścią zmniejszonego
+układu bezpośrednio nad klawiaturą, która nie jest zamykana po Enter ani po
+dotknięciu przycisku wysyłania.
+Po zamknięciu klawiatury wcześniejszy stan panelu, także tryb pełnoekranowy, jest
+przywracany.
 
 Mobilne **Ustawienia → Dane** pozwalają wybrać kopię ZIP wyeksportowaną z wersji
 desktopowej. Archiwum jest najpierw walidowane, a dopiero osobne potwierdzenie
