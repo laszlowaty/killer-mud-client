@@ -149,6 +149,13 @@ public sealed class AppSettings
     /// group.</summary>
     public bool AutoGroupRefreshOnExhaustedEnabled { get; set; }
 
+    /// <summary>Orders every NPC in the current GMCP group (a summoned/charmed pet, which GMCP
+    /// reports as a group member with <c>IsNpc</c> true) to assist as soon as the local character's
+    /// own position becomes "fighting" ("order &lt;npc&gt; assist"). Unlike
+    /// <see cref="AutoStandOrderEnabled"/>/<see cref="AutoRestOrderEnabled"/>, this doesn't require
+    /// being the group leader — ordering your own pet doesn't need it.</summary>
+    public bool AutoAssistNpcEnabled { get; set; }
+
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
     /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and

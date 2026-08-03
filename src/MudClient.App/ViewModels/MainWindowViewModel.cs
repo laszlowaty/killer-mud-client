@@ -1594,6 +1594,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool AutoAssistNpcEnabled
+    {
+        get => _settings.AutoAssistNpcEnabled;
+        set
+        {
+            if (_settings.AutoAssistNpcEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoAssistNpcEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public int MinAutowalkLowMovementThresholdPercent => AppSettings.MinAutowalkLowMovementThresholdPercent;
 
     public int MaxAutowalkLowMovementThresholdPercent => AppSettings.MaxAutowalkLowMovementThresholdPercent;
@@ -4049,6 +4065,41 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             .ToArray();
     }
 
+    /// <summary>Orders every NPC in the current group (a summoned/charmed pet) to assist as soon
+    /// as the local character enters combat. Unlike <see cref="TryAutoOrderGroupPosition"/>,
+    /// doesn't require group leadership — ordering your own pet doesn't need it.</summary>
+    private void TryAutoAssistNpc()
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var commands = BuildAutoAssistNpcCommands(_latestGroupUpdate, AutoAssistNpcEnabled);
+        if (commands.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(commands);
+    }
+
+    /// <summary>Pure decision behind <see cref="TryAutoAssistNpc"/>: an "order &lt;name&gt; assist"
+    /// for every NPC GMCP currently reports in the group.</summary>
+    internal static IReadOnlyList<string> BuildAutoAssistNpcCommands(
+        CharacterGroupUpdate? group, bool enabled)
+    {
+        if (!enabled || group is null)
+        {
+            return [];
+        }
+
+        return group.Members
+            .Where(member => member.IsNpc)
+            .Select(member => $"order {member.Name} assist")
+            .ToArray();
+    }
+
     // ========================================================================
     // Profiles
     // ========================================================================
@@ -5789,6 +5840,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (nowFighting && !wasFighting)
         {
             OnAutowalkCombatStarted();
+            TryAutoAssistNpc();
         }
 
         if (nowSitting && !wasSitting)

@@ -364,6 +364,13 @@
               </StackPanel>
 
               <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutoAssistNpcEnabled}"
+                          Content="Autoassist NPC — rozkaż własnemu summonowi wspierać w walce" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Gdy Twoja pozycja GMCP zmieni się na „walczy”, klient wyśle „order &lt;NPC&gt; assist” do każdego NPC w aktualnej grupie (np. przywołanego/zaczarowanego summona). Nie wymaga bycia liderem grupy." />
+              </StackPanel>
+
+              <StackPanel Spacing="3">
                 <CheckBox IsChecked="{Binding GroupOrdersEnabled}"
                           Content="Ordery — wykonuj rozkazy członków drużyny" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"

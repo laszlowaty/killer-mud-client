@@ -188,6 +188,53 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void BuildAutoAssistNpcCommands_Disabled_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: false));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_NullGroup_ReturnsEmpty()
+    {
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(null, enabled: true));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_NoNpcsInGroup_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: true));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_Enabled_OrdersEveryNpc_EvenWithoutLeadership()
+    {
+        // Unlike BuildGroupPositionOrderCommands, ordering your own pet doesn't require being
+        // the group's GMCP leader — "Companion" leads here, not "Hero".
+        var group = new CharacterGroupUpdate("Companion", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var commands = MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: true);
+
+        Assert.Equal(["order Wolf assist"], commands);
+    }
+
+    [Fact]
     public void TerminalToolTitle_ReflectsVitals_AndUpdatesLiveOnChange()
     {
         var terminal = FindTool(_vm.Layout, "Terminal");
@@ -241,6 +288,22 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         InvokeUpdateCharacterPosition("standing");
         InvokeUpdateCharacterPosition("resting");
+    }
+
+    [Fact]
+    public void UpdateCharacterPosition_TransitionToFighting_DoesNotThrow_WithAutoAssistNpcEnabled()
+    {
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoAssistNpcEnabled = true;
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        }));
+
+        InvokeUpdateCharacterPosition("standing");
+        InvokeUpdateCharacterPosition("fighting");
     }
 
     [Fact]
