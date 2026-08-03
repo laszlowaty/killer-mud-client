@@ -138,10 +138,10 @@ public sealed class AppSettings
     /// group leader.</summary>
     public bool AutoStandOrderEnabled { get; set; }
 
-    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for sitting down — orders every other
-    /// group member to rest ("order &lt;name&gt; rest"), not to sit, since resting is what actually
-    /// recovers their movement.</summary>
-    public bool AutoSitOrderEnabled { get; set; }
+    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for resting — fires when the local
+    /// character's own GMCP position becomes "resting" (the "rest" command, not "sitting"/"sit")
+    /// and orders every other group member to rest too ("order &lt;name&gt; rest").</summary>
+    public bool AutoRestOrderEnabled { get; set; }
 
     /// <summary>Orders a group member to cast refresh on themselves ("order &lt;name&gt; cast
     /// refresh") as soon as GMCP reports their movement at the worst tier ("zamęczony"). Fires once

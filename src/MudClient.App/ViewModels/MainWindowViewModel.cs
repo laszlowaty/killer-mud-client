@@ -1614,17 +1614,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public bool AutoSitOrderEnabled
+    public bool AutoRestOrderEnabled
     {
-        get => _settings.AutoSitOrderEnabled;
+        get => _settings.AutoRestOrderEnabled;
         set
         {
-            if (_settings.AutoSitOrderEnabled == value)
+            if (_settings.AutoRestOrderEnabled == value)
             {
                 return;
             }
 
-            _settings.AutoSitOrderEnabled = value;
+            _settings.AutoRestOrderEnabled = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -5801,9 +5801,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var wasFighting = AutowalkRecoveryPolicy.IsCombatPosition(_latestCharacterPosition);
         var wasSitting = AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition);
         var wasStanding = AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition);
+        var wasResting = AutowalkRecoveryPolicy.IsRestingPosition(_latestCharacterPosition);
         var nowFighting = AutowalkRecoveryPolicy.IsCombatPosition(position);
         var nowSitting = AutowalkRecoveryPolicy.IsSittingPosition(position);
         var nowStanding = AutowalkRecoveryPolicy.IsStandingPosition(position);
+        var nowResting = AutowalkRecoveryPolicy.IsRestingPosition(position);
         _latestCharacterPosition = position;
 
         if (nowFighting && !wasFighting)
@@ -5814,14 +5816,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (nowSitting && !wasSitting)
         {
             OnAutowalkSitting();
-            // "rest", not "sit" — resting is what actually recovers the group's movement.
-            TryAutoOrderGroupPosition("rest", _settings.AutoSitOrderEnabled);
         }
 
         if (nowStanding && !wasStanding)
         {
             OnAutowalkStanding();
             TryAutoOrderGroupPosition("stand", _settings.AutoStandOrderEnabled);
+        }
+
+        // "resting" (the "rest" command) is a distinct GMCP position from "sitting" ("sit") — the
+        // group order is "rest", so it fires on this transition specifically, not on sitting down.
+        if (nowResting && !wasResting)
+        {
+            TryAutoOrderGroupPosition("rest", _settings.AutoRestOrderEnabled);
         }
 
         if (wasFighting && !nowFighting && !nowSitting)

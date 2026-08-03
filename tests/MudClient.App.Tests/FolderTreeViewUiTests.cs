@@ -101,7 +101,7 @@ public sealed class FolderTreeViewUiTests
             checkBox => Equals(checkBox.Content, "Autostand — rozkaż drużynie wstać, gdy Ty wstajesz"));
         Assert.Contains(
             window.GetLogicalDescendants().OfType<CheckBox>(),
-            checkBox => Equals(checkBox.Content, "Autosit — rozkaż drużynie odpocząć, gdy Ty siadasz"));
+            checkBox => Equals(checkBox.Content, "Autorest — rozkaż drużynie odpocząć, gdy Ty odpoczywasz"));
 
         window.Close();
         await viewModel.DisposeAsync();

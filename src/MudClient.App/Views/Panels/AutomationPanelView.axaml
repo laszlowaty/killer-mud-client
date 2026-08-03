@@ -441,10 +441,10 @@
               <StackPanel Spacing="3">
                 <CheckBox IsChecked="{Binding AutoStandOrderEnabled}"
                           Content="Autostand — rozkaż drużynie wstać, gdy Ty wstajesz" />
-                <CheckBox IsChecked="{Binding AutoSitOrderEnabled}"
-                          Content="Autosit — rozkaż drużynie odpocząć, gdy Ty siadasz" />
+                <CheckBox IsChecked="{Binding AutoRestOrderEnabled}"
+                          Content="Autorest — rozkaż drużynie odpocząć, gdy Ty odpoczywasz" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” / „order &lt;gracz&gt; rest” do każdego innego członka." />
+                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” po komendzie stand / „order &lt;gracz&gt; rest” po komendzie rest do każdego innego członka." />
               </StackPanel>
             </StackPanel>
           </Border>

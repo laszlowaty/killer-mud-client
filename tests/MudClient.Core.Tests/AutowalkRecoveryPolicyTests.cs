@@ -119,6 +119,28 @@ public sealed class AutowalkRecoveryPolicyTests
     }
 
     [Theory]
+    [InlineData("resting")]
+    [InlineData("Resting")]
+    [InlineData("RESTING")]
+    public void IsRestingPosition_RecognizesResting(string position)
+    {
+        Assert.True(AutowalkRecoveryPolicy.IsRestingPosition(position));
+    }
+
+    [Theory]
+    [InlineData("standing")]
+    [InlineData("fighting")]
+    [InlineData("sitting")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void IsRestingPosition_RejectsOtherPositions_IncludingSitting(string? position)
+    {
+        // "resting" (the "rest" command) is a distinct GMCP position from "sitting" ("sit") — the
+        // group order is "rest", so it must not fire on a plain sit.
+        Assert.False(AutowalkRecoveryPolicy.IsRestingPosition(position));
+    }
+
+    [Theory]
     [InlineData("standing", true)]
     [InlineData("Standing", true)]
     [InlineData("sitting", false)]

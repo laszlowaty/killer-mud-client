@@ -51,8 +51,9 @@
 
     <!-- Active timers — a compact strip just above the command bar instead of floating over the
          top-right of the output, where pinned overlay columns used to cover it (see
-         TerminalOverlayHost). Only enabled timers show; toggling one off here hides it until it's
-         re-enabled from the Automaty panel. -->
+         TerminalOverlayHost). Every timer stays visible here regardless of enabled state, so
+         pausing one with ⏸ leaves its row in place (with ▶ to resume) instead of making it
+         disappear until you go find it again in the Automaty panel. -->
     <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,3"
             IsVisible="{Binding Timers.Count}">
       <ItemsControl ItemsSource="{Binding Timers}">
@@ -64,20 +65,31 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:TimerEntry">
             <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,12,0"
-                        IsVisible="{Binding IsEnabled}"
                         ToolTip.Tip="{Binding Name}">
               <Button Content="⏸" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
                       Classes="mud-small"
+                      IsVisible="{Binding IsEnabled}"
                       ToolTip.Tip="Wstrzymaj timer"
+                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                      CommandParameter="{Binding}" />
+              <Button Content="▶" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      IsVisible="{Binding !IsEnabled}"
+                      ToolTip.Tip="Wznów timer"
                       Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
                       CommandParameter="{Binding}" />
               <TextBlock Text="{Binding ShortName}" FontSize="9" VerticalAlignment="Center"
                          Foreground="{StaticResource MudBrushParchmentDim}" />
               <TextBlock Text="{Binding RemainingText}" FontSize="9" VerticalAlignment="Center"
+                         IsVisible="{Binding IsEnabled}"
                          FontFamily="Consolas"
                          Foreground="{StaticResource MudBrushGoldBright}" />
+              <TextBlock Text="wstrzymany" FontSize="9" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsEnabled}"
+                         Classes="mud-faint" />
               <Button Content="⟳" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
                       Classes="mud-small"
+                      IsVisible="{Binding IsEnabled}"
                       ToolTip.Tip="Zresetuj odliczanie"
                       Command="{Binding $parent[UserControl].DataContext.RestartTimerCommand}"
                       CommandParameter="{Binding}" />

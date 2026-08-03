@@ -185,6 +185,35 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal(["order Companion sit"], commands);
     }
 
+    /// <summary>Invokes the private UpdateCharacterPosition method via reflection.</summary>
+    private void InvokeUpdateCharacterPosition(string position)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("UpdateCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(_vm, [position]);
+    }
+
+    [Fact]
+    public void UpdateCharacterPosition_TransitionToResting_DoesNotThrow_WithAutoRestEnabled()
+    {
+        // Regression guard for the bug where autorest never fired: the transition used to be
+        // gated on "sitting" (the "sit" command), but the actual GMCP position after "rest" is
+        // "resting" — a distinct value (see AutowalkRecoveryPolicyTests). Autostand's "standing"
+        // trigger was already correct, which is why only autorest was reported broken.
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoRestOrderEnabled = true;
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        }));
+
+        InvokeUpdateCharacterPosition("standing");
+        InvokeUpdateCharacterPosition("resting");
+    }
+
     [Fact]
     public void OnGroupChanged_ExhaustedMemberWithAutoRefreshEnabled_DoesNotThrow()
     {

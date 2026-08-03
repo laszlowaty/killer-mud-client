@@ -78,8 +78,19 @@ public sealed class MudOutputViewTests
             Assert.Same(viewModel.ToggleTimerCommand, pauseButton.Command);
             Assert.Same(timer, pauseButton.CommandParameter);
             pauseButton.Command!.Execute(pauseButton.CommandParameter);
+            window.UpdateLayout();
 
+            // The row must stay put after pausing (not disappear) — that's the whole point of the
+            // ▶ resume button existing.
             Assert.False(timer.IsEnabled);
+            Assert.True(nameLabel.IsEffectivelyVisible);
+            var resumeButton = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => Equals(button.Content, "▶") && ReferenceEquals(button.DataContext, timer));
+            Assert.True(resumeButton.IsEffectivelyVisible);
+            Assert.Same(viewModel.ToggleTimerCommand, resumeButton.Command);
+            resumeButton.Command!.Execute(resumeButton.CommandParameter);
+
+            Assert.True(timer.IsEnabled);
         }
         finally
         {
