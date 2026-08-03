@@ -6,36 +6,11 @@
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
   <Panel>
-  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
 
-    <!-- Character status header (replaces the former standalone "Postać" panel — this info is
-         wanted at a glance while looking at the Terminal, not tucked away in a separate tab). -->
-    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Classes="mud-bar-top" Padding="10,4"
-            DataContext="{Binding Vitals}">
-      <StackPanel Orientation="Horizontal" Spacing="16">
-        <TextBlock Classes="mud-heading" Text="Terminal" />
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Classes="mud-muted" Text="Imię:" />
-          <TextBlock Text="{Binding Name}" Foreground="{StaticResource MudBrushGoldBright}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Classes="mud-muted" Text="Poziom:" />
-          <TextBlock Text="{Binding Level}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Classes="mud-muted" Text="Płeć:" />
-          <TextBlock Text="{Binding SexDisplay}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock Classes="mud-muted" Text="Pozycja:" />
-          <TextBlock Text="{Binding PositionDisplay}" Foreground="{StaticResource MudBrushArcaneBlue}" />
-        </StackPanel>
-      </StackPanel>
-    </Border>
-
-    <!-- HP vertical indicator (left) – spans full panel height (below the header) -->
+    <!-- HP vertical indicator (left) – spans full panel height -->
     <Border x:Name="HitPointsBar"
-            Grid.Row="1" Grid.Column="0" Grid.RowSpan="3"
+            Grid.Column="0" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="2,0,0,0"
@@ -65,7 +40,7 @@
     </Border>
 
     <!-- MUD output (center) -->
-    <Grid Grid.Column="1" Grid.Row="1">
+    <Grid Grid.Column="1" Grid.Row="0">
       <controls:MudOutputView x:Name="MudOutput"
                               OutputFontFamily="{Binding OutputFontFamilyValue}"
                               OutputFontSize="{Binding OutputFontSize}"
@@ -86,7 +61,7 @@
          TerminalOverlayHost). Every timer stays visible here regardless of enabled state, so
          pausing one with ⏸ leaves its row in place (with ▶ to resume) instead of making it
          disappear until you go find it again in the Automaty panel. -->
-    <Border Grid.Column="1" Grid.Row="2" Classes="mud-bar-bottom" Padding="8,3"
+    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,3"
             IsVisible="{Binding Timers.Count}">
       <ItemsControl ItemsSource="{Binding Timers}">
         <ItemsControl.ItemsPanel>
@@ -134,7 +109,7 @@
     <!-- Command bar. Uses its full width always — overlay columns float on top of the Terminal
          without reserving any space from it (see TerminalOverlayHost), so there is no need to
          make room for them here. -->
-    <Border Grid.Column="1" Grid.Row="3" Classes="mud-bar-bottom" Padding="8,6">
+    <Border Grid.Column="1" Grid.Row="2" Classes="mud-bar-bottom" Padding="8,6">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"
@@ -179,9 +154,9 @@
       </Grid>
     </Border>
 
-    <!-- MV vertical indicator (right) – spans full panel height (below the header) -->
+    <!-- MV vertical indicator (right) – spans full panel height -->
     <Border x:Name="MovementPointsBar"
-            Grid.Row="1" Grid.Column="2" Grid.RowSpan="3"
+            Grid.Column="2" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="0,0,2,0"

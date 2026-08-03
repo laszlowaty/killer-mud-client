@@ -1,6 +1,8 @@
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using Dock.Model.Core;
+using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -184,6 +186,33 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         Assert.Equal(["order Companion sit"], commands);
     }
+
+    [Fact]
+    public void TerminalToolTitle_ReflectsVitals_AndUpdatesLiveOnChange()
+    {
+        var terminal = FindTool(_vm.Layout, "Terminal");
+        Assert.NotNull(terminal);
+        Assert.StartsWith("Terminal —", terminal!.Title);
+
+        _vm.Vitals.Name = "Aragorn";
+        _vm.Vitals.Level = 42;
+        _vm.Vitals.SexDisplay = "Mężczyzna";
+        _vm.Vitals.PositionDisplay = "Stoi";
+
+        Assert.Contains("Aragorn", terminal.Title);
+        Assert.Contains("42", terminal.Title);
+        Assert.Contains("Mężczyzna", terminal.Title);
+        Assert.Contains("Stoi", terminal.Title);
+    }
+
+    private static PanelTool? FindTool(IDockable? dockable, string id) => dockable switch
+    {
+        PanelTool tool when string.Equals(tool.Id, id, StringComparison.Ordinal) => tool,
+        IDock dock => (dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
+            .Select(child => FindTool(child, id))
+            .FirstOrDefault(found => found is not null),
+        _ => null,
+    };
 
     /// <summary>Invokes the private UpdateCharacterPosition method via reflection.</summary>
     private void InvokeUpdateCharacterPosition(string position)

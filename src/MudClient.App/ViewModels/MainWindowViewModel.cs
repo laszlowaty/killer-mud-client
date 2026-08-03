@@ -355,6 +355,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
         _dockFactory.OverlayChanged += OnOverlayChanged;
         ApplyOverlayFromSettings();
+
+        Vitals.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
+        UpdateTerminalToolTitle();
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
             if (tool is not null)
@@ -588,6 +591,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
         UpdateMemToolTitle();
+        UpdateTerminalToolTitle();
     }
 
     private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
@@ -3755,6 +3759,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         tool.Title = RequiredBuffs.Count == 0 ? "📜 Mem i Buffy" : $"📜 Mem i Buffy {BuffsBadge}";
+    }
+
+    /// <summary>
+    /// Mirrors the character's live vitals onto the Terminal dock tab title — folds the former
+    /// standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja) into the Terminal's own
+    /// header bar instead of a separate row inside its content, so they're visible without
+    /// spending any of the Terminal's own vertical space.
+    /// </summary>
+    private void UpdateTerminalToolTitle()
+    {
+        var tool = _dockFactory.AllTools.FirstOrDefault(
+            t => string.Equals(t.Id, "Terminal", StringComparison.Ordinal));
+        if (tool is null)
+        {
+            return;
+        }
+
+        tool.Title = $"Terminal — Imię: {Vitals.Name}, Poziom: {Vitals.Level}, " +
+                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay}";
     }
 
     public string NewBuffName
