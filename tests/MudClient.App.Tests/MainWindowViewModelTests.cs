@@ -81,6 +81,44 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void FloatingButtonSets_CreateSwitchAndDelete_PersistSelectionAndButtons()
+    {
+        var defaultButton = _vm.AddFloatingButton("Leczenie", "quaff red");
+        var combat = _vm.AddFloatingButtonSet("Walka");
+
+        Assert.NotNull(defaultButton);
+        Assert.NotNull(combat);
+        Assert.Same(combat, _vm.SelectedFloatingButtonSet);
+        Assert.Empty(_vm.FloatingButtons);
+
+        var combatButton = _vm.AddFloatingButton("Atak", "kill ork");
+        _vm.SelectedFloatingButtonSet = _vm.FloatingButtonSets[0];
+
+        Assert.Same(defaultButton, Assert.Single(_vm.FloatingButtons));
+        var saved = new AppSettingsService(_tempDir).Load();
+        Assert.Equal(2, saved.FloatingButtonSets.Count);
+        Assert.Equal(_vm.SelectedFloatingButtonSet!.Id, saved.ActiveFloatingButtonSetId);
+        Assert.Equal("Atak", Assert.Single(
+            saved.FloatingButtonSets.Single(set => set.Id == combat!.Id).Buttons).Name);
+
+        _vm.SelectedFloatingButtonSet = combat;
+        Assert.Same(combatButton, Assert.Single(_vm.FloatingButtons));
+        Assert.True(_vm.RemoveSelectedFloatingButtonSet());
+        Assert.Single(_vm.FloatingButtonSets);
+        Assert.False(_vm.CanDeleteFloatingButtonSet);
+        Assert.Same(defaultButton, Assert.Single(_vm.FloatingButtons));
+    }
+
+    [Fact]
+    public void FloatingButtonSets_RejectBlankDuplicateAndFinalDeletion()
+    {
+        Assert.Null(_vm.AddFloatingButtonSet(" "));
+        Assert.Null(_vm.AddFloatingButtonSet(AppSettings.DefaultFloatingButtonSetName));
+        Assert.False(_vm.RemoveSelectedFloatingButtonSet());
+        Assert.Single(_vm.FloatingButtonSets);
+    }
+
+    [Fact]
     public async Task FloatingButton_UsesConfiguredCommandSeparator()
     {
         SetIsConnected(true);

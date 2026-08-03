@@ -75,7 +75,7 @@ public sealed class AppSettingsService
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToList() ?? [];
                     settings.AutoAssistFollowUpCommands ??= string.Empty;
-                    settings.FloatingButtons = NormalizeFloatingButtons(settings.FloatingButtons);
+                    NormalizeFloatingButtonSets(settings);
 
                     return settings;
                 }
@@ -86,7 +86,9 @@ public sealed class AppSettingsService
             // Corrupted or unreadable settings — fall back to defaults.
         }
 
-        return new AppSettings();
+        var defaults = new AppSettings();
+        NormalizeFloatingButtonSets(defaults);
+        return defaults;
     }
 
     public void Save(AppSettings settings)
@@ -137,5 +139,53 @@ public sealed class AppSettingsService
         }
 
         return normalized;
+    }
+
+    private static void NormalizeFloatingButtonSets(AppSettings settings)
+    {
+        var normalizedSets = new List<FloatingButtonSetDefinition>();
+        var setIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var set in settings.FloatingButtonSets ?? [])
+        {
+            var name = set.Name?.Trim() ?? string.Empty;
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            var id = set.Id?.Trim() ?? string.Empty;
+            if (id.Length == 0 || !setIds.Add(id))
+            {
+                do
+                {
+                    id = Guid.NewGuid().ToString("N");
+                }
+                while (!setIds.Add(id));
+            }
+
+            normalizedSets.Add(new FloatingButtonSetDefinition
+            {
+                Id = id,
+                Name = name,
+                Buttons = NormalizeFloatingButtons(set.Buttons),
+            });
+        }
+
+        if (normalizedSets.Count == 0)
+        {
+            normalizedSets.Add(new FloatingButtonSetDefinition
+            {
+                Name = AppSettings.DefaultFloatingButtonSetName,
+                Buttons = NormalizeFloatingButtons(settings.FloatingButtons),
+            });
+        }
+
+        settings.FloatingButtonSets = normalizedSets;
+        var activeSet = normalizedSets.FirstOrDefault(set =>
+                string.Equals(set.Id, settings.ActiveFloatingButtonSetId, StringComparison.Ordinal))
+            ?? normalizedSets[0];
+        settings.ActiveFloatingButtonSetId = activeSet.Id;
+        settings.FloatingButtons = activeSet.Buttons;
     }
 }

@@ -17,12 +17,40 @@ public sealed partial class MobileSettingsView : UserControl
     };
 
     private CancellationTokenSource? _importCancellation;
+    private CancellationTokenSource? _exportCancellation;
     private bool _importReady;
 
     public MobileSettingsView()
     {
         InitializeComponent();
-        DetachedFromVisualTree += (_, _) => CancelImport();
+        DetachedFromVisualTree += (_, _) => CancelTransfers();
+    }
+
+    private void AddFloatingButtonSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            ShowFloatingButtonStatus("Nie udało się utworzyć schematu.");
+            return;
+        }
+
+        if (viewModel.AddFloatingButtonSet(FloatingButtonSetNameInput.Text) is null)
+        {
+            ShowFloatingButtonStatus("Podaj unikalną nazwę schematu.");
+            return;
+        }
+
+        FloatingButtonSetNameInput.Text = string.Empty;
+        FloatingButtonStatusText.IsVisible = false;
+    }
+
+    private void DeleteFloatingButtonSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel ||
+            !viewModel.RemoveSelectedFloatingButtonSet())
+        {
+            ShowFloatingButtonStatus("Musi pozostać co najmniej jeden schemat.");
+        }
     }
 
     private void AddFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -62,6 +90,82 @@ public sealed partial class MobileSettingsView : UserControl
         FloatingButtonStatusText.IsVisible = true;
     }
 
+    private async void ExportSettings_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel ||
+            TopLevel.GetTopLevel(this)?.StorageProvider is not { } storageProvider)
+        {
+            ShowImportStatus("Nie udało się otworzyć wyboru pliku.");
+            return;
+        }
+
+        IStorageFile? file;
+        try
+        {
+            file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Eksport wszystkich ustawień",
+                SuggestedFileName = $"KillerMudClient-Android-{DateTime.Now:yyyy-MM-dd}.zip",
+                FileTypeChoices = [ZipFileType],
+                DefaultExtension = "zip",
+                ShowOverwritePrompt = true,
+            });
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException)
+        {
+            ShowImportStatus($"Nie udało się wybrać pliku kopii: {exception.Message}");
+            return;
+        }
+
+        if (file is null)
+        {
+            return;
+        }
+
+        _exportCancellation?.Cancel();
+        _exportCancellation?.Dispose();
+        _exportCancellation = new CancellationTokenSource();
+        ExportSettingsButton.IsEnabled = false;
+        SelectImportButton.IsEnabled = false;
+        ApplyImportButton.IsEnabled = false;
+        ShowImportStatus("Tworzenie pełnej kopii…");
+        try
+        {
+            var service = new SettingsBackupService(viewModel.SettingsDirectory);
+            await using var stream = await file.OpenWriteAsync();
+            if (stream.CanSeek)
+            {
+                stream.SetLength(0);
+            }
+
+            await service.ExportAsync(
+                stream,
+                _exportCancellation.Token,
+                file.Path.IsFile ? file.Path.LocalPath : null);
+            ShowImportStatus("Utworzono pełną kopię ustawień.");
+        }
+        catch (OperationCanceledException) when (_exportCancellation.IsCancellationRequested)
+        {
+            ShowImportStatus("Eksport został anulowany.");
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException)
+        {
+            ShowImportStatus($"Nie udało się utworzyć kopii: {exception.Message}");
+        }
+        finally
+        {
+            _exportCancellation.Dispose();
+            _exportCancellation = null;
+            ExportSettingsButton.IsEnabled = true;
+            SelectImportButton.IsEnabled = true;
+            ApplyImportButton.IsEnabled = true;
+        }
+    }
+
     private async void SelectImport_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (DataContext is not MainWindowViewModel viewModel ||
@@ -88,6 +192,7 @@ public sealed partial class MobileSettingsView : UserControl
         _importReady = false;
         ApplyImportButton.IsVisible = false;
         SelectImportButton.IsEnabled = false;
+        ExportSettingsButton.IsEnabled = false;
         ShowImportStatus("Sprawdzanie kopii…");
 
         try
@@ -116,6 +221,7 @@ public sealed partial class MobileSettingsView : UserControl
             _importCancellation.Dispose();
             _importCancellation = null;
             SelectImportButton.IsEnabled = true;
+            ExportSettingsButton.IsEnabled = true;
         }
     }
 
@@ -147,6 +253,12 @@ public sealed partial class MobileSettingsView : UserControl
     private void CancelImport()
     {
         _importCancellation?.Cancel();
+    }
+
+    private void CancelTransfers()
+    {
+        CancelImport();
+        _exportCancellation?.Cancel();
     }
 
     private void ShowImportStatus(string message)

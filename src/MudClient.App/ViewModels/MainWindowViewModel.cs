@@ -135,6 +135,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AppSettingsService _settingsService;
     private readonly AppSettings _settings;
     private bool _settingsLoaded;
+    private FloatingButtonSetDefinition? _selectedFloatingButtonSet;
 
     public string SettingsDirectory => _settingsService.DirectoryPath;
 
@@ -245,7 +246,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
-        foreach (var button in _settings.FloatingButtons)
+        foreach (var set in _settings.FloatingButtonSets)
+        {
+            FloatingButtonSets.Add(set);
+        }
+
+        _selectedFloatingButtonSet = FloatingButtonSets.First(set =>
+            string.Equals(set.Id, _settings.ActiveFloatingButtonSetId, StringComparison.Ordinal));
+        foreach (var button in _selectedFloatingButtonSet.Buttons)
         {
             FloatingButtons.Add(button);
         }
@@ -1004,6 +1012,33 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<FloatingButtonDefinition> FloatingButtons { get; } = [];
 
+    public ObservableCollection<FloatingButtonSetDefinition> FloatingButtonSets { get; } = [];
+
+    public FloatingButtonSetDefinition? SelectedFloatingButtonSet
+    {
+        get => _selectedFloatingButtonSet;
+        set
+        {
+            if (value is null || !SetProperty(ref _selectedFloatingButtonSet, value))
+            {
+                return;
+            }
+
+            _settings.ActiveFloatingButtonSetId = value.Id;
+            _settings.FloatingButtons = value.Buttons;
+            FloatingButtons.Clear();
+            foreach (var button in value.Buttons)
+            {
+                FloatingButtons.Add(button);
+            }
+
+            OnPropertyChanged(nameof(CanDeleteFloatingButtonSet));
+            SaveSettings();
+        }
+    }
+
+    public bool CanDeleteFloatingButtonSet => FloatingButtonSets.Count > 1;
+
     public IAsyncRelayCommand ConnectCommand => _connectCommand;
     public IAsyncRelayCommand DisconnectCommand => _disconnectCommand;
     public IAsyncRelayCommand SendCommandCommand => _sendCommandCommand;
@@ -1528,10 +1563,52 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Y = Math.Clamp(0.48 + (offset * 0.08), 0, 1),
         };
 
-        _settings.FloatingButtons.Add(button);
+        var activeSet = SelectedFloatingButtonSet;
+        if (activeSet is null)
+        {
+            return null;
+        }
+
+        activeSet.Buttons.Add(button);
+        _settings.FloatingButtons = activeSet.Buttons;
         FloatingButtons.Add(button);
         SaveSettings();
         return button;
+    }
+
+    public FloatingButtonSetDefinition? AddFloatingButtonSet(string? name)
+    {
+        var trimmedName = name?.Trim() ?? string.Empty;
+        if (trimmedName.Length == 0 || FloatingButtonSets.Any(set =>
+                string.Equals(set.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return null;
+        }
+
+        var set = new FloatingButtonSetDefinition { Name = trimmedName };
+        _settings.FloatingButtonSets.Add(set);
+        FloatingButtonSets.Add(set);
+        OnPropertyChanged(nameof(CanDeleteFloatingButtonSet));
+        SelectedFloatingButtonSet = set;
+        return set;
+    }
+
+    public bool RemoveSelectedFloatingButtonSet()
+    {
+        var selected = SelectedFloatingButtonSet;
+        if (selected is null || FloatingButtonSets.Count <= 1)
+        {
+            return false;
+        }
+
+        var selectedIndex = FloatingButtonSets.IndexOf(selected);
+        _settings.FloatingButtonSets.RemoveAll(set =>
+            string.Equals(set.Id, selected.Id, StringComparison.Ordinal));
+        FloatingButtonSets.Remove(selected);
+        OnPropertyChanged(nameof(CanDeleteFloatingButtonSet));
+        SelectedFloatingButtonSet =
+            FloatingButtonSets[Math.Min(selectedIndex, FloatingButtonSets.Count - 1)];
+        return true;
     }
 
     public void RemoveFloatingButton(FloatingButtonDefinition? button)
@@ -1541,8 +1618,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        _settings.FloatingButtons.RemoveAll(entry =>
+        SelectedFloatingButtonSet?.Buttons.RemoveAll(entry =>
             string.Equals(entry.Id, button.Id, StringComparison.Ordinal));
+        if (SelectedFloatingButtonSet is not null)
+        {
+            _settings.FloatingButtons = SelectedFloatingButtonSet.Buttons;
+        }
+
         FloatingButtons.Remove(button);
         SaveSettings();
     }

@@ -14,6 +14,7 @@ public sealed class AppSettings
     public const double MinWidgetFontSize = 9;
     public const double MaxWidgetFontSize = 24;
     public const string DefaultTelnetColorScheme = "Ciepłe";
+    public const string DefaultFloatingButtonSetName = "Domyślny";
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
@@ -77,8 +78,26 @@ public sealed class AppSettings
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; } = false;
 
-    /// <summary>Custom translucent command buttons shown over the Android terminal.</summary>
+    /// <summary>
+    /// Legacy mirror of the active Android button set. Kept so older Android
+    /// releases can still read buttons exported by a newer client.
+    /// </summary>
     public List<FloatingButtonDefinition> FloatingButtons { get; set; } = [];
+
+    /// <summary>Named groups of custom command buttons shown over the Android terminal.</summary>
+    public List<FloatingButtonSetDefinition> FloatingButtonSets { get; set; } = [];
+
+    /// <summary>Id of the Android button set currently displayed over the terminal.</summary>
+    public string ActiveFloatingButtonSetId { get; set; } = string.Empty;
+}
+
+public sealed class FloatingButtonSetDefinition
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    public string Name { get; set; } = string.Empty;
+
+    public List<FloatingButtonDefinition> Buttons { get; set; } = [];
 }
 
 public sealed class FloatingButtonDefinition

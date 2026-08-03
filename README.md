@@ -184,9 +184,10 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
   podmieniane przez nazwane wyjścia z GMCP `Room.Info`; pad można przesuwać
   po ekranie, przytrzymując uchwyt z kropkami; dla zamkniętego wyjścia pierwsze
   kliknięcie wysyła `open <kierunek>`, a kolejne wykonuje ruch,
-- półprzezroczyste pływające przyciski komend tworzone i usuwane w
-  **Ustawieniach**; dotknięcie wysyła przypisaną komendę, a przytrzymanie pozwala
-  przeciągnąć przycisk i zapamiętać jego pozycję na ekranie; przypisana treść
+- półprzezroczyste pływające przyciski komend grupowane w nazwane schematy,
+  tworzone, przełączane i usuwane w **Ustawieniach**; każdy schemat zachowuje
+  własne przyciski oraz ich pozycje, dotknięcie wysyła przypisaną komendę,
+  a przytrzymanie pozwala przeciągnąć przycisk po ekranie; przypisana treść
   respektuje skonfigurowany separator komend oraz aliasy,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
@@ -209,11 +210,14 @@ dotknięciu przycisku wysyłania.
 Po zamknięciu klawiatury wcześniejszy stan panelu, także tryb pełnoekranowy, jest
 przywracany.
 
-Mobilne **Ustawienia → Dane** pozwalają wybrać kopię ZIP wyeksportowaną z wersji
-desktopowej. Archiwum jest najpierw walidowane, a dopiero osobne potwierdzenie
-zastępuje profile, automaty, timery, cele autowalk i ustawienia podczas restartu
-aplikacji. Hasła zapisane przez Windows DPAPI nie są przenośne do Android Keystore
-i po imporcie trzeba wpisać je ponownie.
+Mobilne **Ustawienia → Dane** pozwalają wyeksportować pełną kopię ZIP oraz
+zaimportować kopię utworzoną na Androidzie lub w wersji desktopowej. Archiwum
+obejmuje profile, automaty, timery, cele autowalk, ustawienia i schematy
+pływających przycisków. Import jest najpierw walidowany, a dopiero osobne
+potwierdzenie zastępuje dane podczas restartu aplikacji. Desktop zachowuje
+mobilną konfigurację przycisków w pliku ustawień, ale nie wyświetla jej w swoim
+interfejsie. Hasła zapisane przez Windows DPAPI ani Android Keystore nie są
+przenośne między platformami i po imporcie trzeba wpisać je ponownie.
 
 Do budowania potrzebne są workload Android, Android SDK i JDK:
 

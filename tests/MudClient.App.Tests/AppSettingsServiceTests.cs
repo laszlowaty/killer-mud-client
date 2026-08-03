@@ -239,6 +239,71 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.NotEqual(buttons[0].Id, buttons[1].Id);
     }
 
+    [Fact]
+    public void Load_LegacyFloatingButtons_MigratesToDefaultSet()
+    {
+        SaveRaw(new AppSettings
+        {
+            FloatingButtons =
+            [
+                new FloatingButtonDefinition
+                {
+                    Name = "Atak",
+                    Command = "kill ork",
+                },
+            ],
+        });
+
+        var settings = _service.Load();
+
+        var set = Assert.Single(settings.FloatingButtonSets);
+        Assert.Equal(AppSettings.DefaultFloatingButtonSetName, set.Name);
+        Assert.Equal(set.Id, settings.ActiveFloatingButtonSetId);
+        Assert.Same(set.Buttons, settings.FloatingButtons);
+        Assert.Equal("Atak", Assert.Single(set.Buttons).Name);
+    }
+
+    [Fact]
+    public void Load_FloatingButtonSets_NormalizesSetsAndSelectsValidActiveSet()
+    {
+        SaveRaw(new AppSettings
+        {
+            ActiveFloatingButtonSetId = "missing",
+            FloatingButtonSets =
+            [
+                new FloatingButtonSetDefinition
+                {
+                    Id = "combat",
+                    Name = "  Walka  ",
+                    Buttons =
+                    [
+                        new FloatingButtonDefinition
+                        {
+                            Name = "Atak",
+                            Command = "kill ork",
+                        },
+                    ],
+                },
+                new FloatingButtonSetDefinition
+                {
+                    Id = "combat",
+                    Name = "Podróż",
+                },
+                new FloatingButtonSetDefinition { Name = " " },
+            ],
+        });
+
+        var settings = _service.Load();
+
+        Assert.Equal(2, settings.FloatingButtonSets.Count);
+        Assert.Equal("Walka", settings.FloatingButtonSets[0].Name);
+        Assert.NotEqual(
+            settings.FloatingButtonSets[0].Id,
+            settings.FloatingButtonSets[1].Id);
+        Assert.Equal(settings.FloatingButtonSets[0].Id, settings.ActiveFloatingButtonSetId);
+        Assert.Same(settings.FloatingButtonSets[0].Buttons, settings.FloatingButtons);
+    }
+
     // ====================================================================
     // Load — corrupted JSON → returns defaults
     // ====================================================================

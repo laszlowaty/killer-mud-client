@@ -93,7 +93,32 @@
         <StackPanel Spacing="10">
           <TextBlock Classes="mud-muted"
                      TextWrapping="Wrap"
-                     Text="Dotknięcie wysyła komendę. Przytrzymaj przycisk, aby przesunąć go po ekranie." />
+                     Text="Każdy schemat ma własne przyciski i ich położenie. Dotknięcie wysyła komendę, a przytrzymanie pozwala przesunąć przycisk." />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Aktywny schemat" />
+            <ComboBox ItemsSource="{Binding FloatingButtonSets}"
+                      SelectedItem="{Binding SelectedFloatingButtonSet}"
+                      MinHeight="44">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="models:FloatingButtonSetDefinition">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="FloatingButtonSetNameInput"
+                     PlaceholderText="Nazwa nowego schematu"
+                     MinHeight="44" />
+            <Button Grid.Column="1"
+                    Content="Utwórz"
+                    MinHeight="44"
+                    Click="AddFloatingButtonSet_OnClick" />
+          </Grid>
+          <Button Content="Usuń aktywny schemat"
+                  HorizontalAlignment="Right"
+                  IsEnabled="{Binding CanDeleteFloatingButtonSet}"
+                  Click="DeleteFloatingButtonSet_OnClick" />
           <TextBox x:Name="FloatingButtonNameInput"
                    PlaceholderText="Nazwa przycisku"
                    MaxLength="30"
@@ -140,11 +165,15 @@
       <TextBlock Classes="mud-heading" Text="Dane" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="10">
-          <TextBlock Text="Import kopii z wersji desktopowej"
+          <TextBlock Text="Pełna kopia ustawień"
                      FontWeight="SemiBold" />
           <TextBlock Classes="mud-muted"
                      TextWrapping="Wrap"
-                     Text="Profile, automaty, timery, autowalk i ustawienia zostaną zastąpione danymi z ZIP-a. Hasła z Windows trzeba wpisać ponownie." />
+                     Text="Eksport obejmuje ustawienia, profile, automaty, timery, autowalk oraz wszystkie schematy pływających przycisków. Hasła przeniesione między Androidem i Windows trzeba wpisać ponownie." />
+          <Button x:Name="ExportSettingsButton"
+                  Content="Eksportuj pełną kopię ZIP"
+                  MinHeight="44"
+                  Click="ExportSettings_OnClick" />
           <Button x:Name="SelectImportButton"
                   Content="Wybierz kopię ZIP"
                   MinHeight="44"
