@@ -85,14 +85,8 @@
                              Text="{Binding Name}"
                              ToolTip.Tip="{Binding Description}" />
                   <TextBlock Text="{Binding Duration, StringFormat='({0})'}"
-                             Classes="mud-faint">
-                    <TextBlock.IsVisible>
-                      <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
-                        <Binding Path="HasDuration" />
-                        <Binding Path="$parent[ItemsControl].DataContext.ShowExtendedEffects" />
-                      </MultiBinding>
-                    </TextBlock.IsVisible>
-                  </TextBlock>
+                             Classes="mud-faint"
+                             IsVisible="{Binding HasDuration}" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Grid.Row="1"
                            Text="{Binding Description}"

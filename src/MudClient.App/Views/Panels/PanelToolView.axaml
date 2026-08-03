@@ -53,7 +53,7 @@
             <CheckBox Content="Rozszerzony widok efektów"
                       IsChecked="{Binding ((vm:MainWindowViewModel)Context).ShowExtendedEffects}" />
             <TextBlock Classes="mud-faint" TextWrapping="Wrap" MaxWidth="280"
-                       Text="Podstawowy pokazuje samą nazwę efektu, np. „odbicie lustrzane”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
+                       Text="Podstawowy pokazuje nazwę i liczbę, np. „odbicie lustrzane (6)”. Rozszerzony dodaje opis, np. „odbicie lustrzane (6) — Jesteś ukryty pośród swoich odbić.”." />
           </StackPanel>
         </Flyout>
       </Button.Flyout>
