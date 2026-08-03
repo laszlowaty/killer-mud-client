@@ -43,7 +43,7 @@ public sealed class DockRestoreTests
     public void CloseAllThenRestoreAll_RightTop()
     {
         var factory = CreateFactory(out var layout);
-        var ids = new[] { "CharInfo", "Effects", "Group", "MemSpells" };
+        var ids = new[] { "Effects", "Group", "MemSpells" };
 
         foreach (var id in ids)
         {

@@ -326,7 +326,6 @@ public sealed class MudDockFactory : Factory, IFactory
         NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
         NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
         NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
-        NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
         NewTool("Effects", "✨ Efekty i Kondycja", typeof(Views.Panels.EffectsPanelView), _mainContext);
         NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
         NewTool("MemSpells", "📜 Mem i Buffy", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
@@ -389,7 +388,6 @@ public sealed class MudDockFactory : Factory, IFactory
         var mapTool = Tool("Map");
         var roomInfoTool = Tool("RoomInfo");
         var terminalTool = Tool("Terminal");
-        var infoTool = Tool("CharInfo");
         var effectsTool = Tool("Effects");
         var groupTool = Tool("Group");
         var memSpellsTool = Tool("MemSpells");
@@ -423,9 +421,9 @@ public sealed class MudDockFactory : Factory, IFactory
         {
             Id = "RightTopPane",
             Proportion = 0.5,
-            ActiveDockable = infoTool,
+            ActiveDockable = effectsTool,
             VisibleDockables = CreateList<IDockable>(
-                infoTool, effectsTool, groupTool, memSpellsTool),
+                effectsTool, groupTool, memSpellsTool),
             Alignment = Alignment.Right,
         };
 
