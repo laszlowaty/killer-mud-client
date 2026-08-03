@@ -5728,6 +5728,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>Not readonly — overridden via reflection in tests to avoid a real 30s wait.</summary>
+    private static TimeSpan ToastLifetime = TimeSpan.FromSeconds(30);
+
     private void AddToast(string text, string type = "info")
     {
         // Newest goes last: the top-bar strip is right-aligned, so the latest
@@ -5738,6 +5741,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Toasts.RemoveAt(0);
         }
+
+        _ = RemoveToastAfterDelayAsync(toast);
+    }
+
+    private async Task RemoveToastAfterDelayAsync(ToastMessage toast)
+    {
+        await Task.Delay(ToastLifetime);
+        Dispatcher.UIThread.Post(() => Toasts.Remove(toast));
     }
 
     // ========================================================================

@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.Models;
@@ -95,6 +96,45 @@ public sealed class MudOutputViewTests
         finally
         {
             window.Close();
+            await viewModel.DisposeAsync();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task AddToast_RemovesItselfAfterLifetime()
+    {
+        // Uses the headless dispatcher's RunJobs to actually drain the Dispatcher.UIThread.Post
+        // the removal is scheduled through — a plain (non-Avalonia) xUnit test never pumps that
+        // queue, so this needs to live in an [AvaloniaFact] test.
+        var directory = Path.Combine(
+            Path.GetTempPath(), "KillerMudClient_ToastLifetimeTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
+
+        var lifetimeField = typeof(MainWindowViewModel).GetField("ToastLifetime",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(lifetimeField);
+        var original = (TimeSpan)lifetimeField!.GetValue(null)!;
+        lifetimeField.SetValue(null, TimeSpan.FromMilliseconds(20));
+
+        try
+        {
+            var addToast = typeof(MainWindowViewModel).GetMethod("AddToast",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(addToast);
+            addToast!.Invoke(viewModel, ["test toast", "info"]);
+
+            Assert.Contains(viewModel.Toasts, toast => toast.Text == "test toast");
+
+            await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(viewModel.Toasts, toast => toast.Text == "test toast");
+        }
+        finally
+        {
+            lifetimeField.SetValue(null, original);
             await viewModel.DisposeAsync();
             Directory.Delete(directory, recursive: true);
         }

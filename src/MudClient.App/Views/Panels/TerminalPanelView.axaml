@@ -47,6 +47,13 @@
                               OutputFontWeight="{Binding OutputFontWeight}"
                               TelnetColorScheme="{Binding TelnetColorScheme}"
                               WordWrap="{Binding OutputWordWrap}" />
+
+      <!-- Scoped to the output row specifically (not the whole Panel below) so neither overlay
+           column can ever grow tall enough to reach behind the timer strip or command bar — see
+           TerminalOverlayHost.axaml.cs; a column's height fraction is only a fraction of whatever
+           bounds it's given, and a stack with enough cards can outgrow that fraction's MinHeight
+           floor, which is what let the right (edge) column spill past the left one before. -->
+      <controls:TerminalOverlayHost x:Name="OverlayHost" />
     </Grid>
 
     <!-- Active timers — a compact strip just above the command bar instead of floating over the
@@ -149,7 +156,7 @@
 
     <!-- MV vertical indicator (right) – spans full panel height -->
     <Border x:Name="MovementPointsBar"
-            Grid.Column="2" Grid.RowSpan="2"
+            Grid.Column="2" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="0,0,2,0"
@@ -179,6 +186,5 @@
     </Border>
 
   </Grid>
-  <controls:TerminalOverlayHost x:Name="OverlayHost" />
   </Panel>
 </UserControl>

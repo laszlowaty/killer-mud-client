@@ -605,6 +605,39 @@ public sealed class PinnedTabUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void TerminalOverlayHost_NeverGrowsPastTheOutputRow_RegardlessOfColumnContent()
+    {
+        // TerminalOverlayHost used to be a sibling of the whole terminal Grid (spanning all 3
+        // rows: output, timer strip, command bar) instead of scoped to the output row alone. A
+        // column with enough cards to want more room than the output row could then grow past
+        // its intended bounds and cover the command bar underneath — see how OverlayHost is
+        // placed in TerminalPanelView.axaml now (inside the same cell as MudOutputView).
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        // Pin enough tools into the same column to force a tall stack that would want more
+        // vertical room than the output row alone provides.
+        foreach (var id in new[] { "Gmcp", "Notes", "Group", "Effects", "MemSpells" })
+        {
+            factory.AllTools.First(t => t.Id == id).PinAsOverlayCommand.Execute(null);
+        }
+        Pump(window);
+
+        var terminal = window.GetVisualDescendants().OfType<TerminalPanelView>().Single();
+        var overlayHost = terminal.GetVisualDescendants().OfType<TerminalOverlayHost>().Single();
+        var mudOutput = terminal.GetVisualDescendants().OfType<MudOutputView>().Single();
+
+        // Siblings in the same Grid cell always share the same allotted height — if OverlayHost
+        // were still scoped to the whole panel instead, it would be taller than the output area.
+        Assert.Equal(mudOutput.Bounds.Height, overlayHost.Bounds.Height, precision: 1);
+    }
+
+    [AvaloniaFact]
     public void RestoringMap_DetachesPreviousMapControlFromViewModel()
     {
         var viewModel = CreateViewModel();
