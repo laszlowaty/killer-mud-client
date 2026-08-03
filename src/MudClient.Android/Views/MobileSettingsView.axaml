@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
              xmlns:services="using:MudClient.App.Services"
              x:Class="MudClient.Android.Views.MobileSettingsView"
              x:DataType="vm:MainWindowViewModel">
@@ -84,6 +85,55 @@
                       SelectedItem="{Binding Map.SelectedDisplayMode}"
                       MinHeight="44" />
           </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="Pływające przyciski" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     Text="Dotknięcie wysyła komendę. Przytrzymaj przycisk, aby przesunąć go po ekranie." />
+          <TextBox x:Name="FloatingButtonNameInput"
+                   PlaceholderText="Nazwa przycisku"
+                   MaxLength="30"
+                   MinHeight="44" />
+          <TextBox x:Name="FloatingButtonCommandInput"
+                   PlaceholderText="Komenda"
+                   MaxLength="300"
+                   MinHeight="44" />
+          <Button Content="Dodaj pływający przycisk"
+                  MinHeight="44"
+                  HorizontalAlignment="Right"
+                  Click="AddFloatingButton_OnClick" />
+          <TextBlock x:Name="FloatingButtonStatusText"
+                     Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     IsVisible="False" />
+          <ItemsControl ItemsSource="{Binding FloatingButtons}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:FloatingButtonDefinition">
+                <Border Classes="mud-section" Padding="10" Margin="0,3">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}"
+                                 FontWeight="SemiBold"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Command}"
+                                 Classes="mud-muted"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="Usuń"
+                            Classes="mud-danger"
+                            Tag="{Binding}"
+                            MinHeight="40"
+                            Click="DeleteFloatingButton_OnClick" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Border>
 

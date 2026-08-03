@@ -182,6 +182,10 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
   podmieniane przez nazwane wyjścia z GMCP `Room.Info`; pad można przesuwać
   po ekranie, przytrzymując uchwyt z kropkami; dla zamkniętego wyjścia pierwsze
   kliknięcie wysyła `open <kierunek>`, a kolejne wykonuje ruch,
+- półprzezroczyste pływające przyciski komend tworzone i usuwane w
+  **Ustawieniach**; dotknięcie wysyła przypisaną komendę, a przytrzymanie pozwala
+  przeciągnąć przycisk i zapamiętać jego pozycję na ekranie; przypisana treść
+  respektuje skonfigurowany separator komend oraz aliasy,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
 Killeropedia, pozostałe widgety oraz utrzymywanie połączenia po wygaszeniu ekranu

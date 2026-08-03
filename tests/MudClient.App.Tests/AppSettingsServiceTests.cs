@@ -157,6 +157,17 @@ public sealed class AppSettingsServiceTests : IDisposable
             ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
             TelnetColorScheme = "Colorblind",
+            FloatingButtons =
+            [
+                new FloatingButtonDefinition
+                {
+                    Id = "heal",
+                    Name = "Leczenie",
+                    Command = "quaff red",
+                    X = 0.25,
+                    Y = 0.75,
+                },
+            ],
         };
 
         _service.Save(original);
@@ -181,6 +192,51 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);
         Assert.Equal("Colorblind", loaded.TelnetColorScheme);
+        var floatingButton = Assert.Single(loaded.FloatingButtons);
+        Assert.Equal("heal", floatingButton.Id);
+        Assert.Equal("Leczenie", floatingButton.Name);
+        Assert.Equal("quaff red", floatingButton.Command);
+        Assert.Equal(0.25, floatingButton.X);
+        Assert.Equal(0.75, floatingButton.Y);
+    }
+
+    [Fact]
+    public void Load_FloatingButtons_NormalizesInvalidEntriesAndPositions()
+    {
+        SaveRaw(new AppSettings
+        {
+            FloatingButtons =
+            [
+                new FloatingButtonDefinition
+                {
+                    Id = "duplicate",
+                    Name = "  Atak  ",
+                    Command = "  kill ork  ",
+                    X = -2,
+                    Y = 3,
+                },
+                new FloatingButtonDefinition
+                {
+                    Id = "duplicate",
+                    Name = "Obrona",
+                    Command = "rescue tank",
+                },
+                new FloatingButtonDefinition
+                {
+                    Name = "Bez komendy",
+                    Command = " ",
+                },
+            ],
+        });
+
+        var buttons = _service.Load().FloatingButtons;
+
+        Assert.Equal(2, buttons.Count);
+        Assert.Equal("Atak", buttons[0].Name);
+        Assert.Equal("kill ork", buttons[0].Command);
+        Assert.Equal(0, buttons[0].X);
+        Assert.Equal(1, buttons[0].Y);
+        Assert.NotEqual(buttons[0].Id, buttons[1].Id);
     }
 
     // ====================================================================

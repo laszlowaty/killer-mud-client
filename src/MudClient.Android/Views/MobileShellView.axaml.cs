@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Collections.Specialized;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -20,12 +22,18 @@ public sealed partial class MobileShellView : UserControl
     private bool _initializationStarted;
     private bool _mapInitializationStarted;
     private bool _movementPadDragging;
+    private bool _floatingButtonDragging;
     private bool _isImeVisible;
     private bool _restoreMapAfterIme;
     private int _imeBottomInsetPixels;
     private double _viewportHeightWithoutIme;
     private Point _movementPadDragStart;
     private Vector _movementPadTranslationAtDragStart;
+    private CancellationTokenSource? _floatingButtonHoldCancellation;
+    private Border? _pressedFloatingButton;
+    private IPointer? _pressedFloatingPointer;
+    private Point _floatingButtonPressPosition;
+    private Point _floatingButtonPositionAtPress;
     private MainWindowViewModel? _viewModel;
 
     public MobileShellView()
@@ -57,6 +65,8 @@ public sealed partial class MobileShellView : UserControl
                 _initializationCancellation.Token);
             DataContext = _viewModel;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.FloatingButtons.CollectionChanged += OnFloatingButtonsChanged;
+            RebuildFloatingButtons();
             UpdateMovementPadVisibility();
             var loadingOverlay = this.FindControl<Grid>("LoadingOverlay");
             if (loadingOverlay is not null)
@@ -94,8 +104,10 @@ public sealed partial class MobileShellView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.FloatingButtons.CollectionChanged -= OnFloatingButtonsChanged;
         }
 
+        ResetFloatingButtonGesture(releaseCapture: true);
         _initializationCancellation.Cancel();
     }
 
@@ -107,8 +119,14 @@ public sealed partial class MobileShellView : UserControl
         {
             StartMapInitializationWhenConnected();
             UpdateMovementPadVisibility();
+            UpdateFloatingButtonVisibility();
         }
     }
+
+    private void OnFloatingButtonsChanged(
+        object? sender,
+        NotifyCollectionChangedEventArgs eventArgs) =>
+        RebuildFloatingButtons();
 
     public void SetImeState(bool isVisible, int bottomInsetPixels)
     {
@@ -134,6 +152,7 @@ public sealed partial class MobileShellView : UserControl
         }
 
         UpdateMovementPadVisibility();
+        UpdateFloatingButtonVisibility();
         Dispatcher.UIThread.Post(
             ApplyImeInsetFallback,
             DispatcherPriority.Background);
@@ -146,6 +165,17 @@ public sealed partial class MobileShellView : UserControl
         {
             movementPad.IsVisible = !_isImeVisible
                                     && _viewModel?.IsProfileSelected == true;
+        }
+    }
+
+    private void UpdateFloatingButtonVisibility()
+    {
+        var layer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (layer is not null)
+        {
+            layer.IsVisible = !_isImeVisible
+                              && _viewModel?.IsProfileSelected == true
+                              && _viewModel.FloatingButtons.Count > 0;
         }
     }
 
@@ -332,6 +362,321 @@ public sealed partial class MobileShellView : UserControl
     {
         _movementPadDragging = false;
         pointer.Capture(null);
+    }
+
+    private void RebuildFloatingButtons()
+    {
+        var layer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (layer is null || _viewModel is null)
+        {
+            return;
+        }
+
+        ResetFloatingButtonGesture(releaseCapture: true);
+        layer.Children.Clear();
+        foreach (var definition in _viewModel.FloatingButtons)
+        {
+            var scale = new ScaleTransform(1, 1)
+            {
+                Transitions =
+                [
+                    new DoubleTransition
+                    {
+                        Property = ScaleTransform.ScaleXProperty,
+                        Duration = TimeSpan.FromMilliseconds(90),
+                    },
+                    new DoubleTransition
+                    {
+                        Property = ScaleTransform.ScaleYProperty,
+                        Duration = TimeSpan.FromMilliseconds(90),
+                    },
+                ],
+            };
+            var button = new Border
+            {
+                Tag = definition,
+                Width = Math.Clamp(50 + (definition.Name.Length * 7), 72, 160),
+                Height = 48,
+                Padding = new Thickness(10, 6),
+                CornerRadius = new CornerRadius(24),
+                Background = new SolidColorBrush(Color.Parse("#FF30373D")),
+                BorderBrush = new SolidColorBrush(Color.Parse("#FFC9A84C")),
+                BorderThickness = new Thickness(1),
+                Opacity = 0.76,
+                RenderTransform = scale,
+                RenderTransformOrigin = RelativePoint.Center,
+                Transitions =
+                [
+                    new DoubleTransition
+                    {
+                        Property = OpacityProperty,
+                        Duration = TimeSpan.FromMilliseconds(90),
+                    },
+                ],
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Child = new TextBlock
+                {
+                    Text = definition.Name,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeight.SemiBold,
+                    TextAlignment = TextAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                },
+            };
+
+            button.PointerPressed += FloatingButton_OnPointerPressed;
+            button.PointerMoved += FloatingButton_OnPointerMoved;
+            button.PointerReleased += FloatingButton_OnPointerReleased;
+            button.PointerCaptureLost += FloatingButton_OnPointerCaptureLost;
+            layer.Children.Add(button);
+        }
+
+        UpdateFloatingButtonVisibility();
+        Dispatcher.UIThread.Post(PositionFloatingButtons, DispatcherPriority.Loaded);
+    }
+
+    private void FloatingButtonLayer_OnSizeChanged(
+        object? sender,
+        SizeChangedEventArgs eventArgs) =>
+        PositionFloatingButtons();
+
+    private void PositionFloatingButtons()
+    {
+        var layer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (layer is null || layer.Bounds.Width <= 0 || layer.Bounds.Height <= 0)
+        {
+            return;
+        }
+
+        const double edgeMargin = 8;
+        foreach (var control in layer.Children.OfType<Border>())
+        {
+            if (control.Tag is not FloatingButtonDefinition definition)
+            {
+                continue;
+            }
+
+            var maximumLeft = Math.Max(
+                edgeMargin,
+                layer.Bounds.Width - control.Width - edgeMargin);
+            var maximumTop = Math.Max(
+                edgeMargin,
+                layer.Bounds.Height - control.Height - edgeMargin);
+            Canvas.SetLeft(
+                control,
+                edgeMargin + (definition.X * (maximumLeft - edgeMargin)));
+            Canvas.SetTop(
+                control,
+                edgeMargin + (definition.Y * (maximumTop - edgeMargin)));
+        }
+    }
+
+    private void FloatingButton_OnPointerPressed(
+        object? sender,
+        PointerPressedEventArgs eventArgs)
+    {
+        if (sender is not Border button
+            || !eventArgs.GetCurrentPoint(button).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        ResetFloatingButtonGesture(releaseCapture: true);
+        _pressedFloatingButton = button;
+        _pressedFloatingPointer = eventArgs.Pointer;
+        _floatingButtonPressPosition = eventArgs.GetPosition(this);
+        _floatingButtonPositionAtPress = new Point(
+            Canvas.GetLeft(button),
+            Canvas.GetTop(button));
+        _floatingButtonHoldCancellation = new CancellationTokenSource();
+        SetFloatingButtonPressVisual(button, isPressed: true);
+        eventArgs.Pointer.Capture(button);
+        _ = BeginFloatingButtonDragAfterHoldAsync(
+            button,
+            eventArgs.Pointer,
+            _floatingButtonHoldCancellation.Token);
+        eventArgs.Handled = true;
+    }
+
+    private async Task BeginFloatingButtonDragAfterHoldAsync(
+        Border button,
+        IPointer pointer,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(450), cancellationToken);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!cancellationToken.IsCancellationRequested
+                    && ReferenceEquals(button, _pressedFloatingButton)
+                    && ReferenceEquals(pointer, _pressedFloatingPointer))
+                {
+                    _floatingButtonDragging = true;
+                    button.Opacity = 0.96;
+                    if (button.RenderTransform is ScaleTransform scale)
+                    {
+                        scale.ScaleX = 1.03;
+                        scale.ScaleY = 1.03;
+                    }
+                }
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Releasing a short tap intentionally cancels long-press recognition.
+        }
+    }
+
+    private void FloatingButton_OnPointerMoved(
+        object? sender,
+        PointerEventArgs eventArgs)
+    {
+        if (!_floatingButtonDragging
+            || sender is not Border button
+            || !ReferenceEquals(button, _pressedFloatingButton))
+        {
+            return;
+        }
+
+        var delta = eventArgs.GetPosition(this) - _floatingButtonPressPosition;
+        SetFloatingButtonPosition(
+            button,
+            _floatingButtonPositionAtPress.X + delta.X,
+            _floatingButtonPositionAtPress.Y + delta.Y);
+        eventArgs.Handled = true;
+    }
+
+    private async void FloatingButton_OnPointerReleased(
+        object? sender,
+        PointerReleasedEventArgs eventArgs)
+    {
+        if (sender is not Border button
+            || !ReferenceEquals(button, _pressedFloatingButton))
+        {
+            return;
+        }
+
+        var wasDragging = _floatingButtonDragging;
+        var definition = button.Tag as FloatingButtonDefinition;
+        if (wasDragging && definition is not null)
+        {
+            PersistFloatingButtonPosition(button, definition);
+        }
+
+        ResetFloatingButtonGesture(releaseCapture: true);
+        eventArgs.Handled = true;
+
+        if (!wasDragging
+            && definition is not null
+            && _viewModel?.SendFloatingCommand.CanExecute(definition.Command) == true)
+        {
+            try
+            {
+                await _viewModel.SendFloatingCommand.ExecuteAsync(definition.Command);
+            }
+            catch (OperationCanceledException)
+            {
+                // The command can be cancelled when the shared mobile session is shutting down.
+            }
+            catch (Exception exception)
+            {
+                Log.Error(
+                    "KillerMudClient",
+                    $"Nie udało się obsłużyć pływającego przycisku: {exception}");
+            }
+        }
+    }
+
+    private void FloatingButton_OnPointerCaptureLost(
+        object? sender,
+        PointerCaptureLostEventArgs eventArgs)
+    {
+        if (ReferenceEquals(sender, _pressedFloatingButton))
+        {
+            ResetFloatingButtonGesture(releaseCapture: false);
+        }
+    }
+
+    private void SetFloatingButtonPosition(Border button, double left, double top)
+    {
+        var layer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (layer is null)
+        {
+            return;
+        }
+
+        const double edgeMargin = 8;
+        Canvas.SetLeft(
+            button,
+            ViewportPositionCalculator.ClampOrCenter(
+                left,
+                edgeMargin,
+                layer.Bounds.Width - button.Width - edgeMargin));
+        Canvas.SetTop(
+            button,
+            ViewportPositionCalculator.ClampOrCenter(
+                top,
+                edgeMargin,
+                layer.Bounds.Height - button.Height - edgeMargin));
+    }
+
+    private void PersistFloatingButtonPosition(
+        Border button,
+        FloatingButtonDefinition definition)
+    {
+        var layer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (layer is null || _viewModel is null)
+        {
+            return;
+        }
+
+        const double edgeMargin = 8;
+        var horizontalRange = Math.Max(
+            1,
+            layer.Bounds.Width - button.Width - (2 * edgeMargin));
+        var verticalRange = Math.Max(
+            1,
+            layer.Bounds.Height - button.Height - (2 * edgeMargin));
+        _viewModel.MoveFloatingButton(
+            definition.Id,
+            (Canvas.GetLeft(button) - edgeMargin) / horizontalRange,
+            (Canvas.GetTop(button) - edgeMargin) / verticalRange);
+    }
+
+    private void ResetFloatingButtonGesture(bool releaseCapture)
+    {
+        _floatingButtonHoldCancellation?.Cancel();
+        _floatingButtonHoldCancellation?.Dispose();
+        _floatingButtonHoldCancellation = null;
+
+        var button = _pressedFloatingButton;
+        var pointer = _pressedFloatingPointer;
+        _pressedFloatingButton = null;
+        _pressedFloatingPointer = null;
+        _floatingButtonDragging = false;
+        if (button is not null)
+        {
+            SetFloatingButtonPressVisual(button, isPressed: false);
+        }
+
+        if (releaseCapture)
+        {
+            pointer?.Capture(null);
+        }
+    }
+
+    private static void SetFloatingButtonPressVisual(Border button, bool isPressed)
+    {
+        button.Opacity = isPressed ? 0.9 : 0.76;
+        if (button.RenderTransform is ScaleTransform scale)
+        {
+            var targetScale = isPressed ? 0.95 : 1;
+            scale.ScaleX = targetScale;
+            scale.ScaleY = targetScale;
+        }
     }
 
     private void OpenSettings_OnClick(object? sender, RoutedEventArgs eventArgs)

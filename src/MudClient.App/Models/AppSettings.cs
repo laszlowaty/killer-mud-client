@@ -76,4 +76,22 @@ public sealed class AppSettings
 
     /// <summary>Enables creator-only map actions backed by server-side lord commands.</summary>
     public bool LordModeEnabled { get; set; } = false;
+
+    /// <summary>Custom translucent command buttons shown over the Android terminal.</summary>
+    public List<FloatingButtonDefinition> FloatingButtons { get; set; } = [];
+}
+
+public sealed class FloatingButtonDefinition
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Command { get; set; } = string.Empty;
+
+    /// <summary>Horizontal position in the available viewport, from 0 to 1.</summary>
+    public double X { get; set; } = 0.5;
+
+    /// <summary>Vertical position in the available viewport, from 0 to 1.</summary>
+    public double Y { get; set; } = 0.55;
 }

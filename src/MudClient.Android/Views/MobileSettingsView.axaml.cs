@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using MudClient.Android.Services;
+using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 
@@ -22,6 +23,43 @@ public sealed partial class MobileSettingsView : UserControl
     {
         InitializeComponent();
         DetachedFromVisualTree += (_, _) => CancelImport();
+    }
+
+    private void AddFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            ShowFloatingButtonStatus("Nie udało się dodać przycisku.");
+            return;
+        }
+
+        var button = viewModel.AddFloatingButton(
+            FloatingButtonNameInput.Text,
+            FloatingButtonCommandInput.Text);
+        if (button is null)
+        {
+            ShowFloatingButtonStatus("Podaj nazwę przycisku i komendę.");
+            return;
+        }
+
+        FloatingButtonNameInput.Text = string.Empty;
+        FloatingButtonCommandInput.Text = string.Empty;
+        FloatingButtonStatusText.IsVisible = false;
+    }
+
+    private void DeleteFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is MainWindowViewModel viewModel
+            && sender is Avalonia.Controls.Button { Tag: FloatingButtonDefinition button })
+        {
+            viewModel.RemoveFloatingButton(button);
+        }
+    }
+
+    private void ShowFloatingButtonStatus(string message)
+    {
+        FloatingButtonStatusText.Text = message;
+        FloatingButtonStatusText.IsVisible = true;
     }
 
     private async void SelectImport_OnClick(object? sender, RoutedEventArgs eventArgs)

@@ -81,6 +81,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand<string> _sendMovementCommand;
+    private readonly AsyncRelayCommand<string> _sendFloatingCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
     private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
@@ -244,6 +245,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _profiles = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
+        foreach (var button in _settings.FloatingButtons)
+        {
+            FloatingButtons.Add(button);
+        }
         _usesCustomBookCatalogStore = bookCatalogStore is not null;
         _bookCatalogStore = bookCatalogStore ?? CreateBookCatalogStore();
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
@@ -266,6 +271,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _sendMovementCommand = new AsyncRelayCommand<string>(
             SendMovementCommandAsync,
             CanSendMovementCommand);
+        _sendFloatingCommand = new AsyncRelayCommand<string>(
+            SendFloatingCommandAsync,
+            CanSendFloatingCommand);
         _retryStartupCommand = new AsyncRelayCommand(RetryStartupAsync);
         ExaminePersonCommand = new RelayCommand<string>(ExecuteExaminePerson);
         KillPersonCommand = new RelayCommand<string>(ExecuteKillPerson);
@@ -994,10 +1002,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<GmcpEntryViewModel> SentGmcpMessages { get; } = [];
 
+    public ObservableCollection<FloatingButtonDefinition> FloatingButtons { get; } = [];
+
     public IAsyncRelayCommand ConnectCommand => _connectCommand;
     public IAsyncRelayCommand DisconnectCommand => _disconnectCommand;
     public IAsyncRelayCommand SendCommandCommand => _sendCommandCommand;
     public IAsyncRelayCommand<string> SendMovementCommand => _sendMovementCommand;
+    public IAsyncRelayCommand<string> SendFloatingCommand => _sendFloatingCommand;
     public IAsyncRelayCommand RetryStartupCommand => _retryStartupCommand;
 
     public MovementButtonLayout MovementButtons
@@ -1497,6 +1508,57 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             AddToast($"Nie udało się zapisać ustawień: {exception.Message}", "error");
         }
+    }
+
+    public FloatingButtonDefinition? AddFloatingButton(string? name, string? command)
+    {
+        var trimmedName = name?.Trim() ?? string.Empty;
+        var trimmedCommand = command?.Trim() ?? string.Empty;
+        if (trimmedName.Length == 0 || trimmedCommand.Length == 0)
+        {
+            return null;
+        }
+
+        var offset = FloatingButtons.Count % 5;
+        var button = new FloatingButtonDefinition
+        {
+            Name = trimmedName,
+            Command = trimmedCommand,
+            X = Math.Clamp(0.08 + (offset * 0.12), 0, 1),
+            Y = Math.Clamp(0.48 + (offset * 0.08), 0, 1),
+        };
+
+        _settings.FloatingButtons.Add(button);
+        FloatingButtons.Add(button);
+        SaveSettings();
+        return button;
+    }
+
+    public void RemoveFloatingButton(FloatingButtonDefinition? button)
+    {
+        if (button is null)
+        {
+            return;
+        }
+
+        _settings.FloatingButtons.RemoveAll(entry =>
+            string.Equals(entry.Id, button.Id, StringComparison.Ordinal));
+        FloatingButtons.Remove(button);
+        SaveSettings();
+    }
+
+    public void MoveFloatingButton(string id, double x, double y)
+    {
+        var button = FloatingButtons.FirstOrDefault(entry =>
+            string.Equals(entry.Id, id, StringComparison.Ordinal));
+        if (button is null)
+        {
+            return;
+        }
+
+        button.X = Math.Clamp(double.IsFinite(x) ? x : button.X, 0, 1);
+        button.Y = Math.Clamp(double.IsFinite(y) ? y : button.Y, 0, 1);
+        SaveSettings();
     }
 
     private void PopulateAvailableFonts()
@@ -5188,6 +5250,57 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _bookRefreshCts is null &&
         !string.IsNullOrWhiteSpace(command);
 
+    private bool CanSendFloatingCommand(string? command) =>
+        IsConnected &&
+        !IsBusy &&
+        _bookRefreshCts is null &&
+        !string.IsNullOrWhiteSpace(command);
+
+    private async Task SendFloatingCommandAsync(
+        string? command,
+        CancellationToken cancellationToken)
+    {
+        if (!CanSendFloatingCommand(command))
+        {
+            return;
+        }
+
+        if (Map.IsMapEditorActive)
+        {
+            AddToast(
+                "Automatyczne i przyciskowe komendy są zablokowane podczas mapowania.",
+                "info");
+            return;
+        }
+
+        foreach (var segment in CommandStacker.Split(
+                     command!,
+                     CommandStackingSeparator))
+        {
+            var commands = _aliases.ProcessCommands(
+                segment,
+                CommandStackingSeparator);
+            foreach (var expandedCommand in commands)
+            {
+                EmitCommandEcho(expandedCommand);
+                try
+                {
+                    await _session.SendCommandAsync(
+                        expandedCommand,
+                        cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    EmitSystem(exception.Message, 31);
+                }
+            }
+        }
+    }
+
     private async Task SendMovementCommandAsync(
         string? command,
         CancellationToken cancellationToken)
@@ -6213,6 +6326,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _bookRefreshCts = cancellation;
         _sendCommandCommand.NotifyCanExecuteChanged();
         _sendMovementCommand.NotifyCanExecuteChanged();
+        _sendFloatingCommand.NotifyCanExecuteChanged();
         Killeropedia.BeginBookRefresh();
         var lockTaken = false;
 
@@ -6248,6 +6362,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _bookRefreshCts = null;
             _sendCommandCommand.NotifyCanExecuteChanged();
             _sendMovementCommand.NotifyCanExecuteChanged();
+            _sendFloatingCommand.NotifyCanExecuteChanged();
             cancellation.Dispose();
             if (Killeropedia.IsBookRefreshRunning)
             {
@@ -6274,6 +6389,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _disconnectCommand.NotifyCanExecuteChanged();
         _sendCommandCommand.NotifyCanExecuteChanged();
         _sendMovementCommand.NotifyCanExecuteChanged();
+        _sendFloatingCommand.NotifyCanExecuteChanged();
         SwitchProfileCommand.NotifyCanExecuteChanged();
     }
 

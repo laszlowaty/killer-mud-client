@@ -52,6 +52,56 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
 
     [Fact]
+    public void FloatingButtons_AddMoveAndRemove_PersistInSettings()
+    {
+        var button = _vm.AddFloatingButton("  Leczenie  ", "  quaff red  ");
+
+        Assert.NotNull(button);
+        Assert.Equal("Leczenie", button!.Name);
+        Assert.Equal("quaff red", button.Command);
+
+        _vm.MoveFloatingButton(button.Id, -1, 2);
+        var saved = new AppSettingsService(_tempDir).Load();
+        var persisted = Assert.Single(saved.FloatingButtons);
+        Assert.Equal(0, persisted.X);
+        Assert.Equal(1, persisted.Y);
+
+        _vm.RemoveFloatingButton(button);
+
+        Assert.Empty(_vm.FloatingButtons);
+        Assert.Empty(new AppSettingsService(_tempDir).Load().FloatingButtons);
+    }
+
+    [Fact]
+    public void FloatingButtons_RejectMissingNameOrCommand()
+    {
+        Assert.Null(_vm.AddFloatingButton(" ", "look"));
+        Assert.Null(_vm.AddFloatingButton("Spójrz", " "));
+        Assert.Empty(_vm.FloatingButtons);
+    }
+
+    [Fact]
+    public async Task FloatingButton_UsesConfiguredCommandSeparator()
+    {
+        SetIsConnected(true);
+        _vm.CommandStackingSeparator = "|";
+        var output = new List<string>();
+        _vm.OutputReceived += output.Add;
+
+        await _vm.SendFloatingCommand.ExecuteAsync("look|north");
+
+        Assert.Contains(
+            output,
+            line => line.Contains("> look", StringComparison.Ordinal));
+        Assert.Contains(
+            output,
+            line => line.Contains("> north", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            output,
+            line => line.Contains("> look|north", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Constructor_StartsWithNoPeopleInRoom()
     {
         // Room occupants come live from Room.People GMCP.

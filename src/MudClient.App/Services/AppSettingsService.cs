@@ -75,6 +75,7 @@ public sealed class AppSettingsService
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToList() ?? [];
                     settings.AutoAssistFollowUpCommands ??= string.Empty;
+                    settings.FloatingButtons = NormalizeFloatingButtons(settings.FloatingButtons);
 
                     return settings;
                 }
@@ -92,5 +93,49 @@ public sealed class AppSettingsService
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         File.WriteAllText(_path, JsonSerializer.Serialize(settings, SerializerOptions));
+    }
+
+    private static List<FloatingButtonDefinition> NormalizeFloatingButtons(
+        IEnumerable<FloatingButtonDefinition>? buttons)
+    {
+        var normalized = new List<FloatingButtonDefinition>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var button in buttons ?? [])
+        {
+            var name = button.Name?.Trim() ?? string.Empty;
+            var command = button.Command?.Trim() ?? string.Empty;
+            if (name.Length == 0 || command.Length == 0)
+            {
+                continue;
+            }
+
+            var id = button.Id?.Trim() ?? string.Empty;
+            if (id.Length == 0 || !ids.Add(id))
+            {
+                do
+                {
+                    id = Guid.NewGuid().ToString("N");
+                }
+                while (!ids.Add(id));
+            }
+
+            normalized.Add(new FloatingButtonDefinition
+            {
+                Id = id,
+                Name = name,
+                Command = command,
+                X = Math.Clamp(
+                    double.IsFinite(button.X) ? button.X : 0.5,
+                    0,
+                    1),
+                Y = Math.Clamp(
+                    double.IsFinite(button.Y) ? button.Y : 0.55,
+                    0,
+                    1),
+            });
+        }
+
+        return normalized;
     }
 }

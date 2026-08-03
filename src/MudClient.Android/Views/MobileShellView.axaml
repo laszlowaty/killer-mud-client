@@ -193,6 +193,11 @@
       </Grid>
     </Border>
 
+    <Canvas x:Name="FloatingButtonLayer"
+            Grid.RowSpan="2"
+            IsVisible="False"
+            SizeChanged="FloatingButtonLayer_OnSizeChanged" />
+
     <StackPanel Grid.RowSpan="2"
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
