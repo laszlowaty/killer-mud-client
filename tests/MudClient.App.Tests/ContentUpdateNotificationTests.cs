@@ -11,7 +11,7 @@ public sealed class ContentUpdateNotificationTests : IAsyncDisposable
     private MainWindowViewModel? _viewModel;
 
     [Fact]
-    public async Task StartUpdateCheck_OffersContentPackageWithoutReplacingApplication()
+    public async Task StartContentUpdateCheck_OffersContentPackage()
     {
         var available = new ContentUpdateAvailability(
             "2026.07.18.1",
@@ -24,10 +24,9 @@ public sealed class ContentUpdateNotificationTests : IAsyncDisposable
         var contentService = new RecordingContentUpdateService(available);
         _viewModel = new MainWindowViewModel(
             settingsService: new AppSettingsService(_directory),
-            updateCheckService: new NoApplicationUpdateService(),
             contentUpdateService: contentService);
 
-        _viewModel.StartUpdateCheck();
+        _viewModel.StartContentUpdateCheck();
         Assert.NotNull(_viewModel.ActiveContentUpdateCheck);
         await _viewModel.ActiveContentUpdateCheck;
 
@@ -66,11 +65,5 @@ public sealed class ContentUpdateNotificationTests : IAsyncDisposable
                 selectedUpdate.Release,
                 selectedUpdate.Components.Select(component => component.Name).ToArray()));
         }
-    }
-
-    private sealed class NoApplicationUpdateService : IUpdateCheckService
-    {
-        public Task<AvailableUpdate?> CheckForUpdateAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<AvailableUpdate?>(null);
     }
 }

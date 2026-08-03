@@ -55,33 +55,6 @@
                       Spacing="6"
                       HorizontalAlignment="Right"
                       VerticalAlignment="Center">
-            <Button x:Name="ApplicationUpdateButton"
-                  Classes="mud-notice"
-                  Content="Nowa wersja"
-                  IsVisible="{Binding IsUpdateAvailable}">
-              <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedRight">
-                  <StackPanel Spacing="8" Width="320">
-                    <TextBlock Classes="mud-section-title"
-                               Text="Aktualizacja aplikacji" />
-                    <TextBlock Text="{Binding UpdateNotificationText}"
-                               TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
-                      <Button Content="Pobierz"
-                              Command="{Binding OpenUpdateReleaseCommand}"
-                              Classes="mud-small" />
-                      <Button Content="Lista zmian"
-                              Command="{Binding OpenChangelogCommand}"
-                              Classes="mud-small" />
-                      <Button Content="Ukryj"
-                              Command="{Binding DismissUpdateCommand}"
-                              Classes="mud-small" />
-                    </StackPanel>
-                  </StackPanel>
-                </Flyout>
-              </Button.Flyout>
-            </Button>
-
             <Button x:Name="ContentUpdateButton"
                     Classes="mud-notice mud-notice-success"
                     Content="Nowe dane"

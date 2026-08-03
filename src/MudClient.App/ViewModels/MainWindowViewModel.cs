@@ -75,11 +75,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
-    private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
     private readonly IExternalLinkService _externalLinkService;
-    private CancellationTokenSource? _updateCheckCts;
-    private Task? _updateCheckTask;
     private CancellationTokenSource? _contentUpdateCts;
     private Task? _contentUpdateCheckTask;
 
@@ -104,7 +101,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _startupErrorDetails;
     private bool _isKilleropediaOpen;
     private bool _isHelpOpen;
-    private AvailableUpdate? _availableUpdate;
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
@@ -222,7 +218,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         BookCatalogStore? bookCatalogStore = null,
         BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
         LayoutPresetService? layoutPresetService = null,
-        IUpdateCheckService? updateCheckService = null,
         IExternalLinkService? externalLinkService = null,
         IContentUpdateService? contentUpdateService = null)
     {
@@ -233,7 +228,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _usesCustomBookCatalogStore = bookCatalogStore is not null;
         _bookCatalogStore = bookCatalogStore ?? CreateBookCatalogStore();
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
-        _updateCheckService = updateCheckService ?? new UpdateCheckService();
         _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
         Killeropedia = CreateKilleropediaViewModel();
@@ -386,9 +380,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             IsHelpOpen = true;
         });
         OpenDiscordCommand = new RelayCommand(() => OpenExternalLink(DiscordInviteUri));
-        OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
-        OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
-        DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
         CheckContentUpdatesCommand = new AsyncRelayCommand(
             cancellationToken => CheckContentUpdatesAsync(reportErrors: true, cancellationToken),
             () => !IsContentUpdateBusy);
@@ -471,34 +462,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand OpenDiscordCommand { get; }
 
-    public IRelayCommand OpenUpdateReleaseCommand { get; }
-
-    public IRelayCommand OpenChangelogCommand { get; }
-
-    public IRelayCommand DismissUpdateCommand { get; }
-
     public IAsyncRelayCommand CheckContentUpdatesCommand { get; }
 
     public IAsyncRelayCommand InstallContentUpdateCommand { get; }
-
-    public AvailableUpdate? AvailableUpdate
-    {
-        get => _availableUpdate;
-        private set
-        {
-            if (SetProperty(ref _availableUpdate, value))
-            {
-                OnPropertyChanged(nameof(IsUpdateAvailable));
-                OnPropertyChanged(nameof(UpdateNotificationText));
-            }
-        }
-    }
-
-    public bool IsUpdateAvailable => AvailableUpdate is not null;
-
-    public string UpdateNotificationText => AvailableUpdate is { } update
-        ? $"Dostępna jest wersja {update.Version}{(update.IsPrerelease ? " (beta)" : string.Empty)}."
-        : string.Empty;
 
     public ContentUpdateAvailability? AvailableContentUpdate
     {
@@ -805,15 +771,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         await Map.InitializeAsync(cancellationToken);
     }
 
-    public void StartUpdateCheck()
+    public void StartContentUpdateCheck()
     {
-        if (_updateCheckTask is not null)
+        if (_contentUpdateCheckTask is not null)
         {
             return;
         }
-
-        _updateCheckCts = new CancellationTokenSource();
-        _updateCheckTask = CheckForUpdateAsync(_updateCheckCts.Token);
 
         _contentUpdateCts = new CancellationTokenSource();
         _contentUpdateCheckTask = CheckContentUpdatesAsync(
@@ -821,26 +784,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _contentUpdateCts.Token);
     }
 
-    internal Task? ActiveUpdateCheck => _updateCheckTask;
-
     internal Task? ActiveContentUpdateCheck => _contentUpdateCheckTask;
-
-    private async Task CheckForUpdateAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            AvailableUpdate = await _updateCheckService.CheckForUpdateAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Closing the application cancels the optional background check.
-        }
-        catch (Exception)
-        {
-            // Update discovery is best-effort. Network, remote-data and platform failures must not
-            // interrupt startup or distract the user from the MUD session. The next launch retries.
-        }
-    }
 
     private async Task CheckContentUpdatesAsync(bool reportErrors, CancellationToken cancellationToken)
     {
@@ -6566,23 +6510,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         SaveActiveProfile();
 
-        _updateCheckCts?.Cancel();
         _contentUpdateCts?.Cancel();
         CheckContentUpdatesCommand.Cancel();
         InstallContentUpdateCommand.Cancel();
-        if (_updateCheckTask is not null)
-        {
-            try
-            {
-                await _updateCheckTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // The optional background check was cancelled during shutdown.
-            }
-        }
-
-        _updateCheckCts?.Dispose();
         if (_contentUpdateCheckTask is not null)
         {
             try
