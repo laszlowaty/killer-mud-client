@@ -348,9 +348,18 @@ public sealed partial class TerminalPanelView : UserControl
             return;
         }
 
+        // Collapses consecutive repeats (e.g. "stun" sent four times in a row) into a single
+        // step, so recalling history doesn't require pressing Up once per repeat before
+        // reaching the next distinct command.
+        var history = DeduplicateConsecutive(_viewModel.CommandHistory);
+        if (history.Count == 0)
+        {
+            return;
+        }
+
         if (direction > 0)
         {
-            _historyIndex = Math.Min(_historyIndex + 1, _viewModel.CommandHistory.Count - 1);
+            _historyIndex = Math.Min(_historyIndex + 1, history.Count - 1);
         }
         else
         {
@@ -368,10 +377,29 @@ public sealed partial class TerminalPanelView : UserControl
         }
         else
         {
-            _commandBox.Text = _viewModel.CommandHistory[_historyIndex];
+            _commandBox.Text = history[_historyIndex];
         }
 
         _commandBox.CaretIndex = _commandBox.Text?.Length ?? 0;
     }
 
+    /// <summary>Drops entries equal to the immediately preceding one, keeping the newest
+    /// (lowest-index) occurrence of each run — <see cref="MainWindowViewModel.CommandHistory"/>
+    /// is newest-first, so a run of repeats always collapses to its most recent instance.</summary>
+    internal static IReadOnlyList<string> DeduplicateConsecutive(IReadOnlyList<string> history)
+    {
+        var result = new List<string>(history.Count);
+        string? previous = null;
+        foreach (var entry in history)
+        {
+            if (previous is null || !string.Equals(entry, previous, StringComparison.Ordinal))
+            {
+                result.Add(entry);
+            }
+
+            previous = entry;
+        }
+
+        return result;
+    }
 }
