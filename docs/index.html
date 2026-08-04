@@ -115,7 +115,9 @@
     };
 
     try {
-      const response = await fetch('app-version.json');
+      // GitHub Pages serves this with Cache-Control: max-age=600 — force a fresh fetch so a
+      // release that just went out doesn't sit stale in the browser's own HTTP cache too.
+      const response = await fetch('app-version.json', { cache: 'no-store' });
       if (!response.ok) return;
       const manifest = await response.json();
       if (manifest.schemaVersion === 1

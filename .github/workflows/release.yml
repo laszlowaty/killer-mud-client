@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: 'Podbicie wersji względem aktualnej wersji upstream (Directory.Build.props na upstream/main)'
+        description: 'Podbicie wersji względem ostatniej wydanej wersji forka (Directory.Build.props na develop)'
         required: true
         type: choice
         default: patch
@@ -39,19 +39,15 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          git remote add upstream https://github.com/grzyboll/killer-mud-client.git
-          git fetch upstream main
 
-          # Ten fork nigdy nie "posiada" stabilnego wydania danego numeru wersji —
-          # ten numer należy do upstreamu. Każde wydanie forka to prerelease
-          # oznaczony jako "o jedną (lub więcej, zależnie od bump) wersję do przodu"
-          # względem NAJNOWSZEJ znanej wersji upstreamu, więc ten krok zawsze liczy
-          # cel na nowo z upstream/main — nie z własnej, potencjalnie nieaktualnej
-          # wersji w Directory.Build.props na develop.
-          UPSTREAM_VERSION=$(git show upstream/main:Directory.Build.props | sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p')
-          echo "Wersja upstream: $UPSTREAM_VERSION"
+          # Ten fork numeruje wydania niezależnie od upstreamu — im dalej odbiega
+          # funkcjonalnie od pomysłu źródłowego, tym mniej sensu ma przywiązywanie
+          # własnej wersji do numeru wersji upstreamu. Cel liczony jest więc zawsze
+          # od WŁASNEJ ostatniej wersji forka (Directory.Build.props na develop).
+          CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
+          echo "Aktualna wersja forka: $CURRENT"
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$UPSTREAM_VERSION"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           case "${{ inputs.bump }}" in
             major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
             minor) MINOR=$((MINOR+1)); PATCH=0 ;;
@@ -68,13 +64,11 @@ jobs:
           FULL_VERSION="$TARGET_VERSION-dev.$N"
           TAG="v$FULL_VERSION"
 
-          echo "upstream_version=$UPSTREAM_VERSION" >> "$GITHUB_OUTPUT"
-          echo "version=$TARGET_VERSION"             >> "$GITHUB_OUTPUT"
-          echo "full_version=$FULL_VERSION"          >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"                            >> "$GITHUB_OUTPUT"
-          echo "Nowa wersja: $FULL_VERSION (tag $TAG, na bazie upstream v$UPSTREAM_VERSION)"
+          echo "version=$TARGET_VERSION"    >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"                   >> "$GITHUB_OUTPUT"
+          echo "Nowa wersja: $FULL_VERSION (tag $TAG)"
 
-          CURRENT=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props)
           if [ "$TARGET_VERSION" != "$CURRENT" ]; then
             sed -i "s|<Version>$CURRENT</Version>|<Version>$TARGET_VERSION</Version>|" Directory.Build.props
             git config user.name  "github-actions[bot]"
@@ -94,7 +88,7 @@ jobs:
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "KillerMudClient $FULL_VERSION (na bazie upstream v$UPSTREAM_VERSION)"
+          git tag -a "$TAG" -m "KillerMudClient $FULL_VERSION"
           git push origin "$TAG"
 
       - name: Test
@@ -141,8 +135,6 @@ jobs:
 
       - name: Build release notes
         id: notes
-        env:
-          UPSTREAM_VERSION: ${{ steps.version.outputs.upstream_version }}
         run: |
           set -euo pipefail
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
@@ -160,12 +152,7 @@ jobs:
             | sed -E 's/^(chore|docs|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?!?:[[:space:]]*//I' > other.txt || true
 
           {
-            echo "## Based on upstream"
-            echo ""
-            echo "v$UPSTREAM_VERSION"
-
             if [ -s feat.txt ]; then
-              echo ""
               echo "## Added"
               echo ""
               sed 's/^/- /' feat.txt
