@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Android.Content;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -65,6 +66,7 @@ public sealed class MobileSessionHost
                 viewModel.ReportSettingsImportError(importException);
             }
 
+            viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _viewModel = viewModel;
             return viewModel;
         }
@@ -102,4 +104,34 @@ public sealed class MobileSessionHost
         await viewModel.InitializeAsync(CancellationToken.None);
     }
 
+    private void OnViewModelPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName != nameof(MainWindowViewModel.IsConnected)
+            || sender is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        try
+        {
+            if (viewModel.IsConnected)
+            {
+                ConnectionForegroundService.Start(_context);
+            }
+            else
+            {
+                ConnectionForegroundService.Stop(_context);
+            }
+        }
+        catch (Java.Lang.Exception exception)
+        {
+            // A foreground-service policy failure must not escape from the
+            // IsConnected setter and leave an already-open TCP session orphaned.
+            global::Android.Util.Log.Error(
+                "KillerMudClient",
+                $"Nie udało się zmienić usługi podtrzymującej połączenie: {exception}");
+        }
+    }
 }

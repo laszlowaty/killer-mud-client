@@ -191,8 +191,11 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
   respektuje skonfigurowany separator komend oraz aliasy,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
-Killeropedia, pozostałe widgety oraz utrzymywanie połączenia po wygaszeniu ekranu
-nie należą jeszcze do mobilnego MVP. Pierwsze uruchomienie kopiuje do prywatnego
+Killeropedia i pozostałe widgety nie należą jeszcze do mobilnego MVP.
+Po nawiązaniu połączenia Android uruchamia usługę pierwszoplanową ze stałym
+powiadomieniem. Usługa działa tylko przez czas aktywnej sesji i podtrzymuje proces
+oraz połączenie TCP po przejściu aplikacji do tła lub wygaszeniu ekranu.
+Pierwsze uruchomienie kopiuje do prywatnego
 katalogu aplikacji dołączone zasoby mapy; kolejne uruchomienia używają gotowej kopii.
 Interfejs konta i terminala pojawia się przed zakończeniem indeksowania mapy, która
 może jeszcze przez chwilę wyświetlać własny stan ładowania.

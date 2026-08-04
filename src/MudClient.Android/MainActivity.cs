@@ -33,6 +33,8 @@ public sealed class MainActivity : AvaloniaMainActivity
     {
         base.OnCreate(savedInstanceState);
 
+        RequestNotificationPermission();
+
         _decorView = Window?.DecorView;
         if (_decorView is null)
         {
@@ -115,6 +117,18 @@ public sealed class MainActivity : AvaloniaMainActivity
         if (Avalonia.Application.Current is MobileApp app)
         {
             app.TryNavigateBackToTerminal();
+        }
+    }
+
+    private void RequestNotificationPermission()
+    {
+        if (OperatingSystem.IsAndroidVersionAtLeast(33)
+            && CheckSelfPermission(global::Android.Manifest.Permission.PostNotifications)
+                != Permission.Granted)
+        {
+            RequestPermissions(
+                [global::Android.Manifest.Permission.PostNotifications],
+                requestCode: 1001);
         }
     }
 
