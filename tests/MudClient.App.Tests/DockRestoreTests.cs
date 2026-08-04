@@ -27,16 +27,6 @@ public sealed class DockRestoreTests
     private static bool Visible(IRootDock layout, string id) =>
         (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).Any(p => p.Id == id);
 
-    [Fact]
-    public void CreateLayout_UsesSingleCombinedRoomPanel()
-    {
-        var factory = CreateFactory(out _);
-
-        var room = Assert.Single(factory.AllTools, tool => tool.Title?.Contains("Pokój") == true);
-        Assert.Equal("RoomInfo", room.Id);
-        Assert.Equal(typeof(MudClient.App.Views.Panels.RoomInfoPanelView), room.ViewType);
-    }
-
     // Close every tool of the right-top dock one by one, then restore each. The dock
     // empties and Dock removes it partway through — the classic "sometimes doesn't work".
     [Fact]
@@ -84,15 +74,15 @@ public sealed class DockRestoreTests
     public void ShowTool_SelectsRequestedTab()
     {
         var factory = CreateFactory(out _);
-        var map = GetTool(factory, "Map");
-        var roomInfo = GetTool(factory, "RoomInfo");
-        var owner = Assert.IsType<ToolDock>(map.Owner);
-        factory.SetActiveDockable(roomInfo);
+        var effects = GetTool(factory, "Effects");
+        var group = GetTool(factory, "Group");
+        var owner = Assert.IsType<ToolDock>(effects.Owner);
+        factory.SetActiveDockable(group);
 
-        var shown = factory.ShowTool("Map");
+        var shown = factory.ShowTool("Effects");
 
         Assert.True(shown);
-        Assert.Same(map, owner.ActiveDockable);
+        Assert.Same(effects, owner.ActiveDockable);
     }
 
     // Dragging only performs Dock's regular local split next to the dock under the pointer.

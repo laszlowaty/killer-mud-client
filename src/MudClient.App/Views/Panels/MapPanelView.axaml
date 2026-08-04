@@ -6,7 +6,7 @@
              xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.MapPanelView"
              x:DataType="vm:MapViewModel">
-  <Grid RowDefinitions="*,Auto">
+  <Grid RowDefinitions="*,Auto,Auto">
 
     <!-- ========================================================================
           Map content area (the "Mapa ▾" menu floats over its top-left corner —
@@ -340,9 +340,49 @@
     </Border>
 
     <!-- ========================================================================
+         Selected-room strip: folded in from the former standalone "Pokój" panel — a
+         compact bottom bar (image + key details, no room occupants) instead of a
+         separate dockable tab, so the info is visible right under the map itself.
+         ======================================================================== -->
+    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6"
+            IsVisible="{Binding SelectedRoom, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border Grid.Column="0"
+                Background="{StaticResource MudBrushVoid}"
+                BorderBrush="{StaticResource MudBrushGoldDim}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="3"
+                Width="64"
+                Height="64">
+          <Image Source="{Binding SelectedRoomIcon}"
+                 Stretch="Uniform"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Center" />
+        </Border>
+
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding SelectedRoom.Name}"
+                     Classes="mud-heading"
+                     TextTrimming="CharacterEllipsis" />
+          <WrapPanel>
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Vnum, StringFormat='Vnum: {0}'}" />
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Sector, StringFormat='Sektor: {0}'}" />
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Environment, StringFormat='Środowisko: {0}'}" />
+            <TextBlock Classes="mud-faint"
+                       Text="{Binding SelectedRoom.Weight, StringFormat='Waga: {0}'}" />
+          </WrapPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ========================================================================
          Footer bar: status message — Lord mode only (load status + map editor readiness).
          ======================================================================== -->
-    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="10,5"
+    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5"
             IsVisible="{Binding LordModeEnabled}">
       <TextBlock Classes="mud-faint" Text="{Binding LordModeStatusMessage}" />
     </Border>
