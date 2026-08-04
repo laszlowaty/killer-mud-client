@@ -11,7 +11,7 @@ namespace MudClient.App.Tests;
 public sealed class AutowalkRecoveryUiTests
 {
     [AvaloniaFact]
-    public void RecoveryOptions_AreShownAndPersisted()
+    public async Task RecoveryOptions_AreShownAndPersisted()
     {
         var directory = Path.Combine(
             Path.GetTempPath(),
@@ -47,7 +47,7 @@ public sealed class AutowalkRecoveryUiTests
         finally
         {
             window.Close();
-            viewModel.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            await viewModel.DisposeAsync();
             Directory.Delete(directory, recursive: true);
         }
     }
