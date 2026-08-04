@@ -1245,7 +1245,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public string MobileControlsOpacityText => $"{_settings.MobileControlsOpacity:P0}";
+    public string MobileControlsOpacityText => $"{_settings.MobileControlsOpacity:0%}";
 
     public double MobileFloatingButtonScale
     {
@@ -1269,7 +1269,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string MobileFloatingButtonScaleText =>
-        $"{_settings.MobileFloatingButtonScale:P0}";
+        $"{_settings.MobileFloatingButtonScale:0%}";
 
     public double MobileMovementButtonScale
     {
@@ -1293,7 +1293,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string MobileMovementButtonScaleText =>
-        $"{_settings.MobileMovementButtonScale:P0}";
+        $"{_settings.MobileMovementButtonScale:0%}";
 
     public FontFamily OutputFontFamilyValue => AppFonts.Resolve(_settings.OutputFontFamily);
 

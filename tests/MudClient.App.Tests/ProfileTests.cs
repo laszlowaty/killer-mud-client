@@ -1,3 +1,4 @@
+using System.Globalization;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -341,6 +342,31 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal(AppSettings.MaxMobileButtonScale, stored.MobileMovementButtonScale);
         Assert.Equal("70%", vm.MobileFloatingButtonScaleText);
         Assert.Equal("150%", vm.MobileMovementButtonScaleText);
+    }
+
+    [Fact]
+    public async Task Vm_MobilePercentLabels_AreCompactInInvariantCulture()
+    {
+        await using var vm = new MainWindowViewModel(
+            CreateService(),
+            CreateSettingsService());
+        var previousCulture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+            vm.MobileControlsOpacity = 0.5;
+            vm.MobileFloatingButtonScale = 0.7;
+            vm.MobileMovementButtonScale = 1.5;
+
+            Assert.Equal("50%", vm.MobileControlsOpacityText);
+            Assert.Equal("70%", vm.MobileFloatingButtonScaleText);
+            Assert.Equal("150%", vm.MobileMovementButtonScaleText);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
     }
 
     [Fact]
