@@ -21,13 +21,13 @@
   <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- Session/account actions — used to live in a branded top bar with an overflow "Więcej"
-         menu; now a single right-aligned row of directly visible buttons, with no separate bar
+         menu; now a single left-aligned row of directly visible buttons, with no separate bar
          of its own reserved above the docked panels (see MainDock below). -->
     <Border x:Name="TopActionsBar" Grid.Row="0" Classes="mud-bar-top">
       <StackPanel x:Name="TopActionsRow"
                   Orientation="Horizontal"
                   Spacing="7"
-                  HorizontalAlignment="Right"
+                  HorizontalAlignment="Left"
                   VerticalAlignment="Center">
         <Button x:Name="TopKilleropediaButton"
                 Content="Killeropedia"
