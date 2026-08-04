@@ -1546,6 +1546,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool AutowalkRestOnArrivalEnabled
+    {
+        get => _settings.AutowalkRestOnArrivalEnabled;
+        set
+        {
+            if (_settings.AutowalkRestOnArrivalEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestOnArrivalEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool AutoStandOrderEnabled
     {
         get => _settings.AutoStandOrderEnabled;
@@ -3033,7 +3049,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     _autowalkStep = i + 1;
                     if (_autowalkStep >= steps.Count)
                     {
-                        _ = SendTriggeredCommandAsync("rest");
+                        if (_settings.AutowalkRestOnArrivalEnabled)
+                        {
+                            _ = SendTriggeredCommandAsync("rest");
+                        }
+
                         StopAutowalk($"Dotarłeś do lokacji „{_autowalkTargetName}”.");
                     }
                     else
@@ -3077,7 +3097,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             if (path.Steps.Count == 0)
             {
-                _ = SendTriggeredCommandAsync("rest");
+                if (_settings.AutowalkRestOnArrivalEnabled)
+                {
+                    _ = SendTriggeredCommandAsync("rest");
+                }
+
                 StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
                 return;
             }

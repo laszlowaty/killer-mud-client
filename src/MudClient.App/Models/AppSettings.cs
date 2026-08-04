@@ -116,6 +116,9 @@ public sealed class AppSettings
     /// without ever pausing for this — see <see cref="MudClient.Core.Automation.AutowalkRecoveryPolicy"/>.</summary>
     public bool AutowalkMovementRecoveryEnabled { get; set; } = true;
 
+    /// <summary>Sends "rest" automatically as soon as autowalk reaches its destination.</summary>
+    public bool AutowalkRestOnArrivalEnabled { get; set; } = true;
+
     /// <summary>Default/limits for <see cref="AutowalkLowMovementThresholdPercent"/>.</summary>
     public const int DefaultAutowalkLowMovementThresholdPercent = 10;
     public const int MinAutowalkLowMovementThresholdPercent = 1;

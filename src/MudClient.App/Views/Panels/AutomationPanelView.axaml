@@ -428,6 +428,16 @@
             </StackPanel>
           </Border>
 
+          <TextBlock Classes="mud-heading" Text="Po dotarciu do celu" Margin="0,6,0,0" />
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="3">
+              <CheckBox IsChecked="{Binding AutowalkRestOnArrivalEnabled}"
+                        Content="Automatycznie odpocznij po dotarciu do lokacji" />
+              <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                         Text="Gdy autowalk dotrze do celu, klient wysyła „rest”. Wyłączenie zostawia postać w takiej pozycji, w jakiej dotarła." />
+            </StackPanel>
+          </Border>
+
           <TextBlock Classes="mud-heading" Text="Drużyna w podróży" Margin="0,6,0,0" />
           <Border Classes="mud-section" Padding="10">
             <StackPanel Spacing="10">
