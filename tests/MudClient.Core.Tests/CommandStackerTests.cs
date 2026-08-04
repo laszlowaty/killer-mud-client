@@ -4,6 +4,18 @@ namespace MudClient.Core.Tests;
 
 public sealed class CommandStackerTests
 {
+    [Fact]
+    public void Split_SeparatorInsideQuotedEchoText_IsPreserved()
+    {
+        var result = CommandStacker.Split(
+            "echo(\"red\", \"Uwaga; tracisz ochronę\");look",
+            ";");
+
+        Assert.Equal(
+            ["echo(\"red\", \"Uwaga; tracisz ochronę\")", "look"],
+            result);
+    }
+
     // ====================================================================
     // Null / empty / whitespace-only text
     // ====================================================================

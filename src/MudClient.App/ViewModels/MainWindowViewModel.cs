@@ -207,6 +207,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// required buffs as active/missing. Updated on the UI thread.
     /// </summary>
     private readonly HashSet<string> _activeAffectNames = new(StringComparer.OrdinalIgnoreCase);
+    private bool _hasReceivedAffects;
 
     // --- Profiles ---
     private string? _activeProfileName;
@@ -2220,6 +2221,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     token.ThrowIfCancellationRequested();
                     if (Map.IsMapEditorActive)
                     {
+                        continue;
+                    }
+
+                    if (EchoCommandParser.Parse(command, out _) != EchoCommandParseStatus.NotEcho)
+                    {
+                        Dispatcher.UIThread.Post(() => TryHandleEchoCommand(command));
                         continue;
                     }
 
@@ -5291,6 +5298,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             foreach (var command in commands)
             {
+                if (TryHandleEchoCommand(command))
+                {
+                    continue;
+                }
+
                 var mapperDecision = Map.PrepareMapEditorCommand(command);
                 if (!mapperDecision.Allow)
                 {
@@ -5393,6 +5405,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 CommandStackingSeparator);
             foreach (var expandedCommand in commands)
             {
+                if (TryHandleEchoCommand(expandedCommand))
+                {
+                    continue;
+                }
+
                 EmitCommandEcho(expandedCommand);
                 try
                 {
@@ -6066,6 +6083,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
+        if (EchoCommandParser.Parse(command, out _) != EchoCommandParseStatus.NotEcho)
+        {
+            Dispatcher.UIThread.Post(() => TryHandleEchoCommand(command));
+            return;
+        }
+
         Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
 
         try
@@ -6166,6 +6189,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         Dispatcher.UIThread.Post(() =>
         {
+            var nextAffectNames = affects
+                .Select(affect => BuffWatchEntry.NormalizeName(affect.Name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var lostEffectNames = _hasReceivedAffects
+                ? Effects
+                    .Where(effect => !nextAffectNames.Contains(
+                        BuffWatchEntry.NormalizeName(effect.Name)))
+                    .Select(effect => effect.Name)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+                : [];
+
             Effects.Clear();
             _activeAffectNames.Clear();
             foreach (var affect in affects)
@@ -6180,6 +6215,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             RefreshBuffIndicators();
+            _hasReceivedAffects = true;
+
+            foreach (var lostEffectName in lostEffectNames)
+            {
+                EmitEcho("red", $"Utracono efekt: {lostEffectName}.");
+            }
         });
     }
 
@@ -6385,6 +6426,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
+            _hasReceivedAffects = false;
             Map.StopMapEditor(
                 "Mapowanie zatrzymane po utracie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
@@ -6396,6 +6438,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
+            _hasReceivedAffects = false;
             Map.StopMapEditor(
                 "Mapowanie zatrzymane po błędzie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
@@ -6416,6 +6459,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         OutputReceived?.Invoke($"\u001b[{ansiColor}m{text}\u001b[0m\n");
     }
+
+    private bool TryHandleEchoCommand(string command)
+    {
+        var status = EchoCommandParser.Parse(command, out var echo);
+        if (status == EchoCommandParseStatus.NotEcho)
+        {
+            return false;
+        }
+
+        if (status == EchoCommandParseStatus.Success)
+        {
+            EmitEcho(echo!);
+        }
+        else
+        {
+            EmitSystem(
+                "Nieprawidłowe echo. Użycie: echo(\"red\", \"tekst\"). "
+                + $"Kolory: {string.Join(", ", EchoCommandParser.ColorNames)}.",
+                31);
+        }
+
+        return true;
+    }
+
+    private void EmitEcho(string color, string text)
+    {
+        if (EchoCommandParser.TryCreate(color, text, out var echo))
+        {
+            EmitEcho(echo!);
+        }
+    }
+
+    private void EmitEcho(EchoCommand echo) => EmitSystem(echo.Text, echo.AnsiColorCode);
 
     // Manual/alias, trigger and timer paths use the same terminal echo so automated
     // commands remain visible even when the MUD does not echo client input.

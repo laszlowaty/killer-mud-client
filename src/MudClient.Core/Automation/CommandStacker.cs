@@ -52,7 +52,7 @@ public static class CommandStacker
                 continue;
             }
 
-            foreach (var part in trimmed.Split(effective))
+            foreach (var part in SplitOutsideQuotes(trimmed, effective))
             {
                 var cmd = part.Trim();
                 if (cmd.Length > 0)
@@ -63,5 +63,50 @@ public static class CommandStacker
         }
 
         return results;
+    }
+
+    private static IEnumerable<string> SplitOutsideQuotes(string text, string separator)
+    {
+        var start = 0;
+        char? quote = null;
+        var escaped = false;
+
+        for (var index = 0; index < text.Length;)
+        {
+            var current = text[index];
+            if (escaped)
+            {
+                escaped = false;
+                index++;
+                continue;
+            }
+
+            if (quote is not null && current == '\\')
+            {
+                escaped = true;
+                index++;
+                continue;
+            }
+
+            if (current is '"' or '\'')
+            {
+                quote = quote == current ? null : quote ?? current;
+                index++;
+                continue;
+            }
+
+            if (quote is null
+                && text.AsSpan(index).StartsWith(separator, StringComparison.Ordinal))
+            {
+                yield return text[start..index];
+                index += separator.Length;
+                start = index;
+                continue;
+            }
+
+            index++;
+        }
+
+        yield return text[start..];
     }
 }

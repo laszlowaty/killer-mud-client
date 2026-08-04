@@ -406,6 +406,15 @@
                                Text="W komendzie triggera albo timera wpisz alias(nazwa-aliasu) lub alias(tekst-dopasowany-do-wzorca). Klient uruchomi istniejący alias i wyśle jego rozwinięcie, także wiele komend rozdzielonych nowymi liniami lub separatorem. Przykład: alias(buff)." />
                   </Grid>
                 </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="echo(&quot;kolor&quot;, &quot;tekst&quot;)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Wyświetla lokalny tekst w terminalu bez wysyłania go do MUD-a. Działa w aliasach, triggerach, timerach i floating buttonach. Klient używa czerwonego echo także do informacji o utracie efektu GMCP. Kolory: black, red, green, yellow, blue, magenta, cyan, white, gray. Przykład: echo(&quot;red&quot;, &quot;Straciłeś ochronę!&quot;)." />
+                  </Grid>
+                </Border>
               </StackPanel>
             </ScrollViewer>
           </TabItem>

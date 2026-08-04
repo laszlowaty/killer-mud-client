@@ -226,6 +226,7 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Contains("/map show <vnum>", helpTexts);
         Assert.Contains("Komendy mapowania", helpTexts);
         Assert.Contains("alias(...) w triggerze/timerze", helpTexts);
+        Assert.Contains("echo(\"kolor\", \"tekst\")", helpTexts);
     }
 
     [AvaloniaFact]
