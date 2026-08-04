@@ -1,6 +1,8 @@
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using Dock.Model.Core;
+using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -100,6 +102,248 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             "|");
 
         Assert.Equal(["as", "wesprzyj", "czar 'ochrona'", "uciekaj"], commands);
+    }
+
+    [Fact]
+    public void BuildOtherGroupMemberNames_ExcludesSelfAndNpcs()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var targets = MainWindowViewModel.BuildOtherGroupMemberNames(group, "Hero");
+
+        Assert.Equal(["Companion"], targets);
+    }
+
+    [Fact]
+    public void BuildOtherGroupMemberNames_NullGroup_ReturnsEmpty()
+    {
+        Assert.Empty(MainWindowViewModel.BuildOtherGroupMemberNames(null, "Hero"));
+    }
+
+    [Fact]
+    public async Task CastRefreshOnGroupCommand_NotConnected_ShowsErrorToast()
+    {
+        await _vm.CastRefreshOnGroupCommand.ExecuteAsync(null);
+
+        Assert.Contains(_vm.Toasts, toast => toast.Text.Contains("Nie połączono"));
+    }
+
+    [Fact]
+    public async Task CastRefreshOnGroupCommand_ConnectedWithNoOtherMembers_ShowsInfoToast()
+    {
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+        }));
+
+        await _vm.CastRefreshOnGroupCommand.ExecuteAsync(null);
+
+        Assert.Contains(_vm.Toasts, toast => toast.Text.Contains("Brak członków drużyny"));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_Disabled_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "stand", enabled: false));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_NotTheLeader_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Companion", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "stand", enabled: true));
+    }
+
+    [Fact]
+    public void BuildGroupPositionOrderCommands_AsLeader_OrdersEveryOtherMember()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var commands = MainWindowViewModel.BuildGroupPositionOrderCommands(group, "Hero", "sit", enabled: true);
+
+        Assert.Equal(["order Companion sit"], commands);
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_Disabled_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: false));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_NullGroup_ReturnsEmpty()
+    {
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(null, enabled: true));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_NoNpcsInGroup_ReturnsEmpty()
+    {
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        });
+
+        Assert.Empty(MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: true));
+    }
+
+    [Fact]
+    public void BuildAutoAssistNpcCommands_Enabled_OrdersEveryNpc_EvenWithoutLeadership()
+    {
+        // Unlike BuildGroupPositionOrderCommands, ordering your own pet doesn't require being
+        // the group's GMCP leader — "Companion" leads here, not "Hero".
+        var group = new CharacterGroupUpdate("Companion", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        });
+
+        var commands = MainWindowViewModel.BuildAutoAssistNpcCommands(group, enabled: true);
+
+        Assert.Equal(["order Wolf assist"], commands);
+    }
+
+    [Fact]
+    public void TerminalToolTitle_ReflectsVitals_AndUpdatesLiveOnChange()
+    {
+        var terminal = FindTool(_vm.Layout, "Terminal");
+        Assert.NotNull(terminal);
+        Assert.StartsWith("Terminal —", terminal!.Title);
+
+        _vm.Vitals.Name = "Aragorn";
+        _vm.Vitals.Level = 42;
+        _vm.Vitals.SexDisplay = "Mężczyzna";
+        _vm.Vitals.PositionDisplay = "Stoi";
+
+        Assert.Contains("Aragorn", terminal.Title);
+        Assert.Contains("42", terminal.Title);
+        Assert.Contains("Mężczyzna", terminal.Title);
+        Assert.Contains("Stoi", terminal.Title);
+    }
+
+    private static PanelTool? FindTool(IDockable? dockable, string id) => dockable switch
+    {
+        PanelTool tool when string.Equals(tool.Id, id, StringComparison.Ordinal) => tool,
+        IDock dock => (dock.VisibleDockables ?? Enumerable.Empty<IDockable>())
+            .Select(child => FindTool(child, id))
+            .FirstOrDefault(found => found is not null),
+        _ => null,
+    };
+
+    /// <summary>Invokes the private UpdateCharacterPosition method via reflection.</summary>
+    private void InvokeUpdateCharacterPosition(string position)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("UpdateCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(_vm, [position]);
+    }
+
+    [Fact]
+    public void UpdateCharacterPosition_TransitionToResting_DoesNotThrow_WithAutoRestEnabled()
+    {
+        // Regression guard for the bug where autorest never fired: the transition used to be
+        // gated on "sitting" (the "sit" command), but the actual GMCP position after "rest" is
+        // "resting" — a distinct value (see AutowalkRecoveryPolicyTests). Autostand's "standing"
+        // trigger was already correct, which is why only autorest was reported broken.
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoRestOrderEnabled = true;
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: false),
+        }));
+
+        InvokeUpdateCharacterPosition("standing");
+        InvokeUpdateCharacterPosition("resting");
+    }
+
+    [Fact]
+    public void UpdateCharacterPosition_TransitionToFighting_DoesNotThrow_WithAutoAssistNpcEnabled()
+    {
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoAssistNpcEnabled = true;
+        SetLatestGroupUpdate(new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, null, null, false, null, IsLeader: true),
+            new("Wolf", null, string.Empty, null, string.Empty, null, null, true, null, IsLeader: false),
+        }));
+
+        InvokeUpdateCharacterPosition("standing");
+        InvokeUpdateCharacterPosition("fighting");
+    }
+
+    [Fact]
+    public void OnGroupChanged_ExhaustedMemberWithAutoRefreshEnabled_DoesNotThrow()
+    {
+        // Real regression guard for the OnGroupChanged -> TryAutoOrderExhaustedGroupRefresh wiring
+        // (GroupExhaustionRefreshPolicyTests covers the actual decision logic in isolation).
+        SetIsConnected(true);
+        SetLatestCharacterName("Hero");
+        _vm.AutoGroupRefreshOnExhaustedEnabled = true;
+        var group = new CharacterGroupUpdate("Hero", new List<CharacterGroupMember>
+        {
+            new("Hero", null, string.Empty, null, string.Empty, 4, null, false, null, IsLeader: true),
+            new("Companion", null, string.Empty, null, string.Empty, 0, null, false, null, IsLeader: false),
+        });
+
+        var method = typeof(MainWindowViewModel).GetMethod("OnGroupChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(_vm, [group]);
+    }
+
+    [Fact]
+    public void AutowalkLowMovementThresholdPercent_Setter_ClampsToLimits()
+    {
+        _vm.AutowalkLowMovementThresholdPercent = 999;
+        Assert.Equal(AppSettings.MaxAutowalkLowMovementThresholdPercent, _vm.AutowalkLowMovementThresholdPercent);
+
+        _vm.AutowalkLowMovementThresholdPercent = -5;
+        Assert.Equal(AppSettings.MinAutowalkLowMovementThresholdPercent, _vm.AutowalkLowMovementThresholdPercent);
+    }
+
+    [Fact]
+    public void AutowalkRestSeconds_Setter_ClampsToLimits()
+    {
+        _vm.AutowalkRestSeconds = 9999;
+        Assert.Equal(AppSettings.MaxAutowalkRestSeconds, _vm.AutowalkRestSeconds);
+
+        _vm.AutowalkRestSeconds = 0;
+        Assert.Equal(AppSettings.MinAutowalkRestSeconds, _vm.AutowalkRestSeconds);
     }
 
     [Fact]
@@ -1450,8 +1694,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         Assert.True(_vm.LordGotoGroupRoomCommand.CanExecute(member));
         Assert.True(_vm.LordGotoGroupMemberCommand.CanExecute(member));
-        Assert.Equal("goto 6017", MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
-        Assert.Equal("goto Aragorn", MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
+        Assert.Equal("walk 6017", MainWindowViewModel.BuildLordGotoGroupRoomCommand(member));
+        Assert.Equal("walk Aragorn", MainWindowViewModel.BuildLordGotoGroupMemberCommand(member));
     }
 
     [Fact]
@@ -3062,7 +3306,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     [Fact]
     public void OnMapRoomDoubleClicked_WhenNotWalking_SetsTargetAndPreviews()
     {
-        // Arrange
+        // Arrange — disable auto-walk-on-double-click so this exercises the preview-only path.
+        _vm.Map.AutoWalkOnMapDoubleClick = false;
         Assert.False(_vm.IsAutowalking);
         var room = CreateTestRoom(100, "2002", "Test Room");
         var toastCount = _vm.Toasts.Count;
@@ -3086,9 +3331,28 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void OnMapRoomDoubleClicked_DefaultsToStartingAutowalkImmediately()
+    {
+        // AutoWalkOnMapDoubleClick defaults to true — double-click should attempt to start
+        // walking right away rather than only preview. With no map/pathfinder loaded here,
+        // that attempt surfaces as StartAutowalk's own failure toast.
+        Assert.True(_vm.Map.AutoWalkOnMapDoubleClick);
+        var room = CreateTestRoom(100, "2002", "Test Room");
+        var toastCount = _vm.Toasts.Count;
+
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        Assert.True(_vm.HasTemporaryTarget);
+        Assert.Equal(toastCount + 1, _vm.Toasts.Count);
+        Assert.Contains("nie jest załadowana", _vm.Toasts[^1].Text);
+    }
+
+    [Fact]
     public void OnMapRoomDoubleClicked_WhenWalking_ClearsOldRouteAndSetsNewTarget()
     {
-        // Arrange: set up walking state via reflection (simulate active autowalk)
+        // Arrange: disable auto-walk-on-double-click so this exercises the preview-only path;
+        // set up walking state via reflection (simulate active autowalk)
+        _vm.Map.AutoWalkOnMapDoubleClick = false;
         var pathField = GetAutowalkPathField();
         pathField.SetValue(_vm, CreateDummyPath());
         _vm.Map.RouteRooms = [CreateTestRoom(1, "1000")];
@@ -3545,12 +3809,74 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     // ====================================================================
+    // Death marks on the map (Map.DeathMarkers) — the settings-flyout list
+    // (MainViewModel.Deaths) is the source of truth; Map.MainViewModel wiring
+    // (set in the constructor) keeps DeathMarkers resolved against it.
+    // ====================================================================
+
+    private static MapIndex CreateMapIndexWithRoom(string vnum, string? name = "Crypt")
+    {
+        var room = new MapRoom
+        {
+            Id = 1,
+            AreaId = 1,
+            Name = name,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement(vnum),
+            },
+        };
+        var area = new MapArea { Id = 1, Name = "Test Area", Rooms = [room] };
+        return new MapIndex(new MapDocument { Areas = [area] });
+    }
+
+    private static void SetMapIndex(MapViewModel map, MapIndex index) =>
+        typeof(MapViewModel).GetProperty(nameof(MapViewModel.MapIndex))!.SetValue(map, index);
+
+    [Fact]
+    public void AddingDeath_AppearsAsMapMarker_WhenVnumResolves()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+
+        _vm.Deaths.Add(new DeathMarkEntry("100", "Crypt", "2026-01-01 12:00"));
+
+        var marker = Assert.Single(_vm.Map.DeathMarkers);
+        Assert.Equal("100", marker.Room.Vnum);
+        Assert.Contains("Crypt", marker.Display);
+    }
+
+    [Fact]
+    public void AddingDeath_UnresolvableVnum_ProducesNoMapMarker()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+
+        _vm.Deaths.Add(new DeathMarkEntry("999", null, "2026-01-01 12:00"));
+
+        Assert.Empty(_vm.Map.DeathMarkers);
+    }
+
+    [Fact]
+    public void DeletingDeath_RemovesItsMapMarker()
+    {
+        SetMapIndex(_vm.Map, CreateMapIndexWithRoom("100"));
+        var entry = new DeathMarkEntry("100", "Crypt", "2026-01-01 12:00");
+        _vm.Deaths.Add(entry);
+        Assert.Single(_vm.Map.DeathMarkers);
+
+        _vm.DeleteDeathCommand.Execute(entry);
+
+        Assert.Empty(_vm.Map.DeathMarkers);
+    }
+
+    // ====================================================================
     // Autowalk — Vitals exposure and binding check (No test)
     //
-    // The new UI button "⚑ IDŹ" added to AutowalkPanelView.axaml is bound
-    // to GoToSelectedTargetCommand.  XAML binding correctness is validated
-    // by the build (XAML compile step).  The ViewModel property existence
-    // is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
+    // The "⚑ IDŹ" button in Map's own settings flyout (MapPanelView.axaml /
+    // TerminalOverlayCard.axaml — moved there from the former Autowalk panel)
+    // is bound to GoToSelectedTargetCommand. XAML binding correctness is
+    // validated by the build (XAML compile step). The ViewModel property
+    // existence is indirectly confirmed by GoToSelectedTargetCommand_* tests above.
     // ====================================================================
 
     // ====================================================================

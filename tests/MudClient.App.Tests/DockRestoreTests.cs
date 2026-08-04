@@ -27,23 +27,13 @@ public sealed class DockRestoreTests
     private static bool Visible(IRootDock layout, string id) =>
         (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).Any(p => p.Id == id);
 
-    [Fact]
-    public void CreateLayout_UsesSingleCombinedRoomPanel()
-    {
-        var factory = CreateFactory(out _);
-
-        var room = Assert.Single(factory.AllTools, tool => tool.Title?.Contains("Pokój") == true);
-        Assert.Equal("RoomInfo", room.Id);
-        Assert.Equal(typeof(MudClient.App.Views.Panels.RoomInfoPanelView), room.ViewType);
-    }
-
     // Close every tool of the right-top dock one by one, then restore each. The dock
     // empties and Dock removes it partway through — the classic "sometimes doesn't work".
     [Fact]
     public void CloseAllThenRestoreAll_RightTop()
     {
         var factory = CreateFactory(out var layout);
-        var ids = new[] { "CharInfo", "Condition", "Effects", "Buffs", "Group", "MemSpells" };
+        var ids = new[] { "Effects", "Group", "MemSpells" };
 
         foreach (var id in ids)
         {
@@ -84,15 +74,15 @@ public sealed class DockRestoreTests
     public void ShowTool_SelectsRequestedTab()
     {
         var factory = CreateFactory(out _);
-        var map = GetTool(factory, "Map");
-        var roomInfo = GetTool(factory, "RoomInfo");
-        var owner = Assert.IsType<ToolDock>(map.Owner);
-        factory.SetActiveDockable(roomInfo);
+        var effects = GetTool(factory, "Effects");
+        var group = GetTool(factory, "Group");
+        var owner = Assert.IsType<ToolDock>(effects.Owner);
+        factory.SetActiveDockable(group);
 
-        var shown = factory.ShowTool("Map");
+        var shown = factory.ShowTool("Effects");
 
         Assert.True(shown);
-        Assert.Same(map, owner.ActiveDockable);
+        Assert.Same(effects, owner.ActiveDockable);
     }
 
     // Dragging only performs Dock's regular local split next to the dock under the pointer.
@@ -307,11 +297,14 @@ public sealed class DockRestoreTests
 
     // A tool that fell out of every collection (Dock's drag pipeline can lose one when a
     // drag ends over non-dock chrome) must be reclaimed into HiddenTools for the restore menu.
+    // Uses "Chat" — unlike "Gmcp" it's still visible by default (see CreateLayout), so its Owner
+    // is a real dock to begin with.
     [Fact]
     public void ReclaimLostTools_MovesOrphanedToolToHidden()
     {
         var factory = CreateFactory(out var layout);
-        var tool = GetTool(factory, "Gmcp");
+        var baselineHiddenCount = factory.HiddenTools.Count;
+        var tool = GetTool(factory, "Chat");
 
         // Simulate the loss: rip the tool out of its dock without any close event.
         var owner = Assert.IsAssignableFrom<IDock>(tool.Owner);
@@ -320,13 +313,14 @@ public sealed class DockRestoreTests
         factory.ReclaimLostTools(layout);
 
         Assert.Contains(tool, factory.HiddenTools);
-        // Everything still visible or pinned must stay untouched.
-        Assert.Single(factory.HiddenTools);
+        // Everything else still visible or pinned must stay untouched — Automaty/Notatki/GMCP/
+        // Ustawienia already start hidden by default, so the baseline isn't zero.
+        Assert.Equal(baselineHiddenCount + 1, factory.HiddenTools.Count);
 
         // And the reclaimed panel restores fine.
         factory.Restore(tool);
-        Assert.True(Visible(layout, "Gmcp"));
-        Assert.Empty(factory.HiddenTools);
+        Assert.True(Visible(layout, "Chat"));
+        Assert.Equal(baselineHiddenCount, factory.HiddenTools.Count);
     }
 
     // Pinned tools are reachable — reclaim must NOT touch them.
@@ -334,11 +328,13 @@ public sealed class DockRestoreTests
     public void ReclaimLostTools_LeavesPinnedToolsAlone()
     {
         var factory = CreateFactory(out var layout);
+        var baselineHiddenCount = factory.HiddenTools.Count;
         factory.PinToolToEdge(GetTool(factory, "Gmcp"), Alignment.Top);
 
         factory.ReclaimLostTools(layout);
 
-        Assert.Empty(factory.HiddenTools);
+        // Pinning "Gmcp" (hidden by default) moves it out of HiddenTools; nothing else changes.
+        Assert.Equal(baselineHiddenCount - 1, factory.HiddenTools.Count);
         Assert.Contains(layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
     }
 
@@ -362,12 +358,14 @@ public sealed class DockRestoreTests
     public void RepairUnrenderedPinnedTools_LeavesRenderedPinAlone()
     {
         var factory = CreateFactory(out var layout);
+        var baselineHiddenCount = factory.HiddenTools.Count;
         var tool = GetTool(factory, "Gmcp");
         factory.PinToolToEdge(tool, Alignment.Right);
 
         factory.RepairUnrenderedPinnedTools(layout, new[] { tool });
 
-        Assert.Empty(factory.HiddenTools);
+        // Pinning "Gmcp" (hidden by default) moves it out of HiddenTools; nothing else changes.
+        Assert.Equal(baselineHiddenCount - 1, factory.HiddenTools.Count);
         Assert.Contains(
             layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => ReferenceEquals(dockable, tool));
@@ -419,7 +417,7 @@ public sealed class DockRestoreTests
     public void CloseRestoreCloseRestore_Cycle()
     {
         var factory = CreateFactory(out var layout);
-        var ids = new[] { "Automation", "Autowalk", "Notes", "Gmcp", "Settings" };
+        var ids = new[] { "Automation", "Notes", "Gmcp", "Settings" };
 
         foreach (var id in ids)
         {

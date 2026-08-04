@@ -72,12 +72,14 @@ public sealed class TerminalOverlayTests
     public void PinToolAsOverlay_OutsideTransparencyMode_IsNoOp()
     {
         var factory = CreateFactory(out var layout);
-        var tool = GetTool(factory, "Gmcp");
+        // "Map" — unlike "Gmcp" it's still visible by default in DEFAULT (see CreateLayout), so
+        // its visibility staying put actually proves the pin-as-overlay call was a no-op.
+        var tool = GetTool(factory, "Map");
 
         factory.PinToolAsOverlay(tool);
 
         Assert.Empty(factory.OverlayTools);
-        Assert.True(Visible(layout, "Gmcp"));
+        Assert.True(Visible(layout, "Map"));
     }
 
     [Fact]
@@ -119,6 +121,50 @@ public sealed class TerminalOverlayTests
         Assert.Contains(second, factory.OverlayTools);
         Assert.False(Visible(layout, "Gmcp"));
         Assert.False(Visible(layout, "Notes"));
+    }
+
+    [Fact]
+    public void ShowTool_AlreadyOverlaid_LeavesItAsAnOverlayInstead()
+    {
+        // ShowTool is used by actions like Killeropedia's "Pokaż na mapie" to reveal a panel. An
+        // overlaid tool has been removed from the dock tree entirely, so without this check
+        // ShowTool would treat it as "not shown" and Restore() it into some other dock — tearing
+        // it out of its overlay position instead of just leaving it where the user already has it.
+        var factory = CreateTransparencyFactory(out _);
+        var map = GetTool(factory, "Map");
+        factory.PinToolAsOverlay(map);
+
+        var shown = factory.ShowTool("Map");
+
+        Assert.True(shown);
+        Assert.Contains(map, factory.OverlayTools);
+    }
+
+    [Fact]
+    public void SwapOverlayOrder_SwapsTheTwoTools_PositionsInOverlayTools()
+    {
+        var factory = CreateTransparencyFactory(out _);
+        var first = GetTool(factory, "Gmcp");
+        var second = GetTool(factory, "Notes");
+        factory.PinToolAsOverlay(first);
+        factory.PinToolAsOverlay(second);
+
+        factory.SwapOverlayOrder(first, second);
+
+        Assert.Equal([second, first], factory.OverlayTools);
+    }
+
+    [Fact]
+    public void SwapOverlayOrder_UnknownTool_IsNoOp()
+    {
+        var factory = CreateTransparencyFactory(out _);
+        var overlaid = GetTool(factory, "Gmcp");
+        var notOverlaid = GetTool(factory, "Notes");
+        factory.PinToolAsOverlay(overlaid);
+
+        factory.SwapOverlayOrder(overlaid, notOverlaid);
+
+        Assert.Equal([overlaid], factory.OverlayTools);
     }
 
     [Fact]

@@ -12,6 +12,45 @@ namespace MudClient.App.ViewModels;
 
 public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
+    private MainWindowViewModel? _mainViewModel;
+
+    /// <summary>Set once by <see cref="MainWindowViewModel"/> after constructing this instance.
+    /// Lets Map's own settings flyout (see MapPanelView.axaml / TerminalOverlayCard.axaml) reach
+    /// the Autowalk state and commands (Locations, Deaths, travel status) that live there instead
+    /// of being duplicated onto MapViewModel — those panels' functionality was moved into this
+    /// flyout, but the underlying state remains ordinary MainWindowViewModel state shared by
+    /// other bindings too. Null only in tests that construct a MapViewModel standalone. Also
+    /// tracks <see cref="MainWindowViewModel.Deaths"/> so death marks can be drawn directly on the
+    /// map (see <see cref="DeathMarkers"/>), not just listed in the settings flyout.</summary>
+    public MainWindowViewModel? MainViewModel
+    {
+        get => _mainViewModel;
+        set
+        {
+            if (ReferenceEquals(_mainViewModel, value))
+            {
+                return;
+            }
+
+            if (_mainViewModel is not null)
+            {
+                _mainViewModel.Deaths.CollectionChanged -= OnDeathsChanged;
+            }
+
+            _mainViewModel = value;
+
+            if (_mainViewModel is not null)
+            {
+                _mainViewModel.Deaths.CollectionChanged += OnDeathsChanged;
+            }
+
+            RefreshDeathMarkers();
+        }
+    }
+
+    private void OnDeathsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        RefreshDeathMarkers();
+
     private readonly string _packagedMapDirectory;
     private readonly ContentPathResolver? _contentPaths;
     private readonly string? _mapEditorPath;
@@ -44,10 +83,12 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     private IReadOnlyList<MapRoom>? _routeRooms;
     private IReadOnlyList<CharacterGroupMember> _groupMembers = [];
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
+    private IReadOnlyList<DeathMapMarker> _deathMarkers = [];
     private string? _currentSectorName;
     private bool _followPlayer = true;
     private bool _lordModeEnabled;
     private bool _showGroupMembersAsNumbers;
+    private bool _autoWalkOnMapDoubleClick = true;
     private bool _isUsingWorkingMap;
     private bool _isUsingRecoveryMap;
     private string _newMapAreaName = string.Empty;
@@ -111,6 +152,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
 
     public event Action<bool>? GroupMarkerDisplayChanged;
 
+    public event Action<bool>? AutoWalkOnMapDoubleClickChanged;
+
     public event Action<bool>? MapEditorActiveChanged;
 
     public ObservableCollection<MapArea> Areas { get; } = [];
@@ -164,6 +207,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             if (SetProperty(ref _mapIndex, value))
             {
                 RefreshGroupMarkers();
+                RefreshDeathMarkers();
             }
         }
     }
@@ -333,9 +377,23 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         }
     }
 
+    /// <summary>Basic (default, on): double-clicking a room on the map starts walking there
+    /// immediately. Off: double-click only previews the route until confirmed.</summary>
+    public bool AutoWalkOnMapDoubleClick
+    {
+        get => _autoWalkOnMapDoubleClick;
+        set
+        {
+            if (SetProperty(ref _autoWalkOnMapDoubleClick, value))
+            {
+                AutoWalkOnMapDoubleClickChanged?.Invoke(value);
+            }
+        }
+    }
+
     public string LordGotoMenuHeader => SelectedRoom is { } room
-        ? $"Goto: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
-        : "Goto";
+        ? $"Walk: {(string.IsNullOrWhiteSpace(room.Name) ? "pokój" : room.Name)} [{room.Vnum ?? "brak vnum"}]"
+        : "Walk";
 
     private bool CanLordGotoSelectedRoom() =>
         LordModeEnabled && IsSafeVnum(SelectedRoom?.Vnum);
@@ -447,8 +505,33 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             .Select(item => new GroupMapMarker(
                 item.Member.Name,
                 item.Member.IsLeader,
+                item.Member.IsNpc,
                 item.Room!,
                 item.Number))
+            .ToArray();
+    }
+
+    /// <summary>Recorded deaths (see <see cref="MainWindowViewModel.Deaths"/>) whose vnum can be
+    /// resolved on the loaded map — drawn directly on the canvas, in addition to the list in the
+    /// settings flyout.</summary>
+    public IReadOnlyList<DeathMapMarker> DeathMarkers
+    {
+        get => _deathMarkers;
+        private set => SetProperty(ref _deathMarkers, value);
+    }
+
+    private void RefreshDeathMarkers()
+    {
+        if (MapIndex is null || MainViewModel is null)
+        {
+            DeathMarkers = [];
+            return;
+        }
+
+        DeathMarkers = MainViewModel.Deaths
+            .Select(death => (Death: death, Room: MapIndex.FindFirstRoomByVnum(death.Vnum)))
+            .Where(item => item.Room is not null)
+            .Select(item => new DeathMapMarker(item.Room!, item.Death.Display, item.Death.When))
             .ToArray();
     }
 
@@ -1406,6 +1489,11 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public void Dispose()
     {
         _locationResolver.LocationChanged -= OnLocationChanged;
+        if (_mainViewModel is not null)
+        {
+            _mainViewModel.Deaths.CollectionChanged -= OnDeathsChanged;
+        }
+
         CancelMapMovementTimeout();
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
@@ -1417,6 +1505,11 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public async ValueTask DisposeAsync()
     {
         _locationResolver.LocationChanged -= OnLocationChanged;
+        if (_mainViewModel is not null)
+        {
+            _mainViewModel.Deaths.CollectionChanged -= OnDeathsChanged;
+        }
+
         CancelMapMovementTimeout();
         await _mapMovementTimeoutTask.ConfigureAwait(false);
         _loadCancellation?.Cancel();

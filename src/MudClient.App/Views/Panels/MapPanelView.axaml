@@ -3,9 +3,10 @@
              xmlns:controls="using:MudClient.App.Controls"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:map="using:MudClient.Core.Map"
+             xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.MapPanelView"
              x:DataType="vm:MapViewModel">
-  <Grid RowDefinitions="*,Auto">
+  <Grid RowDefinitions="*,Auto,Auto">
 
     <!-- ========================================================================
           Map content area (the "Mapa ▾" menu floats over its top-left corner —
@@ -70,7 +71,16 @@
                 ToolTip.Tip="Ustawienia mapy">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <StackPanel Spacing="6" MinWidth="230">
+              <!-- Flyout content renders outside this panel's own visual tree, so it can't rely
+                   on the app's usual "mud-configurable-widget" descendant styling (see
+                   Docking.axaml) — the shared widget font is applied explicitly here instead.
+                   Scrollable + height-capped: this flyout now also carries everything moved in
+                   from the former Autowalk panel (locations, death marks, travel status). -->
+              <ScrollViewer MaxHeight="640">
+              <StackPanel Spacing="6" MinWidth="230" MaxWidth="300"
+                          TextElement.FontFamily="{DynamicResource WidgetFontFamilyResource}"
+                          TextElement.FontSize="{DynamicResource WidgetFontSizeResource}"
+                          TextElement.FontWeight="{DynamicResource WidgetFontWeightResource}">
                 <TextBlock Classes="mud-heading" Text="Obszar" />
                 <ComboBox x:Name="AreaSelector"
                           ItemsSource="{Binding Areas}"
@@ -82,10 +92,14 @@
                     </DataTemplate>
                   </ComboBox.ItemTemplate>
                 </ComboBox>
-                <TextBlock Classes="mud-heading" Text="Poziom Z" Margin="0,4,0,0" />
+                <TextBlock Classes="mud-heading" Text="Poziom" Margin="0,4,0,0" />
                 <ComboBox x:Name="ZSelector"
                           ItemsSource="{Binding ZLevels}"
                           SelectedIndex="{Binding SelectedZIndex, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch" />
+                <TextBlock Classes="mud-heading" Text="Tryb mapy" Margin="0,4,0,0" />
+                <ComboBox ItemsSource="{Binding DisplayModes}"
+                          SelectedItem="{Binding SelectedDisplayMode}"
                           HorizontalAlignment="Stretch" />
                 <Border Height="1"
                         Background="{StaticResource MudBrushSlate}"
@@ -95,9 +109,15 @@
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Left"
                         Padding="10,6" />
+                <ToggleSwitch Content="Autowalk po dwukliku"
+                              IsChecked="{Binding AutoWalkOnMapDoubleClick}"
+                              ToolTip.Tip="Włączone: dwuklik na pokoju od razu rozpoczyna marsz. Wyłączone: dwuklik tylko podpowiada trasę, do potwierdzenia przyciskiem IDŹ DO CELU." />
+                <ToggleSwitch Content="Członkowie grupy jako cyfry"
+                              IsChecked="{Binding ShowGroupMembersAsNumbers}"
+                              ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
                 <ToggleSwitch Content="Tryb lorda"
                               IsChecked="{Binding LordModeEnabled}"
-                              ToolTip.Tip="Udostępnia polecenie goto w menu prawego przycisku mapy." />
+                              ToolTip.Tip="Udostępnia polecenie walk w menu prawego przycisku mapy." />
                 <StackPanel x:Name="MapEditorPanel" Spacing="6" IsVisible="{Binding LordModeEnabled}">
                   <Border Height="1"
                           Background="{StaticResource MudBrushSlate}"
@@ -159,17 +179,160 @@
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                 </StackPanel>
-                <ToggleSwitch Content="Członkowie grupy jako cyfry"
-                              IsChecked="{Binding ShowGroupMembersAsNumbers}"
-                              ToolTip.Tip="Numery odpowiadają kolejności członków w drużynie." />
-                <Border Height="1"
-                        Background="{StaticResource MudBrushSlate}"
-                        Margin="0,4" />
-                <TextBlock Classes="mud-heading" Text="Tryb mapy" Margin="0,4,0,0" />
-                <ComboBox ItemsSource="{Binding DisplayModes}"
-                          SelectedItem="{Binding SelectedDisplayMode}"
-                          HorizontalAlignment="Stretch" />
+
+                <!-- ==================================================================
+                     Everything below was moved here from the former Autowalk panel —
+                     the state and commands still live on MainViewModel (MainWindowViewModel).
+                     ================================================================== -->
+                <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="mud-heading" Text="Miejsca śmierci" VerticalAlignment="Center" />
+                  <Border Grid.Column="1" Classes="mud-badge">
+                    <TextBlock Text="{Binding MainViewModel.Deaths.Count}" />
+                  </Border>
+                </Grid>
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Brak zapisanych zgonów. Ostatnie 10 miejsc śmierci pojawi się tutaj automatycznie."
+                           IsVisible="{Binding !MainViewModel.Deaths.Count}" />
+                <ItemsControl ItemsSource="{Binding MainViewModel.Deaths}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:DeathMarkEntry">
+                      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                          <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Display}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding When}" Classes="mud-faint"
+                                       TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <Button Grid.Column="1"
+                                  Classes="mud-small"
+                                  Content="⚑ IDŹ" Padding="8,2"
+                                  ToolTip.Tip="Idź do miejsca śmierci"
+                                  Click="GoToDeath_OnClick" />
+                          <Button Grid.Column="2"
+                                  Classes="mud-small mud-danger"
+                                  Content="✕" Padding="6,2"
+                                  ToolTip.Tip="Usuń wpis"
+                                  Click="DeleteDeath_OnClick" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+                <TextBlock Classes="mud-heading" Text="Status podróży" />
+                <Grid ColumnDefinitions="Auto,*">
+                  <TextBlock Classes="mud-muted" Text="Pozycja:" />
+                  <TextBlock Grid.Column="1" HorizontalAlignment="Right"
+                             Text="{Binding CurrentRoomName}"
+                             TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <TextBlock Text="{Binding MainViewModel.AutowalkStatusText}"
+                           Classes="mud-faint" TextWrapping="Wrap" />
+                <Button Content="■ STOP"
+                        Classes="mud-danger"
+                        Command="{Binding MainViewModel.StopAutowalkCommand}"
+                        IsVisible="{Binding MainViewModel.IsAutowalking}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center" Padding="16,6" />
+                <Button Content="⚑ IDŹ"
+                        Command="{Binding MainViewModel.GoToSelectedTargetCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center" Padding="16,6"
+                        ToolTip.Tip="Idź do celu wybranego na mapie (tak samo jak komenda /walk)" />
+                <StackPanel Spacing="6" IsVisible="{Binding MainViewModel.HasTemporaryTarget}">
+                  <TextBlock Text="{Binding MainViewModel.TemporaryTargetDisplay}"
+                             TextWrapping="Wrap"
+                             Foreground="{StaticResource MudBrushGoldBright}" />
+                  <Button Content="⚑ IDŹ DO CELU"
+                          Command="{Binding MainViewModel.GoToTemporaryTargetCommand}"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center" Padding="16,6" />
+                </StackPanel>
+
+                <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="mud-heading" Text="Lokacje" VerticalAlignment="Center" />
+                  <Border Grid.Column="1" Classes="mud-badge">
+                    <TextBlock Text="{Binding MainViewModel.Locations.Count}" />
+                  </Border>
+                </Grid>
+                <Expander Classes="mud-expander" Header="＋ Nowa lokacja" IsExpanded="False">
+                  <StackPanel Spacing="8" Margin="0,8,0,0">
+                    <TextBox Text="{Binding MainViewModel.NewLocationName}"
+                             PlaceholderText="Nazwa lokacji, np. plac-arras…" />
+                    <Button Content="⚑ Dodaj obecną pozycję"
+                            Command="{Binding MainViewModel.AddCurrentLocationCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center" Padding="16,6"
+                            ToolTip.Tip="Zapisuje pokój, w którym teraz stoisz" />
+                    <StackPanel Spacing="2">
+                      <TextBlock Classes="mud-faint"
+                                 Text="…albo podaj numer pomieszczenia (vnum) innej lokacji:" />
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBox Grid.Column="0" Text="{Binding MainViewModel.NewLocationVnum}"
+                                 PlaceholderText="np. 12477" />
+                        <Button Grid.Column="1" Content="Dodaj"
+                                Command="{Binding MainViewModel.AddLocationCommand}" Padding="16,6" />
+                      </Grid>
+                    </StackPanel>
+                    <CheckBox IsChecked="{Binding MainViewModel.NewLocationIsGlobal}"
+                              Content="Globalna — wspólna dla wszystkich kont" />
+                    <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                               Text="Do członka grupy lub zapisanej lokacji dojdziesz komendą /walk &lt;nazwa&gt;, a do lidera grupy komendą /walk leader. Przycisk IDŹ prowadzi do wybranej lokacji, a /stop przerywa marsz." />
+                  </StackPanel>
+                </Expander>
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Brak zapisanych lokacji. Dodaj obecną pozycję albo wpisz vnum docelowego pokoju."
+                           IsVisible="{Binding !MainViewModel.Locations.Count}" />
+                <Button Classes="mud-small" Content="📁 Nowy folder" Padding="10,4"
+                        HorizontalAlignment="Left"
+                        ToolTip.Tip="Utwórz folder na lokacje"
+                        Command="{Binding MainViewModel.CreateFolderCommand}"
+                        CommandParameter="{x:Static models:FolderKind.Autowalk}" />
+                <controls:FolderTreeView Nodes="{Binding MainViewModel.AutowalkTree}"
+                                         SupportsEnableToggle="False"
+                                         MoveIntoFolderCommand="{Binding MainViewModel.MoveIntoFolderCommand}"
+                                         CreateSubfolderCommand="{Binding MainViewModel.CreateSubfolderCommand}"
+                                         RenameFolderCommand="{Binding MainViewModel.RenameFolderCommand}"
+                                         DeleteFolderCommand="{Binding MainViewModel.DeleteFolderCommand}"
+                                         ToggleFolderGlobalCommand="{Binding MainViewModel.ToggleFolderGlobalCommand}">
+                  <controls:FolderTreeView.ItemTemplate>
+                    <DataTemplate x:DataType="models:AutowalkLocation">
+                      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                          <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <TextBlock Text="{Binding Name}"
+                                         TextTrimming="CharacterEllipsis" />
+                              <Border Classes="mud-badge" IsVisible="{Binding IsGlobal}"
+                                      ToolTip.Tip="Wspólna dla wszystkich kont">
+                                <TextBlock Text="Globalna" />
+                              </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Display}" Classes="mud-faint"
+                                       TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <Button Grid.Column="1"
+                                  Classes="mud-small"
+                                  Content="⚑ IDŹ" Padding="8,2"
+                                  ToolTip.Tip="Idź do tej lokacji"
+                                  Click="GoToLocation_OnClick" />
+                          <Button Grid.Column="2"
+                                  Classes="mud-small mud-danger"
+                                  Content="✕" Padding="6,2"
+                                  ToolTip.Tip="Usuń lokację"
+                                  Click="DeleteLocation_OnClick" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </controls:FolderTreeView.ItemTemplate>
+                </controls:FolderTreeView>
+
               </StackPanel>
+              </ScrollViewer>
             </Flyout>
           </Button.Flyout>
         </Button>
@@ -177,9 +340,49 @@
     </Border>
 
     <!-- ========================================================================
+         Selected-room strip: folded in from the former standalone "Pokój" panel — a
+         compact bottom bar (image + key details, no room occupants) instead of a
+         separate dockable tab, so the info is visible right under the map itself.
+         ======================================================================== -->
+    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6"
+            IsVisible="{Binding SelectedRoom, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border Grid.Column="0"
+                Background="{StaticResource MudBrushVoid}"
+                BorderBrush="{StaticResource MudBrushGoldDim}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="3"
+                Width="64"
+                Height="64">
+          <Image Source="{Binding SelectedRoomIcon}"
+                 Stretch="Uniform"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Center" />
+        </Border>
+
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding SelectedRoom.Name}"
+                     Classes="mud-heading"
+                     TextTrimming="CharacterEllipsis" />
+          <WrapPanel>
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Vnum, StringFormat='Vnum: {0}'}" />
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Sector, StringFormat='Sektor: {0}'}" />
+            <TextBlock Classes="mud-faint" Margin="0,0,14,0"
+                       Text="{Binding SelectedRoom.Environment, StringFormat='Środowisko: {0}'}" />
+            <TextBlock Classes="mud-faint"
+                       Text="{Binding SelectedRoom.Weight, StringFormat='Waga: {0}'}" />
+          </WrapPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ========================================================================
          Footer bar: status message — Lord mode only (load status + map editor readiness).
          ======================================================================== -->
-    <Border Grid.Row="1" Classes="mud-bar-bottom" Padding="10,5"
+    <Border Grid.Row="2" Classes="mud-bar-bottom" Padding="10,5"
             IsVisible="{Binding LordModeEnabled}">
       <TextBlock Classes="mud-faint" Text="{Binding LordModeStatusMessage}" />
     </Border>

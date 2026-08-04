@@ -1,3 +1,4 @@
+using MudClient.App.Docking;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 
@@ -39,5 +40,20 @@ public sealed class BuffBadgeTests : IAsyncDisposable
         // No Char.Affects received yet, so the buff counts as missing.
         Assert.Equal("0/1", _vm.BuffsBadge);
         Assert.True(_vm.BuffsAlert);
+    }
+
+    [Fact]
+    public void AddingRequiredBuff_UpdatesMemDockTabTitle()
+    {
+        // Buff status now mirrors onto the merged Mem tool's title (it absorbed the former,
+        // now-removed standalone Buffs tool) instead of a separate "🛡 Buffy" tab.
+        var factory = Assert.IsType<MudDockFactory>(_vm.Layout.Factory);
+        var memTool = factory.AllTools.Single(tool => tool.Id == "MemSpells");
+        Assert.Equal("📜 Mem i Buffy", memTool.Title);
+
+        _vm.NewBuffName = "armor";
+        _vm.AddBuffCommand.Execute(null);
+
+        Assert.Equal("📜 Mem i Buffy 0/1", memTool.Title);
     }
 }

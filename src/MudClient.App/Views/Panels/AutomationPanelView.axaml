@@ -364,10 +364,104 @@
               </StackPanel>
 
               <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutoAssistNpcEnabled}"
+                          Content="Autoassist NPC — rozkaż własnemu summonowi wspierać w walce" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Gdy Twoja pozycja GMCP zmieni się na „walczy”, klient wyśle „order &lt;NPC&gt; assist” do każdego NPC w aktualnej grupie (np. przywołanego/zaczarowanego summona). Nie wymaga bycia liderem grupy." />
+              </StackPanel>
+
+              <StackPanel Spacing="3">
                 <CheckBox IsChecked="{Binding GroupOrdersEnabled}"
                           Content="Ordery — wykonuj rozkazy członków drużyny" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                            Text="Klient wykona komendę z komunikatu „Gracz rozkazuje ci 'komenda'.” tylko wtedy, gdy Gracz znajduje się w aktualnej grupie GMCP." />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Podróż">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="8" Margin="10,8,10,12">
+          <TextBlock Classes="mud-heading" Text="Autowalk — odzyskiwanie ruchu" />
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Przed każdym krokiem autowalk sprawdza punkty ruchu (MV). Gdy spadną do progu poniżej, rzuca refresh (jeśli zapamiętany), a w przeciwnym razie odpoczywa przez ustawiony czas — po czym trasa wznawia się sama." />
+
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="10">
+              <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutowalkMovementRecoveryEnabled}"
+                          Content="Automatyczne odzyskiwanie ruchu podczas autowalk" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wyłączenie sprawia, że autowalk idzie dalej bez sprawdzania punktów ruchu — w trasie można utknąć bez MV." />
+              </StackPanel>
+
+              <StackPanel Spacing="3" IsEnabled="{Binding AutowalkMovementRecoveryEnabled}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="mud-label" Text="Próg niskiego ruchu" />
+                  <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                    <TextBlock Text="{Binding AutowalkLowMovementThresholdPercent, StringFormat='{}{0}%'}" />
+                  </Border>
+                </Grid>
+                <Slider Minimum="{Binding MinAutowalkLowMovementThresholdPercent}"
+                        Maximum="{Binding MaxAutowalkLowMovementThresholdPercent}"
+                        Value="{Binding AutowalkLowMovementThresholdPercent}"
+                        TickFrequency="1" IsSnapToTickEnabled="True" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Autowalk zaczyna odzyskiwać ruch, gdy aktualne MV spadną do tego procentu maksimum lub niżej." />
+
+                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                  <TextBlock Classes="mud-label" Text="Czas odpoczynku" />
+                  <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                    <TextBlock Text="{Binding AutowalkRestSeconds, StringFormat='{}{0} s'}" />
+                  </Border>
+                </Grid>
+                <Slider Minimum="{Binding MinAutowalkRestSeconds}"
+                        Maximum="{Binding MaxAutowalkRestSeconds}"
+                        Value="{Binding AutowalkRestSeconds}"
+                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Używane tylko, gdy refresh nie jest zapamiętany: klient wysyła rest, czeka tyle sekund, wstaje i wznawia trasę." />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Classes="mud-heading" Text="Po dotarciu do celu" Margin="0,6,0,0" />
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="3">
+              <CheckBox IsChecked="{Binding AutowalkRestOnArrivalEnabled}"
+                        Content="Automatycznie odpocznij po dotarciu do lokacji" />
+              <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                         Text="Gdy autowalk dotrze do celu, klient wysyła „rest”. Wyłączenie zostawia postać w takiej pozycji, w jakiej dotarła." />
+            </StackPanel>
+          </Border>
+
+          <TextBlock Classes="mud-heading" Text="Drużyna w podróży" Margin="0,6,0,0" />
+          <Border Classes="mud-section" Padding="10">
+            <StackPanel Spacing="10">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wysyła „order &lt;gracz&gt; cast refresh” do każdego innego członka drużyny po kolei, żeby każdy rzucił refresh na siebie zamiast czekać, aż zrobisz to za niego." />
+                <Button Content="Rozkaż drużynie rzucić refresh"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Command="{Binding CastRefreshOnGroupCommand}" />
+                <CheckBox IsChecked="{Binding AutoGroupRefreshOnExhaustedEnabled}"
+                          Content="Auto — rozkaż refresh, gdy ktoś w drużynie jest zamęczony" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Gdy GMCP zgłosi czyjeś MV jako „zamęczony”, klient jednorazowo wyśle mu „order &lt;gracz&gt; cast refresh” — ponownie dopiero po odpoczynku i kolejnym wyczerpaniu." />
+              </StackPanel>
+
+              <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+
+              <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding AutoStandOrderEnabled}"
+                          Content="Autostand — rozkaż drużynie wstać, gdy Ty wstajesz" />
+                <CheckBox IsChecked="{Binding AutoRestOrderEnabled}"
+                          Content="Autorest — rozkaż drużynie odpocząć, gdy Ty odpoczywasz" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Działa tylko, gdy jesteś liderem aktualnej grupy GMCP — wysyła „order &lt;gracz&gt; stand” po komendzie stand / „order &lt;gracz&gt; rest” po komendzie rest do każdego innego członka." />
               </StackPanel>
             </StackPanel>
           </Border>

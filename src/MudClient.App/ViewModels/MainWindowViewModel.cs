@@ -13,6 +13,7 @@ using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Automation;
+using MudClient.Core.Combat;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
 using MudClient.Core.Networking;
@@ -35,6 +36,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
+    private readonly GroupExhaustionRefreshPolicy _groupExhaustionRefresh = new();
     private readonly ProfileService _profiles;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
@@ -70,15 +72,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _latestCharacterName;
     private string? _latestCharacterPosition;
 
+    /// <summary>Carries a line's text across chunk boundaries for <see cref="AnnotateDamageLines"/>,
+    /// mirroring MudSession's own internal line accumulator.</summary>
+    private string _pendingDamageLine = string.Empty;
+
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
     private readonly AsyncRelayCommand _retryStartupCommand;
-    private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
     private readonly IExternalLinkService _externalLinkService;
-    private CancellationTokenSource? _updateCheckCts;
-    private Task? _updateCheckTask;
     private CancellationTokenSource? _contentUpdateCts;
     private Task? _contentUpdateCheckTask;
 
@@ -103,7 +106,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _startupErrorDetails;
     private bool _isKilleropediaOpen;
     private bool _isHelpOpen;
-    private AvailableUpdate? _availableUpdate;
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
@@ -221,7 +223,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         BookCatalogStore? bookCatalogStore = null,
         BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
         LayoutPresetService? layoutPresetService = null,
-        IUpdateCheckService? updateCheckService = null,
         IExternalLinkService? externalLinkService = null,
         IContentUpdateService? contentUpdateService = null)
     {
@@ -232,7 +233,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _usesCustomBookCatalogStore = bookCatalogStore is not null;
         _bookCatalogStore = bookCatalogStore ?? CreateBookCatalogStore();
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
-        _updateCheckService = updateCheckService ?? new UpdateCheckService();
         _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
         Killeropedia = CreateKilleropediaViewModel();
@@ -265,6 +265,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         StartAddTimerCommand = new RelayCommand(StartAddTimer);
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
         ToggleTimerCommand = new RelayCommand<TimerEntry>(ToggleTimer);
+        RestartTimerCommand = new RelayCommand<TimerEntry>(RestartTimer);
         EditTimerCommand = new RelayCommand<TimerEntry>(EditTimer);
         CancelTimerEditCommand = new RelayCommand(CancelTimerEdit);
         AddRuleCommand = new RelayCommand(AddRule, CanAddRule);
@@ -287,6 +288,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         DeleteBuffSetCommand = new RelayCommand(DeleteSelectedBuffSet, () => BuffSets.Count > 1);
         RecastBuffsCommand = new AsyncRelayCommand(RecastMissingBuffsAsync);
         RecastSingleBuffCommand = new AsyncRelayCommand<BuffWatchEntry>(RecastSingleBuffAsync);
+        CastRefreshOnGroupCommand = new AsyncRelayCommand(CastRefreshOnGroupAsync);
         var defaultBuffSet = new BuffSetEntry { Name = "Domyślny" };
         BuffSets.Add(defaultBuffSet);
         _selectedBuffSet = defaultBuffSet;
@@ -329,6 +331,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             LordModeEnabled = _settings.LordModeEnabled,
             ShowGroupMembersAsNumbers = _settings.ShowGroupMembersAsNumbers,
             SelectedDisplayMode = MapDisplayModeOption.All.First(option => option.Mode == _settings.MapDisplayMode),
+            AutoWalkOnMapDoubleClick = _settings.AutoWalkOnMapDoubleClick,
+            MainViewModel = this,
         };
         Map.PropertyChanged += OnMapPropertyChanged;
         _locationResolver.LocationChanged += OnAutowalkLocationChanged;
@@ -339,15 +343,20 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordModeChanged += OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged += OnMapGroupMarkerDisplayChanged;
         Map.DisplayModeChanged += OnMapDisplayModeChanged;
+        Map.AutoWalkOnMapDoubleClickChanged += OnMapAutoWalkOnDoubleClickChanged;
         Map.MapEditorActiveChanged += OnMapEditorActiveChanged;
 
         _dockFactory = new MudDockFactory(Map, this);
         _dockLayoutService = dockLayoutService ?? new DockLayoutService();
-        Layout = _dockFactory.CreateLayout();
+        Layout = _dockFactory.CreateTransparencyLayout();
         _dockFactory.InitLayout(Layout);
 
+        // TRANSPARENCY is always the startup layout now — a snapshot saved from a DEFAULT
+        // session (including ones from before this became the default) must not resurrect that
+        // shape here. Only a previously saved TRANSPARENCY session (e.g. remembered pinned
+        // overlays) is worth restoring on startup.
         var savedLayout = _dockLayoutService.Load();
-        if (savedLayout is not null)
+        if (savedLayout is { IsTransparencyLayout: true })
         {
             _dockFactory.TryApplySnapshot(Layout, savedLayout);
         }
@@ -355,6 +364,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _dockFactory.HiddenTools.CollectionChanged += OnHiddenToolsChanged;
         _dockFactory.OverlayChanged += OnOverlayChanged;
         ApplyOverlayFromSettings();
+
+        Vitals.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
+        UpdateTerminalToolTitle();
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
             if (tool is not null)
@@ -380,9 +392,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             IsHelpOpen = true;
         });
         OpenDiscordCommand = new RelayCommand(() => OpenExternalLink(DiscordInviteUri));
-        OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
-        OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
-        DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
         CheckContentUpdatesCommand = new AsyncRelayCommand(
             cancellationToken => CheckContentUpdatesAsync(reportErrors: true, cancellationToken),
             () => !IsContentUpdateBusy);
@@ -465,34 +474,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public IRelayCommand OpenDiscordCommand { get; }
 
-    public IRelayCommand OpenUpdateReleaseCommand { get; }
-
-    public IRelayCommand OpenChangelogCommand { get; }
-
-    public IRelayCommand DismissUpdateCommand { get; }
-
     public IAsyncRelayCommand CheckContentUpdatesCommand { get; }
 
     public IAsyncRelayCommand InstallContentUpdateCommand { get; }
-
-    public AvailableUpdate? AvailableUpdate
-    {
-        get => _availableUpdate;
-        private set
-        {
-            if (SetProperty(ref _availableUpdate, value))
-            {
-                OnPropertyChanged(nameof(IsUpdateAvailable));
-                OnPropertyChanged(nameof(UpdateNotificationText));
-            }
-        }
-    }
-
-    public bool IsUpdateAvailable => AvailableUpdate is not null;
-
-    public string UpdateNotificationText => AvailableUpdate is { } update
-        ? $"Dostępna jest wersja {update.Version}{(update.IsPrerelease ? " (beta)" : string.Empty)}."
-        : string.Empty;
 
     public ContentUpdateAvailability? AvailableContentUpdate
     {
@@ -615,7 +599,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyOverlayFromSettings();
 
         // ResetToDefault/TryApplySnapshot recreate all tools with default titles.
-        UpdateBuffsToolTitle();
+        UpdateMemToolTitle();
+        UpdateTerminalToolTitle();
     }
 
     private void OnHiddenToolsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
@@ -641,10 +626,81 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var entry = _settings.TerminalOverlays.FirstOrDefault(e => e.PanelId == tool.Id)
                 ?? new TerminalOverlayEntry { PanelId = tool.Id! };
             newEntries.Add(entry);
-            TerminalOverlays.Add(new TerminalOverlayViewModel(tool, entry, SaveSettings));
+            TerminalOverlays.Add(new TerminalOverlayViewModel(tool, entry, SaveSettings, HandleOverlayMove));
         }
 
         _settings.TerminalOverlays = newEntries;
+    }
+
+    /// <summary>Handles a card's move ▲▼◀▶ buttons. Up/Down reorder within the overlay's current
+    /// column (a pin-order swap in <see cref="_dockFactory"/>); Left/Right move it toward/away
+    /// from the right edge by one column, creating a new column when moving beyond the current
+    /// outermost one — the Terminal itself never moves or resizes.</summary>
+    private void HandleOverlayMove(TerminalOverlayViewModel overlay, OverlayMoveDirection direction)
+    {
+        switch (direction)
+        {
+            case OverlayMoveDirection.Up:
+                SwapOverlayWithNeighbor(overlay, -1);
+                break;
+            case OverlayMoveDirection.Down:
+                SwapOverlayWithNeighbor(overlay, 1);
+                break;
+            case OverlayMoveDirection.Left:
+                MoveOverlayColumn(overlay, +1);
+                break;
+            case OverlayMoveDirection.Right:
+                MoveOverlayColumn(overlay, -1);
+                break;
+        }
+    }
+
+    /// <summary>Swaps <paramref name="overlay"/> with the sibling <paramref name="step"/> places
+    /// away within its own column (-1 = up/earlier, +1 = down/later). A no-op at either end of
+    /// that column.</summary>
+    private void SwapOverlayWithNeighbor(TerminalOverlayViewModel overlay, int step)
+    {
+        var sameColumn = TerminalOverlays.Where(o => o.ColumnIndex == overlay.ColumnIndex).ToList();
+        var index = sameColumn.IndexOf(overlay);
+        var neighborIndex = index + step;
+        if (index < 0 || neighborIndex < 0 || neighborIndex >= sameColumn.Count)
+        {
+            return;
+        }
+
+        _dockFactory.SwapOverlayOrder(overlay.Panel, sameColumn[neighborIndex].Panel);
+    }
+
+    /// <summary>Moves <paramref name="overlay"/> <paramref name="direction"/> columns away from
+    /// the right edge (+1 = left/further, -1 = right/closer; a no-op past the edge). Unlike
+    /// <see cref="SwapOverlayWithNeighbor"/> (which goes through <see cref="_dockFactory"/> and
+    /// its own <see cref="MudDockFactory.OverlayChanged"/> notification), the column lives purely
+    /// in settings, so this rebuilds and saves directly. Column indices are compacted afterward so
+    /// they stay contiguous from 0 with no empty gaps.</summary>
+    private void MoveOverlayColumn(TerminalOverlayViewModel overlay, int direction)
+    {
+        var newIndex = overlay.ColumnIndex + direction;
+        if (newIndex < 0)
+        {
+            return;
+        }
+
+        overlay.SetColumnIndex(newIndex);
+        CompactOverlayColumns();
+        SyncTerminalOverlaysFromFactory();
+        SaveSettings();
+    }
+
+    /// <summary>Renumbers every overlay's <see cref="TerminalOverlayViewModel.ColumnIndex"/> to
+    /// remove gaps left by a move, preserving relative order (e.g. columns in use {0, 2, 5} become
+    /// {0, 1, 2}).</summary>
+    private void CompactOverlayColumns()
+    {
+        var orderedIndices = TerminalOverlays.Select(o => o.ColumnIndex).Distinct().OrderBy(i => i).ToList();
+        foreach (var overlay in TerminalOverlays)
+        {
+            overlay.SetColumnIndex(orderedIndices.IndexOf(overlay.ColumnIndex));
+        }
     }
 
     /// <summary>Re-applies the panels remembered as Terminal overlays (if any) after the dock
@@ -728,15 +784,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         await Map.InitializeAsync(cancellationToken);
     }
 
-    public void StartUpdateCheck()
+    public void StartContentUpdateCheck()
     {
-        if (_updateCheckTask is not null)
+        if (_contentUpdateCheckTask is not null)
         {
             return;
         }
-
-        _updateCheckCts = new CancellationTokenSource();
-        _updateCheckTask = CheckForUpdateAsync(_updateCheckCts.Token);
 
         _contentUpdateCts = new CancellationTokenSource();
         _contentUpdateCheckTask = CheckContentUpdatesAsync(
@@ -744,26 +797,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             _contentUpdateCts.Token);
     }
 
-    internal Task? ActiveUpdateCheck => _updateCheckTask;
-
     internal Task? ActiveContentUpdateCheck => _contentUpdateCheckTask;
-
-    private async Task CheckForUpdateAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            AvailableUpdate = await _updateCheckService.CheckForUpdateAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Closing the application cancels the optional background check.
-        }
-        catch (Exception)
-        {
-            // Update discovery is best-effort. Network, remote-data and platform failures must not
-            // interrupt startup or distract the user from the MUD session. The next launch retries.
-        }
-    }
 
     private async Task CheckContentUpdatesAsync(bool reportErrors, CancellationToken cancellationToken)
     {
@@ -892,7 +926,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ShowTeacherOnMap,
             lore,
             new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"),
-            quests);
+            quests,
+            ShowBookLocationOnMap);
     }
 
     private LoreCatalogData LoadLoreCatalog(string? downloadedDirectory)
@@ -1322,52 +1357,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Width of the overlay column as a fraction of the Terminal's own width, shared by
-    /// every overlay since they all stack in one right-aligned column. Set by
-    /// <c>TerminalOverlayHost</c> when the user drags the column's left-edge splitter.</summary>
-    public double TerminalOverlayColumnWidthFraction
-    {
-        get => _settings.TerminalOverlayColumnWidthFraction;
-        set
-        {
-            var clamped = Math.Clamp(
-                value,
-                AppSettings.MinTerminalOverlayColumnWidthFraction,
-                AppSettings.MaxTerminalOverlayColumnWidthFraction);
-            if (Math.Abs(_settings.TerminalOverlayColumnWidthFraction - clamped) < 0.001)
-            {
-                return;
-            }
-
-            _settings.TerminalOverlayColumnWidthFraction = clamped;
-            OnPropertyChanged();
-            SaveSettings();
-        }
-    }
-
-    /// <summary>Height of the overlay column as a fraction of the Terminal's own height. The
-    /// stack is anchored to the top; dragging the handle below the last card shrinks this to
-    /// reveal terminal beneath it. Set by <c>TerminalOverlayHost</c>.</summary>
-    public double TerminalOverlayColumnHeightFraction
-    {
-        get => _settings.TerminalOverlayColumnHeightFraction;
-        set
-        {
-            var clamped = Math.Clamp(
-                value,
-                AppSettings.MinTerminalOverlayColumnHeightFraction,
-                AppSettings.MaxTerminalOverlayColumnHeightFraction);
-            if (Math.Abs(_settings.TerminalOverlayColumnHeightFraction - clamped) < 0.001)
-            {
-                return;
-            }
-
-            _settings.TerminalOverlayColumnHeightFraction = clamped;
-            OnPropertyChanged();
-            SaveSettings();
-        }
-    }
-
     public bool OutputWordWrap
     {
         get => _settings.OutputWordWrap;
@@ -1400,6 +1389,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool ShowNumericDamageEnabled
+    {
+        get => _settings.ShowNumericDamageEnabled;
+        set
+        {
+            if (_settings.ShowNumericDamageEnabled == value)
+            {
+                return;
+            }
+
+            _settings.ShowNumericDamageEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool ClearCommandInputAfterSend
     {
         get => _settings.ClearCommandInputAfterSend;
@@ -1411,6 +1416,24 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.ClearCommandInputAfterSend = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    /// <summary>Basic (default): each effect shows only its name. Extended: name plus its
+    /// count/duration and description — see EffectsPanelView.</summary>
+    public bool ShowExtendedEffects
+    {
+        get => _settings.ShowExtendedEffects;
+        set
+        {
+            if (_settings.ShowExtendedEffects == value)
+            {
+                return;
+            }
+
+            _settings.ShowExtendedEffects = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -1545,6 +1568,148 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.GroupOrdersEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutowalkMovementRecoveryEnabled
+    {
+        get => _settings.AutowalkMovementRecoveryEnabled;
+        set
+        {
+            if (_settings.AutowalkMovementRecoveryEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkMovementRecoveryEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutowalkRestOnArrivalEnabled
+    {
+        get => _settings.AutowalkRestOnArrivalEnabled;
+        set
+        {
+            if (_settings.AutowalkRestOnArrivalEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestOnArrivalEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoStandOrderEnabled
+    {
+        get => _settings.AutoStandOrderEnabled;
+        set
+        {
+            if (_settings.AutoStandOrderEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoStandOrderEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoRestOrderEnabled
+    {
+        get => _settings.AutoRestOrderEnabled;
+        set
+        {
+            if (_settings.AutoRestOrderEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoRestOrderEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoGroupRefreshOnExhaustedEnabled
+    {
+        get => _settings.AutoGroupRefreshOnExhaustedEnabled;
+        set
+        {
+            if (_settings.AutoGroupRefreshOnExhaustedEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoGroupRefreshOnExhaustedEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AutoAssistNpcEnabled
+    {
+        get => _settings.AutoAssistNpcEnabled;
+        set
+        {
+            if (_settings.AutoAssistNpcEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AutoAssistNpcEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public int MinAutowalkLowMovementThresholdPercent => AppSettings.MinAutowalkLowMovementThresholdPercent;
+
+    public int MaxAutowalkLowMovementThresholdPercent => AppSettings.MaxAutowalkLowMovementThresholdPercent;
+
+    public int AutowalkLowMovementThresholdPercent
+    {
+        get => _settings.AutowalkLowMovementThresholdPercent;
+        set
+        {
+            var clamped = Math.Clamp(
+                value,
+                AppSettings.MinAutowalkLowMovementThresholdPercent,
+                AppSettings.MaxAutowalkLowMovementThresholdPercent);
+            if (_settings.AutowalkLowMovementThresholdPercent == clamped)
+            {
+                return;
+            }
+
+            _settings.AutowalkLowMovementThresholdPercent = clamped;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public int MinAutowalkRestSeconds => AppSettings.MinAutowalkRestSeconds;
+
+    public int MaxAutowalkRestSeconds => AppSettings.MaxAutowalkRestSeconds;
+
+    public int AutowalkRestSeconds
+    {
+        get => _settings.AutowalkRestSeconds;
+        set
+        {
+            var clamped = Math.Clamp(
+                value, AppSettings.MinAutowalkRestSeconds, AppSettings.MaxAutowalkRestSeconds);
+            if (_settings.AutowalkRestSeconds == clamped)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestSeconds = clamped;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -1936,6 +2101,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand StartAddTimerCommand { get; }
     public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
     public RelayCommand<TimerEntry> ToggleTimerCommand { get; }
+    public RelayCommand<TimerEntry> RestartTimerCommand { get; }
     public RelayCommand<TimerEntry> EditTimerCommand { get; }
     public RelayCommand CancelTimerEditCommand { get; }
 
@@ -2133,6 +2299,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             : $"Timer „{entry.Name}” wyłączony.", "info");
     }
 
+    /// <summary>Resets an active timer's countdown back to its full interval, without disabling
+    /// it — bound to the small "restart countdown" icon in the terminal's timer strip.</summary>
+    private void RestartTimer(TimerEntry? entry)
+    {
+        if (entry is null || !entry.IsEnabled)
+        {
+            return;
+        }
+
+        SyncTimer(entry);
+        AddToast($"Timer „{entry.Name}” zresetowany (co {entry.IntervalText}).", "info");
+    }
+
     private static string TimerKey(TimerEntry entry) => $"user-timer:{entry.Id}";
 
     /// <summary>Starts or stops the underlying periodic timer to match IsEnabled.</summary>
@@ -2268,6 +2447,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnMapRoomDoubleClicked(MapRoom room)
     {
         PreviewRouteToRoom(room);
+
+        if (Map.AutoWalkOnMapDoubleClick && _temporaryTarget is not null)
+        {
+            StartAutowalk(_temporaryTarget);
+        }
     }
 
     private void OnLordGotoRequested(MapRoom room)
@@ -2277,7 +2461,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        QueueTriggeredCommands([$"goto {room.Vnum}"]);
+        QueueTriggeredCommands([$"walk {room.Vnum}"]);
     }
 
     private void OnMapLordModeChanged(bool enabled)
@@ -2313,6 +2497,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         _settings.MapDisplayMode = mode;
+        SaveSettings();
+    }
+
+    private void OnMapAutoWalkOnDoubleClickChanged(bool enabled)
+    {
+        if (_settings.AutoWalkOnMapDoubleClick == enabled)
+        {
+            return;
+        }
+
+        _settings.AutoWalkOnMapDoubleClick = enabled;
         SaveSettings();
     }
 
@@ -2371,6 +2566,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Map.RouteRooms = null;
             AddToast($"Lokalizacja nauczyciela „{teacher.Name}” nie jest dostępna na mapie.", "error");
+            return;
+        }
+
+        PreviewRouteToRoom(room);
+    }
+
+    private void ShowBookLocationOnMap(BookLoadLocationEntry location)
+    {
+        IsKilleropediaOpen = false;
+        _dockFactory.ShowTool("Map");
+
+        if (location.RoomVnum is not { Length: > 0 } roomVnum
+            || Map.FocusRoomByVnum(roomVnum) is not { } room)
+        {
+            Map.RouteRooms = null;
+            AddToast("Ta lokalizacja księgi nie jest dostępna na mapie.", "error");
             return;
         }
 
@@ -2617,10 +2828,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        if (!skipMovementCheck)
+        if (!skipMovementCheck && _settings.AutowalkMovementRecoveryEnabled)
         {
             var action = AutowalkRecoveryPolicy.GetLowMovementAction(
-                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells);
+                _latestMovement, _latestMaximumMovement, _latestMemorizedSpells,
+                _settings.AutowalkLowMovementThresholdPercent);
             if (action != LowMovementAction.None)
             {
                 _autowalkRecoveringMovement = true;
@@ -2686,10 +2898,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             else
             {
+                var restSeconds = _settings.AutowalkRestSeconds;
                 Dispatcher.UIThread.Post(() =>
-                    AutowalkStatusText = "Mało ruchu — odpoczywam 30 sekund.");
+                    AutowalkStatusText = $"Mało ruchu — odpoczywam {restSeconds} sekund.");
                 await SendTriggeredCommandAsync("rest", cancellationToken);
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(restSeconds), cancellationToken);
 
                 // The character is still resting — stand up before walking on.
                 await SendTriggeredCommandAsync("stand", cancellationToken);
@@ -2879,7 +3092,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     _autowalkStep = i + 1;
                     if (_autowalkStep >= steps.Count)
                     {
-                        _ = SendTriggeredCommandAsync("rest");
+                        if (_settings.AutowalkRestOnArrivalEnabled)
+                        {
+                            _ = SendTriggeredCommandAsync("rest");
+                        }
+
                         StopAutowalk($"Dotarłeś do lokacji „{_autowalkTargetName}”.");
                     }
                     else
@@ -2923,7 +3140,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             if (path.Steps.Count == 0)
             {
-                _ = SendTriggeredCommandAsync("rest");
+                if (_settings.AutowalkRestOnArrivalEnabled)
+                {
+                    _ = SendTriggeredCommandAsync("rest");
+                }
+
                 StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
                 return;
             }
@@ -3588,6 +3809,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public RelayCommand DeleteBuffSetCommand { get; }
     public AsyncRelayCommand RecastBuffsCommand { get; }
     public AsyncRelayCommand<BuffWatchEntry> RecastSingleBuffCommand { get; }
+    public AsyncRelayCommand CastRefreshOnGroupCommand { get; }
 
     /// <summary>Header badge for the buffs section, e.g. "2/3" (active/required).</summary>
     public string BuffsBadge => RequiredBuffs.Count == 0
@@ -3603,23 +3825,42 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(BuffsBadge));
         OnPropertyChanged(nameof(BuffsAlert));
-        UpdateBuffsToolTitle();
+        UpdateMemToolTitle();
     }
 
     /// <summary>
-    /// Mirrors the buff state onto the dock tab title ("🛡 Buffy 2/3"), so the
+    /// Mirrors the buff state onto the Mem dock tab title ("📜 Mem i Buffy 2/3"), so the
     /// missing-buff signal is visible even when another tab covers the panel.
     /// </summary>
-    private void UpdateBuffsToolTitle()
+    private void UpdateMemToolTitle()
     {
         var tool = _dockFactory.AllTools.FirstOrDefault(
-            t => string.Equals(t.Id, MudDockFactory.BuffsToolId, StringComparison.Ordinal));
+            t => string.Equals(t.Id, "MemSpells", StringComparison.Ordinal));
         if (tool is null)
         {
             return;
         }
 
-        tool.Title = RequiredBuffs.Count == 0 ? "🛡 Buffy" : $"🛡 Buffy {BuffsBadge}";
+        tool.Title = RequiredBuffs.Count == 0 ? "📜 Mem i Buffy" : $"📜 Mem i Buffy {BuffsBadge}";
+    }
+
+    /// <summary>
+    /// Mirrors the character's live vitals onto the Terminal dock tab title — folds the former
+    /// standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja) into the Terminal's own
+    /// header bar instead of a separate row inside its content, so they're visible without
+    /// spending any of the Terminal's own vertical space.
+    /// </summary>
+    private void UpdateTerminalToolTitle()
+    {
+        var tool = _dockFactory.AllTools.FirstOrDefault(
+            t => string.Equals(t.Id, "Terminal", StringComparison.Ordinal));
+        if (tool is null)
+        {
+            return;
+        }
+
+        tool.Title = $"Terminal — Imię: {Vitals.Name}, Poziom: {Vitals.Level}, " +
+                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay}";
     }
 
     public string NewBuffName
@@ -3799,6 +4040,131 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         await SendTriggeredCommandAsync($"cast \"{entry.Name}\" self");
+    }
+
+    /// <summary>Orders every other (non-NPC) group member to cast refresh on themselves, in turn,
+    /// so everyone can keep moving under their own power during a long group trip instead of
+    /// relying on autowalk's own self-only recovery (see <see cref="AutowalkRecoveryPolicy"/>).
+    /// Uses the group "order" command rather than casting it directly at each member — the caster
+    /// still needs their own refresh memorized and cast on "self" once ordered.</summary>
+    private async Task CastRefreshOnGroupAsync()
+    {
+        if (!IsConnected)
+        {
+            AddToast("Nie połączono — nie można wysłać rozkazu.", "error");
+            return;
+        }
+
+        var targets = BuildOtherGroupMemberNames(_latestGroupUpdate, _latestCharacterName);
+        if (targets.Count == 0)
+        {
+            AddToast("Brak członków drużyny do odświeżenia.", "info");
+            return;
+        }
+
+        foreach (var name in targets)
+        {
+            await SendTriggeredCommandAsync($"order {name} cast refresh");
+        }
+    }
+
+    /// <summary>Orders any group member whose GMCP movement just dropped to "zamęczony" to cast
+    /// refresh on themselves — see <see cref="GroupExhaustionRefreshPolicy"/> for the once-per-
+    /// exhaustion debounce. Runs on whatever thread delivers the GMCP group update, matching
+    /// <see cref="TryAutoAssist"/>.</summary>
+    private void TryAutoOrderExhaustedGroupRefresh(CharacterGroupUpdate update)
+    {
+        var names = _groupExhaustionRefresh.GetMembersToOrder(
+            _settings.AutoGroupRefreshOnExhaustedEnabled && IsConnected, update, _latestCharacterName);
+        if (names.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(names.Select(name => $"order {name} cast refresh").ToArray());
+    }
+
+    /// <summary>Every other (non-NPC) member of the current group — the set that "order" fan-out
+    /// commands (refresh, autostand/autosit) target one at a time.</summary>
+    internal static IReadOnlyList<string> BuildOtherGroupMemberNames(
+        CharacterGroupUpdate? group, string? selfName) =>
+        group?.Members
+            .Where(member => !member.IsNpc
+                && !string.Equals(member.Name, selfName, StringComparison.OrdinalIgnoreCase))
+            .Select(member => member.Name)
+            .ToArray()
+        ?? [];
+
+    /// <summary>Orders every other group member to match a stand/sit change of our own, but only
+    /// while we're the GMCP-reported group leader — "order" only works for the leader, and firing
+    /// it as a follower would just spam failing commands.</summary>
+    private void TryAutoOrderGroupPosition(string command, bool enabled)
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var commands = BuildGroupPositionOrderCommands(
+            _latestGroupUpdate, _latestCharacterName, command, enabled);
+        if (commands.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(commands);
+    }
+
+    /// <summary>Pure decision behind <see cref="TryAutoOrderGroupPosition"/>: empty unless
+    /// <paramref name="enabled"/>, we're the group's own leader, and there's at least one other
+    /// member to order.</summary>
+    internal static IReadOnlyList<string> BuildGroupPositionOrderCommands(
+        CharacterGroupUpdate? group, string? selfName, string command, bool enabled)
+    {
+        if (!enabled || group is null
+            || !string.Equals(group.Leader, selfName, StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+
+        return BuildOtherGroupMemberNames(group, selfName)
+            .Select(name => $"order {name} {command}")
+            .ToArray();
+    }
+
+    /// <summary>Orders every NPC in the current group (a summoned/charmed pet) to assist as soon
+    /// as the local character enters combat. Unlike <see cref="TryAutoOrderGroupPosition"/>,
+    /// doesn't require group leadership — ordering your own pet doesn't need it.</summary>
+    private void TryAutoAssistNpc()
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var commands = BuildAutoAssistNpcCommands(_latestGroupUpdate, AutoAssistNpcEnabled);
+        if (commands.Count == 0)
+        {
+            return;
+        }
+
+        QueueTriggeredCommands(commands);
+    }
+
+    /// <summary>Pure decision behind <see cref="TryAutoAssistNpc"/>: an "order &lt;name&gt; assist"
+    /// for every NPC GMCP currently reports in the group.</summary>
+    internal static IReadOnlyList<string> BuildAutoAssistNpcCommands(
+        CharacterGroupUpdate? group, bool enabled)
+    {
+        if (!enabled || group is null)
+        {
+            return [];
+        }
+
+        return group.Members
+            .Where(member => member.IsNpc)
+            .Select(member => $"order {member.Name} assist")
+            .ToArray();
     }
 
     // ========================================================================
@@ -5309,10 +5675,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     internal static string? BuildLordGotoGroupRoomCommand(GroupMember? member) =>
-        IsSafeVnum(member?.Room) ? $"goto {member!.Room}" : null;
+        IsSafeVnum(member?.Room) ? $"walk {member!.Room}" : null;
 
     internal static string? BuildLordGotoGroupMemberCommand(GroupMember? member) =>
-        IsSafeCharacterName(member?.Name) ? $"goto {member!.Name}" : null;
+        IsSafeCharacterName(member?.Name) ? $"walk {member!.Name}" : null;
 
     private static bool IsSafeVnum(string? value) =>
         !string.IsNullOrWhiteSpace(value) && value.All(char.IsAsciiDigit);
@@ -5447,6 +5813,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>Not readonly — overridden via reflection in tests to avoid a real 30s wait.</summary>
+    private static TimeSpan ToastLifetime = TimeSpan.FromSeconds(30);
+
     private void AddToast(string text, string type = "info")
     {
         // Newest goes last: the top-bar strip is right-aligned, so the latest
@@ -5457,6 +5826,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Toasts.RemoveAt(0);
         }
+
+        _ = RemoveToastAfterDelayAsync(toast);
+    }
+
+    private async Task RemoveToastAfterDelayAsync(ToastMessage toast)
+    {
+        await Task.Delay(ToastLifetime);
+        Dispatcher.UIThread.Post(() => Toasts.Remove(toast));
     }
 
     // ========================================================================
@@ -5466,7 +5843,57 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnTextReceived(string text)
     {
         _bookCatalogRefreshCoordinator.ObserveText(text);
-        Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(text));
+        var toDisplay = _settings.ShowNumericDamageEnabled ? AnnotateDamageLines(text) : text;
+        Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(toDisplay));
+    }
+
+    /// <summary>
+    /// Splices " (N)" onto the end of any complete line in <paramref name="chunk"/> recognized by
+    /// <see cref="DamagePhrases"/> — e.g. "Twoje miażdżące walnięcie dewastuje sędziwego
+    /// krasnoluda. (44)". Runs on the raw incoming text (same layer as <see cref="LineAccumulator"/>
+    /// inside MudSession) rather than on already-completed lines in the output buffer, since by the
+    /// time a line is known to be complete its unmodified text has already been forwarded to the
+    /// terminal — appending after the fact would only ever land on a new line below it, not the end
+    /// of the same one. <see cref="_pendingDamageLine"/> carries a line's text across chunk
+    /// boundaries the same way MudSession's own line accumulator does, since a single line can
+    /// arrive split across multiple reads.
+    /// </summary>
+    private string AnnotateDamageLines(string chunk)
+    {
+        if (!chunk.Contains('\n'))
+        {
+            _pendingDamageLine += chunk;
+            return chunk;
+        }
+
+        var segments = chunk.Split('\n');
+        var output = new StringBuilder(chunk.Length + 8);
+
+        var firstLine = (_pendingDamageLine + segments[0]).TrimEnd('\r');
+        output.Append(segments[0].TrimEnd('\r'));
+        AppendDamageSuffix(output, firstLine);
+        output.Append('\n');
+
+        for (var i = 1; i < segments.Length - 1; i++)
+        {
+            var line = segments[i].TrimEnd('\r');
+            output.Append(line);
+            AppendDamageSuffix(output, line);
+            output.Append('\n');
+        }
+
+        _pendingDamageLine = segments[^1];
+        output.Append(_pendingDamageLine);
+
+        return output.ToString();
+    }
+
+    private static void AppendDamageSuffix(StringBuilder output, string line)
+    {
+        if (DamagePhrases.TryGetDamage(line, out var damage))
+        {
+            output.Append(" (").Append(damage).Append(')');
+        }
     }
 
     private void OnLineReceived(string line)
@@ -5520,14 +5947,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var wasFighting = AutowalkRecoveryPolicy.IsCombatPosition(_latestCharacterPosition);
         var wasSitting = AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition);
         var wasStanding = AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition);
+        var wasResting = AutowalkRecoveryPolicy.IsRestingPosition(_latestCharacterPosition);
         var nowFighting = AutowalkRecoveryPolicy.IsCombatPosition(position);
         var nowSitting = AutowalkRecoveryPolicy.IsSittingPosition(position);
         var nowStanding = AutowalkRecoveryPolicy.IsStandingPosition(position);
+        var nowResting = AutowalkRecoveryPolicy.IsRestingPosition(position);
         _latestCharacterPosition = position;
 
         if (nowFighting && !wasFighting)
         {
             OnAutowalkCombatStarted();
+            TryAutoAssistNpc();
         }
 
         if (nowSitting && !wasSitting)
@@ -5538,6 +5968,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (nowStanding && !wasStanding)
         {
             OnAutowalkStanding();
+            TryAutoOrderGroupPosition("stand", _settings.AutoStandOrderEnabled);
+        }
+
+        // "resting" (the "rest" command) is a distinct GMCP position from "sitting" ("sit") — the
+        // group order is "rest", so it fires on this transition specifically, not on sitting down.
+        if (nowResting && !wasResting)
+        {
+            TryAutoOrderGroupPosition("rest", _settings.AutoRestOrderEnabled);
         }
 
         if (wasFighting && !nowFighting && !nowSitting)
@@ -5932,6 +6370,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         _latestGroupUpdate = update;
         TryAutoAssist();
+        TryAutoOrderExhaustedGroupRefresh(update);
         Dispatcher.UIThread.Post(() =>
         {
             GroupEmptyMessage = string.IsNullOrWhiteSpace(update.UnavailableReason)
@@ -6263,23 +6702,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         SaveActiveProfile();
 
-        _updateCheckCts?.Cancel();
         _contentUpdateCts?.Cancel();
         CheckContentUpdatesCommand.Cancel();
         InstallContentUpdateCommand.Cancel();
-        if (_updateCheckTask is not null)
-        {
-            try
-            {
-                await _updateCheckTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // The optional background check was cancelled during shutdown.
-            }
-        }
-
-        _updateCheckCts?.Dispose();
         if (_contentUpdateCheckTask is not null)
         {
             try
@@ -6344,6 +6769,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Map.LordModeChanged -= OnMapLordModeChanged;
         Map.GroupMarkerDisplayChanged -= OnMapGroupMarkerDisplayChanged;
         Map.DisplayModeChanged -= OnMapDisplayModeChanged;
+        Map.AutoWalkOnMapDoubleClickChanged -= OnMapAutoWalkOnDoubleClickChanged;
 
         _autowalkCts.Cancel();
         _bookRefreshCts?.Cancel();

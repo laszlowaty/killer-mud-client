@@ -57,7 +57,7 @@ public sealed class FolderTreeViewUiTests
         window.Show();
         window.UpdateLayout();
         var tabs = Assert.Single(window.GetLogicalDescendants().OfType<TabControl>());
-        Assert.Equal(4, tabs.Items.Count);
+        Assert.Equal(5, tabs.Items.Count);
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy timer"));
 
         tabs.SelectedIndex = 1;
@@ -76,6 +76,32 @@ public sealed class FolderTreeViewUiTests
         Assert.Contains(
             window.GetLogicalDescendants().OfType<TextBox>(),
             textBox => Equals(textBox.PlaceholderText, "Dokładna nazwa moba — po jednej w wierszu"));
+
+        tabs.SelectedIndex = 4;
+        window.UpdateLayout();
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Automatyczne odzyskiwanie ruchu podczas autowalk"));
+        var sliders = window.GetLogicalDescendants().OfType<Slider>().ToList();
+        Assert.Contains(sliders, slider => ReferenceEquals(slider.DataContext, viewModel)
+            && slider.Minimum == AppSettings.MinAutowalkLowMovementThresholdPercent
+            && slider.Maximum == AppSettings.MaxAutowalkLowMovementThresholdPercent);
+        Assert.Contains(sliders, slider => ReferenceEquals(slider.DataContext, viewModel)
+            && slider.Minimum == AppSettings.MinAutowalkRestSeconds
+            && slider.Maximum == AppSettings.MaxAutowalkRestSeconds);
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<Button>(),
+            button => Equals(button.Content, "Rozkaż drużynie rzucić refresh")
+                && ReferenceEquals(button.Command, viewModel.CastRefreshOnGroupCommand));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Auto — rozkaż refresh, gdy ktoś w drużynie jest zamęczony"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Autostand — rozkaż drużynie wstać, gdy Ty wstajesz"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<CheckBox>(),
+            checkBox => Equals(checkBox.Content, "Autorest — rozkaż drużynie odpocząć, gdy Ty odpoczywasz"));
 
         window.Close();
         await viewModel.DisposeAsync();

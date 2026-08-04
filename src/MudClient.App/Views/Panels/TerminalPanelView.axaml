@@ -6,11 +6,11 @@
              x:Class="MudClient.App.Views.Panels.TerminalPanelView"
              x:DataType="vm:MainWindowViewModel">
   <Panel>
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="Auto,*,Auto">
 
     <!-- HP vertical indicator (left) – spans full panel height -->
     <Border x:Name="HitPointsBar"
-            Grid.Column="0" Grid.RowSpan="2"
+            Grid.Column="0" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="2,0,0,0"
@@ -48,55 +48,69 @@
                               TelnetColorScheme="{Binding TelnetColorScheme}"
                               WordWrap="{Binding OutputWordWrap}" />
 
-      <ItemsControl ItemsSource="{Binding Timers}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,10,22,0"
-                    IsHitTestVisible="False">
+      <!-- Scoped to the output row specifically (not the whole Panel below) so neither overlay
+           column can ever grow tall enough to reach behind the timer strip or command bar — see
+           TerminalOverlayHost.axaml.cs; a column's height fraction is only a fraction of whatever
+           bounds it's given, and a stack with enough cards can outgrow that fraction's MinHeight
+           floor, which is what let the right (edge) column spill past the left one before. -->
+      <controls:TerminalOverlayHost x:Name="OverlayHost" />
+    </Grid>
+
+    <!-- Active timers — a compact strip just above the command bar instead of floating over the
+         top-right of the output, where pinned overlay columns used to cover it (see
+         TerminalOverlayHost). Every timer stays visible here regardless of enabled state, so
+         pausing one with ⏸ leaves its row in place (with ▶ to resume) instead of making it
+         disappear until you go find it again in the Automaty panel. -->
+    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,3"
+            IsVisible="{Binding Timers.Count}">
+      <ItemsControl ItemsSource="{Binding Timers}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <StackPanel />
+            <WrapPanel />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:TimerEntry">
-            <Border IsVisible="{Binding IsEnabled}"
-                    MinWidth="112"
-                    Margin="0,0,0,4"
-                    Padding="7,4"
-                    CornerRadius="4"
-                    Background="{StaticResource MudBrushVoid}"
-                    BorderBrush="{StaticResource MudBrushGoldDim}"
-                    BorderThickness="1"
-                    Opacity="0.9"
-                    ToolTip.Tip="{Binding Name}">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <TextBlock Grid.Column="0"
-                           Text="{Binding ShortName}"
-                           FontSize="11"
-                           Foreground="{StaticResource MudBrushParchmentDim}" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding RemainingText}"
-                           MinWidth="42"
-                           TextAlignment="Right"
-                           FontFamily="Consolas"
-                           FontSize="11"
-                           FontWeight="Bold"
-                           Foreground="{StaticResource MudBrushGoldBright}" />
-              </Grid>
-            </Border>
+            <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,12,0"
+                        ToolTip.Tip="{Binding Name}">
+              <Button Content="⏸" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      IsVisible="{Binding IsEnabled}"
+                      ToolTip.Tip="Wstrzymaj timer"
+                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                      CommandParameter="{Binding}" />
+              <Button Content="▶" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      IsVisible="{Binding !IsEnabled}"
+                      ToolTip.Tip="Wznów timer"
+                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                      CommandParameter="{Binding}" />
+              <TextBlock Text="{Binding ShortName}" FontSize="9" VerticalAlignment="Center"
+                         Foreground="{StaticResource MudBrushParchmentDim}" />
+              <TextBlock Text="{Binding RemainingText}" FontSize="9" VerticalAlignment="Center"
+                         IsVisible="{Binding IsEnabled}"
+                         FontFamily="Consolas"
+                         Foreground="{StaticResource MudBrushGoldBright}" />
+              <TextBlock Text="wstrzymany" FontSize="9" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsEnabled}"
+                         Classes="mud-faint" />
+              <Button Content="⟳" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                      Classes="mud-small"
+                      IsVisible="{Binding IsEnabled}"
+                      ToolTip.Tip="Zresetuj odliczanie"
+                      Command="{Binding $parent[UserControl].DataContext.RestartTimerCommand}"
+                      CommandParameter="{Binding}" />
+            </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-    </Grid>
+    </Border>
 
-    <!-- Command bar. Split into two columns matching the Terminal overlay stack's own width
-         fraction (see TerminalOverlayHost) — the controls live in the left column only, so they
-         never sit under the pinned-panel column and the stack can use its full height without
-         ever needing to reveal them underneath (see TerminalPanelView.axaml.cs). -->
-    <Border Grid.Column="1" Grid.Row="1" Classes="mud-bar-bottom" Padding="8,6">
-      <Grid x:Name="CommandBarWidthSplit" ColumnDefinitions="*,*">
-      <Grid Grid.Column="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+    <!-- Command bar. Uses its full width always — overlay columns float on top of the Terminal
+         without reserving any space from it (see TerminalOverlayHost), so there is no need to
+         make room for them here. -->
+    <Border Grid.Column="1" Grid.Row="2" Classes="mud-bar-bottom" Padding="8,6">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
                  x:Name="CommandBox"
                  Classes="terminal-input"
@@ -146,7 +160,7 @@
 
     <!-- MV vertical indicator (right) – spans full panel height -->
     <Border x:Name="MovementPointsBar"
-            Grid.Column="2" Grid.RowSpan="2"
+            Grid.Column="2" Grid.RowSpan="3"
             Width="46"
             IsVisible="{Binding ShowTerminalVitalsBars}"
             Padding="2,8" Margin="0,0,2,0"
@@ -176,6 +190,5 @@
     </Border>
 
   </Grid>
-  <controls:TerminalOverlayHost x:Name="OverlayHost" />
   </Panel>
 </UserControl>

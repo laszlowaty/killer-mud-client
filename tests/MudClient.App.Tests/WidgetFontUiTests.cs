@@ -23,9 +23,9 @@ public sealed class WidgetFontUiTests
             await using var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
             var tool = new PanelTool
             {
-                Id = "Condition",
-                Title = "Kondycja",
-                ViewType = typeof(ConditionPanelView),
+                Id = "Effects",
+                Title = "Efekty i Kondycja",
+                ViewType = typeof(EffectsPanelView),
                 Context = viewModel,
             };
             var host = new PanelToolView { DataContext = tool };

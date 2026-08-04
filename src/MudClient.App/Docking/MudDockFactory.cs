@@ -25,9 +25,6 @@ public sealed class MudDockFactory : Factory, IFactory
         _mainContext = mainContext;
     }
 
-    /// <summary>Id of the required-buffs tool; its tab title carries a live x/y badge.</summary>
-    public const string BuffsToolId = "Buffs";
-
     public List<PanelTool> AllTools { get; } = new();
 
     public ObservableCollection<PanelTool> HiddenTools { get; } = new();
@@ -162,6 +159,22 @@ public sealed class MudDockFactory : Factory, IFactory
         }
 
         tool.RefreshDockCommands();
+        OverlayChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Swaps two overlaid tools' relative pin order — used by a card's move up/down
+    /// arrows to reorder within its side's stack (see MainWindowViewModel's overlay-move
+    /// handling). A no-op unless both are currently overlaid.</summary>
+    public void SwapOverlayOrder(PanelTool a, PanelTool b)
+    {
+        var indexA = _overlayTools.IndexOf(a);
+        var indexB = _overlayTools.IndexOf(b);
+        if (indexA < 0 || indexB < 0)
+        {
+            return;
+        }
+
+        (_overlayTools[indexA], _overlayTools[indexB]) = (_overlayTools[indexB], _overlayTools[indexA]);
         OverlayChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -311,16 +324,11 @@ public sealed class MudDockFactory : Factory, IFactory
     private void CreateAllTools()
     {
         NewTool("Map", "🗺 Mapa", typeof(Views.Panels.MapPanelView), _mapContext);
-        NewTool("RoomInfo", "📋 Pokój", typeof(Views.Panels.RoomInfoPanelView), _mainContext);
         NewTool("Terminal", "Terminal", typeof(Views.Panels.TerminalPanelView), _mainContext);
-        NewTool("CharInfo", "👤 Postać", typeof(Views.Panels.CharacterInfoPanelView), _mainContext);
-        NewTool("Condition", "♥ Kondycja", typeof(Views.Panels.ConditionPanelView), _mainContext);
-        NewTool("Effects", "✨ Efekty", typeof(Views.Panels.EffectsPanelView), _mainContext);
-        NewTool(BuffsToolId, "🛡 Buffy", typeof(Views.Panels.BuffsPanelView), _mainContext);
+        NewTool("Effects", "✨ Efekty i Kondycja", typeof(Views.Panels.EffectsPanelView), _mainContext);
         NewTool("Group", "👥 Drużyna", typeof(Views.Panels.GroupPanelView), _mainContext);
-        NewTool("MemSpells", "📜 Mem", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
+        NewTool("MemSpells", "📜 Mem i Buffy", typeof(Views.Panels.MemSpellsPanelView), _mainContext);
         NewTool("Automation", "⚙ Automaty", typeof(Views.Panels.AutomationPanelView), _mainContext);
-        NewTool("Autowalk", "🧭 Autowalk", typeof(Views.Panels.AutowalkPanelView), _mainContext);
         NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
         NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
         NewTool("Chat", "💬 Czat", typeof(Views.Panels.ChatPanelView), _mainContext);
@@ -377,16 +385,11 @@ public sealed class MudDockFactory : Factory, IFactory
     {
         CreateAllTools();
         var mapTool = Tool("Map");
-        var roomInfoTool = Tool("RoomInfo");
         var terminalTool = Tool("Terminal");
-        var infoTool = Tool("CharInfo");
-        var conditionTool = Tool("Condition");
         var effectsTool = Tool("Effects");
-        var buffsTool = Tool(BuffsToolId);
         var groupTool = Tool("Group");
         var memSpellsTool = Tool("MemSpells");
         var automationTool = Tool("Automation");
-        var autowalkTool = Tool("Autowalk");
         var notesTool = Tool("Notes");
         var gmcpTool = Tool("Gmcp");
         var chatTool = Tool("Chat");
@@ -397,7 +400,7 @@ public sealed class MudDockFactory : Factory, IFactory
             Id = "LeftPane",
             Proportion = 0.25,
             ActiveDockable = mapTool,
-            VisibleDockables = CreateList<IDockable>(mapTool, roomInfoTool),
+            VisibleDockables = CreateList<IDockable>(mapTool),
             Alignment = Alignment.Left,
         };
 
@@ -416,19 +419,22 @@ public sealed class MudDockFactory : Factory, IFactory
         {
             Id = "RightTopPane",
             Proportion = 0.5,
-            ActiveDockable = infoTool,
+            ActiveDockable = effectsTool,
             VisibleDockables = CreateList<IDockable>(
-                infoTool, conditionTool, effectsTool, buffsTool, groupTool, memSpellsTool),
+                effectsTool, groupTool, memSpellsTool),
             Alignment = Alignment.Right,
         };
 
+        // Automaty/Notatki/GMCP/Ustawienia start hidden (restorable via "Przywróć panele") —
+        // DEFAULT is no longer the app's own starting layout (see CreateTransparencyLayout /
+        // MainWindowViewModel's constructor), so it opens leaner, only with what's actually
+        // needed at a glance.
         var rightBottomDock = new ToolDock
         {
             Id = "RightBottomPane",
             Proportion = 0.5,
-            ActiveDockable = automationTool,
-            VisibleDockables = CreateList<IDockable>(
-                automationTool, autowalkTool, notesTool, gmcpTool, chatTool, settingsTool),
+            ActiveDockable = chatTool,
+            VisibleDockables = CreateList<IDockable>(chatTool),
             Alignment = Alignment.Right,
         };
 
@@ -462,6 +468,11 @@ public sealed class MudDockFactory : Factory, IFactory
         rootDock.DefaultDockable = mainLayout;
 
         _root = rootDock;
+
+        HiddenTools.Add(automationTool);
+        HiddenTools.Add(notesTool);
+        HiddenTools.Add(gmcpTool);
+        HiddenTools.Add(settingsTool);
 
         return rootDock;
     }
@@ -616,6 +627,16 @@ public sealed class MudDockFactory : Factory, IFactory
         if (_root is null || AllTools.FirstOrDefault(tool => tool.Id == id) is not { } tool)
         {
             return false;
+        }
+
+        if (_overlayTools.Contains(tool))
+        {
+            // Already visible as a floating Terminal overlay. An overlaid tool has been removed
+            // from the dock tree entirely, so the checks below would otherwise treat it as
+            // "not shown" and Restore() it into some other dock — Restore has no notion of
+            // overlays, so that would tear the card out of its overlay position instead of just
+            // leaving it where the user already has it.
+            return true;
         }
 
         if (IsPinned(_root, tool) || !ContainsDockable(_root, tool))

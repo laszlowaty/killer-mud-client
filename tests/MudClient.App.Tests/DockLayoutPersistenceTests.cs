@@ -51,20 +51,23 @@ public sealed class DockLayoutPersistenceTests : IDisposable
     public void Snapshot_RoundTripsThroughSaveAndLoad()
     {
         var factory1 = CreateFactory(out var layout1);
-        factory1.CloseDockable(GetTool(factory1, "Gmcp"));
+        // "Map" — unlike "Gmcp"/"Notes"/etc. it's still visible by default in DEFAULT (see
+        // CreateLayout), so closing it actually adds a NEW hidden entry on top of the baseline
+        // instead of being a no-op.
+        factory1.CloseDockable(GetTool(factory1, "Map"));
 
         var service = new DockLayoutService(_tempDir);
         service.Save(factory1.Snapshot(layout1));
         var loaded = service.Load();
         Assert.NotNull(loaded);
-        Assert.Equal(new[] { "Gmcp" }, loaded!.HiddenToolIds);
+        Assert.Contains("Map", loaded!.HiddenToolIds);
 
         var factory2 = CreateFactory(out var layout2);
         Assert.True(factory2.TryApplySnapshot(layout2, loaded));
 
-        Assert.Equal("Gmcp", Assert.Single(factory2.HiddenTools).Id);
+        Assert.Contains(factory2.HiddenTools, tool => tool.Id == "Map");
         var panels = (layout2.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).ToList();
-        Assert.DoesNotContain(panels, p => p.Id == "Gmcp");
+        Assert.DoesNotContain(panels, p => p.Id == "Map");
         Assert.Contains(panels, p => p.Id == "Terminal");
     }
 
@@ -123,8 +126,10 @@ public sealed class DockLayoutPersistenceTests : IDisposable
         var factory1 = CreateFactory(out var layout1);
         var snapshot = factory1.Snapshot(layout1);
 
-        // Simulate a stale file from an older app version: one panel unaccounted for.
-        RemovePanel(snapshot.Root!, "Notes");
+        // Simulate a stale file from an older app version: one panel unaccounted for. "Map" is
+        // used (not "Notes") since it's the one actually in the visible tree by default (see
+        // CreateLayout) — "Notes" starts hidden, so removing it from the tree would be a no-op.
+        RemovePanel(snapshot.Root!, "Map");
 
         var factory2 = CreateFactory(out var layout2);
         Assert.False(factory2.TryApplySnapshot(layout2, snapshot));
@@ -135,7 +140,10 @@ public sealed class DockLayoutPersistenceTests : IDisposable
     {
         var factory1 = CreateFactory(out var layout1);
         var snapshot = factory1.Snapshot(layout1);
-        snapshot.HiddenToolIds.Add("Notes");
+        // "Map" is visible by default (see CreateLayout); adding it to HiddenToolIds too creates
+        // a genuine visible-and-hidden conflict ("Notes" starts hidden already, so adding it
+        // again would just be a harmless duplicate within the same set).
+        snapshot.HiddenToolIds.Add("Map");
 
         var factory2 = CreateFactory(out var layout2);
         Assert.False(factory2.TryApplySnapshot(layout2, snapshot));

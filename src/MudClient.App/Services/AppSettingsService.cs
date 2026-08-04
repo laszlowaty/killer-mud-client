@@ -87,6 +87,15 @@ public sealed class AppSettingsService
                             overlay.HeightWeight,
                             AppSettings.MinTerminalOverlayHeightWeight,
                             AppSettings.MaxTerminalOverlayHeightWeight);
+                        overlay.ColumnWidth = Math.Clamp(
+                            overlay.ColumnWidth,
+                            AppSettings.MinTerminalOverlayColumnWidth,
+                            AppSettings.MaxTerminalOverlayColumnWidth);
+                        overlay.ColumnHeightFraction = Math.Clamp(
+                            overlay.ColumnHeightFraction,
+                            AppSettings.MinTerminalOverlayColumnHeightFraction,
+                            AppSettings.MaxTerminalOverlayColumnHeightFraction);
+                        overlay.ColumnIndex = Math.Max(0, overlay.ColumnIndex);
                     }
 
                     settings.TerminalOverlayOpacity = Math.Clamp(
@@ -94,15 +103,15 @@ public sealed class AppSettingsService
                         AppSettings.MinTerminalOverlayOpacity,
                         AppSettings.MaxTerminalOverlayOpacity);
 
-                    settings.TerminalOverlayColumnWidthFraction = Math.Clamp(
-                        settings.TerminalOverlayColumnWidthFraction,
-                        AppSettings.MinTerminalOverlayColumnWidthFraction,
-                        AppSettings.MaxTerminalOverlayColumnWidthFraction);
+                    settings.AutowalkLowMovementThresholdPercent = Math.Clamp(
+                        settings.AutowalkLowMovementThresholdPercent,
+                        AppSettings.MinAutowalkLowMovementThresholdPercent,
+                        AppSettings.MaxAutowalkLowMovementThresholdPercent);
 
-                    settings.TerminalOverlayColumnHeightFraction = Math.Clamp(
-                        settings.TerminalOverlayColumnHeightFraction,
-                        AppSettings.MinTerminalOverlayColumnHeightFraction,
-                        AppSettings.MaxTerminalOverlayColumnHeightFraction);
+                    settings.AutowalkRestSeconds = Math.Clamp(
+                        settings.AutowalkRestSeconds,
+                        AppSettings.MinAutowalkRestSeconds,
+                        AppSettings.MaxAutowalkRestSeconds);
 
                     return settings;
                 }

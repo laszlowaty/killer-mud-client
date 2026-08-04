@@ -182,6 +182,47 @@ public sealed class KilleropediaTests : IDisposable
         Assert.False(viewModel.ShowTeacherOnMapCommand.CanExecute(mappedTeacher with { RoomVnum = null }));
     }
 
+    [Fact]
+    public async Task ShowBookLocationOnMapCommand_OnlyInvokesCallbackWhenLocationHasVnum()
+    {
+        var store = CreateBookStore();
+        await store.SaveAsync(new BookCatalogDocument
+        {
+            Books =
+            [
+                new BookEntry
+                {
+                    Vnum = 16818,
+                    Name = "ksiega zaklec",
+                    LoadLocations =
+                    [
+                        "na mobie: Zeerith'din (Podmrok)",
+                        "w pokoju: Biblioteka (vnum 1234)",
+                    ],
+                },
+            ],
+        }, TestContext.Current.CancellationToken);
+
+        BookLoadLocationEntry? requestedLocation = null;
+        var viewModel = new KilleropediaViewModel(
+            TeacherCatalogLoader.Load(),
+            store,
+            null,
+            loreCatalog: CreateLoreCatalog(),
+            showBookLocationOnMap: location => requestedLocation = location);
+
+        var book = Assert.Single(viewModel.FilteredBooks);
+        var mobLocation = book.LoadLocationEntries[0];
+        var roomLocation = book.LoadLocationEntries[1];
+
+        Assert.False(viewModel.ShowBookLocationOnMapCommand.CanExecute(mobLocation));
+        Assert.True(viewModel.ShowBookLocationOnMapCommand.CanExecute(roomLocation));
+
+        viewModel.ShowBookLocationOnMapCommand.Execute(roomLocation);
+
+        Assert.Same(roomLocation, requestedLocation);
+    }
+
     [AvaloniaFact]
     public void TeachersView_RendersCatalogAndSelectedTeacherDetails()
     {

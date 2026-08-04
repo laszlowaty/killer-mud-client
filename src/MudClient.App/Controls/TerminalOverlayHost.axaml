@@ -5,17 +5,19 @@
              x:DataType="vm:MainWindowViewModel">
   <!--
     Renders every panel pinned as a Terminal overlay (MainWindowViewModel.TerminalOverlays, only
-    ever populated in TRANSPARENCY mode) as a right-aligned, resizable stack. Resize handles are
-    plain Border elements driven by hand-rolled pointer-drag code in
-    TerminalOverlayHost.axaml.cs — Avalonia's GridSplitter proved unreliable for resizing two
-    star-sized siblings here, so this computes fractions/weights directly from pointer deltas
-    instead (see PointerMoved handlers). Each handle is a wide (6px) transparent hit area around a
-    barely-visible 1px line, brightening on hover, so it stays easy to grab without dominating
-    the view.
-    RootGrid columns: empty passthrough | width handle | stack area.
-    StackArea rows: card stack | height handle | empty passthrough below (revealed by shrinking
-    the stack's height fraction — the handle sits right below the lowest card).
-    Areas with no Background pass pointer input straight through to the terminal.
+    ever populated in TRANSPARENCY mode) as a set of independently resizable columns floating on
+    top of the Terminal, grouped by TerminalOverlayViewModel.ColumnIndex and laid out right-to-
+    left: column 0 hugs the right edge, higher indices sit further left, closer to the Terminal's
+    center. Moving a card left/right (see TerminalOverlayCard) moves it one column further from or
+    closer to that edge, creating or collapsing columns as needed — see
+    MainWindowViewModel.MoveOverlayColumn.
+    This whole control is just one child of a Panel alongside the Terminal itself (see
+    TerminalPanelView.axaml) — since the number of columns is dynamic, everything below ColumnsPanel
+    is built in code-behind rather than static XAML, and none of it ever asks the Terminal to
+    resize: columns only float semi-transparently on top of it (see TerminalOverlayOpacityResource).
+    Resize handles are plain Border elements driven by hand-rolled pointer-drag code in
+    TerminalOverlayHost.axaml.cs — Avalonia's GridSplitter proved unreliable for resizing
+    star-sized siblings here, so this computes pixel deltas directly instead.
   -->
   <UserControl.Styles>
     <Style Selector="Border.mud-overlay-handle-line">
@@ -26,25 +28,5 @@
       <Setter Property="Opacity" Value="1" />
     </Style>
   </UserControl.Styles>
-  <Grid x:Name="RootGrid" ColumnDefinitions="*,6,*">
-    <Border x:Name="WidthHandle" Grid.Column="1"
-            Classes="mud-overlay-handle"
-            Background="Transparent"
-            Cursor="SizeWestEast"
-            IsVisible="{Binding TerminalOverlays.Count}">
-      <Border Classes="mud-overlay-handle-line"
-              Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
-    </Border>
-    <Grid x:Name="StackArea" Grid.Column="2" MinWidth="160" RowDefinitions="*,6,*"
-          IsVisible="{Binding TerminalOverlays.Count}">
-      <Grid x:Name="OverlayColumn" Grid.Row="0" />
-      <Border x:Name="HeightHandle" Grid.Row="1"
-              Classes="mud-overlay-handle"
-              Background="Transparent"
-              Cursor="SizeNorthSouth">
-        <Border Classes="mud-overlay-handle-line"
-                Height="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" />
-      </Border>
-    </Grid>
-  </Grid>
+  <StackPanel x:Name="ColumnsPanel" Orientation="Horizontal" HorizontalAlignment="Right" />
 </UserControl>

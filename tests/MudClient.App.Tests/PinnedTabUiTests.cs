@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Dock.Avalonia.Controls;
@@ -63,6 +64,16 @@ public sealed class PinnedTabUiTests : IDisposable
         foreach (var (toolId, edge) in pins)
         {
             factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == toolId), edge);
+        }
+
+        // DEFAULT starts with a few panels hidden (Automaty/Notatki/GMCP/Ustawienia — see
+        // CreateLayout). Restore() docks anything still hidden that wasn't explicitly pinned
+        // above as a normal tab (unlike RestoreToTopEdge, which pins — and would then show up
+        // among the rendered pinned tabs tests assert on), so tests built on this helper see a
+        // fully-visible, non-pinned baseline unless they intentionally leave something hidden.
+        foreach (var tool in factory.HiddenTools.ToList())
+        {
+            factory.Restore(tool);
         }
 
         return factory.Snapshot(layout);
@@ -286,7 +297,7 @@ public sealed class PinnedTabUiTests : IDisposable
 
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Gmcp"), Alignment.Left);
-        factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Autowalk"), Alignment.Right);
+        factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Chat"), Alignment.Right);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Automation"), Alignment.Top);
         factory.PinToolToEdge(factory.AllTools.First(t => t.Id == "Notes"), Alignment.Bottom);
         var snapshot = factory.Snapshot(viewModel.Layout);
@@ -325,7 +336,7 @@ public sealed class PinnedTabUiTests : IDisposable
             new LayoutPreset
             {
                 Name = "B",
-                Snapshot = CreateSnapshotWithPins(("Autowalk", Alignment.Right)),
+                Snapshot = CreateSnapshotWithPins(("Chat", Alignment.Right)),
             },
         });
         var viewModel = new MainWindowViewModel(
@@ -374,9 +385,13 @@ public sealed class PinnedTabUiTests : IDisposable
 
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Gmcp"), Alignment.Left);
-        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Autowalk"), Alignment.Right);
+        factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Chat"), Alignment.Right);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Automation"), Alignment.Top);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Notes"), Alignment.Bottom);
+        // "Settings" is also hidden by default in DEFAULT (see CreateLayout). Restore() docks it
+        // as a normal tab (unlike RestoreToTopEdge, which pins it and would pollute the pinned-tab
+        // assertions below) — just enough to keep the HiddenPanels check honest.
+        factory.Restore(factory.AllTools.First(tool => tool.Id == "Settings"));
         viewModel.NewLayoutName = "boczne";
         viewModel.SaveLayoutCommand.Execute(null);
 
@@ -389,7 +404,7 @@ public sealed class PinnedTabUiTests : IDisposable
             dockable => dockable.Id == "Gmcp");
         Assert.Contains(
             viewModel.Layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
-            dockable => dockable.Id == "Autowalk");
+            dockable => dockable.Id == "Chat");
         Assert.Contains(
             viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => dockable.Id == "Automation");
@@ -397,7 +412,7 @@ public sealed class PinnedTabUiTests : IDisposable
             viewModel.Layout.BottomPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => dockable.Id == "Notes");
         Assert.Equal(
-            new HashSet<string> { "Gmcp", "Autowalk", "Automation", "Notes" },
+            new HashSet<string> { "Gmcp", "Chat", "Automation", "Notes" },
             RenderedPinItems(window)
                 .Select(control => Assert.IsType<PanelTool>(control.DataContext).Id)
                 .ToHashSet());
@@ -460,6 +475,180 @@ public sealed class PinnedTabUiTests : IDisposable
             .Select(tool => tool.Id)
             .ToHashSet();
         Assert.Equal(nonTerminalIds, topPinnedIds);
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+
+        // Both default to column 0 (hugging the right edge), in pin order: Gmcp, then Notes.
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
+
+        // Moving the second one up swaps it with the first.
+        viewModel.TerminalOverlays[1].MoveUpCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Notes", "Gmcp"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        // Moving the (now first) one down swaps it back.
+        viewModel.TerminalOverlays[0].MoveDownCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        // Moving Gmcp left creates a new column further from the edge — Notes stays in column 0.
+        var gmcpOverlay = viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp");
+        gmcpOverlay.MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(1, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").ColumnIndex);
+        Assert.Equal(0, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").ColumnIndex);
+
+        // Moving it back right rejoins column 0.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveCommands_MultipleColumns_CreateAndCompact()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Group").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+        Assert.All(viewModel.TerminalOverlays, o => Assert.Equal(0, o.ColumnIndex));
+
+        int ColumnOf(string id) => viewModel.TerminalOverlays.Single(o => o.Panel.Id == id).ColumnIndex;
+
+        // Gmcp moves left, alone: column 0 -> 1. Nothing anchors an empty column in between, so a
+        // second "move left" by the same lone occupant would just collapse back to 1 (there is
+        // nothing further left to make room for) — that case is covered by
+        // OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns above instead.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal((Group: 0, Gmcp: 1, Notes: 0), (Group: ColumnOf("Group"), Gmcp: ColumnOf("Gmcp"), Notes: ColumnOf("Notes")));
+
+        // Notes moves left too: joins Gmcp's column (0 -> 1), since that's the next column over.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(1, ColumnOf("Gmcp"));
+        Assert.Equal(1, ColumnOf("Notes"));
+
+        // Notes moves left again: this time Gmcp is still occupying column 1, so column 2 is a
+        // genuine third column, not immediately compacted away.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").MoveLeftCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
+        Assert.Equal(1, ColumnOf("Gmcp"));
+        Assert.Equal(2, ColumnOf("Notes"));
+
+        // Gmcp moves right, rejoining Group's column (1 -> 0). Column 1 is now empty; compaction
+        // must renumber Notes' column 2 down to 1 so no gap is left.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
+        Assert.Equal(0, ColumnOf("Gmcp"));
+        Assert.Equal(1, ColumnOf("Notes"));
+
+        // Group (already at column 0, the right edge) can't move right any further — no-op.
+        viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Group").MoveRightCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(0, ColumnOf("Group"));
+    }
+
+    [AvaloniaFact]
+    public void OverlayMoveButtons_ClickingTheRenderedButton_InvokesTheMoveCommand()
+    {
+        // Unlike OverlayMoveCommands_ReorderWithinColumnAndSwitchColumns above (which calls
+        // MoveUpCommand.Execute(null) directly on the ViewModel), this test clicks the actual
+        // rendered Button in TerminalOverlayCard's visual tree — the ▲▼◀▶ buttons once shipped
+        // with a Command="{Binding $parent[TerminalOverlayCard].Overlay.MoveUpCommand}" binding
+        // that compiled cleanly but never fired at runtime, and a ViewModel-level test couldn't
+        // catch that. The buttons are now wired via plain Click handlers in code-behind instead.
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        factory.AllTools.First(t => t.Id == "Gmcp").PinAsOverlayCommand.Execute(null);
+        factory.AllTools.First(t => t.Id == "Notes").PinAsOverlayCommand.Execute(null);
+        Pump(window);
+        Assert.Equal(["Gmcp", "Notes"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        var notesCard = window.GetVisualDescendants().OfType<TerminalOverlayCard>()
+            .Single(card => card.Overlay?.Panel.Id == "Notes");
+        var upButton = notesCard.GetVisualDescendants().OfType<Button>()
+            .Single(button => ToolTip.GetTip(button) as string == "Przesuń w górę");
+
+        upButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(["Notes", "Gmcp"], viewModel.TerminalOverlays.Select(o => o.Panel.Id));
+
+        var leftButton = window.GetVisualDescendants().OfType<TerminalOverlayCard>()
+            .Single(card => card.Overlay?.Panel.Id == "Gmcp")
+            .GetVisualDescendants().OfType<Button>()
+            .Single(button => ToolTip.GetTip(button) as string == "Przenieś do kolumny bardziej w lewo");
+
+        leftButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(1, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Gmcp").ColumnIndex);
+        Assert.Equal(0, viewModel.TerminalOverlays.Single(o => o.Panel.Id == "Notes").ColumnIndex);
+    }
+
+    [AvaloniaFact]
+    public void TerminalOverlayHost_NeverGrowsPastTheOutputRow_RegardlessOfColumnContent()
+    {
+        // TerminalOverlayHost used to be a sibling of the whole terminal Grid (spanning all 3
+        // rows: output, timer strip, command bar) instead of scoped to the output row alone. A
+        // column with enough cards to want more room than the output row could then grow past
+        // its intended bounds and cover the command bar underneath — see how OverlayHost is
+        // placed in TerminalPanelView.axaml now (inside the same cell as MudOutputView).
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        viewModel.ApplyLayoutCommand.Execute("TRANSPARENCY");
+        Pump(window);
+
+        var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
+        // Pin enough tools into the same column to force a tall stack that would want more
+        // vertical room than the output row alone provides.
+        foreach (var id in new[] { "Gmcp", "Notes", "Group", "Effects", "MemSpells" })
+        {
+            factory.AllTools.First(t => t.Id == id).PinAsOverlayCommand.Execute(null);
+        }
+        Pump(window);
+
+        var terminal = window.GetVisualDescendants().OfType<TerminalPanelView>().Single();
+        var overlayHost = terminal.GetVisualDescendants().OfType<TerminalOverlayHost>().Single();
+        var mudOutput = terminal.GetVisualDescendants().OfType<MudOutputView>().Single();
+
+        // Siblings in the same Grid cell always share the same allotted height — if OverlayHost
+        // were still scoped to the whole panel instead, it would be taller than the output area.
+        Assert.Equal(mudOutput.Bounds.Height, overlayHost.Bounds.Height, precision: 1);
     }
 
     [AvaloniaFact]

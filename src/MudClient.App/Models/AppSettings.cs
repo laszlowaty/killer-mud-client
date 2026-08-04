@@ -23,15 +23,17 @@ public sealed class AppSettings
     public const double MinTerminalOverlayOpacity = 0.2;
     public const double MaxTerminalOverlayOpacity = 1.0;
 
-    /// <summary>Default/limits for the overlay column's overall width, as a fraction (0..1) of
-    /// the Terminal's own width (see <see cref="TerminalOverlayColumnWidthFraction"/>).</summary>
-    public const double DefaultTerminalOverlayColumnWidthFraction = 0.42;
-    public const double MinTerminalOverlayColumnWidthFraction = 0.2;
-    public const double MaxTerminalOverlayColumnWidthFraction = 0.7;
+    /// <summary>Default/limits for one overlay column's width in pixels (see
+    /// <see cref="TerminalOverlayEntry.ColumnWidth"/>). Columns float on top of the Terminal and
+    /// never resize it, so this is a plain pixel size rather than a fraction of anything.</summary>
+    public const double DefaultTerminalOverlayColumnWidth = 320;
+    public const double MinTerminalOverlayColumnWidth = 200;
+    public const double MaxTerminalOverlayColumnWidth = 900;
 
-    /// <summary>Default/limits for the overlay column's overall height, as a fraction (0..1) of
-    /// the Terminal's own height (see <see cref="TerminalOverlayColumnHeightFraction"/>). The
-    /// stack is anchored to the top, so shrinking this reveals terminal below the last card.</summary>
+    /// <summary>Default/limits for one overlay column's overall height, as a fraction (0..1) of
+    /// the Terminal's own height (see <see cref="TerminalOverlayEntry.ColumnHeightFraction"/>).
+    /// The stack is anchored to the top, so shrinking this reveals terminal below the last
+    /// card.</summary>
     public const double DefaultTerminalOverlayColumnHeightFraction = 1.0;
     public const double MinTerminalOverlayColumnHeightFraction = 0.2;
     public const double MaxTerminalOverlayColumnHeightFraction = 1.0;
@@ -64,6 +66,10 @@ public sealed class AppSettings
 
     /// <summary>Shows the vertical HP and MV indicators beside the terminal.</summary>
     public bool ShowTerminalVitalsBars { get; set; } = true;
+
+    /// <summary>Annotates recognized "you dealt damage" combat lines (e.g. "Ranisz golema...")
+    /// with their approximate numeric tier — see <see cref="MudClient.Core.Combat.DamagePhrases"/>.</summary>
+    public bool ShowNumericDamageEnabled { get; set; } = true;
 
     /// <summary>Clears the terminal command input after a manually submitted command.</summary>
     public bool ClearCommandInputAfterSend { get; set; }
@@ -105,6 +111,58 @@ public sealed class AppSettings
     /// <summary>Last chosen "Tryb mapy" (Proceduralna/Prosta) — restored on the next launch.</summary>
     public MapDisplayMode MapDisplayMode { get; set; } = MapDisplayMode.Procedural;
 
+    /// <summary>Double-clicking a room on the map immediately starts walking there, instead of
+    /// only previewing the route until confirmed.</summary>
+    public bool AutoWalkOnMapDoubleClick { get; set; } = true;
+
+    /// <summary>Enables autowalk's built-in low-movement recovery (cast refresh if memorized,
+    /// otherwise rest then stand back up) before each step. Disabling lets autowalk keep walking
+    /// without ever pausing for this — see <see cref="MudClient.Core.Automation.AutowalkRecoveryPolicy"/>.</summary>
+    public bool AutowalkMovementRecoveryEnabled { get; set; } = true;
+
+    /// <summary>Sends "rest" automatically as soon as autowalk reaches its destination.</summary>
+    public bool AutowalkRestOnArrivalEnabled { get; set; } = true;
+
+    /// <summary>Default/limits for <see cref="AutowalkLowMovementThresholdPercent"/>.</summary>
+    public const int DefaultAutowalkLowMovementThresholdPercent = 10;
+    public const int MinAutowalkLowMovementThresholdPercent = 1;
+    public const int MaxAutowalkLowMovementThresholdPercent = 50;
+
+    /// <summary>Movement percentage (of max) at or below which autowalk triggers recovery.</summary>
+    public int AutowalkLowMovementThresholdPercent { get; set; } = DefaultAutowalkLowMovementThresholdPercent;
+
+    /// <summary>Default/limits for <see cref="AutowalkRestSeconds"/>.</summary>
+    public const int DefaultAutowalkRestSeconds = 30;
+    public const int MinAutowalkRestSeconds = 5;
+    public const int MaxAutowalkRestSeconds = 300;
+
+    /// <summary>How long autowalk rests (in seconds) before standing back up, when "refresh" isn't
+    /// memorized.</summary>
+    public int AutowalkRestSeconds { get; set; } = DefaultAutowalkRestSeconds;
+
+    /// <summary>When standing up while leading a group, orders every other group member to stand
+    /// too ("order &lt;name&gt; stand"). Only fires while the local character is the GMCP-reported
+    /// group leader.</summary>
+    public bool AutoStandOrderEnabled { get; set; }
+
+    /// <summary>Mirrors <see cref="AutoStandOrderEnabled"/> for resting — fires when the local
+    /// character's own GMCP position becomes "resting" (the "rest" command, not "sitting"/"sit")
+    /// and orders every other group member to rest too ("order &lt;name&gt; rest").</summary>
+    public bool AutoRestOrderEnabled { get; set; }
+
+    /// <summary>Orders a group member to cast refresh on themselves ("order &lt;name&gt; cast
+    /// refresh") as soon as GMCP reports their movement at the worst tier ("zamęczony"). Fires once
+    /// per exhaustion (not on every GMCP update) and re-arms once they recover or leave the
+    /// group.</summary>
+    public bool AutoGroupRefreshOnExhaustedEnabled { get; set; }
+
+    /// <summary>Orders every NPC in the current GMCP group (a summoned/charmed pet, which GMCP
+    /// reports as a group member with <c>IsNpc</c> true) to assist as soon as the local character's
+    /// own position becomes "fighting" ("order &lt;npc&gt; assist"). Unlike
+    /// <see cref="AutoStandOrderEnabled"/>/<see cref="AutoRestOrderEnabled"/>, this doesn't require
+    /// being the group leader — ordering your own pet doesn't need it.</summary>
+    public bool AutoAssistNpcEnabled { get; set; }
+
     /// <summary>Panels currently pinned as floating overlays on the Terminal, in pin (stacking)
     /// order, each with its relative height weight. Only meaningful in TRANSPARENCY mode — see
     /// <see cref="MudClient.App.Docking.MudDockFactory.IsTransparencyLayout"/> and
@@ -114,13 +172,4 @@ public sealed class AppSettings
     /// <summary>0 (fully transparent) .. 1 (opaque). Shared by every overlay — lets the terminal
     /// text show through. One setting for all of them, not one per panel.</summary>
     public double TerminalOverlayOpacity { get; set; } = DefaultTerminalOverlayOpacity;
-
-    /// <summary>Width of the overlay column as a fraction (0..1) of the Terminal's own width.
-    /// Shared by every overlay — they all live in one right-aligned column.</summary>
-    public double TerminalOverlayColumnWidthFraction { get; set; } = DefaultTerminalOverlayColumnWidthFraction;
-
-    /// <summary>Height of the overlay column as a fraction (0..1) of the Terminal's own height.
-    /// The stack is anchored to the top; dragging the handle below the last card shrinks this to
-    /// reveal terminal beneath it.</summary>
-    public double TerminalOverlayColumnHeightFraction { get; set; } = DefaultTerminalOverlayColumnHeightFraction;
 }

@@ -59,12 +59,10 @@ Renderer ANSI jest celowo liniowy: obsługuje kolory tekstu MUD, ale ignoruje te
 Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj UI** przywraca domyślny):
 
 - **Postać** — statystyki postaci,
-- **Kondycja** — HP/MV i stan witalny,
-- **Efekty** — aktywne efekty,
-- **Buffy** — lista wymaganych buffów z podświetleniem brakujących; komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
+- **Efekty i Kondycja** — dolegliwości (głód, pragnienie, upojenie itp.) oraz aktywne efekty,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
 - **Drużyna** — skład i stan grupy,
-- **Mem** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono,
+- **Mem i Buffy** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono; lista wymaganych buffów z podświetleniem brakujących (komenda `/recast` jednym ruchem rzuca wszystkie brakujące) — zarządzanie zestawami buffów (nowy/zmiana nazwy/usunięcie/dodanie buffa) w ustawieniach panelu,
 - **GMCP** — surowy podgląd pakietów GMCP.
 
 ### Killeropedia
@@ -264,7 +262,9 @@ Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum p
 
 ### Odzyskiwanie ruchu i zamknięte bramy w autowalku
 
-Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka 30 sekund i wznawia trasę. Gdy GMCP `Char.Condition` zgłosi `position: POS_SITTING`, autowalk wysyła `stand` i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
+Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie równym lub niższym od skonfigurowanego progu (domyślnie 10%) rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`, czeka skonfigurowaną liczbę sekund (domyślnie 30) i wznawia trasę. Próg i czas odpoczynku można zmienić w **Automaty → Podróż**. Gdy GMCP `Char.Condition` zgłosi `position: POS_SITTING`, autowalk wysyła `stand` i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
+
+Ta sama zakładka **Automaty → Podróż** ma też automaty drużynowe. Przycisk **Rozkaż drużynie rzucić refresh** wysyła `order <gracz> cast refresh` do każdego innego (nie-NPC) członka drużyny po kolei; przełącznik **Auto** obok niego robi to samo automatycznie i pojedynczo dla dowolnego członka, którego GMCP zgłosi jako „zamęczony” (najgorszy poziom MV) — jednorazowo na każde wyczerpanie, ponownie dopiero po odpoczynku i kolejnym spadku. Przełączniki **Autostand**/**Autorest** działają tylko, gdy jesteś liderem aktualnej grupy GMCP (komenda `order` wymaga bycia liderem) i wysyłają `order <gracz> stand` / `order <gracz> rest` do każdego innego członka automatycznie, gdy Twoja własna GMCP pozycja zmieni się na `standing` / `resting` — `resting` (komenda `rest`) to inna pozycja niż `sitting` (komenda `sit`), więc samo usiądnięcie bez odpoczywania nie wywoła Autorest.
 
 Jeżeli próba otwarcia bramy kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
 

@@ -1,9 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
+using MudClient.App.ViewModels;
 
 namespace MudClient.App.Views.Panels;
 
@@ -22,6 +25,10 @@ public partial class PanelToolView : UserControl
         DataContextChanged += (_, _) => Rebuild();
     }
 
+    /// <summary>Overridable in tests — see AutomationDeletionConfirmationUiTests.</summary>
+    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
+        DeleteConfirmationDialog.ShowAsync;
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -33,6 +40,7 @@ public partial class PanelToolView : UserControl
         var host = this.FindControl<ContentControl>("Host")!;
         var settingsButton = this.FindControl<Button>("SettingsButton")!;
         var effectsSettingsButton = this.FindControl<Button>("EffectsSettingsButton")!;
+        var memSettingsButton = this.FindControl<Button>("MemSettingsButton")!;
 
         if (DataContext is not PanelTool tool)
         {
@@ -41,6 +49,7 @@ public partial class PanelToolView : UserControl
             host.Content = null;
             settingsButton.IsVisible = false;
             effectsSettingsButton.IsVisible = false;
+            memSettingsButton.IsVisible = false;
             return;
         }
 
@@ -51,15 +60,17 @@ public partial class PanelToolView : UserControl
         // own title bar instead (see TerminalOverlayCard.axaml) — these would otherwise duplicate it.
         var isOverlaid = this.FindAncestorOfType<TerminalOverlayCard>() is not null;
 
-        // Terminal has no per-panel settings; Map and Effects show their own real settings button
-        // (here, or Effects' below) instead of this inert placeholder.
+        // Terminal has no per-panel settings; Map, Effects, and Mem show their own real settings
+        // button (here, or Effects'/Mem's below) instead of this inert placeholder.
         settingsButton.IsVisible =
             !string.Equals(tool.Id, "Terminal", StringComparison.Ordinal)
             && !string.Equals(tool.Id, "Map", StringComparison.Ordinal)
             && !tool.IsEffectsTool
+            && !tool.IsMemTool
             && !isOverlaid;
 
         effectsSettingsButton.IsVisible = tool.IsEffectsTool && !isOverlaid;
+        memSettingsButton.IsVisible = tool.IsMemTool && !isOverlaid;
 
         if (host.Content is Control existing && _builtViewType == tool.ViewType)
         {
@@ -71,5 +82,110 @@ public partial class PanelToolView : UserControl
         view.DataContext = tool.Context;
         _builtViewType = tool.ViewType;
         host.Content = view;
+    }
+
+    // ========================================================================
+    // Mem's settings — buff-set management moved here from the former Buffs
+    // panel. DataContext is the PanelTool itself; Context is MainWindowViewModel
+    // (shared with most other panels) — see TerminalOverlayCard.axaml.cs for
+    // the duplicate copy of these same handlers used when Mem is pinned as an
+    // overlay instead of docked normally.
+    // ========================================================================
+
+    private void NewBuffSetBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.CreateBuffSetCommand.CanExecute(null))
+        {
+            viewModel.CreateBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void CreateBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.CreateBuffSetCommand.CanExecute(null))
+        {
+            viewModel.CreateBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void BuffSetNameBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.RenameBuffSetCommand.CanExecute(null))
+        {
+            viewModel.RenameBuffSetCommand.Execute(null);
+        }
+    }
+
+    private void RenameBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.RenameBuffSetCommand.CanExecute(null))
+        {
+            viewModel.RenameBuffSetCommand.Execute(null);
+        }
+    }
+
+    private async void DeleteBuffSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not PanelTool { Context: MainWindowViewModel viewModel }
+            || viewModel.SelectedBuffSet is not { } selected
+            || !viewModel.DeleteBuffSetCommand.CanExecute(null)
+            || TopLevel.GetTopLevel(this) is not Window owner
+            || sender is not Button button)
+        {
+            return;
+        }
+
+        button.IsEnabled = false;
+        try
+        {
+            if (await ConfirmDeletionAsync(owner, "zestaw buffów", selected.Name))
+            {
+                viewModel.DeleteBuffSetCommand.Execute(null);
+            }
+        }
+        finally
+        {
+            button.IsEnabled = true;
+        }
+    }
+
+    private void NewBuffBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key is not (Key.Enter or Key.Return)
+            || DataContext is not PanelTool { Context: MainWindowViewModel viewModel })
+        {
+            return;
+        }
+
+        eventArgs.Handled = true;
+        if (viewModel.AddBuffCommand.CanExecute(null))
+        {
+            viewModel.AddBuffCommand.Execute(null);
+        }
+    }
+
+    private void AddBuff_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is PanelTool { Context: MainWindowViewModel viewModel }
+            && viewModel.AddBuffCommand.CanExecute(null))
+        {
+            viewModel.AddBuffCommand.Execute(null);
+        }
     }
 }

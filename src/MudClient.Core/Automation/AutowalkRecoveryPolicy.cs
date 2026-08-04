@@ -21,10 +21,11 @@ public static class AutowalkRecoveryPolicy
     public static LowMovementAction GetLowMovementAction(
         int? movement,
         int? maximumMovement,
-        IReadOnlyList<MemorizedSpell> memorizedSpells)
+        IReadOnlyList<MemorizedSpell> memorizedSpells,
+        int thresholdPercent = 10)
     {
         if (movement is null || maximumMovement is null || maximumMovement <= 0 ||
-            (long)movement.Value * 100 > (long)maximumMovement.Value * 10)
+            (long)movement.Value * 100 > (long)maximumMovement.Value * thresholdPercent)
         {
             return LowMovementAction.None;
         }
@@ -45,6 +46,11 @@ public static class AutowalkRecoveryPolicy
     /// <summary>True when GMCP confirms that the character can resume walking.</summary>
     public static bool IsStandingPosition(string? position) =>
         string.Equals(position, "standing", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when GMCP reports the character is resting — a distinct position from
+    /// "sitting" (the "rest" command, not "sit").</summary>
+    public static bool IsRestingPosition(string? position) =>
+        string.Equals(position, "resting", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when the spell is memorized and ready to cast.</summary>
     public static bool HasMemorizedSpell(IReadOnlyList<MemorizedSpell> memorizedSpells, string name) =>

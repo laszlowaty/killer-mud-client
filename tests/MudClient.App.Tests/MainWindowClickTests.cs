@@ -196,12 +196,6 @@ public sealed class MainWindowClickTests : IDisposable
             .Single(widget => widget.Title == "Pomoc");
         Assert.False(helpWidget.IsVisible);
 
-        var moreActions = window.FindControl<Button>("MoreActionsButton")!;
-        moreActions.Flyout!.ShowAt(moreActions);
-        Dispatcher.UIThread.RunJobs();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        window.UpdateLayout();
-
         var helpButton = window.GetVisualDescendants()
             .OfType<Button>()
             .Single(button => button.Content?.ToString() == "Pomoc");
@@ -253,7 +247,7 @@ public sealed class MainWindowClickTests : IDisposable
 
         var profileServerFields = window.FindControl<StackPanel>("ProfileServerFields");
         var newProfileServerFields = window.FindControl<Grid>("NewProfileServerFields");
-        var connectionActions = window.FindControl<StackPanel>("ConnectionActions");
+        var connectionActions = window.FindControl<StackPanel>("TopActionsRow");
 
         Assert.NotNull(profileServerFields);
         Assert.NotNull(newProfileServerFields);
