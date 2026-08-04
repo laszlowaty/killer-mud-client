@@ -20,180 +20,113 @@
 
   <Grid RowDefinitions="Auto,*,Auto">
 
-    <!-- A single calm command row. Frequent session actions stay visible; account,
-         help and layout management live in the overflow menu. -->
-    <Border x:Name="MainTopBar" Grid.Row="0" Classes="mud-bar-top">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="⚔"
-                     FontSize="16"
-                     Foreground="{StaticResource MudBrushGold}"
-                     VerticalAlignment="Center" />
-          <TextBlock Classes="mud-brand" Text="KillerMudClient" VerticalAlignment="Center" />
-          <Border Classes="mud-status-chip" IsVisible="{Binding IsProfileSelected}">
-            <TextBlock Text="{Binding ActiveProfileName}"
-                       MaxWidth="140"
-                       TextTrimming="CharacterEllipsis" />
-          </Border>
-          <TextBlock Text="{Binding HeaderAreaText}"
-                     Classes="mud-caption"
-                     MaxWidth="220"
-                     TextTrimming="CharacterEllipsis"
-                     VerticalAlignment="Center" />
-        </StackPanel>
-
-        <Grid Grid.Column="1">
-          <Button x:Name="TopKilleropediaButton"
-                  Content="Killeropedia"
-                  Command="{Binding OpenKilleropediaCommand}"
-                  Classes="mud-small"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  ToolTip.Tip="Otwórz Killeropedię" />
-
-          <StackPanel Orientation="Horizontal"
-                      Spacing="6"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center">
-            <Button x:Name="ContentUpdateButton"
-                    Classes="mud-notice mud-notice-success"
-                    Content="Nowe dane"
-                    IsVisible="{Binding IsContentUpdateAvailable}">
-              <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedRight">
-                  <StackPanel Spacing="8" Width="340">
-                    <TextBlock Classes="mud-section-title"
-                               Text="Aktualizacja danych gry" />
-                    <TextBlock Text="{Binding ContentUpdateDescription}"
-                               TextWrapping="Wrap" />
-                    <Button Content="Aktualizuj"
-                            Command="{Binding InstallContentUpdateCommand}"
-                            Classes="mud-small"
-                            HorizontalAlignment="Right" />
-                  </StackPanel>
-                </Flyout>
-              </Button.Flyout>
-            </Button>
-          </StackPanel>
-        </Grid>
-
-        <StackPanel x:Name="ConnectionActions"
-                    Grid.Column="2"
-                    Orientation="Horizontal"
-                    Spacing="7"
-                    VerticalAlignment="Center">
-          <TextBlock x:Name="IdleTimeIndicator"
-                     Text="{Binding IdleTimeText}"
-                     Classes="mud-caption"
-                     MinWidth="86"
-                     VerticalAlignment="Center"
-                     ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
-          <TextBlock Text="{Binding StatusText}"
-                     Classes="mud-connection-status"
-                     VerticalAlignment="Center"
-                     MaxWidth="120"
-                     TextTrimming="CharacterEllipsis" />
-          <Button Content="Połącz"
-                  Command="{Binding ConnectCommand}"
-                  IsVisible="{Binding !IsConnected}"
-                  Classes="mud-small" />
-          <Button Classes="mud-danger mud-small"
-                  Content="Rozłącz"
-                  Command="{Binding DisconnectCommand}"
-                  IsVisible="{Binding IsConnected}" />
-          <Button x:Name="MoreActionsButton"
-                  Content="Więcej  ⋯"
-                  Classes="mud-small"
-                  ToolTip.Tip="Konto, narzędzia i układ">
-            <Button.Flyout>
-              <Flyout Placement="BottomEdgeAlignedRight">
-                <StackPanel Spacing="4" MinWidth="220">
-                  <Button Content="Zmień konto"
-                          Command="{Binding SwitchProfileCommand}"
-                          HorizontalContentAlignment="Left"
-                          Classes="mud-menu-action"
-                          ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
-                  <Button Content="Discord"
-                          Command="{Binding OpenDiscordCommand}"
-                          HorizontalContentAlignment="Left"
-                          Classes="mud-menu-action" />
-                  <Button Content="Pomoc"
-                          Command="{Binding OpenHelpCommand}"
-                          HorizontalContentAlignment="Left"
-                          Classes="mud-menu-action" />
-                  <Separator Margin="0,3" />
-                  <Button Content="{Binding HiddenPanels.Count, StringFormat='Przywróć panele ({0})'}"
-                          IsVisible="{Binding HiddenPanels.Count}"
-                          HorizontalContentAlignment="Left"
-                          Classes="mud-menu-action">
-                    <Button.Flyout>
-                      <Flyout Placement="LeftEdgeAlignedTop">
-                        <ItemsControl ItemsSource="{Binding HiddenPanels}">
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="docking:PanelTool">
-                              <Button Content="{Binding Title}"
-                                      HorizontalAlignment="Stretch"
-                                      HorizontalContentAlignment="Left"
-                                      Classes="mud-menu-action"
-                                      Command="{Binding $parent[Window].DataContext.RestorePanelCommand}"
-                                      CommandParameter="{Binding}" />
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </Flyout>
-                    </Button.Flyout>
-                  </Button>
-                  <Button Content="Układy paneli"
-                          HorizontalContentAlignment="Left"
-                          Classes="mud-menu-action">
-                    <Button.Flyout>
-                      <Flyout Placement="LeftEdgeAlignedTop">
-                        <StackPanel Spacing="6" MinWidth="220">
-                          <TextBlock Classes="mud-section-title" Text="Wczytaj układ" />
-                          <ItemsControl ItemsSource="{Binding AvailableLayouts}">
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate x:DataType="models:LayoutMenuItem">
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,1">
-                                  <Button Grid.Column="0"
-                                          Content="{Binding Name}"
-                                          HorizontalAlignment="Stretch"
-                                          HorizontalContentAlignment="Left"
-                                          Classes="mud-menu-action"
-                                          Command="{Binding $parent[Window].DataContext.ApplyLayoutCommand}"
-                                          CommandParameter="{Binding Name}" />
-                                  <Button Grid.Column="1"
-                                          Classes="mud-danger mud-small"
-                                          Content="✕"
-                                          Margin="4,0,0,0"
-                                          ToolTip.Tip="Usuń układ"
-                                          IsVisible="{Binding CanDelete}"
-                                          Command="{Binding $parent[Window].DataContext.DeleteLayoutCommand}"
-                                          CommandParameter="{Binding Name}" />
-                                </Grid>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                          <Separator Margin="0,3" />
-                          <TextBlock Classes="mud-section-title" Text="Zapisz obecny układ" />
-                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                            <TextBox Grid.Column="0"
-                                     Text="{Binding NewLayoutName}"
-                                     PlaceholderText="Nazwa układu" />
-                            <Button Grid.Column="1"
-                                    Content="Zapisz"
-                                    Classes="mud-small"
-                                    Command="{Binding SaveLayoutCommand}" />
-                          </Grid>
-                        </StackPanel>
-                      </Flyout>
-                    </Button.Flyout>
-                  </Button>
-                </StackPanel>
-              </Flyout>
-            </Button.Flyout>
-          </Button>
-        </StackPanel>
-      </Grid>
+    <!-- Session/account actions — used to live in a branded top bar with an overflow "Więcej"
+         menu; now a single right-aligned row of directly visible buttons, with no separate bar
+         of its own reserved above the docked panels (see MainDock below). -->
+    <Border x:Name="TopActionsBar" Grid.Row="0" Classes="mud-bar-top">
+      <StackPanel x:Name="TopActionsRow"
+                  Orientation="Horizontal"
+                  Spacing="7"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center">
+        <Button x:Name="TopKilleropediaButton"
+                Content="Killeropedia"
+                Command="{Binding OpenKilleropediaCommand}"
+                Classes="mud-small"
+                ToolTip.Tip="Otwórz Killeropedię" />
+        <TextBlock x:Name="IdleTimeIndicator"
+                   Text="{Binding IdleTimeText}"
+                   Classes="mud-caption"
+                   MinWidth="86"
+                   VerticalAlignment="Center"
+                   ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
+        <TextBlock Text="{Binding StatusText}"
+                   Classes="mud-connection-status"
+                   VerticalAlignment="Center"
+                   MaxWidth="160"
+                   TextTrimming="CharacterEllipsis" />
+        <Button Content="Połącz"
+                Command="{Binding ConnectCommand}"
+                IsVisible="{Binding !IsConnected}"
+                Classes="mud-small" />
+        <Button Classes="mud-danger mud-small"
+                Content="Rozłącz"
+                Command="{Binding DisconnectCommand}"
+                IsVisible="{Binding IsConnected}" />
+        <Button Content="Zmień konto"
+                Command="{Binding SwitchProfileCommand}"
+                Classes="mud-small"
+                ToolTip.Tip="Przełączanie konta jest możliwe po rozłączeniu sesji." />
+        <Button Content="Discord"
+                Command="{Binding OpenDiscordCommand}"
+                Classes="mud-small" />
+        <Button Content="Pomoc"
+                Command="{Binding OpenHelpCommand}"
+                Classes="mud-small" />
+        <Button Content="{Binding HiddenPanels.Count, StringFormat='Przywróć panele ({0})'}"
+                IsVisible="{Binding HiddenPanels.Count}"
+                Classes="mud-small">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <ItemsControl ItemsSource="{Binding HiddenPanels}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="docking:PanelTool">
+                    <Button Content="{Binding Title}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Classes="mud-menu-action"
+                            Command="{Binding $parent[Window].DataContext.RestorePanelCommand}"
+                            CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <Button Content="Układy paneli" Classes="mud-small">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="6" MinWidth="220">
+                <TextBlock Classes="mud-section-title" Text="Wczytaj układ" />
+                <ItemsControl ItemsSource="{Binding AvailableLayouts}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LayoutMenuItem">
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                        <Button Grid.Column="0"
+                                Content="{Binding Name}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Classes="mud-menu-action"
+                                Command="{Binding $parent[Window].DataContext.ApplyLayoutCommand}"
+                                CommandParameter="{Binding Name}" />
+                        <Button Grid.Column="1"
+                                Classes="mud-danger mud-small"
+                                Content="✕"
+                                Margin="4,0,0,0"
+                                ToolTip.Tip="Usuń układ"
+                                IsVisible="{Binding CanDelete}"
+                                Command="{Binding $parent[Window].DataContext.DeleteLayoutCommand}"
+                                CommandParameter="{Binding Name}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Separator Margin="0,3" />
+                <TextBlock Classes="mud-section-title" Text="Zapisz obecny układ" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBox Grid.Column="0"
+                           Text="{Binding NewLayoutName}"
+                           PlaceholderText="Nazwa układu" />
+                  <Button Grid.Column="1"
+                          Content="Zapisz"
+                          Classes="mud-small"
+                          Command="{Binding SaveLayoutCommand}" />
+                </Grid>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
     </Border>
 
      <!-- ========================================================================
