@@ -39,7 +39,7 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          git remote add upstream https://github.com/laszlowaty/killer-mud-client.git
+          git remote add upstream https://github.com/grzyboll/killer-mud-client.git
           git fetch upstream main
 
           # Ten fork nigdy nie "posiada" stabilnego wydania danego numeru wersji —
