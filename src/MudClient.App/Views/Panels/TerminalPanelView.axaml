@@ -152,10 +152,6 @@
                 Command="{Binding SendCommandCommand}"
                 Click="SendButton_OnClick" />
       </Grid>
-      <!-- Empty — matches the overlay stack's reserved column so the command bar's own width
-           split stays in sync with it (see TerminalPanelView.axaml.cs). -->
-      <Panel Grid.Column="1" />
-      </Grid>
     </Border>
 
     <!-- MV vertical indicator (right) – spans full panel height -->

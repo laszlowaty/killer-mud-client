@@ -1439,24 +1439,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Basic (default): each effect shows only its name. Extended: name plus its
-    /// count/duration and description — see EffectsPanelView.</summary>
-    public bool ShowExtendedEffects
-    {
-        get => _settings.ShowExtendedEffects;
-        set
-        {
-            if (_settings.ShowExtendedEffects == value)
-            {
-                return;
-            }
-
-            _settings.ShowExtendedEffects = value;
-            OnPropertyChanged();
-            SaveSettings();
-        }
-    }
-
     public string TelnetColorScheme
     {
         get => _settings.TelnetColorScheme;
