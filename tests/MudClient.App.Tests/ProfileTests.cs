@@ -328,6 +328,22 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Vm_ChangingMobileButtonScales_PersistsAndClamps()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.MobileFloatingButtonScale = 0;
+        vm.MobileMovementButtonScale = 2;
+
+        var stored = settingsService.Load();
+        Assert.Equal(AppSettings.MinMobileButtonScale, stored.MobileFloatingButtonScale);
+        Assert.Equal(AppSettings.MaxMobileButtonScale, stored.MobileMovementButtonScale);
+        Assert.Equal("70%", vm.MobileFloatingButtonScaleText);
+        Assert.Equal("150%", vm.MobileMovementButtonScaleText);
+    }
+
+    [Fact]
     public async Task Vm_ChangingAutoAssistExclusions_PersistsNormalizedNames()
     {
         var settingsService = new AppSettingsService(_directory);

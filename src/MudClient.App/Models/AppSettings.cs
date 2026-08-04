@@ -18,6 +18,10 @@ public sealed class AppSettings
     public const double DefaultMobileControlsOpacity = 0.76;
     public const double MinMobileControlsOpacity = 0.25;
     public const double MaxMobileControlsOpacity = 1.0;
+    public const double DefaultMobileFloatingButtonScale = 1.0;
+    public const double DefaultMobileMovementButtonScale = 1.0;
+    public const double MinMobileButtonScale = 0.7;
+    public const double MaxMobileButtonScale = 1.5;
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
@@ -101,6 +105,12 @@ public sealed class AppSettings
 
     /// <summary>Shared opacity of the Android movement pad and floating buttons.</summary>
     public double MobileControlsOpacity { get; set; } = DefaultMobileControlsOpacity;
+
+    /// <summary>Scale of custom floating command buttons in the Android UI.</summary>
+    public double MobileFloatingButtonScale { get; set; } = DefaultMobileFloatingButtonScale;
+
+    /// <summary>Scale of the movement pad buttons in the Android UI.</summary>
+    public double MobileMovementButtonScale { get; set; } = DefaultMobileMovementButtonScale;
 }
 
 public sealed class FloatingButtonSetDefinition

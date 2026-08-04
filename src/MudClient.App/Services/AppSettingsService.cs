@@ -59,6 +59,12 @@ public sealed class AppSettingsService
 
                     settings.MobileControlsOpacity = NormalizeMobileControlsOpacity(
                         settings.MobileControlsOpacity);
+                    settings.MobileFloatingButtonScale = NormalizeMobileButtonScale(
+                        settings.MobileFloatingButtonScale,
+                        AppSettings.DefaultMobileFloatingButtonScale);
+                    settings.MobileMovementButtonScale = NormalizeMobileButtonScale(
+                        settings.MobileMovementButtonScale,
+                        AppSettings.DefaultMobileMovementButtonScale);
 
                     // null means the property is missing from an older/corrupt settings file — use default.
                     if (settings.CommandStackingSeparator is null)
@@ -101,6 +107,14 @@ public sealed class AppSettingsService
                 AppSettings.MinMobileControlsOpacity,
                 AppSettings.MaxMobileControlsOpacity)
             : AppSettings.DefaultMobileControlsOpacity;
+
+    private static double NormalizeMobileButtonScale(double scale, double defaultValue) =>
+        double.IsFinite(scale)
+            ? Math.Clamp(
+                scale,
+                AppSettings.MinMobileButtonScale,
+                AppSettings.MaxMobileButtonScale)
+            : defaultValue;
 
     public void Save(AppSettings settings)
     {

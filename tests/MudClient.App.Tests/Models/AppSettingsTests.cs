@@ -107,6 +107,15 @@ public sealed class AppSettingsTests
         Assert.False(new AppSettings().LordModeEnabled);
     }
 
+    [Fact]
+    public void Constructor_MobileButtonScalesUseFullSizeByDefault()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(1, settings.MobileFloatingButtonScale);
+        Assert.Equal(1, settings.MobileMovementButtonScale);
+    }
+
     // ====================================================================
     // Property round-trip
     // ====================================================================

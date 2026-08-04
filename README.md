@@ -190,7 +190,8 @@ Projekt `src/MudClient.Android` udostępnia na razie celowo ograniczony interfej
   tworzone, przełączane i usuwane w **Ustawieniach**; każdy schemat zachowuje
   własne przyciski oraz ich pozycje, dotknięcie wysyła przypisaną komendę,
   a przytrzymanie pozwala przeciągnąć przycisk po ekranie; przypisana treść
-  respektuje skonfigurowany separator komend oraz aliasy,
+  respektuje skonfigurowany separator komend oraz aliasy; ustawienia pozwalają
+  niezależnie zmieniać rozmiar pływających przycisków i przycisków pada ruchu,
 - aliasy, triggery i timery w pełnoekranowym menu **Automaty**.
 
 Killeropedia i pozostałe widgety nie należą jeszcze do mobilnego MVP.

@@ -47,6 +47,12 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.False(settings.LordModeEnabled);
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
         Assert.Equal(AppSettings.DefaultMobileControlsOpacity, settings.MobileControlsOpacity);
+        Assert.Equal(
+            AppSettings.DefaultMobileFloatingButtonScale,
+            settings.MobileFloatingButtonScale);
+        Assert.Equal(
+            AppSettings.DefaultMobileMovementButtonScale,
+            settings.MobileMovementButtonScale);
     }
 
     // ====================================================================
@@ -131,6 +137,25 @@ public sealed class AppSettingsServiceTests : IDisposable
         var settings = _service.Load();
 
         Assert.Equal(expectedOpacity, settings.MobileControlsOpacity);
+    }
+
+    [Theory]
+    [InlineData(-1, AppSettings.MinMobileButtonScale)]
+    [InlineData(2, AppSettings.MaxMobileButtonScale)]
+    public void Load_MobileButtonScales_ClampToSupportedRange(
+        double rawScale,
+        double expectedScale)
+    {
+        SaveRaw(new AppSettings
+        {
+            MobileFloatingButtonScale = rawScale,
+            MobileMovementButtonScale = rawScale,
+        });
+
+        var settings = _service.Load();
+
+        Assert.Equal(expectedScale, settings.MobileFloatingButtonScale);
+        Assert.Equal(expectedScale, settings.MobileMovementButtonScale);
     }
 
     [Fact]

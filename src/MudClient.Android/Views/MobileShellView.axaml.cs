@@ -68,6 +68,7 @@ public sealed partial class MobileShellView : UserControl
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _viewModel.FloatingButtons.CollectionChanged += OnFloatingButtonsChanged;
             RebuildFloatingButtons();
+            ApplyMovementButtonScale();
             ApplyMobileControlsOpacity();
             UpdateMovementPadVisibility();
             var loadingOverlay = this.FindControl<Grid>("LoadingOverlay");
@@ -127,6 +128,16 @@ public sealed partial class MobileShellView : UserControl
         if (eventArgs.PropertyName == nameof(MainWindowViewModel.MobileControlsOpacity))
         {
             ApplyMobileControlsOpacity();
+        }
+
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.MobileFloatingButtonScale))
+        {
+            RebuildFloatingButtons();
+        }
+
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.MobileMovementButtonScale))
+        {
+            ApplyMovementButtonScale();
         }
     }
 
@@ -394,6 +405,7 @@ public sealed partial class MobileShellView : UserControl
 
         ResetFloatingButtonGesture(releaseCapture: true);
         layer.Children.Clear();
+        var buttonScale = _viewModel.MobileFloatingButtonScale;
         foreach (var definition in _viewModel.FloatingButtons)
         {
             var scale = new ScaleTransform(1, 1)
@@ -415,10 +427,11 @@ public sealed partial class MobileShellView : UserControl
             var button = new Border
             {
                 Tag = definition,
-                Width = Math.Clamp(50 + (definition.Name.Length * 7), 72, 160),
-                Height = 48,
-                Padding = new Thickness(10, 6),
-                CornerRadius = new CornerRadius(24),
+                Width = Math.Clamp(50 + (definition.Name.Length * 7), 72, 160)
+                    * buttonScale,
+                Height = 48 * buttonScale,
+                Padding = new Thickness(10 * buttonScale, 6 * buttonScale),
+                CornerRadius = new CornerRadius(24 * buttonScale),
                 Background = new SolidColorBrush(Color.Parse("#FF30373D")),
                 BorderBrush = new SolidColorBrush(Color.Parse("#FFC9A84C")),
                 BorderThickness = new Thickness(1),
@@ -438,6 +451,7 @@ public sealed partial class MobileShellView : UserControl
                 {
                     Text = definition.Name,
                     Foreground = Brushes.White,
+                    FontSize = 14 * buttonScale,
                     FontWeight = FontWeight.SemiBold,
                     TextAlignment = TextAlignment.Center,
                     TextTrimming = TextTrimming.CharacterEllipsis,
@@ -455,6 +469,68 @@ public sealed partial class MobileShellView : UserControl
 
         UpdateFloatingButtonVisibility();
         Dispatcher.UIThread.Post(PositionFloatingButtons, DispatcherPriority.Loaded);
+    }
+
+    private void ApplyMovementButtonScale()
+    {
+        var grid = this.FindControl<Grid>("MovementPadGrid");
+        var pad = this.FindControl<Border>("MovementPad");
+        if (grid is null || pad is null || _viewModel is null)
+        {
+            return;
+        }
+
+        var scale = _viewModel.MobileMovementButtonScale;
+        pad.Padding = new Thickness(7 * scale);
+        pad.CornerRadius = new CornerRadius(14 * scale);
+        grid.RowSpacing = 4 * scale;
+        grid.ColumnSpacing = 4 * scale;
+
+        grid.RowDefinitions[0].Height = new GridLength(30 * scale);
+        for (var row = 1; row < grid.RowDefinitions.Count; row++)
+        {
+            grid.RowDefinitions[row].Height = new GridLength(54 * scale);
+        }
+
+        foreach (var column in grid.ColumnDefinitions)
+        {
+            column.Width = new GridLength(58 * scale);
+        }
+
+        var dragHandle = this.FindControl<Border>("MovementPadDragHandle");
+        if (dragHandle is not null)
+        {
+            dragHandle.Width = 54 * scale;
+            dragHandle.Height = 26 * scale;
+            dragHandle.CornerRadius = new CornerRadius(8 * scale);
+            if (dragHandle.Child is TextBlock dragIcon)
+            {
+                dragIcon.FontSize = 17 * scale;
+            }
+        }
+
+        foreach (var button in grid.Children.OfType<Avalonia.Controls.Button>())
+        {
+            var size = 54 * scale;
+            button.Width = size;
+            button.Height = size;
+            button.MinWidth = size;
+            button.MinHeight = size;
+            button.Padding = new Thickness(3 * scale);
+            button.FontSize = (Grid.GetRow(button) == 4 ? 14 : 15) * scale;
+            if (button.Content is TextBlock label)
+            {
+                label.MaxWidth = 46 * scale;
+            }
+        }
+
+        var center = this.FindControl<Border>("MovementPadCenter");
+        if (center is not null)
+        {
+            center.Width = 20 * scale;
+            center.Height = 20 * scale;
+            center.CornerRadius = new CornerRadius(10 * scale);
+        }
     }
 
     private void FloatingButtonLayer_OnSizeChanged(

@@ -109,6 +109,34 @@
                     TickFrequency="0.05"
                     IsSnapToTickEnabled="True" />
           </StackPanel>
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label"
+                         Text="Rozmiar pływających przycisków" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding MobileFloatingButtonScaleText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinMobileButtonScale}"
+                    Maximum="{Binding MaxMobileButtonScale}"
+                    Value="{Binding MobileFloatingButtonScale}"
+                    TickFrequency="0.1"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label"
+                         Text="Rozmiar przycisków ruchu" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding MobileMovementButtonScaleText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinMobileButtonScale}"
+                    Maximum="{Binding MaxMobileButtonScale}"
+                    Value="{Binding MobileMovementButtonScale}"
+                    TickFrequency="0.1"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
           <TextBlock Classes="mud-muted"
                      TextWrapping="Wrap"
                      Text="Każdy schemat ma własne przyciski i ich położenie. Dotknięcie wysyła komendę, a przytrzymanie pozwala przesunąć przycisk." />

@@ -91,7 +91,8 @@
       <Border.RenderTransform>
         <TranslateTransform />
       </Border.RenderTransform>
-      <Grid RowDefinitions="30,54,54,54,54"
+      <Grid x:Name="MovementPadGrid"
+            RowDefinitions="30,54,54,54,54"
             ColumnDefinitions="58,58,58"
             RowSpacing="4"
             ColumnSpacing="4">
@@ -157,7 +158,8 @@
                      TextAlignment="Center"
                      TextTrimming="CharacterEllipsis" />
         </Button>
-        <Border Grid.Row="2"
+        <Border x:Name="MovementPadCenter"
+                Grid.Row="2"
                 Grid.Column="1"
                 Width="20"
                 Height="20"

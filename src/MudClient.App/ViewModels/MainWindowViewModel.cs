@@ -1182,6 +1182,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public double MaxWidgetFontSize => AppSettings.MaxWidgetFontSize;
     public double MinMobileControlsOpacity => AppSettings.MinMobileControlsOpacity;
     public double MaxMobileControlsOpacity => AppSettings.MaxMobileControlsOpacity;
+    public double MinMobileButtonScale => AppSettings.MinMobileButtonScale;
+    public double MaxMobileButtonScale => AppSettings.MaxMobileButtonScale;
 
     /// <summary>Font family name for MUD output in the main screen.</summary>
     public string OutputFontFamily
@@ -1244,6 +1246,54 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string MobileControlsOpacityText => $"{_settings.MobileControlsOpacity:P0}";
+
+    public double MobileFloatingButtonScale
+    {
+        get => _settings.MobileFloatingButtonScale;
+        set
+        {
+            var clamped = Math.Clamp(
+                Math.Round(value, 1),
+                AppSettings.MinMobileButtonScale,
+                AppSettings.MaxMobileButtonScale);
+            if (Math.Abs(_settings.MobileFloatingButtonScale - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.MobileFloatingButtonScale = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(MobileFloatingButtonScaleText));
+            SaveSettings();
+        }
+    }
+
+    public string MobileFloatingButtonScaleText =>
+        $"{_settings.MobileFloatingButtonScale:P0}";
+
+    public double MobileMovementButtonScale
+    {
+        get => _settings.MobileMovementButtonScale;
+        set
+        {
+            var clamped = Math.Clamp(
+                Math.Round(value, 1),
+                AppSettings.MinMobileButtonScale,
+                AppSettings.MaxMobileButtonScale);
+            if (Math.Abs(_settings.MobileMovementButtonScale - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.MobileMovementButtonScale = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(MobileMovementButtonScaleText));
+            SaveSettings();
+        }
+    }
+
+    public string MobileMovementButtonScaleText =>
+        $"{_settings.MobileMovementButtonScale:P0}";
 
     public FontFamily OutputFontFamilyValue => AppFonts.Resolve(_settings.OutputFontFamily);
 
