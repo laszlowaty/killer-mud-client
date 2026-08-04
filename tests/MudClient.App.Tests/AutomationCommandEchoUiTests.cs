@@ -45,7 +45,7 @@ public sealed class AutomationCommandEchoUiTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(
-                ["\u001b[31mUtracono efekt: Ochrona.\u001b[0m\n"],
+                ["\n\u001b[31mUtracono efekt: Ochrona.\u001b[0m\n"],
                 output);
         }
         finally

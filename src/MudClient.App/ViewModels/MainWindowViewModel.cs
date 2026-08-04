@@ -6219,7 +6219,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
             foreach (var lostEffectName in lostEffectNames)
             {
-                EmitEcho("red", $"Utracono efekt: {lostEffectName}.");
+                EmitEcho(
+                    "red",
+                    $"Utracono efekt: {lostEffectName}.",
+                    startOnNewLine: true);
             }
         });
     }
@@ -6455,9 +6458,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(GroupEmptyMessage));
     }
 
-    private void EmitSystem(string text, int ansiColor)
+    private void EmitSystem(string text, int ansiColor, bool startOnNewLine = false)
     {
-        OutputReceived?.Invoke($"\u001b[{ansiColor}m{text}\u001b[0m\n");
+        var linePrefix = startOnNewLine ? "\n" : string.Empty;
+        OutputReceived?.Invoke($"{linePrefix}\u001b[{ansiColor}m{text}\u001b[0m\n");
     }
 
     private bool TryHandleEchoCommand(string command)
@@ -6483,15 +6487,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         return true;
     }
 
-    private void EmitEcho(string color, string text)
+    private void EmitEcho(string color, string text, bool startOnNewLine = false)
     {
         if (EchoCommandParser.TryCreate(color, text, out var echo))
         {
-            EmitEcho(echo!);
+            EmitEcho(echo!, startOnNewLine);
         }
     }
 
-    private void EmitEcho(EchoCommand echo) => EmitSystem(echo.Text, echo.AnsiColorCode);
+    private void EmitEcho(EchoCommand echo, bool startOnNewLine = false) =>
+        EmitSystem(echo.Text, echo.AnsiColorCode, startOnNewLine);
 
     // Manual/alias, trigger and timer paths use the same terminal echo so automated
     // commands remain visible even when the MUD does not echo client input.
