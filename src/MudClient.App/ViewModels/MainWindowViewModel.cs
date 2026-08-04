@@ -13,6 +13,7 @@ using MudClient.App.Docking;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Automation;
+using MudClient.Core.Combat;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
 using MudClient.Core.Networking;
@@ -1375,6 +1376,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.ShowTerminalVitalsBars = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool ShowNumericDamageEnabled
+    {
+        get => _settings.ShowNumericDamageEnabled;
+        set
+        {
+            if (_settings.ShowNumericDamageEnabled == value)
+            {
+                return;
+            }
+
+            _settings.ShowNumericDamageEnabled = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -5826,6 +5843,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (AutowalkRecoveryPolicy.IsLockedGateMessage(line))
         {
             Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
+        }
+
+        if (_settings.ShowNumericDamageEnabled && DamagePhrases.TryGetDamage(line, out var damage))
+        {
+            Dispatcher.UIThread.Post(() => EmitSystem($"   → {damage} obrażeń", 36));
         }
 
         if (GroupOrdersEnabled

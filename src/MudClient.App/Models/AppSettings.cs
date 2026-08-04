@@ -67,6 +67,10 @@ public sealed class AppSettings
     /// <summary>Shows the vertical HP and MV indicators beside the terminal.</summary>
     public bool ShowTerminalVitalsBars { get; set; } = true;
 
+    /// <summary>Annotates recognized "you dealt damage" combat lines (e.g. "Ranisz golema...")
+    /// with their approximate numeric tier — see <see cref="MudClient.Core.Combat.DamagePhrases"/>.</summary>
+    public bool ShowNumericDamageEnabled { get; set; } = true;
+
     /// <summary>Clears the terminal command input after a manually submitted command.</summary>
     public bool ClearCommandInputAfterSend { get; set; }
 

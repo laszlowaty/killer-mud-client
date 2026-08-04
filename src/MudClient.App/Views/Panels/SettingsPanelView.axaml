@@ -36,6 +36,13 @@
           <CheckBox Content="Pokazuj paski HP i MV po bokach terminala"
                     IsChecked="{Binding ShowTerminalVitalsBars}" />
 
+          <StackPanel Spacing="3">
+            <CheckBox Content="Pokaż obrażenia liczbowo"
+                      IsChecked="{Binding ShowNumericDamageEnabled}" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Dopisuje przybliżoną liczbę obrażeń pod liniami typu „Ranisz golema mieczem.” — tylko dla ciosów zadanych przez Ciebie." />
+          </StackPanel>
+
           <CheckBox Content="Pogrubiona"
                     IsChecked="{Binding OutputFontBold}" />
 
