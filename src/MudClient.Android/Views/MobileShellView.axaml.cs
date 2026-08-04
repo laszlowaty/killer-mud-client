@@ -68,6 +68,7 @@ public sealed partial class MobileShellView : UserControl
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _viewModel.FloatingButtons.CollectionChanged += OnFloatingButtonsChanged;
             RebuildFloatingButtons();
+            ApplyMobileControlsOpacity();
             UpdateMovementPadVisibility();
             var loadingOverlay = this.FindControl<Grid>("LoadingOverlay");
             if (loadingOverlay is not null)
@@ -121,6 +122,11 @@ public sealed partial class MobileShellView : UserControl
             StartMapInitializationWhenConnected();
             UpdateMovementPadVisibility();
             UpdateFloatingButtonVisibility();
+        }
+
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.MobileControlsOpacity))
+        {
+            ApplyMobileControlsOpacity();
         }
     }
 
@@ -416,7 +422,7 @@ public sealed partial class MobileShellView : UserControl
                 Background = new SolidColorBrush(Color.Parse("#FF30373D")),
                 BorderBrush = new SolidColorBrush(Color.Parse("#FFC9A84C")),
                 BorderThickness = new Thickness(1),
-                Opacity = 0.76,
+                Opacity = _viewModel.MobileControlsOpacity,
                 RenderTransform = scale,
                 RenderTransformOrigin = RelativePoint.Center,
                 Transitions =
@@ -682,14 +688,39 @@ public sealed partial class MobileShellView : UserControl
         }
     }
 
-    private static void SetFloatingButtonPressVisual(Border button, bool isPressed)
+    private void SetFloatingButtonPressVisual(Border button, bool isPressed)
     {
-        button.Opacity = isPressed ? 0.9 : 0.76;
+        var baseOpacity = _viewModel?.MobileControlsOpacity ?? 0.76;
+        button.Opacity = baseOpacity;
         if (button.RenderTransform is ScaleTransform scale)
         {
             var targetScale = isPressed ? 0.95 : 1;
             scale.ScaleX = targetScale;
             scale.ScaleY = targetScale;
+        }
+    }
+
+    private void ApplyMobileControlsOpacity()
+    {
+        var opacity = _viewModel?.MobileControlsOpacity ?? 0.76;
+        var movementPad = this.FindControl<Border>("MovementPad");
+        if (movementPad is not null)
+        {
+            movementPad.Opacity = opacity;
+        }
+
+        var floatingButtonLayer = this.FindControl<Canvas>("FloatingButtonLayer");
+        if (floatingButtonLayer is null)
+        {
+            return;
+        }
+
+        foreach (var button in floatingButtonLayer.Children.OfType<Border>())
+        {
+            if (!ReferenceEquals(button, _pressedFloatingButton))
+            {
+                button.Opacity = opacity;
+            }
         }
     }
 

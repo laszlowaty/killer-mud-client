@@ -1163,6 +1163,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public double MaxOutputFontSize => AppSettings.MaxOutputFontSize;
     public double MinWidgetFontSize => AppSettings.MinWidgetFontSize;
     public double MaxWidgetFontSize => AppSettings.MaxWidgetFontSize;
+    public double MinMobileControlsOpacity => AppSettings.MinMobileControlsOpacity;
+    public double MaxMobileControlsOpacity => AppSettings.MaxMobileControlsOpacity;
 
     /// <summary>Font family name for MUD output in the main screen.</summary>
     public string OutputFontFamily
@@ -1202,6 +1204,29 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public string OutputFontSizeText => $"{_settings.OutputFontSize:0} px";
+
+    public double MobileControlsOpacity
+    {
+        get => _settings.MobileControlsOpacity;
+        set
+        {
+            var clamped = Math.Clamp(
+                Math.Round(value, 2),
+                AppSettings.MinMobileControlsOpacity,
+                AppSettings.MaxMobileControlsOpacity);
+            if (Math.Abs(_settings.MobileControlsOpacity - clamped) < 0.001)
+            {
+                return;
+            }
+
+            _settings.MobileControlsOpacity = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(MobileControlsOpacityText));
+            SaveSettings();
+        }
+    }
+
+    public string MobileControlsOpacityText => $"{_settings.MobileControlsOpacity:P0}";
 
     public FontFamily OutputFontFamilyValue => AppFonts.Resolve(_settings.OutputFontFamily);
 

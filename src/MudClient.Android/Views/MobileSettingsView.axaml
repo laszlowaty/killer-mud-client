@@ -91,6 +91,20 @@
       <TextBlock Classes="mud-heading" Text="Pływające przyciski" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label"
+                         Text="Przezroczystość pada i przycisków" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding MobileControlsOpacityText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinMobileControlsOpacity}"
+                    Maximum="{Binding MaxMobileControlsOpacity}"
+                    Value="{Binding MobileControlsOpacity}"
+                    TickFrequency="0.05"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
           <TextBlock Classes="mud-muted"
                      TextWrapping="Wrap"
                      Text="Każdy schemat ma własne przyciski i ich położenie. Dotknięcie wysyła komendę, a przytrzymanie pozwala przesunąć przycisk." />

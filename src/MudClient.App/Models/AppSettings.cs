@@ -15,6 +15,9 @@ public sealed class AppSettings
     public const double MaxWidgetFontSize = 24;
     public const string DefaultTelnetColorScheme = "Ciepłe";
     public const string DefaultFloatingButtonSetName = "Domyślny";
+    public const double DefaultMobileControlsOpacity = 0.76;
+    public const double MinMobileControlsOpacity = 0.25;
+    public const double MaxMobileControlsOpacity = 1.0;
 
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
@@ -89,6 +92,9 @@ public sealed class AppSettings
 
     /// <summary>Id of the Android button set currently displayed over the terminal.</summary>
     public string ActiveFloatingButtonSetId { get; set; } = string.Empty;
+
+    /// <summary>Shared opacity of the Android movement pad and floating buttons.</summary>
+    public double MobileControlsOpacity { get; set; } = DefaultMobileControlsOpacity;
 }
 
 public sealed class FloatingButtonSetDefinition

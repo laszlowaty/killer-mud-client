@@ -57,6 +57,9 @@ public sealed class AppSettingsService
                         settings.TelnetColorScheme = AppSettings.DefaultTelnetColorScheme;
                     }
 
+                    settings.MobileControlsOpacity = NormalizeMobileControlsOpacity(
+                        settings.MobileControlsOpacity);
+
                     // null means the property is missing from an older/corrupt settings file — use default.
                     if (settings.CommandStackingSeparator is null)
                     {
@@ -90,6 +93,14 @@ public sealed class AppSettingsService
         NormalizeFloatingButtonSets(defaults);
         return defaults;
     }
+
+    private static double NormalizeMobileControlsOpacity(double opacity) =>
+        double.IsFinite(opacity)
+            ? Math.Clamp(
+                opacity,
+                AppSettings.MinMobileControlsOpacity,
+                AppSettings.MaxMobileControlsOpacity)
+            : AppSettings.DefaultMobileControlsOpacity;
 
     public void Save(AppSettings settings)
     {
