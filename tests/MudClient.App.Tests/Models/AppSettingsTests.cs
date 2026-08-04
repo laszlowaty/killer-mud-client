@@ -45,6 +45,18 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_NumericCharacterStatRangesAreEnabledByDefault()
+    {
+        Assert.True(new AppSettings().ShowNumericCharacterStatRanges);
+    }
+
+    [Fact]
+    public void Constructor_NumericCombatDamageIsEnabledByDefault()
+    {
+        Assert.True(new AppSettings().ShowNumericCombatDamage);
+    }
+
+    [Fact]
     public void Constructor_ClearCommandInputAfterSendIsDisabledByDefault()
     {
         Assert.False(new AppSettings().ClearCommandInputAfterSend);

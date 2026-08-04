@@ -295,6 +295,28 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Vm_ChangingNumericCharacterStatRanges_PersistsToSettings()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.ShowNumericCharacterStatRanges = false;
+
+        Assert.False(settingsService.Load().ShowNumericCharacterStatRanges);
+    }
+
+    [Fact]
+    public async Task Vm_ChangingNumericCombatDamage_PersistsToSettings()
+    {
+        var settingsService = new AppSettingsService(_directory);
+        await using var vm = new MainWindowViewModel(CreateService(), settingsService);
+
+        vm.ShowNumericCombatDamage = false;
+
+        Assert.False(settingsService.Load().ShowNumericCombatDamage);
+    }
+
+    [Fact]
     public async Task Vm_ChangingClearCommandInputAfterSend_PersistsToSettings()
     {
         var settingsService = new AppSettingsService(_directory);

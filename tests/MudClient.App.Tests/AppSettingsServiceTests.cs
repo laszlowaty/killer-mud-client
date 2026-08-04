@@ -40,6 +40,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(AppSettings.DefaultWidgetFontFamily, settings.WidgetFontFamily);
         Assert.Equal(AppSettings.DefaultWidgetFontSize, settings.WidgetFontSize);
         Assert.True(settings.OutputWordWrap);
+        Assert.True(settings.ShowNumericCharacterStatRanges);
+        Assert.True(settings.ShowNumericCombatDamage);
         Assert.True(settings.ShowTerminalVitalsBars);
         Assert.False(settings.ClearCommandInputAfterSend);
         Assert.False(settings.LordModeEnabled);
@@ -161,6 +163,8 @@ public sealed class AppSettingsServiceTests : IDisposable
             WidgetFontSize = 15,
             WidgetFontBold = true,
             OutputWordWrap = false,
+            ShowNumericCharacterStatRanges = false,
+            ShowNumericCombatDamage = false,
             ShowTerminalVitalsBars = false,
             ClearCommandInputAfterSend = true,
             AutoAssistEnabled = true,
@@ -196,6 +200,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal(15, loaded.WidgetFontSize);
         Assert.True(loaded.WidgetFontBold);
         Assert.False(loaded.OutputWordWrap);
+        Assert.False(loaded.ShowNumericCharacterStatRanges);
+        Assert.False(loaded.ShowNumericCombatDamage);
         Assert.False(loaded.ShowTerminalVitalsBars);
         Assert.True(loaded.ClearCommandInputAfterSend);
         Assert.True(loaded.AutoAssistEnabled);

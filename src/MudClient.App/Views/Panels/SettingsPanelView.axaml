@@ -33,6 +33,12 @@
           <CheckBox Content="Zawijaj długie linie w oknie terminala"
                     IsChecked="{Binding OutputWordWrap}" />
 
+          <CheckBox Content="Pokazuj liczbowe zakresy statystyk postaci"
+                    IsChecked="{Binding ShowNumericCharacterStatRanges}" />
+
+          <CheckBox Content="Pokazuj liczbowe wartości zadawanych obrażeń"
+                    IsChecked="{Binding ShowNumericCombatDamage}" />
+
           <CheckBox Content="Pokazuj paski HP i MV po bokach terminala"
                     IsChecked="{Binding ShowTerminalVitalsBars}" />
 

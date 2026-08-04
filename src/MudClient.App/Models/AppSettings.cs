@@ -39,6 +39,12 @@ public sealed class AppSettings
     /// <summary>Wraps long MUD output lines to the terminal width.</summary>
     public bool OutputWordWrap { get; set; } = true;
 
+    /// <summary>Adds numeric ranges to KillerMUD's descriptive character-stat lines.</summary>
+    public bool ShowNumericCharacterStatRanges { get; set; } = true;
+
+    /// <summary>Adds numeric tiers to KillerMUD combat-damage phrases.</summary>
+    public bool ShowNumericCombatDamage { get; set; } = true;
+
     /// <summary>Shows the vertical HP and MV indicators beside the terminal.</summary>
     public bool ShowTerminalVitalsBars { get; set; } = true;
 

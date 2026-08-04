@@ -27,6 +27,10 @@
 
           <CheckBox Content="Zawijaj długie linie"
                     IsChecked="{Binding OutputWordWrap}" />
+          <CheckBox Content="Pokazuj liczbowe zakresy statystyk"
+                    IsChecked="{Binding ShowNumericCharacterStatRanges}" />
+          <CheckBox Content="Pokazuj liczbowe wartości obrażeń"
+                    IsChecked="{Binding ShowNumericCombatDamage}" />
           <CheckBox Content="Pogrubiona czcionka"
                     IsChecked="{Binding OutputFontBold}" />
 

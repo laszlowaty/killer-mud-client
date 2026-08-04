@@ -37,6 +37,8 @@ SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexi
   w układzie **DEFAULT** jest zakładką obok terminala, a układy zapisane przez starsze
   wersje zachowują swój wygląd i otrzymują go jako ukryty panel w menu **Panele**,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
+- opcjonalne dopisywanie liczbowych zakresów do opisowych statystyk postaci; wspólne ustawienie działa na desktopie i Androidzie,
+- opcjonalne dopisywanie liczbowych wartości do opisowych komunikatów zadawanych obrażeń, z zachowaniem osobnych progów zapisanych wielkimi literami,
 - zwirtualizowany bufor wyjścia: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`) — koszt dopisania tekstu nie zależy od wielkości scrollbacka, więc wielogodzinne sesje nie spowalniają UI,
 - zaznaczanie i kopiowanie tekstu lub kolorowego fragmentu terminala jako obrazu do schowka systemowego (przeciąganie myszą + menu kontekstowe).
 

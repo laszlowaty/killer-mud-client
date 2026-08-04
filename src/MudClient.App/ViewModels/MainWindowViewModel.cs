@@ -41,6 +41,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly CharacterStateResolver _characterState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
     private readonly CharacterRoller _characterRoller = new();
+    private readonly CharacterStatRangeTextTransformer _characterStatRangeTransformer = new();
+    private readonly CombatDamageRangeTextTransformer _combatDamageRangeTransformer = new();
     private readonly object _characterRollerLock = new();
     private readonly ProfileService _profiles;
     private readonly UiOutputBatcher _uiOutputBatcher;
@@ -1328,6 +1330,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.OutputWordWrap = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool ShowNumericCharacterStatRanges
+    {
+        get => _settings.ShowNumericCharacterStatRanges;
+        set
+        {
+            if (_settings.ShowNumericCharacterStatRanges == value)
+            {
+                return;
+            }
+
+            _settings.ShowNumericCharacterStatRanges = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool ShowNumericCombatDamage
+    {
+        get => _settings.ShowNumericCombatDamage;
+        set
+        {
+            if (_settings.ShowNumericCombatDamage == value)
+            {
+                return;
+            }
+
+            _settings.ShowNumericCombatDamage = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -5740,7 +5774,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnTextReceived(string text)
     {
         _bookCatalogRefreshCoordinator.ObserveText(text);
-        _uiOutputBatcher.Enqueue(text);
+        var displayText = _characterStatRangeTransformer.Transform(
+            text,
+            ShowNumericCharacterStatRanges);
+        displayText = _combatDamageRangeTransformer.Transform(
+            displayText,
+            ShowNumericCombatDamage);
+        _uiOutputBatcher.Enqueue(displayText);
     }
 
     private void OnLineReceived(string line)
