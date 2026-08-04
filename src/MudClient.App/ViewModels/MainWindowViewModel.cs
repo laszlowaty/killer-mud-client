@@ -23,6 +23,7 @@ namespace MudClient.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
     private const int MaximumChatHistoryLines = 500;
+    internal static readonly TimeSpan DefaultToastLifetime = TimeSpan.FromSeconds(3);
     private static readonly Uri DiscordInviteUri = new("https://discord.gg/6NRnxZeMTC");
     internal const string CharacterRollAgainCommand = "n";
     internal static IReadOnlyList<string> CharacterCreationFinishCommands { get; } =
@@ -46,6 +47,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly object _characterRollerLock = new();
     private readonly ProfileService _profiles;
     private readonly UiOutputBatcher _uiOutputBatcher;
+    private readonly TimeSpan _toastLifetime;
+    private readonly CancellationTokenSource _toastExpirationCts = new();
+    private readonly object _toastExpirationTasksLock = new();
+    private readonly List<Task> _toastExpirationTasks = [];
+    private bool _acceptingToastExpirations = true;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
     private CancellationTokenSource _triggerCts = new();
@@ -244,8 +250,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         IExternalLinkService? externalLinkService = null,
         IContentUpdateService? contentUpdateService = null,
         string? appBaseDirectory = null,
-        IPasswordProtector? passwordProtector = null)
+        IPasswordProtector? passwordProtector = null,
+        TimeSpan? toastLifetime = null)
     {
+        _toastLifetime = toastLifetime is { } lifetime && lifetime > TimeSpan.Zero
+            ? lifetime
+            : DefaultToastLifetime;
         _triggers = new TriggerEngine { Aliases = _aliases };
         _profiles = profileService ?? new ProfileService();
         _uiOutputBatcher = new UiOutputBatcher(
@@ -5135,6 +5145,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<NoteEntry> Notes { get; } = [];
 
     // --- Toast messages ---
+    // Their lifetime is managed here so every producer gets the same
+    // three-second behavior and collection changes return to the UI thread.
     public ObservableCollection<ToastMessage> Toasts { get; } = [];
 
     // ========================================================================
@@ -5761,10 +5773,56 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // toast hugs the right edge and older ones get clipped on the left.
         var toast = new ToastMessage { Text = text, Type = type };
         Toasts.Add(toast);
+        ScheduleToastExpiration(toast);
         while (Toasts.Count > 10)
         {
             Toasts.RemoveAt(0);
         }
+    }
+
+    private void ScheduleToastExpiration(ToastMessage toast)
+    {
+        lock (_toastExpirationTasksLock)
+        {
+            if (!_acceptingToastExpirations)
+            {
+                return;
+            }
+
+            var expirationTask = ExpireToastAsync(toast, _toastExpirationCts.Token);
+            _toastExpirationTasks.Add(expirationTask);
+            _ = expirationTask.ContinueWith(
+                completedTask =>
+                {
+                    lock (_toastExpirationTasksLock)
+                    {
+                        _toastExpirationTasks.Remove(completedTask);
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+    }
+
+    private async Task ExpireToastAsync(ToastMessage toast, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(_toastLifetime, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                Toasts.Remove(toast);
+            }
+        });
     }
 
     // ========================================================================
@@ -6660,6 +6718,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         SaveActiveProfile();
+
+        List<Task> toastExpirationTasks;
+        lock (_toastExpirationTasksLock)
+        {
+            _acceptingToastExpirations = false;
+            toastExpirationTasks = [.. _toastExpirationTasks];
+        }
+
+        _toastExpirationCts.Cancel();
+        await Task.WhenAll(toastExpirationTasks);
+        _toastExpirationCts.Dispose();
 
         _updateCheckCts?.Cancel();
         _contentUpdateCts?.Cancel();
