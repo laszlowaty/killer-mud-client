@@ -43,6 +43,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly CharacterRoller _characterRoller = new();
     private readonly object _characterRollerLock = new();
     private readonly ProfileService _profiles;
+    private readonly UiOutputBatcher _uiOutputBatcher;
 
     private readonly SemaphoreSlim _triggerSendLock = new(1, 1);
     private CancellationTokenSource _triggerCts = new();
@@ -244,6 +245,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         _triggers = new TriggerEngine { Aliases = _aliases };
         _profiles = profileService ?? new ProfileService();
+        _uiOutputBatcher = new UiOutputBatcher(
+            text => OutputReceived?.Invoke(text),
+            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background));
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
         foreach (var set in _settings.FloatingButtonSets)
@@ -5719,7 +5723,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnTextReceived(string text)
     {
         _bookCatalogRefreshCoordinator.ObserveText(text);
-        Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(text));
+        _uiOutputBatcher.Enqueue(text);
     }
 
     private void OnLineReceived(string line)
