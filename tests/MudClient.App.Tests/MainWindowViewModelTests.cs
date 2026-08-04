@@ -2465,18 +2465,6 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void OnLineReceived_DamageLine_WithNumericDamageEnabled_DoesNotThrow()
-    {
-        _vm.ShowNumericDamageEnabled = true;
-        var method = GetOnLineReceivedMethod();
-
-        var exception = Record.Exception(() =>
-            method.Invoke(_vm, ["Ranisz golema swoim mieczem."]));
-
-        Assert.Null(exception);
-    }
-
-    [Fact]
     public void OnLineReceived_NoMatchingTriggers_SendTriggeredCommandsNotCalled()
     {
         // Verify that the semaphore is not affected when there are no

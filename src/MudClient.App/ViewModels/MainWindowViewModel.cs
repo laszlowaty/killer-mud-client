@@ -72,6 +72,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string? _latestCharacterName;
     private string? _latestCharacterPosition;
 
+    /// <summary>Carries a line's text across chunk boundaries for <see cref="AnnotateDamageLines"/>,
+    /// mirroring MudSession's own internal line accumulator.</summary>
+    private string _pendingDamageLine = string.Empty;
+
     private readonly AsyncRelayCommand _connectCommand;
     private readonly AsyncRelayCommand _disconnectCommand;
     private readonly AsyncRelayCommand _sendCommandCommand;
@@ -5817,7 +5821,57 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnTextReceived(string text)
     {
         _bookCatalogRefreshCoordinator.ObserveText(text);
-        Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(text));
+        var toDisplay = _settings.ShowNumericDamageEnabled ? AnnotateDamageLines(text) : text;
+        Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(toDisplay));
+    }
+
+    /// <summary>
+    /// Splices " (N)" onto the end of any complete line in <paramref name="chunk"/> recognized by
+    /// <see cref="DamagePhrases"/> — e.g. "Twoje miażdżące walnięcie dewastuje sędziwego
+    /// krasnoluda. (44)". Runs on the raw incoming text (same layer as <see cref="LineAccumulator"/>
+    /// inside MudSession) rather than on already-completed lines in the output buffer, since by the
+    /// time a line is known to be complete its unmodified text has already been forwarded to the
+    /// terminal — appending after the fact would only ever land on a new line below it, not the end
+    /// of the same one. <see cref="_pendingDamageLine"/> carries a line's text across chunk
+    /// boundaries the same way MudSession's own line accumulator does, since a single line can
+    /// arrive split across multiple reads.
+    /// </summary>
+    private string AnnotateDamageLines(string chunk)
+    {
+        if (!chunk.Contains('\n'))
+        {
+            _pendingDamageLine += chunk;
+            return chunk;
+        }
+
+        var segments = chunk.Split('\n');
+        var output = new StringBuilder(chunk.Length + 8);
+
+        var firstLine = (_pendingDamageLine + segments[0]).TrimEnd('\r');
+        output.Append(segments[0].TrimEnd('\r'));
+        AppendDamageSuffix(output, firstLine);
+        output.Append('\n');
+
+        for (var i = 1; i < segments.Length - 1; i++)
+        {
+            var line = segments[i].TrimEnd('\r');
+            output.Append(line);
+            AppendDamageSuffix(output, line);
+            output.Append('\n');
+        }
+
+        _pendingDamageLine = segments[^1];
+        output.Append(_pendingDamageLine);
+
+        return output.ToString();
+    }
+
+    private static void AppendDamageSuffix(StringBuilder output, string line)
+    {
+        if (DamagePhrases.TryGetDamage(line, out var damage))
+        {
+            output.Append(" (").Append(damage).Append(')');
+        }
     }
 
     private void OnLineReceived(string line)
@@ -5843,11 +5897,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         if (AutowalkRecoveryPolicy.IsLockedGateMessage(line))
         {
             Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
-        }
-
-        if (_settings.ShowNumericDamageEnabled && DamagePhrases.TryGetDamage(line, out var damage))
-        {
-            Dispatcher.UIThread.Post(() => EmitSystem($"   → {damage} obrażeń", 36));
         }
 
         if (GroupOrdersEnabled

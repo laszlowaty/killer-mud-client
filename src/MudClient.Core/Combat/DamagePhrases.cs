@@ -4,20 +4,25 @@ using MudClient.Core.Text;
 namespace MudClient.Core.Combat;
 
 /// <summary>
-/// Maps the combat verbs this MUD sends when the local character lands a hit (e.g. "Ranisz",
-/// "ranisz") to their approximate numeric damage tier.
+/// Maps this MUD's combat damage verbs to their approximate numeric tier, for lines that mean
+/// "you dealt this damage".
 ///
-/// Every tier has both a 2nd-person form ("Ranisz golema mieczem." — you land the hit, ends in
-/// "sz"/"SZ") and a 3rd-person form ("Golem rani cię." / "Golem rani Aragorna." — someone or
-/// something else is the subject, whether that's a mob hitting you or bystander-visible combat
-/// between others). Only the 2nd-person forms are included here: they're the only ones that
-/// unambiguously mean "you dealt this damage", which is what the numeric-damage display is for.
+/// Two message shapes both count as your own damage:
+///  - 2nd person: "Ranisz golema mieczem." — you're literally the grammatical subject. Ends in
+///    "sz"/"SZ" and is unambiguous on its own.
+///  - 3rd person via a named technique: "Twoje miażdżące walnięcie dewastuje sędziwego
+///    krasnoluda." — the subject is the technique noun ("Twoje ... walnięcie"), not "you", so the
+///    verb conjugates in 3rd person ("dewastuje") even though it's your own hit. On its own this
+///    form is ambiguous (the same verb describes a mob hitting you, or bystander-visible combat
+///    between others) — it only counts here when the line also contains "Twoj*" ("Twoje"/"Twój"/
+///    "Twoja"/"Twoim"/...), confirming the technique is yours.
+///
 /// A couple of encoding-mangled variants (e.g. the "Å" mojibake) are kept too, in case a client
 /// encoding misdetection ever produces them — they cost nothing to keep around.
 /// </summary>
 public static class DamagePhrases
 {
-    private static readonly IReadOnlyDictionary<string, int> Values = new Dictionary<string, int>
+    private static readonly IReadOnlyDictionary<string, int> SelfVerbValues = new Dictionary<string, int>
     {
         ["Chybiasz"] = 0,
         ["chybiasz"] = 0,
@@ -69,27 +74,72 @@ public static class DamagePhrases
         ["UNICESTWIASZ"] = 201,
     };
 
-    private static readonly Regex PhrasePattern = BuildPattern();
+    private static readonly IReadOnlyDictionary<string, int> TechniqueVerbValues = new Dictionary<string, int>
+    {
+        ["chybia"] = 0,
+        ["siniaczy"] = 2,
+        ["muska"] = 6,
+        ["ledwie rani"] = 10,
+        ["lekko rani"] = 14,
+        ["rani"] = 18,
+        ["mocno rani"] = 22,
+        ["dotkliwie rani"] = 26,
+        ["powaznie rani"] = 30,
+        ["powaÅ¼nie rani"] = 30,
+        ["masakruje"] = 34,
+        ["rozpruwa"] = 38,
+        ["dewastuje"] = 44,
+        ["grzmoci"] = 50,
+        ["niszczy"] = 55,
+        ["NISZCZY"] = 60,
+        ["DRUZGOCZE"] = 67,
+        ["ROZPRUWA"] = 75,
+        ["ROZRYWA"] = 84,
+        ["ROZBEBESZA"] = 100,
+        ["DEKAPITUJE"] = 115,
+        ["EKSTYRPUJE"] = 130,
+        ["ANIHILUJE"] = 145,
+        ["USMIERCA"] = 200,
+        ["UÅMIERCA"] = 200,
+        ["UNICESTWIA"] = 201,
+    };
 
-    private static Regex BuildPattern()
+    private static readonly Regex SelfVerbPattern = BuildPattern(SelfVerbValues.Keys);
+    private static readonly Regex TechniqueVerbPattern = BuildPattern(TechniqueVerbValues.Keys);
+    private static readonly Regex OwnTechniquePattern = new(
+        @"\bTwoj\w*\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static Regex BuildPattern(IEnumerable<string> phrases)
     {
         var alternation = string.Join(
-            '|', Values.Keys.OrderByDescending(key => key.Length).Select(Regex.Escape));
+            '|', phrases.OrderByDescending(phrase => phrase.Length).Select(Regex.Escape));
         return new Regex($@"\b(?:{alternation})\b", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     }
 
-    /// <summary>Finds the first recognized "you dealt damage" phrase in <paramref name="line"/>
-    /// (ANSI escape codes are stripped before matching) and returns its numeric tier.</summary>
+    /// <summary>Finds a recognized "you dealt damage" phrase in <paramref name="line"/> (ANSI
+    /// escape codes are stripped before matching) and returns its numeric tier.</summary>
     public static bool TryGetDamage(string line, out int damage)
     {
-        var match = PhrasePattern.Match(AnsiText.StripAnsi(line));
-        if (!match.Success)
+        var plain = AnsiText.StripAnsi(line);
+
+        var selfMatch = SelfVerbPattern.Match(plain);
+        if (selfMatch.Success)
         {
-            damage = 0;
-            return false;
+            damage = SelfVerbValues[selfMatch.Value];
+            return true;
         }
 
-        damage = Values[match.Value];
-        return true;
+        if (OwnTechniquePattern.IsMatch(plain))
+        {
+            var techniqueMatch = TechniqueVerbPattern.Match(plain);
+            if (techniqueMatch.Success)
+            {
+                damage = TechniqueVerbValues[techniqueMatch.Value];
+                return true;
+            }
+        }
+
+        damage = 0;
+        return false;
     }
 }

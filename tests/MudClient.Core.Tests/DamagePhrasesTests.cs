@@ -29,20 +29,37 @@ public sealed class DamagePhrasesTests
     [InlineData("ANIHILUJESZ golema swoim mieczem.", 145)]
     [InlineData("USMIERCASZ golema swoim mieczem.", 200)]
     [InlineData("UNICESTWIASZ golema swoim mieczem.", 201)]
-    public void TryGetDamage_RecognizesEveryTier(string line, int expected)
+    public void TryGetDamage_RecognizesEverySelfVerbTier(string line, int expected)
     {
         Assert.True(DamagePhrases.TryGetDamage(line, out var damage));
         Assert.Equal(expected, damage);
     }
 
     [Theory]
-    // 3rd-person forms mean someone/something else is the subject — a mob hitting you, or
-    // bystander-visible combat between others — not damage the local character dealt.
+    // "Twoje <technika> <3rd-person verb> <cel>." — the technique noun is the grammatical
+    // subject, so the verb conjugates in 3rd person even though it's your own hit.
+    [InlineData("Twoje niezdarne pchnięcie chybia.", 0)]
+    [InlineData("Twoje szybkie cięcie siniaczy sędziwego krasnoluda.", 2)]
+    [InlineData("Twoje delikatne draśnięcie muska sędziwego krasnoluda.", 6)]
+    [InlineData("Twoje miażdżące walniecie dewastuje sedziwego krasnoluda.", 44)]
+    [InlineData("Twoje potężne uderzenie niszczy sędziwego krasnoluda.", 55)]
+    [InlineData("Twoje druzgoczące uderzenie NISZCZY sędziwego krasnoluda.", 60)]
+    [InlineData("Twoje straszliwe cięcie UNICESTWIA sędziwego krasnoluda.", 201)]
+    public void TryGetDamage_RecognizesTechniqueVerbTier_WhenLineNamesYourTechnique(
+        string line, int expected)
+    {
+        Assert.True(DamagePhrases.TryGetDamage(line, out var damage));
+        Assert.Equal(expected, damage);
+    }
+
+    [Theory]
+    // Bare 3rd-person forms — no "Twoje"/"Twój" in the line — mean someone/something else is the
+    // subject: a mob hitting you, or bystander-visible combat between others. Not your damage.
     [InlineData("Golem cię rani swoją pięścią.")]
     [InlineData("Golem chybia.")]
-    [InlineData("Golem rani Aragorna swoją pięścią.")]
-    [InlineData("Golem cię niszczy swoją pięścią.")]
-    public void TryGetDamage_IgnoresThirdPersonForms(string line)
+    [InlineData("Miażdżące uderzenie golema dewastuje cię.")]
+    [InlineData("Miażdżące uderzenie golema dewastuje Aragorna.")]
+    public void TryGetDamage_IgnoresThirdPersonForms_WithoutYourTechniqueNamed(string line)
     {
         Assert.False(DamagePhrases.TryGetDamage(line, out _));
     }
@@ -64,7 +81,8 @@ public sealed class DamagePhrasesTests
     [Fact]
     public void TryGetDamage_StripsAnsiBeforeMatching()
     {
-        var line = "[31mRanisz golema mieczem.[0m";
+        var esc = (char)0x1B;
+        var line = $"{esc}[31mRanisz golema mieczem.{esc}[0m";
 
         Assert.True(DamagePhrases.TryGetDamage(line, out var damage));
         Assert.Equal(18, damage);

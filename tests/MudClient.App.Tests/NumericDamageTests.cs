@@ -6,22 +6,22 @@ using MudClient.App.ViewModels;
 
 namespace MudClient.App.Tests;
 
-/// <summary>Covers the "Pokaż obrażenia liczbowo" setting — annotates recognized "you dealt
-/// damage" combat lines with their numeric tier. EmitSystem (used by the annotation) posts via
-/// Dispatcher.UIThread, so these need a real headless dispatcher pump.</summary>
+/// <summary>Covers the "Pokaż obrażenia liczbowo" setting — splices " (N)" onto the end of
+/// recognized "you dealt damage" combat lines, in place, as they arrive. OnTextReceived posts the
+/// (possibly rewritten) text via Dispatcher.UIThread, so these need a real headless dispatcher
+/// pump.</summary>
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class NumericDamageTests
 {
-    private static void InvokeOnLineReceived(MainWindowViewModel viewModel, string line)
+    private static void InvokeOnTextReceived(MainWindowViewModel viewModel, string text)
     {
         var method = typeof(MainWindowViewModel).GetMethod(
-            "OnLineReceived", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        method.Invoke(viewModel, [line]);
+            "OnTextReceived", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        method.Invoke(viewModel, [text]);
         Dispatcher.UIThread.RunJobs();
     }
 
-    [AvaloniaFact]
-    public async Task DamageLine_WithSettingEnabled_AnnotatesWithNumericTier()
+    private static (MainWindowViewModel ViewModel, List<string> Output, string Directory) CreateViewModel()
     {
         var directory = Path.Combine(
             Path.GetTempPath(), "KillerMudClient_NumericDamageTest_" + Guid.NewGuid().ToString("N"));
@@ -29,13 +29,20 @@ public sealed class NumericDamageTests
         var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
         var output = new List<string>();
         viewModel.OutputReceived += text => output.Add(text);
+        return (viewModel, output, directory);
+    }
+
+    [AvaloniaFact]
+    public async Task SelfDamageLine_WithSettingEnabled_AppendsNumberToTheSameLine()
+    {
+        var (viewModel, output, directory) = CreateViewModel();
 
         try
         {
             Assert.True(viewModel.ShowNumericDamageEnabled);
-            InvokeOnLineReceived(viewModel, "Ranisz golema swoim mieczem.");
+            InvokeOnTextReceived(viewModel, "Ranisz golema swoim mieczem.\n");
 
-            Assert.Contains(output, line => line.Contains("18 obrażeń"));
+            Assert.Contains(output, text => text.Contains("Ranisz golema swoim mieczem. (18)"));
         }
         finally
         {
@@ -45,21 +52,58 @@ public sealed class NumericDamageTests
     }
 
     [AvaloniaFact]
-    public async Task DamageLine_WithSettingDisabled_DoesNotAnnotate()
+    public async Task TechniqueDamageLine_NamingYourTechnique_AppendsNumberToTheSameLine()
     {
-        var directory = Path.Combine(
-            Path.GetTempPath(), "KillerMudClient_NumericDamageTest_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
-        var output = new List<string>();
-        viewModel.OutputReceived += text => output.Add(text);
+        var (viewModel, output, directory) = CreateViewModel();
+
+        try
+        {
+            InvokeOnTextReceived(
+                viewModel, "Twoje miazdzace walniecie dewastuje sedziwego krasnoluda.\n");
+
+            Assert.Contains(
+                output,
+                text => text.Contains(
+                    "Twoje miazdzace walniecie dewastuje sedziwego krasnoluda. (44)"));
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task DamageLine_SplitAcrossTwoChunks_IsStillAnnotated()
+    {
+        var (viewModel, output, directory) = CreateViewModel();
+
+        try
+        {
+            InvokeOnTextReceived(viewModel, "Ranisz gol");
+            InvokeOnTextReceived(viewModel, "ema swoim mieczem.\n");
+
+            Assert.Contains(output, text => text.Contains("ema swoim mieczem. (18)"));
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task DamageLine_WithSettingDisabled_IsNotAnnotated()
+    {
+        var (viewModel, output, directory) = CreateViewModel();
 
         try
         {
             viewModel.ShowNumericDamageEnabled = false;
-            InvokeOnLineReceived(viewModel, "Ranisz golema swoim mieczem.");
+            InvokeOnTextReceived(viewModel, "Ranisz golema swoim mieczem.\n");
 
-            Assert.DoesNotContain(output, line => line.Contains("obrażeń"));
+            Assert.Contains(output, text => text.Contains("Ranisz golema swoim mieczem.\n"));
+            Assert.DoesNotContain(output, text => text.Contains("(18)"));
         }
         finally
         {
@@ -69,20 +113,33 @@ public sealed class NumericDamageTests
     }
 
     [AvaloniaFact]
-    public async Task ThirdPersonDamageLine_IsNeverAnnotated()
+    public async Task ThirdPersonDamageLine_WithoutYourTechniqueNamed_IsNeverAnnotated()
     {
-        var directory = Path.Combine(
-            Path.GetTempPath(), "KillerMudClient_NumericDamageTest_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var viewModel = new MainWindowViewModel(settingsService: new AppSettingsService(directory));
-        var output = new List<string>();
-        viewModel.OutputReceived += text => output.Add(text);
+        var (viewModel, output, directory) = CreateViewModel();
 
         try
         {
-            InvokeOnLineReceived(viewModel, "Golem cię rani swoją pięścią.");
+            InvokeOnTextReceived(viewModel, "Golem cię rani swoją pięścią.\n");
 
-            Assert.DoesNotContain(output, line => line.Contains("obrażeń"));
+            Assert.DoesNotContain(output, text => text.Contains('('));
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task IncompleteLine_WithoutNewline_IsForwardedUnmodified()
+    {
+        var (viewModel, output, directory) = CreateViewModel();
+
+        try
+        {
+            InvokeOnTextReceived(viewModel, "Ranisz golema swoim mieczem.");
+
+            Assert.Contains(output, text => text == "Ranisz golema swoim mieczem.");
         }
         finally
         {
