@@ -72,12 +72,14 @@ public sealed class TerminalOverlayTests
     public void PinToolAsOverlay_OutsideTransparencyMode_IsNoOp()
     {
         var factory = CreateFactory(out var layout);
-        var tool = GetTool(factory, "Gmcp");
+        // "Map" — unlike "Gmcp" it's still visible by default in DEFAULT (see CreateLayout), so
+        // its visibility staying put actually proves the pin-as-overlay call was a no-op.
+        var tool = GetTool(factory, "Map");
 
         factory.PinToolAsOverlay(tool);
 
         Assert.Empty(factory.OverlayTools);
-        Assert.True(Visible(layout, "Gmcp"));
+        Assert.True(Visible(layout, "Map"));
     }
 
     [Fact]

@@ -111,6 +111,9 @@ public sealed class BuffsPanelUiTests
             DataContext = viewModel,
         };
         window.Show();
+        // TRANSPARENCY (Terminal only, everything else hidden) is the app's own startup layout —
+        // switch to DEFAULT so MemSpells is actually docked and renderable below.
+        viewModel.ApplyLayoutCommand.Execute(LayoutPresetService.DefaultName);
         var factory = Assert.IsType<MudDockFactory>(viewModel.Layout.Factory);
         factory.SetActiveDockable(
             factory.AllTools.Single(tool => tool.Id == "MemSpells"));

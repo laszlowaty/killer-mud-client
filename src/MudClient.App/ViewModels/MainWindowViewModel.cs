@@ -348,11 +348,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         _dockFactory = new MudDockFactory(Map, this);
         _dockLayoutService = dockLayoutService ?? new DockLayoutService();
-        Layout = _dockFactory.CreateLayout();
+        Layout = _dockFactory.CreateTransparencyLayout();
         _dockFactory.InitLayout(Layout);
 
+        // TRANSPARENCY is always the startup layout now — a snapshot saved from a DEFAULT
+        // session (including ones from before this became the default) must not resurrect that
+        // shape here. Only a previously saved TRANSPARENCY session (e.g. remembered pinned
+        // overlays) is worth restoring on startup.
         var savedLayout = _dockLayoutService.Load();
-        if (savedLayout is not null)
+        if (savedLayout is { IsTransparencyLayout: true })
         {
             _dockFactory.TryApplySnapshot(Layout, savedLayout);
         }

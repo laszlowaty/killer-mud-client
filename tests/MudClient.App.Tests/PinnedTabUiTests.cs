@@ -66,6 +66,16 @@ public sealed class PinnedTabUiTests : IDisposable
             factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == toolId), edge);
         }
 
+        // DEFAULT starts with a few panels hidden (Automaty/Notatki/GMCP/Ustawienia — see
+        // CreateLayout). Restore() docks anything still hidden that wasn't explicitly pinned
+        // above as a normal tab (unlike RestoreToTopEdge, which pins — and would then show up
+        // among the rendered pinned tabs tests assert on), so tests built on this helper see a
+        // fully-visible, non-pinned baseline unless they intentionally leave something hidden.
+        foreach (var tool in factory.HiddenTools.ToList())
+        {
+            factory.Restore(tool);
+        }
+
         return factory.Snapshot(layout);
     }
 
@@ -378,6 +388,10 @@ public sealed class PinnedTabUiTests : IDisposable
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Chat"), Alignment.Right);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Automation"), Alignment.Top);
         factory.PinToolToEdge(factory.AllTools.First(tool => tool.Id == "Notes"), Alignment.Bottom);
+        // "Settings" is also hidden by default in DEFAULT (see CreateLayout). Restore() docks it
+        // as a normal tab (unlike RestoreToTopEdge, which pins it and would pollute the pinned-tab
+        // assertions below) — just enough to keep the HiddenPanels check honest.
+        factory.Restore(factory.AllTools.First(tool => tool.Id == "Settings"));
         viewModel.NewLayoutName = "boczne";
         viewModel.SaveLayoutCommand.Execute(null);
 

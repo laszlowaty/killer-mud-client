@@ -425,13 +425,16 @@ public sealed class MudDockFactory : Factory, IFactory
             Alignment = Alignment.Right,
         };
 
+        // Automaty/Notatki/GMCP/Ustawienia start hidden (restorable via "Przywróć panele") —
+        // DEFAULT is no longer the app's own starting layout (see CreateTransparencyLayout /
+        // MainWindowViewModel's constructor), so it opens leaner, only with what's actually
+        // needed at a glance.
         var rightBottomDock = new ToolDock
         {
             Id = "RightBottomPane",
             Proportion = 0.5,
-            ActiveDockable = automationTool,
-            VisibleDockables = CreateList<IDockable>(
-                automationTool, notesTool, gmcpTool, chatTool, settingsTool),
+            ActiveDockable = chatTool,
+            VisibleDockables = CreateList<IDockable>(chatTool),
             Alignment = Alignment.Right,
         };
 
@@ -465,6 +468,11 @@ public sealed class MudDockFactory : Factory, IFactory
         rootDock.DefaultDockable = mainLayout;
 
         _root = rootDock;
+
+        HiddenTools.Add(automationTool);
+        HiddenTools.Add(notesTool);
+        HiddenTools.Add(gmcpTool);
+        HiddenTools.Add(settingsTool);
 
         return rootDock;
     }
