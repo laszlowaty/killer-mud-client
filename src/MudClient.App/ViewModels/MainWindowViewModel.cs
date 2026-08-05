@@ -3167,13 +3167,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
         else
         {
-            AddToast("Użycie: /idz <nazwa lokacji> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
+            AddToast("Użycie: /idz <nazwa lokacji>, /idz vnum <vnum> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
         }
     }
 
     /// <summary>
     /// Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt;,
-    /// /idz_dodaj &lt;nazwa&gt; and /stop. Returns true when consumed.
+    /// /idz vnum &lt;vnum&gt;, /idz_dodaj &lt;nazwa&gt; and /stop.
+    /// Returns true when consumed.
     /// </summary>
     private bool TryHandleAutowalkCommand(string command)
     {
@@ -3217,6 +3218,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (argument.Length == 0)
         {
             HandleGoToSelectedTarget();
+            return true;
+        }
+
+        const string vnumPrefix = "vnum";
+        if (argument.StartsWith(vnumPrefix, StringComparison.OrdinalIgnoreCase)
+            && (argument.Length == vnumPrefix.Length || char.IsWhiteSpace(argument[vnumPrefix.Length])))
+        {
+            var roomVnum = argument.Length > vnumPrefix.Length
+                ? argument[vnumPrefix.Length..].Trim()
+                : string.Empty;
+            if (!int.TryParse(roomVnum, out var parsedVnum) || parsedVnum <= 0)
+            {
+                AddToast("Użycie: /idz vnum <vnum>, gdzie <vnum> jest dodatnim numerem pokoju.", "info");
+                return true;
+            }
+
+            StartAutowalk(new AutowalkLocation(
+                $"VNUM {roomVnum}",
+                roomVnum,
+                ResolveRoomDisplay(roomVnum)));
             return true;
         }
 

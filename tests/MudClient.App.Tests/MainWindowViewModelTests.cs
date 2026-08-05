@@ -3390,6 +3390,38 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.DoesNotContain("Nie znam lokacji", toast.Text);
     }
 
+    [Theory]
+    [InlineData("/idz vnum 7007")]
+    [InlineData("/IDZ VNUM 7007")]
+    public void TryHandleAutowalkCommand_Vnum_AttemptsWalkToRoom(string command)
+    {
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand(command);
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+        Assert.DoesNotContain("Nie znam lokacji", toast.Text);
+    }
+
+    [Theory]
+    [InlineData("/idz vnum")]
+    [InlineData("/idz vnum abc")]
+    [InlineData("/idz vnum 0")]
+    [InlineData("/idz vnum 7007 extra")]
+    public void TryHandleAutowalkCommand_VnumWithoutPositiveRoomNumber_ShowsUsage(string command)
+    {
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand(command);
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("/idz vnum <vnum>", toast.Text);
+        Assert.Contains("dodatnim numerem pokoju", toast.Text);
+    }
+
     [Fact]
     public void BuildGroupMemberAutowalkTarget_UsesMemberNameAndRoomFromGmcp()
     {
