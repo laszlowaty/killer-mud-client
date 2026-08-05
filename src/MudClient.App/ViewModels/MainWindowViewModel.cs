@@ -31,6 +31,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private BookCatalogStore _bookCatalogStore;
     private readonly bool _usesCustomBookCatalogStore;
     private readonly BookCatalogRefreshCoordinator _bookCatalogRefreshCoordinator;
+    private RareCatalogStore _rareCatalogStore;
+    private readonly bool _usesCustomRareCatalogStore;
+    private readonly RareCatalogRefreshCoordinator _rareCatalogRefreshCoordinator;
     private readonly GmcpLocationResolver _locationResolver = new();
     private readonly RoomExitsResolver _roomExits = new();
     private readonly RoomSnapshotResolver _roomSnapshots = new();
@@ -166,6 +169,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private AutowalkLocation? _pendingResumeTarget;
     private CancellationTokenSource _autowalkCts = new();
     private CancellationTokenSource? _bookRefreshCts;
+    private CancellationTokenSource? _rareRefreshCts;
     private int? _latestMovement;
     private int? _latestMaximumMovement;
     private IReadOnlyList<MemorizedSpell> _latestMemorizedSpells = [];
@@ -235,7 +239,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         BookCatalogRefreshCoordinator? bookCatalogRefreshCoordinator = null,
         LayoutPresetService? layoutPresetService = null,
         IExternalLinkService? externalLinkService = null,
-        IContentUpdateService? contentUpdateService = null)
+        IContentUpdateService? contentUpdateService = null,
+        RareCatalogStore? rareCatalogStore = null,
+        RareCatalogRefreshCoordinator? rareCatalogRefreshCoordinator = null)
     {
         _triggers = new TriggerEngine { Aliases = _aliases };
         _profiles = profileService ?? new ProfileService();
@@ -244,6 +250,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _usesCustomBookCatalogStore = bookCatalogStore is not null;
         _bookCatalogStore = bookCatalogStore ?? CreateBookCatalogStore();
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
+        _usesCustomRareCatalogStore = rareCatalogStore is not null;
+        _rareCatalogStore = rareCatalogStore ?? CreateRareCatalogStore();
+        _rareCatalogRefreshCoordinator = rareCatalogRefreshCoordinator ?? new RareCatalogRefreshCoordinator();
         _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
         Killeropedia = CreateKilleropediaViewModel();
@@ -887,6 +896,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 _bookCatalogStore = CreateBookCatalogStore();
             }
 
+            if (!_usesCustomRareCatalogStore)
+            {
+                _rareCatalogStore = CreateRareCatalogStore();
+            }
+
             Killeropedia = CreateKilleropediaViewModel();
             AvailableContentUpdate = null;
             ContentUpdateStatus = $"Zainstalowano dane {result.Release}.";
@@ -921,6 +935,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "books.json"));
     }
 
+    private RareCatalogStore CreateRareCatalogStore()
+    {
+        var downloadedDirectory = new ContentPathResolver(_settingsService.DirectoryPath)
+            .GetActiveDirectory("killeropedia");
+        return new RareCatalogStore(
+            DeveloperFeatures.RareCatalogOutputPath
+            ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-rares.json"),
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "rares.json"));
+    }
+
     private KilleropediaViewModel CreateKilleropediaViewModel()
     {
         var downloadedDirectory = new ContentPathResolver(_settingsService.DirectoryPath)
@@ -929,6 +953,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "teachers.json.gz"));
         var quests = QuestCatalogLoader.Load(
             downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "quests.json"));
+        var tattoos = TattooCatalogLoader.Load(
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "tattoos.json"));
         var lore = LoadLoreCatalog(downloadedDirectory);
         return new KilleropediaViewModel(
             teachers,
@@ -938,7 +964,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             lore,
             new ContentPathResolver(_settingsService.DirectoryPath).GetActiveDirectory("map"),
             quests,
-            ShowBookLocationOnMap);
+            ShowBookLocationOnMap,
+            tattoos,
+            _rareCatalogStore,
+            RefreshRareCatalogAsync);
     }
 
     private LoreCatalogData LoadLoreCatalog(string? downloadedDirectory)
@@ -2332,7 +2361,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         entry.ScheduleNextActivation(now + interval, now);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
-            if (IsConnected && _bookRefreshCts is null)
+            if (IsConnected && _bookRefreshCts is null && _rareRefreshCts is null)
             {
                 foreach (var command in commands)
                 {
@@ -5448,7 +5477,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private bool CanDisconnect() => !IsBusy && IsConnected;
 
-    private bool CanSendCommand() => !IsBusy && IsConnected && _bookRefreshCts is null;
+    private bool CanSendCommand() =>
+        !IsBusy && IsConnected && _bookRefreshCts is null && _rareRefreshCts is null;
 
     private async Task ConnectAsync()
     {
@@ -5863,6 +5893,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnTextReceived(string text)
     {
         _bookCatalogRefreshCoordinator.ObserveText(text);
+        _rareCatalogRefreshCoordinator.ObserveText(text);
         var toDisplay = _settings.ShowNumericDamageEnabled ? AnnotateDamageLines(text) : text;
         Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(toDisplay));
     }
@@ -5918,9 +5949,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnLineReceived(string line)
     {
-        // The creator-only book refresh owns complete response lines while active. Raw text still
-        // reaches the terminal through TextReceived, but booklist output must not fire user triggers.
-        if (_bookCatalogRefreshCoordinator.TryCaptureLine(line))
+        // The creator-only book/rare refreshes own complete response lines while active. Raw text
+        // still reaches the terminal through TextReceived, but their output must not fire user
+        // triggers (only one of the two can be capturing at a time — see the mutual _bookRefreshCts
+        // / _rareRefreshCts gating in CanRefreshBookCatalog/CanRefreshRareCatalog/CanSendCommand).
+        if (_bookCatalogRefreshCoordinator.TryCaptureLine(line) || _rareCatalogRefreshCoordinator.TryCaptureLine(line))
         {
             return;
         }
@@ -6570,6 +6603,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnConnectionClosed()
     {
         _bookRefreshCts?.Cancel();
+        _rareRefreshCts?.Cancel();
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
@@ -6612,7 +6646,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool CanRefreshBookCatalog() =>
         DeveloperFeatures.EnableBookCatalogRefreshButton
         && IsConnected
-        && _bookRefreshCts is null;
+        && _bookRefreshCts is null
+        && _rareRefreshCts is null;
 
     private async Task RefreshBookCatalogAsync()
     {
@@ -6667,6 +6702,76 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     private async Task SendBookCatalogCommandAsync(string command, CancellationToken cancellationToken)
+    {
+        if (Map.IsMapEditorActive)
+        {
+            throw new InvalidOperationException("Odświeżanie katalogu jest niedostępne podczas mapowania.");
+        }
+
+        var echo = command.Length == 0 ? "[PUSTA WIADOMOŚĆ]" : command;
+        await Dispatcher.UIThread.InvokeAsync(() => EmitSystem($"> {echo}", 90));
+        await _session.SendCommandAsync(command, cancellationToken);
+    }
+
+    private bool CanRefreshRareCatalog() =>
+        DeveloperFeatures.EnableRareCatalogRefreshButton
+        && IsConnected
+        && _bookRefreshCts is null
+        && _rareRefreshCts is null;
+
+    private async Task RefreshRareCatalogAsync()
+    {
+        if (!CanRefreshRareCatalog())
+        {
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _rareRefreshCts = cancellation;
+        _sendCommandCommand.NotifyCanExecuteChanged();
+        Killeropedia.BeginRareRefresh();
+        var lockTaken = false;
+
+        try
+        {
+            await _triggerSendLock.WaitAsync(cancellation.Token);
+            lockTaken = true;
+            var progress = new Progress<RareCatalogRefreshProgress>(Killeropedia.ReportRareRefresh);
+            var catalog = await _rareCatalogRefreshCoordinator.RefreshAsync(
+                SendRareCatalogCommandAsync,
+                progress,
+                cancellation.Token);
+            await _rareCatalogStore.SaveAsync(catalog, cancellation.Token);
+            Killeropedia.CompleteRareRefresh(catalog);
+            AddToast($"Odświeżono katalog przedmiotów ({catalog.Rares.Count}).", "info");
+        }
+        catch (OperationCanceledException)
+        {
+            Killeropedia.FailRareRefresh("Odświeżanie katalogu przedmiotów zostało anulowane.");
+        }
+        catch (Exception exception)
+        {
+            Killeropedia.FailRareRefresh($"Błąd odświeżania: {exception.Message}");
+            EmitSystem($"Killeropedia: {exception.Message}", 31);
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                _triggerSendLock.Release();
+            }
+
+            _rareRefreshCts = null;
+            _sendCommandCommand.NotifyCanExecuteChanged();
+            cancellation.Dispose();
+            if (Killeropedia.IsRareRefreshRunning)
+            {
+                Killeropedia.FailRareRefresh("Odświeżanie katalogu przedmiotów zakończone bez zapisu.");
+            }
+        }
+    }
+
+    private async Task SendRareCatalogCommandAsync(string command, CancellationToken cancellationToken)
     {
         if (Map.IsMapEditorActive)
         {
@@ -6798,6 +6903,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             try
             {
                 await bookRefreshTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when closing the application during a creator refresh.
+            }
+        }
+
+        _rareRefreshCts?.Cancel();
+        if (Killeropedia.RefreshRaresCommand.ExecutionTask is { } rareRefreshTask)
+        {
+            try
+            {
+                await rareRefreshTask;
             }
             catch (OperationCanceledException)
             {

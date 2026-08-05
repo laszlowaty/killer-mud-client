@@ -10,6 +10,7 @@ public sealed class KilleropediaViewModel : ObservableObject
 {
     private readonly IReadOnlyList<TeacherEntry> _allTeachers;
     private readonly IReadOnlyList<QuestEntry> _allQuests;
+    private readonly TattooCatalogData _tattooCatalog;
     private readonly IReadOnlyList<LoreEntry> _allLoreEntries;
     private readonly IReadOnlyDictionary<string, LoreEntry> _loreById;
     private readonly BookCatalogStore _bookCatalogStore;
@@ -18,9 +19,16 @@ public sealed class KilleropediaViewModel : ObservableObject
     private readonly Action<BookLoadLocationEntry>? _showBookLocationOnMap;
     private readonly AsyncRelayCommand _refreshBooksCommand;
     private readonly List<BookEntry> _allBooks = [];
+    private readonly RareCatalogStore _rareCatalogStore;
+    private readonly Func<Task>? _refreshRaresAsync;
+    private readonly AsyncRelayCommand _refreshRaresCommand;
+    private readonly List<RareEntry> _allRares = [];
     private string _teacherSearchText = string.Empty;
     private string _questSearchText = string.Empty;
     private QuestEntry? _selectedQuest;
+    private string _tattooSearchText = string.Empty;
+    private TattooBonusEntry? _selectedTattoo;
+    private bool _isTattooInfoExpanded;
     private TeacherEntry? _selectedTeacher;
     private string _bookSearchText = string.Empty;
     private string _selectedBookClass = "Wszystkie";
@@ -30,6 +38,12 @@ public sealed class KilleropediaViewModel : ObservableObject
     private bool _isBookRefreshRunning;
     private string _bookRefreshStatus = string.Empty;
     private DateTimeOffset? _booksGeneratedAtUtc;
+    private string _rareSearchText = string.Empty;
+    private string _selectedRareCategory = "Wszystkie";
+    private RareEntry? _selectedRare;
+    private bool _isRareRefreshRunning;
+    private string _rareRefreshStatus = string.Empty;
+    private DateTimeOffset? _raresGeneratedAtUtc;
     private string _loreSearchText = string.Empty;
     private string _selectedLoreCategory = "Wszystkie";
     private LoreEntry? _selectedLoreEntry;
@@ -50,12 +64,18 @@ public sealed class KilleropediaViewModel : ObservableObject
         LoreCatalogData? loreCatalog = null,
         string? mapDirectory = null,
         IReadOnlyList<QuestEntry>? quests = null,
-        Action<BookLoadLocationEntry>? showBookLocationOnMap = null)
+        Action<BookLoadLocationEntry>? showBookLocationOnMap = null,
+        TattooCatalogData? tattooCatalog = null,
+        RareCatalogStore? rareCatalogStore = null,
+        Func<Task>? refreshRaresAsync = null)
     {
         _allTeachers = teachers;
         _allQuests = quests ?? QuestCatalogLoader.Load();
+        _tattooCatalog = tattooCatalog ?? TattooCatalogLoader.Load();
         _bookCatalogStore = bookCatalogStore;
         _refreshBooksAsync = refreshBooksAsync;
+        _rareCatalogStore = rareCatalogStore ?? new RareCatalogStore();
+        _refreshRaresAsync = refreshRaresAsync;
         _showTeacherOnMap = showTeacherOnMap;
         _showBookLocationOnMap = showBookLocationOnMap;
         var resolvedLoreCatalog = loreCatalog ?? LoreCatalogLoader.Load();
@@ -69,6 +89,7 @@ public sealed class KilleropediaViewModel : ObservableObject
             .. _allLoreEntries.Select(entry => entry.Category).Distinct(StringComparer.Ordinal),
         ];
         _refreshBooksCommand = new AsyncRelayCommand(RefreshBooksAsync, CanRefreshBooks);
+        _refreshRaresCommand = new AsyncRelayCommand(RefreshRaresAsync, CanRefreshRares);
         WorldMapRegions = [new WorldMapRegion("Stary Kontynent", "old-continent-overview.png", mapDirectory)];
         ShowTeacherOnMapCommand = new RelayCommand<TeacherEntry>(
             ShowTeacherOnMap,
@@ -79,9 +100,12 @@ public sealed class KilleropediaViewModel : ObservableObject
         NavigateLoreCommand = new RelayCommand<LoreLink>(
             NavigateLore,
             link => link is not null && _loreById.ContainsKey(link.TargetId));
+        ToggleTattooInfoCommand = new RelayCommand(() => IsTattooInfoExpanded = !IsTattooInfoExpanded);
         ApplyTeacherFilter();
         ApplyQuestFilter();
+        ApplyTattooFilter();
         LoadBookCatalog();
+        LoadRareCatalog();
         ApplyLoreFilter();
         _selectedWorldMapRegion = WorldMapRegions.FirstOrDefault();
     }
@@ -119,6 +143,46 @@ public sealed class KilleropediaViewModel : ObservableObject
     public string FilteredQuestCountText => $"Zadania: {FilteredQuests.Count} z {_allQuests.Count}";
 
     public bool HasNoQuestResults => FilteredQuests.Count == 0;
+
+    public string TattooIntro => _tattooCatalog.Intro;
+
+    public IReadOnlyList<TattooCommandEntry> TattooCommands => _tattooCatalog.Commands;
+
+    public IReadOnlyList<TattooRuneEntry> TattooRuneTypes => _tattooCatalog.RuneTypes;
+
+    public string TattooStackingNotes => _tattooCatalog.StackingNotes;
+
+    public bool IsTattooInfoExpanded
+    {
+        get => _isTattooInfoExpanded;
+        set => SetProperty(ref _isTattooInfoExpanded, value);
+    }
+
+    public IRelayCommand ToggleTattooInfoCommand { get; }
+
+    public ObservableCollection<TattooBonusEntry> FilteredTattoos { get; } = [];
+
+    public string TattooSearchText
+    {
+        get => _tattooSearchText;
+        set
+        {
+            if (SetProperty(ref _tattooSearchText, value))
+            {
+                ApplyTattooFilter();
+            }
+        }
+    }
+
+    public TattooBonusEntry? SelectedTattoo
+    {
+        get => _selectedTattoo;
+        set => SetProperty(ref _selectedTattoo, value);
+    }
+
+    public string FilteredTattooCountText => $"Bonusy: {FilteredTattoos.Count} z {_tattooCatalog.Bonuses.Count}";
+
+    public bool HasNoTattooResults => FilteredTattoos.Count == 0;
 
     public ObservableCollection<LoreEntry> FilteredLoreEntries { get; } = [];
 
@@ -279,6 +343,81 @@ public sealed class KilleropediaViewModel : ObservableObject
         ? "Brak wygenerowanego katalogu."
         : $"Katalog: {_booksGeneratedAtUtc.Value.ToLocalTime():yyyy-MM-dd HH:mm}";
 
+    public ObservableCollection<RareEntry> FilteredRares { get; } = [];
+
+    public IReadOnlyList<string> AvailableRareCategories { get; } = ["Wszystkie", "artefakt", "rzadki", "instancyjny"];
+
+    public IAsyncRelayCommand RefreshRaresCommand => _refreshRaresCommand;
+
+    public bool IsRareRefreshButtonVisible => DeveloperFeatures.ShowRareCatalogRefreshButton;
+
+    public bool IsRareRefreshEnabled =>
+        DeveloperFeatures.EnableRareCatalogRefreshButton
+        && _isConnected
+        && !_isRareRefreshRunning;
+
+    public bool IsRareRefreshRunning
+    {
+        get => _isRareRefreshRunning;
+        private set
+        {
+            if (SetProperty(ref _isRareRefreshRunning, value))
+            {
+                OnPropertyChanged(nameof(IsRareRefreshEnabled));
+                OnPropertyChanged(nameof(RareRefreshButtonText));
+                _refreshRaresCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string RareRefreshButtonText => IsRareRefreshRunning ? "Odświeżanie..." : "Odśwież";
+
+    public string RareRefreshStatus
+    {
+        get => _rareRefreshStatus;
+        private set => SetProperty(ref _rareRefreshStatus, value);
+    }
+
+    public string RareSearchText
+    {
+        get => _rareSearchText;
+        set
+        {
+            if (SetProperty(ref _rareSearchText, value))
+            {
+                ApplyRareFilter();
+            }
+        }
+    }
+
+    public string SelectedRareCategory
+    {
+        get => _selectedRareCategory;
+        set
+        {
+            if (SetProperty(ref _selectedRareCategory, value))
+            {
+                ApplyRareFilter();
+            }
+        }
+    }
+
+    public RareEntry? SelectedRare
+    {
+        get => _selectedRare;
+        set => SetProperty(ref _selectedRare, value);
+    }
+
+    public string FilteredRareCountText => $"Przedmioty: {FilteredRares.Count} z {_allRares.Count}";
+
+    public bool HasRares => _allRares.Count > 0;
+
+    public bool HasNoRares => !HasRares;
+
+    public string RaresGeneratedText => _raresGeneratedAtUtc is null
+        ? "Brak wygenerowanego katalogu."
+        : $"Katalog: {_raresGeneratedAtUtc.Value.ToLocalTime():yyyy-MM-dd HH:mm}";
+
     public void SetConnectionState(bool isConnected)
     {
         if (_isConnected == isConnected)
@@ -289,6 +428,8 @@ public sealed class KilleropediaViewModel : ObservableObject
         _isConnected = isConnected;
         OnPropertyChanged(nameof(IsBookRefreshEnabled));
         _refreshBooksCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsRareRefreshEnabled));
+        _refreshRaresCommand.NotifyCanExecuteChanged();
     }
 
     public void BeginBookRefresh()
@@ -311,6 +452,28 @@ public sealed class KilleropediaViewModel : ObservableObject
     {
         BookRefreshStatus = message;
         IsBookRefreshRunning = false;
+    }
+
+    public void BeginRareRefresh()
+    {
+        IsRareRefreshRunning = true;
+        RareRefreshStatus = "Rozpoczynanie odświeżania...";
+    }
+
+    public void ReportRareRefresh(RareCatalogRefreshProgress progress) =>
+        RareRefreshStatus = progress.DisplayText;
+
+    public void CompleteRareRefresh(RareCatalogDocument catalog)
+    {
+        ApplyRareCatalog(catalog);
+        RareRefreshStatus = $"Zapisano {_allRares.Count} przedmiotów do {_rareCatalogStore.Path}.";
+        IsRareRefreshRunning = false;
+    }
+
+    public void FailRareRefresh(string message)
+    {
+        RareRefreshStatus = message;
+        IsRareRefreshRunning = false;
     }
 
     private void ApplyTeacherFilter()
@@ -361,6 +524,27 @@ public sealed class KilleropediaViewModel : ObservableObject
             ?? FilteredQuests.FirstOrDefault();
         OnPropertyChanged(nameof(FilteredQuestCountText));
         OnPropertyChanged(nameof(HasNoQuestResults));
+    }
+
+    private void ApplyTattooFilter()
+    {
+        var tokens = Normalize(TattooSearchText)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var previousName = SelectedTattoo?.Name;
+
+        FilteredTattoos.Clear();
+        foreach (var bonus in _tattooCatalog.Bonuses)
+        {
+            if (tokens.All(token => Normalize(bonus.SearchableText).Contains(token)))
+            {
+                FilteredTattoos.Add(bonus);
+            }
+        }
+
+        SelectedTattoo = FilteredTattoos.FirstOrDefault(bonus => bonus.Name == previousName)
+            ?? FilteredTattoos.FirstOrDefault();
+        OnPropertyChanged(nameof(FilteredTattooCountText));
+        OnPropertyChanged(nameof(HasNoTattooResults));
     }
 
     private void ApplyLoreFilter()
@@ -437,6 +621,16 @@ public sealed class KilleropediaViewModel : ObservableObject
 
     private bool CanRefreshBooks() => IsBookRefreshEnabled && _refreshBooksAsync is not null;
 
+    private async Task RefreshRaresAsync()
+    {
+        if (_refreshRaresAsync is not null)
+        {
+            await _refreshRaresAsync();
+        }
+    }
+
+    private bool CanRefreshRares() => IsRareRefreshEnabled && _refreshRaresAsync is not null;
+
     private void LoadBookCatalog()
     {
         try
@@ -491,6 +685,56 @@ public sealed class KilleropediaViewModel : ObservableObject
         SelectedBook = FilteredBooks.FirstOrDefault(book => book.Vnum == previousVnum)
             ?? FilteredBooks.FirstOrDefault();
         OnPropertyChanged(nameof(FilteredBookCountText));
+    }
+
+    private void LoadRareCatalog()
+    {
+        try
+        {
+            ApplyRareCatalog(_rareCatalogStore.Load());
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException)
+        {
+            ApplyRareCatalog(new RareCatalogDocument());
+            RareRefreshStatus = exception.Message;
+        }
+    }
+
+    private void ApplyRareCatalog(RareCatalogDocument catalog)
+    {
+        _allRares.Clear();
+        _allRares.AddRange(catalog.Rares.OrderBy(rare => rare.Name, StringComparer.OrdinalIgnoreCase));
+        _raresGeneratedAtUtc = catalog.GeneratedAtUtc;
+        ApplyRareFilter();
+        OnPropertyChanged(nameof(HasRares));
+        OnPropertyChanged(nameof(HasNoRares));
+        OnPropertyChanged(nameof(RaresGeneratedText));
+    }
+
+    private void ApplyRareFilter()
+    {
+        var tokens = Normalize(RareSearchText)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var previousVnum = SelectedRare?.Vnum;
+        FilteredRares.Clear();
+
+        foreach (var rare in _allRares)
+        {
+            if (!string.Equals(SelectedRareCategory, "Wszystkie", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(rare.Category, SelectedRareCategory, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (tokens.All(token => Normalize(rare.SearchableText).Contains(token)))
+            {
+                FilteredRares.Add(rare);
+            }
+        }
+
+        SelectedRare = FilteredRares.FirstOrDefault(rare => rare.Vnum == previousVnum)
+            ?? FilteredRares.FirstOrDefault();
+        OnPropertyChanged(nameof(FilteredRareCountText));
     }
 
     private static string Normalize(string? value) => SearchText.Normalize(value);

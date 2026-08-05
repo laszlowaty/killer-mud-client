@@ -192,6 +192,14 @@
             <views:KilleropediaQuestsView
                                         DataContext="{Binding Killeropedia}" />
           </TabItem>
+          <TabItem Classes="killeropedia-tab-tattoos" Header="Tatuaże">
+            <views:KilleropediaTattoosView
+                                          DataContext="{Binding Killeropedia}" />
+          </TabItem>
+          <TabItem Classes="killeropedia-tab-artifacts" Header="Artefakty">
+            <views:KilleropediaArtifactsView
+                                            DataContext="{Binding Killeropedia}" />
+          </TabItem>
           <TabItem Classes="killeropedia-tab-map" Header="Mapa Świata">
             <views:KilleropediaWorldMapView
                                             DataContext="{Binding Killeropedia}" />
