@@ -23,14 +23,16 @@ public static class TestAppBuilder
 }
 
 [Collection(AvaloniaUiCollection.Name)]
-public sealed class EditRuleClickTests : IDisposable
+public sealed class EditRuleClickTests : IAsyncDisposable
 {
-    private Window? _window;
+    private MainWindow? _window;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _window?.Close();
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        if (_window is not null)
+        {
+            await _window.CloseAndDisposeAsync();
+        }
     }
 
     [AvaloniaFact]

@@ -23,6 +23,13 @@ public partial class MainWindow : Window
     private bool _closingAfterRecoveryFlush;
     private bool _characterRollerDialogOpen;
     private readonly DispatcherTimer _idleRefreshTimer;
+
+    /// <summary>
+    /// Completes after the window-owned view model has released its asynchronous resources.
+    /// Tests await this after closing the window so Avalonia does not tear down the dispatcher
+    /// while session, timer, map, or automation cleanup is still running.
+    /// </summary>
+    internal Task ViewModelDisposalTask { get; private set; } = Task.CompletedTask;
     internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
         DeleteConfirmationDialog.ShowAsync;
     internal Func<
@@ -479,7 +486,8 @@ public partial class MainWindow : Window
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _viewModel.CharacterRollerConfigurationRequested -= OnCharacterRollerConfigurationRequested;
-            _ = _viewModel.DisposeAsync();
+            ViewModelDisposalTask = _viewModel.DisposeAsync().AsTask();
+            _viewModel = null;
         }
 
         Dispatcher.UIThread.UnhandledException -= OnDispatcherUnhandledException;

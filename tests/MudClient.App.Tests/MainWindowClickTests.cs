@@ -23,22 +23,20 @@ namespace MudClient.App.Tests;
 /// the window delegates to <see cref="TerminalPanelView.Current"/>.
 /// </summary>
 [Collection(AvaloniaUiCollection.Name)]
-public sealed class MainWindowClickTests : IDisposable
+public sealed class MainWindowClickTests : IAsyncDisposable
 {
+    private readonly List<MainWindow> _windows = [];
     private readonly string _tempDirectory = Path.Combine(
         Path.GetTempPath(), "KillerMudClient-MainWindowClickTests", Guid.NewGuid().ToString("N"));
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        // Every test in this class opens one MainWindow. Closing it before Avalonia.Headless
-        // tears down the per-test compositor prevents its render-loop task leaking into the
-        // next isolated application on a different test thread.
-        if (TerminalPanelView.Current?.FindAncestorOfType<Window>() is { } window)
+        // Every test retains its exact MainWindow. A global TerminalPanelView.Current lookup can
+        // point at a stale panel during lazy Dock attachment and close the wrong window.
+        foreach (var window in _windows)
         {
-            window.Close();
+            await window.CloseAndDisposeAsync();
         }
-
-        Dispatcher.UIThread.RunJobs();
 
         if (Directory.Exists(_tempDirectory))
         {
@@ -54,6 +52,12 @@ public sealed class MainWindowClickTests : IDisposable
         new ProfileService(_tempDirectory),
         new AppSettingsService(_tempDirectory),
         new DockLayoutService(_tempDirectory));
+
+    private void Show(MainWindow window)
+    {
+        _windows.Add(window);
+        window.Show();
+    }
 
     /// <summary>
     /// Returns the live TerminalPanelView instance associated with the given
@@ -188,7 +192,7 @@ public sealed class MainWindowClickTests : IDisposable
     {
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var helpWidget = window.GetVisualDescendants()
@@ -242,6 +246,25 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Contains("Konsola JavaScript", scriptingTexts);
         Assert.Contains("Zmienne profilu", scriptingTexts);
         Assert.Contains("GMCP", scriptingTexts);
+        Assert.Contains("Najczęstsze pakiety KillerMUD", scriptingTexts);
+        Assert.Contains("Rozpoznawanie pakietów i ich struktury", scriptingTexts);
+        Assert.Contains("Zapamiętywanie ostatnich danych GMCP", scriptingTexts);
+        Assert.Contains(
+            scriptingTexts,
+            text => text?.Contains("Char.Affects — tablica aktywnych efektów", StringComparison.Ordinal)
+                == true);
+        Assert.Contains(
+            scriptingTexts,
+            text => text?.Contains("event.package", StringComparison.Ordinal) == true
+                && text.Contains("event.data", StringComparison.Ordinal)
+                && text.Contains("event.raw", StringComparison.Ordinal));
+        Assert.Contains(
+            scriptingTexts,
+            text => text?.Contains("onGmcp(\"*\"", StringComparison.Ordinal) == true);
+        Assert.Contains(
+            scriptingTexts,
+            text => text?.Contains("nie ma synchronicznego getGmcp()", StringComparison.Ordinal)
+                == true);
         Assert.Contains("Bezpieczeństwo i błędy", scriptingTexts);
     }
 
@@ -250,7 +273,7 @@ public sealed class MainWindowClickTests : IDisposable
     {
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var idleTime = window.FindControl<TextBlock>("IdleTimeIndicator");
@@ -265,7 +288,7 @@ public sealed class MainWindowClickTests : IDisposable
     {
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var profileServerFields = window.FindControl<StackPanel>("ProfileServerFields");
@@ -297,7 +320,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -318,7 +341,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -344,7 +367,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -370,7 +393,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -391,7 +414,7 @@ public sealed class MainWindowClickTests : IDisposable
         var viewModel = CreateViewModel();
         viewModel.ClearCommandInputAfterSend = true;
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -423,7 +446,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -460,7 +483,7 @@ public sealed class MainWindowClickTests : IDisposable
     {
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -496,7 +519,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         // Pick a visible Button with non-empty bounds.
@@ -526,7 +549,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -548,7 +571,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -594,7 +617,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -627,7 +650,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -682,7 +705,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         // Add a SelectableTextBlock to the window's visual tree
         // outside MudOutputView.
@@ -740,7 +763,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -774,7 +797,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var rootGrid = Assert.IsAssignableFrom<Grid>(window.Content);
         var nonOutputBlock = new SelectableTextBlock
@@ -807,7 +830,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange: command box has text, mark is set (as after window activation).
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -832,7 +855,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange: command box has text, mark is NOT set.
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -854,7 +877,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange: empty command box, mark is set.
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
 
         var panel = GetPanel(window);
         var commandBox = GetCommandBox(panel);
@@ -877,7 +900,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -899,7 +922,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -923,7 +946,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -939,7 +962,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange: create a non-terminal TextBox (e.g. Host box).
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -965,7 +988,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -985,7 +1008,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -1008,7 +1031,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -1040,7 +1063,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);
@@ -1073,7 +1096,7 @@ public sealed class MainWindowClickTests : IDisposable
         // Arrange
         var viewModel = CreateViewModel();
         var window = new MainWindow { DataContext = viewModel };
-        window.Show();
+        Show(window);
         EnsureLayout(window);
 
         var panel = GetPanel(window);

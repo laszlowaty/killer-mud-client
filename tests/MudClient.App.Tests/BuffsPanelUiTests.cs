@@ -16,7 +16,7 @@ namespace MudClient.App.Tests;
 public sealed class BuffsPanelUiTests
 {
     [AvaloniaFact]
-    public void BuffRows_RenderNamesInsideClickableButtons()
+    public async Task BuffRows_RenderNamesInsideClickableButtons()
     {
         var directory = Path.Combine(
             Path.GetTempPath(),
@@ -109,8 +109,7 @@ public sealed class BuffsPanelUiTests
         }
         finally
         {
-            window.Close();
-            Dispatcher.UIThread.RunJobs();
+            await window.CloseAndDisposeAsync();
             Directory.Delete(directory, recursive: true);
         }
     }

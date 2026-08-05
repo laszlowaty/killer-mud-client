@@ -58,7 +58,7 @@ public sealed class AutomationDeletionConfirmationUiTests
     }
 
     [AvaloniaFact]
-    public void DeleteProfile_RequiresConfirmation()
+    public async Task DeleteProfile_RequiresConfirmation()
     {
         var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_ProfileDeleteConfirmation_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -95,8 +95,7 @@ public sealed class AutomationDeletionConfirmationUiTests
         Assert.False(profileService.Exists("Gandalf"));
         Assert.Equal([("profil", "Gandalf"), ("profil", "Gandalf")], prompts);
 
-        window.Close();
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        await window.CloseAndDisposeAsync();
         Directory.Delete(directory, recursive: true);
     }
 

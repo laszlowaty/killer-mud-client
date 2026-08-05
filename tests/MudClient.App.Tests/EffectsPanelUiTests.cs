@@ -16,7 +16,7 @@ namespace MudClient.App.Tests;
 public sealed class EffectsPanelUiTests
 {
     [AvaloniaFact]
-    public void EffectRows_RenderNameWithoutDescription()
+    public async Task EffectRows_RenderNameWithoutDescription()
     {
         var directory = Path.Combine(
             Path.GetTempPath(),
@@ -71,8 +71,7 @@ public sealed class EffectsPanelUiTests
         }
         finally
         {
-            window.Close();
-            Dispatcher.UIThread.RunJobs();
+            await window.CloseAndDisposeAsync();
             Directory.Delete(directory, recursive: true);
         }
     }

@@ -13,6 +13,8 @@ namespace MudClient.App.Tests;
 // concurrent platform access. Per-test Avalonia isolation still requires each test to close every
 // window it opens before its application and compositor are torn down. Apply
 // [Collection(AvaloniaUiCollection.Name)] to every class using [AvaloniaFact]/[AvaloniaTheory].
+// Tests opening MainWindow must also retain that exact window and await
+// MainWindowTestExtensions.CloseAndDisposeAsync before their per-test application is torn down.
 [CollectionDefinition(Name)]
 public sealed class AvaloniaUiCollection
 {

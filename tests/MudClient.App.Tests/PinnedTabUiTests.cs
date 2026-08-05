@@ -24,9 +24,9 @@ namespace MudClient.App.Tests;
 /// visible side tab (ToolPinItemControl) in the main window's visual tree.
 /// </summary>
 [Collection(AvaloniaUiCollection.Name)]
-public sealed class PinnedTabUiTests : IDisposable
+public sealed class PinnedTabUiTests : IAsyncDisposable
 {
-    private readonly List<Window> _windows = new();
+    private readonly List<MainWindow> _windows = new();
     private readonly string _tempDirectory = Path.Combine(
         Path.GetTempPath(), "KillerMudClient-PinnedTabUiTests", Guid.NewGuid().ToString("N"));
 
@@ -34,14 +34,13 @@ public sealed class PinnedTabUiTests : IDisposable
     // enough lingering pinned strips occasionally perturb a restored tab's render. xUnit makes a
     // fresh test-class instance per test and disposes it afterwards, so closing this test's windows
     // here keeps each test's session state clean.
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         foreach (var window in _windows)
         {
-            window.Close();
+            await window.CloseAndDisposeAsync();
         }
 
-        Dispatcher.UIThread.RunJobs();
         if (Directory.Exists(_tempDirectory))
         {
             Directory.Delete(_tempDirectory, recursive: true);
