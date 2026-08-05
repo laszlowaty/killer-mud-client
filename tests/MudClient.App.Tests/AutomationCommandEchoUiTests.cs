@@ -24,6 +24,10 @@ public sealed class AutomationCommandEchoUiTests
 
         try
         {
+            viewModel.NewBuffName = "Ochrona";
+            viewModel.AddBuffCommand.Execute(null);
+            Assert.Single(viewModel.RequiredBuffs).IsLossNotificationEnabled = true;
+
             InvokeAffectsChanged(
                 viewModel,
                 [new CharacterAffect("Ochrona", string.Empty, false, false, null)]);
@@ -42,11 +46,38 @@ public sealed class AutomationCommandEchoUiTests
             InvokeAffectsChanged(
                 viewModel,
                 [new CharacterAffect("Błogosławieństwo", string.Empty, false, false, null)]);
-            Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(
                 ["\n\u001b[31mUtracono efekt: Ochrona.\u001b[0m\n"],
                 output);
+            Dispatcher.UIThread.RunJobs();
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task EffectsEcho_IgnoresEffectsWithoutLossTracking()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            viewModel.NewBuffName = "Ochrona";
+            viewModel.AddBuffCommand.Execute(null);
+
+            InvokeAffectsChanged(
+                viewModel,
+                [new CharacterAffect("Ochrona", string.Empty, false, false, null)]);
+            Dispatcher.UIThread.RunJobs();
+            InvokeAffectsChanged(viewModel, []);
+
+            Assert.Empty(output);
+            Dispatcher.UIThread.RunJobs();
         }
         finally
         {

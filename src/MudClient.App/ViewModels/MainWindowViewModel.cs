@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using Avalonia.Threading;
@@ -218,6 +219,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// required buffs as active/missing. Updated on the UI thread.
     /// </summary>
     private readonly HashSet<string> _activeAffectNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _affectSnapshotGate = new();
+    private Dictionary<string, string> _previousAffects = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _trackedAffectNames = new(StringComparer.OrdinalIgnoreCase);
     private bool _hasReceivedAffects;
 
     // --- Profiles ---
@@ -3891,7 +3895,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         var index = BuffSets.IndexOf(selected);
+        foreach (var buff in selected.Buffs)
+        {
+            buff.PropertyChanged -= OnBuffWatchEntryPropertyChanged;
+        }
         BuffSets.Remove(selected);
+        RefreshTrackedAffectNames();
         DeleteBuffSetCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanDeleteBuffSet));
         SelectedBuffSet = BuffSets[Math.Min(index, BuffSets.Count - 1)];
@@ -3913,10 +3922,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        RequiredBuffs.Add(new BuffWatchEntry(name)
+        var buff = new BuffWatchEntry(name)
         {
             IsActive = _activeAffectNames.Contains(normalized),
-        });
+        };
+        buff.PropertyChanged += OnBuffWatchEntryPropertyChanged;
+        RequiredBuffs.Add(buff);
         NewBuffName = string.Empty;
         RefreshBuffIndicators();
         SaveActiveProfile();
@@ -3929,9 +3940,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
+        entry.PropertyChanged -= OnBuffWatchEntryPropertyChanged;
         RequiredBuffs.Remove(entry);
+        RefreshTrackedAffectNames();
         RefreshBuffIndicators();
         SaveActiveProfile();
+    }
+
+    private void OnBuffWatchEntryPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName != nameof(BuffWatchEntry.IsLossNotificationEnabled))
+        {
+            return;
+        }
+
+        RefreshTrackedAffectNames();
+        if (!_loadingBuffSets)
+        {
+            SaveActiveProfile();
+        }
+    }
+
+    private void RefreshTrackedAffectNames()
+    {
+        var trackedNames = BuffSets
+            .SelectMany(set => set.Buffs)
+            .Where(buff => buff.IsLossNotificationEnabled)
+            .Select(buff => BuffWatchEntry.NormalizeName(buff.Name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Volatile.Write(ref _trackedAffectNames, trackedNames);
     }
 
     /// <summary>
@@ -4235,6 +4272,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Folders.Clear();
         Deaths.Clear();
         _loadingBuffSets = true;
+        foreach (var buff in BuffSets.SelectMany(set => set.Buffs))
+        {
+            buff.PropertyChanged -= OnBuffWatchEntryPropertyChanged;
+        }
         BuffSets.Clear();
 
         // Globals first, then the profile's own entries.
@@ -4306,14 +4347,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     ? "Bez nazwy"
                     : persistedSet.Name.Trim(),
             };
+            var lossNotifications = (persistedSet.LossNotifications ?? [])
+                .Select(BuffWatchEntry.NormalizeName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var buffName in persistedSet.Buffs ?? [])
             {
                 if (!string.IsNullOrWhiteSpace(buffName))
                 {
-                    set.Buffs.Add(new BuffWatchEntry(buffName)
+                    var buff = new BuffWatchEntry(buffName)
                     {
                         IsActive = _activeAffectNames.Contains(BuffWatchEntry.NormalizeName(buffName)),
-                    });
+                        IsLossNotificationEnabled = lossNotifications.Contains(
+                            BuffWatchEntry.NormalizeName(buffName)),
+                    };
+                    buff.PropertyChanged += OnBuffWatchEntryPropertyChanged;
+                    set.Buffs.Add(buff);
                 }
             }
 
@@ -4329,6 +4377,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             string.Equals(set.Id, profile.ActiveBuffSetId, StringComparison.Ordinal))
             ?? BuffSets[0];
         _loadingBuffSets = false;
+        RefreshTrackedAffectNames();
         DeleteBuffSetCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanDeleteBuffSet));
 
@@ -4592,6 +4641,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 Id = set.Id,
                 Name = set.Name,
                 Buffs = set.Buffs.Select(buff => buff.Name).ToList(),
+                LossNotifications = set.Buffs
+                    .Where(buff => buff.IsLossNotificationEnabled)
+                    .Select(buff => buff.Name)
+                    .ToList(),
             }).ToList(),
             ActiveBuffSetId = SelectedBuffSet?.Id ?? string.Empty,
             EncryptedPassword = _passwordProtector.Protect(_activeProfilePassword),
@@ -6401,20 +6454,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void OnCharacterAffectsChanged(IReadOnlyList<CharacterAffect> affects)
     {
-        Dispatcher.UIThread.Post(() =>
+        var nextAffects = affects
+            .GroupBy(
+                affect => BuffWatchEntry.NormalizeName(affect.Name),
+                StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Name,
+                StringComparer.OrdinalIgnoreCase);
+        var trackedAffectNames = Volatile.Read(ref _trackedAffectNames);
+        string[] lostEffectNames;
+        lock (_affectSnapshotGate)
         {
-            var nextAffectNames = affects
-                .Select(affect => BuffWatchEntry.NormalizeName(affect.Name))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var lostEffectNames = _hasReceivedAffects
-                ? Effects
-                    .Where(effect => !nextAffectNames.Contains(
-                        BuffWatchEntry.NormalizeName(effect.Name)))
-                    .Select(effect => effect.Name)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
+            lostEffectNames = _hasReceivedAffects
+                ? _previousAffects
+                    .Where(effect => !nextAffects.ContainsKey(effect.Key)
+                        && trackedAffectNames.Contains(effect.Key))
+                    .Select(effect => effect.Value)
                     .ToArray()
                 : [];
+            _previousAffects = nextAffects;
+            _hasReceivedAffects = true;
+        }
 
+        foreach (var lostEffectName in lostEffectNames)
+        {
+            EmitImmediateEcho(
+                "red",
+                $"Utracono efekt: {lostEffectName}.",
+                startOnNewLine: true);
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
             Effects.Clear();
             _activeAffectNames.Clear();
             foreach (var affect in affects)
@@ -6429,15 +6501,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
 
             RefreshBuffIndicators();
-            _hasReceivedAffects = true;
-
-            foreach (var lostEffectName in lostEffectNames)
-            {
-                EmitEcho(
-                    "red",
-                    $"Utracono efekt: {lostEffectName}.",
-                    startOnNewLine: true);
-            }
         });
     }
 
@@ -6641,10 +6704,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         _bookRefreshCts?.Cancel();
         CancelAutomationQueue();
+        ResetAffectSnapshot();
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
-            _hasReceivedAffects = false;
             Map.StopMapEditor(
                 "Mapowanie zatrzymane po utracie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
@@ -6654,10 +6717,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void OnConnectionError(Exception exception)
     {
         CancelAutomationQueue();
+        ResetAffectSnapshot();
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
-            _hasReceivedAffects = false;
             Map.StopMapEditor(
                 "Mapowanie zatrzymane po błędzie połączenia. Po ponownym połączeniu uruchom je ręcznie.");
             ClearLiveGroupState();
@@ -6678,6 +6741,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         var linePrefix = startOnNewLine ? "\n" : string.Empty;
         OutputReceived?.Invoke($"{linePrefix}\u001b[{ansiColor}m{text}\u001b[0m\n");
+    }
+
+    private void EmitImmediateEcho(string color, string text, bool startOnNewLine = false)
+    {
+        if (!EchoCommandParser.TryCreate(color, text, out var echo))
+        {
+            return;
+        }
+
+        var linePrefix = startOnNewLine ? "\n" : string.Empty;
+        var output = $"{linePrefix}\u001b[{echo!.AnsiColorCode}m{echo.Text}\u001b[0m\n";
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            OutputReceived?.Invoke(output);
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () => OutputReceived?.Invoke(output),
+            DispatcherPriority.Send);
+    }
+
+    private void ResetAffectSnapshot()
+    {
+        lock (_affectSnapshotGate)
+        {
+            _previousAffects.Clear();
+            _hasReceivedAffects = false;
+        }
     }
 
     private bool TryHandleEchoCommand(string command)

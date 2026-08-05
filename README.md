@@ -67,7 +67,9 @@ Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj
 - **Postać** — statystyki postaci,
 - **Kondycja** — HP/MV i stan witalny,
 - **Efekty** — aktywne efekty,
-- **Buffy** — lista wymaganych buffów z podświetleniem brakujących; komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
+- **Buffy** — lista wymaganych buffów z podświetleniem brakujących; checkbox `śledź`
+  włącza natychmiastowe czerwone ostrzeżenie w terminalu po utracie wybranego
+  efektu, a komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
 - **Drużyna** — skład i stan grupy,
 - **Mem** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono,

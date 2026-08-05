@@ -105,13 +105,19 @@
                         IsVisible="{Binding IsActive}"
                         Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
                         CommandParameter="{Binding}">
-                  <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <TextBlock Text="[+]"
                                Foreground="{StaticResource MudBrushEmeraldBright}"
                                Margin="0,0,6,0" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1" Text="{Binding Name}"
                                VerticalAlignment="Center" />
-                    <Button Grid.Column="2" Content="✕" Classes="mud-small"
+                    <CheckBox Grid.Column="2"
+                              Content="śledź"
+                              Margin="6,0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding IsLossNotificationEnabled, Mode=TwoWay}"
+                              ToolTip.Tip="Natychmiast ostrzegaj w terminalu o utracie efektu" />
+                    <Button Grid.Column="3" Content="✕" Classes="mud-small"
                             Padding="6,1"
                             ToolTip.Tip="Usuń z zestawu"
                             Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"
@@ -130,7 +136,7 @@
                         IsVisible="{Binding !IsActive}"
                         Command="{Binding $parent[UserControl].DataContext.RecastSingleBuffCommand}"
                         CommandParameter="{Binding}">
-                  <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                     <TextBlock Text="[!]"
                                Foreground="{StaticResource MudBrushCrimsonBright}"
                                Margin="0,0,6,0" VerticalAlignment="Center" />
@@ -140,7 +146,13 @@
                     <TextBlock Grid.Column="2" Text="brak"
                                Classes="mud-faint" Margin="0,0,6,0"
                                VerticalAlignment="Center" />
-                    <Button Grid.Column="3" Content="✕" Classes="mud-small"
+                    <CheckBox Grid.Column="3"
+                              Content="śledź"
+                              Margin="6,0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding IsLossNotificationEnabled, Mode=TwoWay}"
+                              ToolTip.Tip="Natychmiast ostrzegaj w terminalu o utracie efektu" />
+                    <Button Grid.Column="4" Content="✕" Classes="mud-small"
                             Padding="6,1"
                             ToolTip.Tip="Usuń z zestawu"
                             Command="{Binding $parent[UserControl].DataContext.DeleteBuffCommand}"

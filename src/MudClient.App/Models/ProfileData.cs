@@ -79,6 +79,12 @@ public sealed class ProfileBuffSet
     public string Name { get; set; } = string.Empty;
 
     public List<string> Buffs { get; set; } = [];
+
+    /// <summary>
+    /// Buff names whose disappearance from Char.Affects should produce a local warning.
+    /// Kept separately from <see cref="Buffs"/> for compatibility with existing profiles.
+    /// </summary>
+    public List<string> LossNotifications { get; set; } = [];
 }
 
 /// <summary>

@@ -24,6 +24,12 @@ public sealed partial class BuffWatchEntry : ObservableObject
     private bool _isActive;
 
     /// <summary>
+    /// True when losing this affect should produce an immediate terminal warning.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isLossNotificationEnabled;
+
+    /// <summary>
     /// Normalizes an affect name for comparison: the server appends a
     /// parenthesized counter to some affects (e.g. "mirror image (7)"),
     /// which must be ignored when matching against the user's list.

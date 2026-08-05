@@ -65,7 +65,13 @@ public sealed class BuffWatchTests : IDisposable
             BuffSets =
             [
                 new ProfileBuffSet { Id = "travel", Name = "Podróż", Buffs = ["fly"] },
-                new ProfileBuffSet { Id = "combat", Name = "Walka", Buffs = ["armor", "sanctuary"] },
+                new ProfileBuffSet
+                {
+                    Id = "combat",
+                    Name = "Walka",
+                    Buffs = ["armor", "sanctuary"],
+                    LossNotifications = ["sanctuary"],
+                },
             ],
         });
 
@@ -83,6 +89,7 @@ public sealed class BuffWatchTests : IDisposable
             {
                 Assert.Equal("Walka", set.Name);
                 Assert.Equal(["armor", "sanctuary"], set.Buffs);
+                Assert.Equal(["sanctuary"], set.LossNotifications);
             });
     }
 
@@ -121,6 +128,7 @@ public sealed class BuffWatchTests : IDisposable
         viewModel.CreateBuffSetCommand.Execute(null);
         viewModel.NewBuffName = "sanctuary";
         viewModel.AddBuffCommand.Execute(null);
+        Assert.Single(viewModel.RequiredBuffs).IsLossNotificationEnabled = true;
 
         var loaded = Assert.IsType<ProfileData>(service.Load("Mag"));
         Assert.Equal("Walka", viewModel.SelectedBuffSet?.Name);
@@ -128,7 +136,11 @@ public sealed class BuffWatchTests : IDisposable
         Assert.Collection(
             loaded.BuffSets,
             set => Assert.Equal(["armor", "mirror image"], set.Buffs),
-            set => Assert.Equal(["sanctuary"], set.Buffs));
+            set =>
+            {
+                Assert.Equal(["sanctuary"], set.Buffs);
+                Assert.Equal(["sanctuary"], set.LossNotifications);
+            });
     }
 
     [Fact]

@@ -59,8 +59,14 @@ public sealed class BuffsPanelUiTests
                 .Single(control => ReferenceEquals(control.ItemsSource, viewModel.RequiredBuffs));
             var setSelector = panel.GetVisualDescendants().OfType<ComboBox>()
                 .Single(control => ReferenceEquals(control.ItemsSource, viewModel.BuffSets));
+            var lossTrackingCheckboxes = panel.GetVisualDescendants().OfType<CheckBox>()
+                .Where(checkBox => checkBox.IsEffectivelyVisible
+                    && ToolTip.GetTip(checkBox)?.ToString()
+                        == "Natychmiast ostrzegaj w terminalu o utracie efektu")
+                .ToList();
 
             Assert.Equal(2, recastButtons.Count);
+            Assert.Equal(2, lossTrackingCheckboxes.Count);
             Assert.Same(viewModel.SelectedBuffSet, setSelector.SelectedItem);
             Assert.Contains(
                 panel.GetVisualDescendants().OfType<Button>(),
@@ -84,6 +90,10 @@ public sealed class BuffsPanelUiTests
                 Assert.Contains(
                     recastButton.GetVisualDescendants().OfType<Button>(),
                     button => button.Content?.ToString() == "✕");
+                Assert.Contains(
+                    recastButton.GetVisualDescendants().OfType<CheckBox>(),
+                    checkBox => checkBox.Content?.ToString() == "śledź"
+                        && Equals(checkBox.IsChecked, buff.IsLossNotificationEnabled));
             }
 
             var clickableBuff = recastButtons[0];
