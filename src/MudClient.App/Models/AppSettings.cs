@@ -82,6 +82,9 @@ public sealed class AppSettings
     /// <summary>Sends recuperate immediately after autowalk starts resting at low movement.</summary>
     public bool AutowalkUseRecuperate { get; set; }
 
+    /// <summary>Sends "rest" after autowalk reaches its destination.</summary>
+    public bool AutowalkRestOnArrival { get; set; } = true;
+
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 

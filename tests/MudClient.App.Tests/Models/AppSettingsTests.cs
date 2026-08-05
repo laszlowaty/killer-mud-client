@@ -90,6 +90,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_AutowalkRestOnArrivalIsEnabledByDefault()
+    {
+        Assert.True(new AppSettings().AutowalkRestOnArrival);
+    }
+
+    [Fact]
     public void Constructor_GroupOrdersAreDisabledByDefault()
     {
         Assert.False(new AppSettings().GroupOrdersEnabled);

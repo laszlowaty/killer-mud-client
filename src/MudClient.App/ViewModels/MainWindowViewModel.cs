@@ -1560,6 +1560,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public bool AutowalkRestOnArrival
+    {
+        get => _settings.AutowalkRestOnArrival;
+        set
+        {
+            if (_settings.AutowalkRestOnArrival == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestOnArrival = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public string AutoAssistExcludedMobNamesText
     {
         get => string.Join(Environment.NewLine, _settings.AutoAssistExcludedMobNames);
@@ -3094,8 +3110,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     _autowalkStep = i + 1;
                     if (_autowalkStep >= steps.Count)
                     {
-                        _ = SendTriggeredCommandAsync("rest");
-                        StopAutowalk($"Dotarłeś do lokacji „{_autowalkTargetName}”.");
+                        CompleteAutowalk(_autowalkTargetName);
                     }
                     else
                     {
@@ -3138,8 +3153,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             if (path.Steps.Count == 0)
             {
-                _ = SendTriggeredCommandAsync("rest");
-                StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
+                CompleteAutowalk(targetName);
                 return;
             }
 
@@ -3149,6 +3163,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             SendAutowalkStep();
         });
     }
+
+    private void CompleteAutowalk(string? targetName)
+    {
+        foreach (var command in BuildAutowalkArrivalCommands(AutowalkRestOnArrival))
+        {
+            _ = SendTriggeredCommandAsync(command);
+        }
+
+        StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
+    }
+
+    internal static IReadOnlyList<string> BuildAutowalkArrivalCommands(bool restOnArrival) =>
+        restOnArrival ? ["rest"] : [];
 
     /// <summary>
     /// Executes the bare /idz action: walks to the temporary map-picked target

@@ -192,6 +192,18 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal(["as", "wesprzyj", "czar 'ochrona'", "uciekaj"], commands);
     }
 
+    [Theory]
+    [InlineData(true, new[] { "rest" })]
+    [InlineData(false, new string[0])]
+    public void BuildAutowalkArrivalCommands_RespectsRestSetting(
+        bool restOnArrival,
+        string[] expected)
+    {
+        Assert.Equal(
+            expected,
+            MainWindowViewModel.BuildAutowalkArrivalCommands(restOnArrival));
+    }
+
     [Fact]
     public void Constructor_PopulatesMockNotes()
     {

@@ -34,15 +34,20 @@ public sealed class AutowalkRecoveryUiTests
                 Equals(checkBox.Content, "Używaj refreshy"));
             var recuperate = Assert.Single(checkBoxes, checkBox =>
                 Equals(checkBox.Content, "Używaj recuperate"));
+            var restOnArrival = Assert.Single(checkBoxes, checkBox =>
+                Equals(checkBox.Content, "Siadaj po dotarciu do celu"));
 
             refreshes.IsChecked = true;
             recuperate.IsChecked = true;
+            restOnArrival.IsChecked = false;
 
             Assert.True(viewModel.AutowalkUseRefreshes);
             Assert.True(viewModel.AutowalkUseRecuperate);
+            Assert.False(viewModel.AutowalkRestOnArrival);
             var stored = settingsService.Load();
             Assert.True(stored.AutowalkUseRefreshes);
             Assert.True(stored.AutowalkUseRecuperate);
+            Assert.False(stored.AutowalkRestOnArrival);
         }
         finally
         {

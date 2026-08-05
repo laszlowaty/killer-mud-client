@@ -76,14 +76,16 @@
         </StackPanel>
       </Border>
 
-      <!-- Movement recovery -->
-      <TextBlock Classes="mud-heading" Text="Odzyskiwanie ruchu" Margin="0,6,0,0" />
+      <!-- Autowalk behavior -->
+      <TextBlock Classes="mud-heading" Text="Opcje autowalku" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10,8">
         <StackPanel Spacing="6">
           <CheckBox Content="Używaj refreshy"
                     IsChecked="{Binding AutowalkUseRefreshes}" />
           <CheckBox Content="Używaj recuperate"
                     IsChecked="{Binding AutowalkUseRecuperate}" />
+          <CheckBox Content="Siadaj po dotarciu do celu"
+                    IsChecked="{Binding AutowalkRestOnArrival}" />
           <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                      Text="Przy 10% MV autowalk użyje zapamiętanego refreshu, jeśli opcja jest włączona. W przeciwnym razie odpocznie; recuperate zostanie wysłane zaraz po rest." />
         </StackPanel>
