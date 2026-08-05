@@ -70,6 +70,8 @@ public sealed partial class CharacterRoller
     {
         ArgumentNullException.ThrowIfNull(line);
 
+        line = AnsiSequenceRegex().Replace(line, string.Empty);
+
         var firstRow = FirstRowRegex().Match(line);
         if (firstRow.Success)
         {
@@ -193,4 +195,7 @@ public sealed partial class CharacterRoller
 
     [GeneratedRegex(@"CON:\s*(\d+).*CHA:\s*(\d+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ThirdRowRegex();
+
+    [GeneratedRegex(@"\x1B\[[0-?]*[ -/]*[@-~]", RegexOptions.CultureInvariant)]
+    private static partial Regex AnsiSequenceRegex();
 }

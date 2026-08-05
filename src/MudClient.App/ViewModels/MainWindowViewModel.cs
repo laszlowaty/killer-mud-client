@@ -5834,11 +5834,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 break;
 
             case CharacterRollerAction.RollAgain:
-                QueueTriggeredCommands([CharacterRollAgainCommand]);
+                Task.Run(async () =>
+                {
+                    await Task.Delay(200);
+                    QueueTriggeredCommands([CharacterRollAgainCommand], expandAliases: false);
+                });
                 break;
 
             case CharacterRollerAction.FinishCharacterCreation:
-                QueueTriggeredCommands(CharacterCreationFinishCommands);
+                Task.Run(async () =>
+                {
+                    await Task.Delay(200);
+                    QueueTriggeredCommands(CharacterCreationFinishCommands, expandAliases: false);
+                });
                 break;
 
             case CharacterRollerAction.Accepted:
@@ -6258,7 +6266,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         return commands;
     }
 
-    private void QueueTriggeredCommands(IReadOnlyList<string> commands)
+    private void QueueTriggeredCommands(IReadOnlyList<string> commands, bool expandAliases = true)
     {
         Task task;
         lock (_triggerTasksLock)
@@ -6281,7 +6289,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             // Create the new batch task and register it as the new tail.
             // EnqueueBatchAsync yields immediately so the lock is held
             // only for the duration of the synchronous preamble.
-            task = EnqueueBatchAsync(previous, commands);
+            task = EnqueueBatchAsync(previous, commands, expandAliases);
             _triggerQueueTail = task;
             _triggerTasks.Add(task);
         }
@@ -6368,7 +6376,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <see cref="SendTriggeredCommandsAsync"/> provides an additional
     /// layer of non-interleaving protection (belt-and-suspenders).
     /// </summary>
-    private async Task EnqueueBatchAsync(Task previous, IReadOnlyList<string> commands)
+    private async Task EnqueueBatchAsync(Task previous, IReadOnlyList<string> commands, bool expandAliases)
     {
         // Yield immediately so the caller's lock is released and this
         // method returns a Task to the caller.  The continuation runs
@@ -6389,17 +6397,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             // SendTriggeredCommandsAsync call below.
         }
 
-        await SendTriggeredCommandsAsync(commands);
+        await SendTriggeredCommandsAsync(commands, expandAliases);
     }
 
-    private async Task SendTriggeredCommandsAsync(IReadOnlyList<string> commands)
+    private async Task SendTriggeredCommandsAsync(IReadOnlyList<string> commands, bool expandAliases)
     {
         await _triggerSendLock.WaitAsync(_triggerCts.Token);
         try
         {
             foreach (var command in commands)
             {
-                await SendTriggeredCommandAsync(command, _triggerCts.Token);
+                await SendTriggeredCommandAsync(command, expandAliases, _triggerCts.Token);
             }
         }
         finally
@@ -6412,9 +6420,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         string command,
         CancellationToken cancellationToken = default)
     {
+        await SendTriggeredCommandAsync(command, expandAliases: true, cancellationToken);
+    }
+
+    private async Task SendTriggeredCommandAsync(
+        string command,
+        bool expandAliases,
+        CancellationToken cancellationToken = default)
+    {
         await ExecuteClientCommandSegmentAsync(
             command,
-            expandAliases: true,
+            expandAliases,
             depth: 0,
             cancellationToken);
     }

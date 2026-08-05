@@ -898,13 +898,13 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        if (_automationExecutionDepth.Value > 0)
+        if (Dispatcher.UIThread.CheckAccess())
         {
-            Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
+            EmitCommandEcho(command);
         }
         else
         {
-            EmitCommandEcho(command);
+            Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
         }
         try
         {
