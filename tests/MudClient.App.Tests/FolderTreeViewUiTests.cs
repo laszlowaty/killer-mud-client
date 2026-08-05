@@ -57,7 +57,7 @@ public sealed class FolderTreeViewUiTests
         window.Show();
         window.UpdateLayout();
         var tabs = Assert.Single(window.GetLogicalDescendants().OfType<TabControl>());
-        Assert.Equal(4, tabs.Items.Count);
+        Assert.Equal(5, tabs.Items.Count);
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy timer"));
 
         tabs.SelectedIndex = 1;
@@ -69,6 +69,10 @@ public sealed class FolderTreeViewUiTests
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy trigger"));
 
         tabs.SelectedIndex = 3;
+        window.UpdateLayout();
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy skrypt"));
+
+        tabs.SelectedIndex = 4;
         window.UpdateLayout();
         var teamOptions = window.GetLogicalDescendants().OfType<CheckBox>().ToList();
         Assert.Contains(teamOptions, checkBox => Equals(checkBox.Content, "Autoassist — automatyczne wspieranie drużyny"));

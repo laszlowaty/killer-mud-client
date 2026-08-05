@@ -16,11 +16,12 @@ using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
 using MudClient.Core.Networking;
+using MudClient.Core.Scripting;
 using MudClient.Core.Text;
 
 namespace MudClient.App.ViewModels;
 
-public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
+public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
     private const int MaximumChatHistoryLines = 500;
     internal static readonly TimeSpan DefaultToastLifetime = TimeSpan.FromSeconds(3);
@@ -155,6 +156,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newRuleAction = string.Empty;
     private string? _newRulePatternError;
     private bool _newRuleIsGlobal;
+    private bool _newRuleIsAdvanced;
     private AutomationRuleEntry? _editedRule;
     private bool _isRuleFormExpanded;
 
@@ -165,6 +167,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _newTimerMilliseconds = "0";
     private string _newTimerCommands = string.Empty;
     private bool _newTimerIsGlobal;
+    private bool _newTimerIsAdvanced;
     private TimerEntry? _editedTimer;
     private bool _isTimerFormExpanded;
     private int _selectedAutomationTabIndex;
@@ -284,6 +287,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Killeropedia = CreateKilleropediaViewModel();
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
+        Scripts.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Notes.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Locations.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Folders.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
@@ -325,6 +329,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ToggleRuleCommand = new RelayCommand<AutomationRuleEntry>(ToggleRule);
         EditRuleCommand = new RelayCommand<AutomationRuleEntry>(EditRule);
         CancelRuleEditCommand = new RelayCommand(CancelRuleEdit);
+        InitializeScripting();
         AddCurrentLocationCommand = new RelayCommand(AddCurrentLocation);
         AddLocationCommand = new RelayCommand(AddLocation);
         DeleteLocationCommand = new RelayCommand<AutowalkLocation>(DeleteLocation);
@@ -1929,6 +1934,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => SetProperty(ref _newRuleIsGlobal, value);
     }
 
+    public bool NewRuleIsAdvanced
+    {
+        get => _newRuleIsAdvanced;
+        set => SetProperty(ref _newRuleIsAdvanced, value);
+    }
+
     /// <summary>Live regex validation message, or null when the pattern is valid.</summary>
     public string? NewRulePatternError
     {
@@ -1975,6 +1986,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
+        if (NewRuleIsAdvanced
+            && _javaScriptRunner.Validate(NewRuleName.Trim(), NewRuleAction) is { } scriptError)
+        {
+            AddToast(scriptError, "error");
+            return;
+        }
+
         if (_editedRule is { } edited)
         {
             edited.Name = NewRuleName.Trim();
@@ -1982,12 +2000,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             edited.Pattern = NewRulePattern;
             edited.Action = NewRuleAction;
             edited.IsGlobal = NewRuleIsGlobal;
+            edited.IsAdvanced = NewRuleIsAdvanced;
+            edited.LastError = string.Empty;
         }
         else
         {
             AutomationRules.Add(new AutomationRuleEntry(
                 NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction,
-                isEnabled: true, isGlobal: NewRuleIsGlobal));
+                isEnabled: true, isGlobal: NewRuleIsGlobal,
+                isAdvanced: NewRuleIsAdvanced));
         }
 
         ClearRuleForm();
@@ -2010,6 +2031,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewRulePattern = entry.Pattern;
         NewRuleAction = entry.Action;
         NewRuleIsGlobal = entry.IsGlobal;
+        NewRuleIsAdvanced = entry.IsAdvanced;
         IsRuleFormExpanded = true;
         SelectedAutomationTabIndex = entry.Type == "trigger" ? 2 : 1;
         NotifyRuleEditModeChanged();
@@ -2033,6 +2055,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewRulePattern = string.Empty;
         NewRuleAction = string.Empty;
         NewRuleIsGlobal = false;
+        NewRuleIsAdvanced = false;
         NotifyRuleEditModeChanged();
     }
 
@@ -2144,6 +2167,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => SetProperty(ref _newTimerIsGlobal, value);
     }
 
+    public bool NewTimerIsAdvanced
+    {
+        get => _newTimerIsAdvanced;
+        set => SetProperty(ref _newTimerIsAdvanced, value);
+    }
+
     private void AddTimer()
     {
         var name = NewTimerName.Trim();
@@ -2165,10 +2194,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var hasCommands = CommandStacker.Split(NewTimerCommands, CommandStackingSeparator).Count > 0;
+        var hasCommands = NewTimerIsAdvanced
+            ? !string.IsNullOrWhiteSpace(NewTimerCommands)
+            : CommandStacker.Split(NewTimerCommands, CommandStackingSeparator).Count > 0;
         if (!hasCommands)
         {
             AddToast("Timer musi mieć przynajmniej jedną komendę.", "error");
+            return;
+        }
+
+        if (NewTimerIsAdvanced
+            && _javaScriptRunner.Validate(name, NewTimerCommands) is { } scriptError)
+        {
+            AddToast(scriptError, "error");
             return;
         }
 
@@ -2180,6 +2218,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             edited.Milliseconds = milliseconds;
             edited.CommandsText = NewTimerCommands;
             edited.IsGlobal = NewTimerIsGlobal;
+            edited.IsAdvanced = NewTimerIsAdvanced;
+            edited.LastError = string.Empty;
             SyncTimer(edited);
         }
         else
@@ -2192,6 +2232,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Milliseconds = milliseconds,
                 CommandsText = NewTimerCommands,
                 IsGlobal = NewTimerIsGlobal,
+                IsAdvanced = NewTimerIsAdvanced,
             });
         }
 
@@ -2213,6 +2254,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewTimerMilliseconds = entry.Milliseconds.ToString();
         NewTimerCommands = entry.CommandsText;
         NewTimerIsGlobal = entry.IsGlobal;
+        NewTimerIsAdvanced = entry.IsAdvanced;
         IsTimerFormExpanded = true;
         SelectedAutomationTabIndex = 0;
         NotifyTimerEditModeChanged();
@@ -2237,6 +2279,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         NewTimerMilliseconds = "0";
         NewTimerCommands = string.Empty;
         NewTimerIsGlobal = false;
+        NewTimerIsAdvanced = false;
         NotifyTimerEditModeChanged();
     }
 
@@ -2301,32 +2344,44 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var commands = entry.GetCommands(CommandStackingSeparator)
-            .SelectMany(command => _aliases.ProcessAliasCall(command, CommandStackingSeparator))
-            .ToArray();
+        var commands = entry.IsAdvanced
+            ? []
+            : entry.GetCommands(CommandStackingSeparator).ToArray();
         var now = DateTimeOffset.UtcNow;
         entry.ScheduleNextActivation(now + interval, now);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
             if (IsConnected && _bookRefreshCts is null)
             {
-                foreach (var command in commands)
+                await QueueAutomationWork(async queueToken =>
                 {
-                    token.ThrowIfCancellationRequested();
-                    if (Map.IsMapEditorActive)
+                    using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                        token,
+                        queueToken);
+                    if (entry.IsAdvanced)
                     {
-                        continue;
+                        await ExecuteScriptAsync(
+                            new ScriptInvocation(
+                                entry.Name,
+                                "timer",
+                                entry.CommandsText),
+                            owner: entry,
+                            depth: 0,
+                            linked.Token);
                     }
-
-                    if (EchoCommandParser.Parse(command, out _) != EchoCommandParseStatus.NotEcho)
+                    else
                     {
-                        Dispatcher.UIThread.Post(() => TryHandleEchoCommand(command));
-                        continue;
+                        foreach (var command in commands)
+                        {
+                            linked.Token.ThrowIfCancellationRequested();
+                            await ExecuteClientCommandSegmentAsync(
+                                command,
+                                expandAliases: true,
+                                depth: 0,
+                                linked.Token);
+                        }
                     }
-
-                    Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
-                    await _session.SendCommandAsync(command, token);
-                }
+                });
             }
 
             var nextIntervalStartedAt = DateTimeOffset.UtcNow;
@@ -4174,6 +4229,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Notes.Clear();
         AutomationRules.Clear();
         Timers.Clear();
+        Scripts.Clear();
+        ScriptLogs.Clear();
         Locations.Clear();
         Folders.Clear();
         Deaths.Clear();
@@ -4202,6 +4259,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Timers.Add(MakeTimerEntry(timer, isGlobal: false));
         }
+
+        foreach (var script in profile.Scripts ?? [])
+        {
+            Scripts.Add(MakeScriptEntry(script, isGlobal: false));
+        }
+
+        _scriptVariables.Replace(profile.ScriptVariables);
+        RefreshScriptVariableEntries();
 
         foreach (var location in profile.Locations)
         {
@@ -4330,6 +4395,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Timers.Add(MakeTimerEntry(timer, isGlobal: true));
         }
 
+        foreach (var script in global.Scripts ?? [])
+        {
+            Scripts.Add(MakeScriptEntry(script, isGlobal: true));
+        }
+
         foreach (var location in global.Locations)
         {
             Locations.Add(MakeLocationEntry(location, isGlobal: true));
@@ -4355,7 +4425,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     };
 
     private static AutomationRuleEntry MakeRuleEntry(ProfileRule rule, bool isGlobal) =>
-        new(rule.Name, rule.Type, rule.Pattern, rule.Action, rule.IsEnabled, isGlobal)
+        new(
+            rule.Name,
+            rule.Type,
+            rule.Pattern,
+            rule.Action,
+            rule.IsEnabled,
+            isGlobal,
+            rule.IsAdvanced)
         {
             FolderId = rule.FolderId,
         };
@@ -4372,7 +4449,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             : string.Join(Environment.NewLine, timer.Commands),
         IsEnabled = timer.IsEnabled,
         IsGlobal = isGlobal,
+        IsAdvanced = timer.IsAdvanced,
         FolderId = timer.FolderId,
+    };
+
+    private static ScriptEntry MakeScriptEntry(ProfileScript script, bool isGlobal) => new()
+    {
+        Id = string.IsNullOrWhiteSpace(script.Id) ? Guid.NewGuid().ToString("N") : script.Id,
+        Name = script.Name,
+        Code = script.Code,
+        GmcpPattern = script.GmcpPattern,
+        IsEnabled = script.IsEnabled,
+        IsGlobal = isGlobal,
+        FolderId = script.FolderId,
     };
 
     private AutowalkLocation MakeLocationEntry(ProfileLocation location, bool isGlobal)
@@ -4409,6 +4498,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Pattern = r.Pattern,
         Action = r.Action,
         IsEnabled = r.IsEnabled,
+        IsAdvanced = r.IsAdvanced,
         IsGlobal = r.IsGlobal,
         FolderId = r.FolderId,
     };
@@ -4423,8 +4513,20 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Commands = t.GetCommands(CommandStackingSeparator).ToList(),
         CommandsText = t.CommandsText,
         IsEnabled = t.IsEnabled,
+        IsAdvanced = t.IsAdvanced,
         IsGlobal = t.IsGlobal,
         FolderId = t.FolderId,
+    };
+
+    private static ProfileScript ToProfileScript(ScriptEntry script) => new()
+    {
+        Id = script.Id,
+        Name = script.Name,
+        Code = script.Code,
+        GmcpPattern = script.GmcpPattern,
+        IsEnabled = script.IsEnabled,
+        IsGlobal = script.IsGlobal,
+        FolderId = script.FolderId,
     };
 
     private static ProfileLocation ToProfileLocation(AutowalkLocation l) => new()
@@ -4446,6 +4548,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Notes = Notes.Where(n => n.IsGlobal).Select(ToProfileNote).ToList(),
             Rules = AutomationRules.Where(r => r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => t.IsGlobal).Select(ToProfileTimer).ToList(),
+            Scripts = Scripts.Where(s => s.IsGlobal).Select(ToProfileScript).ToList(),
             Locations = Locations.Where(l => l.IsGlobal).Select(ToProfileLocation).ToList(),
             Folders = Folders.Where(f => f.IsGlobal).Select(ToProfileFolder).ToList(),
         };
@@ -4473,6 +4576,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Notes = Notes.Where(n => !n.IsGlobal).Select(ToProfileNote).ToList(),
             Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
             Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
+            Scripts = Scripts.Where(s => !s.IsGlobal).Select(ToProfileScript).ToList(),
+            ScriptVariables = _scriptVariables.Snapshot(),
             Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList(),
             Folders = Folders.Where(f => !f.IsGlobal).Select(ToProfileFolder).ToList(),
             Deaths = Deaths.Select(d => new ProfileDeath
@@ -4514,7 +4619,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var rule in AutomationRules)
         {
-            if (!rule.IsEnabled)
+            if (!rule.IsEnabled || rule.IsAdvanced)
             {
                 continue;
             }
@@ -4538,6 +4643,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 AddToast($"Pominięto regułę „{rule.Name}”: nieprawidłowy wzorzec.", "error");
             }
         }
+
+        RefreshScriptingAutomation();
     }
 
     // --- Command history ---
@@ -4577,6 +4684,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     /// <summary>Triggers only (Type == "trigger"), a filtered view over <see cref="AutomationRules"/>.</summary>
     public ObservableCollection<AutomationRuleEntry> TriggerRules { get; } = [];
 
+    public ObservableCollection<ScriptEntry> Scripts { get; } = [];
+
     /// <summary>
     /// Grouping folders across every kind (timers, aliases, triggers, notes,
     /// autowalk). A folder's <see cref="FolderNode.Kind"/> selects which section
@@ -4612,6 +4721,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         foreach (var r in AutomationRules.Where(r => r.FolderId == folderId)) yield return r;
         foreach (var n in Notes.Where(n => n.FolderId == folderId)) yield return n;
         foreach (var l in Locations.Where(l => l.FolderId == folderId)) yield return l;
+        foreach (var s in Scripts.Where(s => s.FolderId == folderId)) yield return s;
     }
 
     /// <summary>
@@ -4638,6 +4748,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<FolderTreeNode> TriggerTree { get; } = [];
     public ObservableCollection<FolderTreeNode> NoteTree { get; } = [];
     public ObservableCollection<FolderTreeNode> AutowalkTree { get; } = [];
+    public ObservableCollection<FolderTreeNode> ScriptTree { get; } = [];
 
     /// <summary>When true, collection-change handlers skip rebuilds (bulk load).</summary>
     private bool _suppressTreeRebuild;
@@ -4661,6 +4772,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RebuildTree(TriggerTree, FolderKind.Triggers, TriggerRules);
         RebuildTree(NoteTree, FolderKind.Notes, Notes);
         RebuildTree(AutowalkTree, FolderKind.Autowalk, Locations);
+        RebuildTree(ScriptTree, FolderKind.Scripts, Scripts);
     }
 
     /// <summary>
@@ -4855,6 +4967,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Locations.Remove(location);
         }
 
+        foreach (var script in Scripts.Where(s => s.FolderId is not null && ids.Contains(s.FolderId)).ToList())
+        {
+            Scripts.Remove(script);
+        }
+
         foreach (var f in Folders.Where(f => ids.Contains(f.Id)).ToList())
         {
             Folders.Remove(f);
@@ -4884,9 +5001,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var ids = CollectSubtreeFolderIds(folder);
         var timers = Timers.Where(t => t.FolderId is not null && ids.Contains(t.FolderId)).ToList();
         var rules = AutomationRules.Where(r => r.FolderId is not null && ids.Contains(r.FolderId)).ToList();
+        var scripts = Scripts.Where(s => s.FolderId is not null && ids.Contains(s.FolderId)).ToList();
 
         // Enable all when anything is disabled, otherwise disable all.
-        var enable = timers.Any(t => !t.IsEnabled) || rules.Any(r => !r.IsEnabled);
+        var enable = timers.Any(t => !t.IsEnabled)
+                     || rules.Any(r => !r.IsEnabled)
+                     || scripts.Any(s => !s.IsEnabled);
         foreach (var timer in timers)
         {
             timer.IsEnabled = enable;
@@ -4895,6 +5015,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         foreach (var rule in rules)
         {
             rule.IsEnabled = enable;
+        }
+
+        foreach (var script in scripts)
+        {
+            script.IsEnabled = enable;
         }
 
         AfterFolderStructureChange(folder.Kind);
@@ -4943,6 +5068,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AutomationRuleEntry { Type: "trigger" } => FolderKind.Triggers,
         NoteEntry => FolderKind.Notes,
         AutowalkLocation => FolderKind.Autowalk,
+        ScriptEntry => FolderKind.Scripts,
         _ => null,
     };
 
@@ -4953,7 +5079,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         if (selection is FolderNode folder)
         {
-            if (folder.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers))
+            if (folder.Kind is not (
+                    FolderKind.Aliases
+                    or FolderKind.Triggers
+                    or FolderKind.Timers
+                    or FolderKind.Scripts))
             {
                 throw new InvalidOperationException("Tego folderu nie można wyeksportować.");
             }
@@ -4990,6 +5120,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 Kind = FolderKind.Triggers,
                 Triggers = [CloneProfileRule(ToProfileRule(trigger), folderId: null)],
             },
+            ScriptEntry script => new AutomationTransferPackage
+            {
+                Kind = FolderKind.Scripts,
+                Scripts = [CloneProfileScript(ToProfileScript(script), folderId: null)],
+            },
             _ => throw new InvalidOperationException("Tego elementu nie można wyeksportować."),
         };
     }
@@ -5012,6 +5147,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             package.Timers.AddRange(Timers.Where(t => t.FolderId is not null && folderIds.Contains(t.FolderId))
                 .Select(t => CloneProfileTimer(ToProfileTimer(t), t.FolderId)));
+        }
+        else if (package.Kind == FolderKind.Scripts)
+        {
+            package.Scripts.AddRange(Scripts
+                .Where(script => script.FolderId is not null && folderIds.Contains(script.FolderId))
+                .Select(script => CloneProfileScript(ToProfileScript(script), script.FolderId)));
         }
         else
         {
@@ -5078,6 +5219,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 var isGlobal = ImportedItemIsGlobal(folderId, location.IsGlobal);
                 Locations.Add(MakeLocationEntry(CloneProfileLocation(location, folderId), isGlobal));
             }
+
+            foreach (var script in package.Scripts)
+            {
+                var folderId = RemapFolderId(script.FolderId, idMap);
+                var isGlobal = ImportedItemIsGlobal(folderId, script.IsGlobal);
+                Scripts.Add(MakeScriptEntry(CloneProfileScript(script, folderId), isGlobal));
+            }
         }
         finally
         {
@@ -5104,6 +5252,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Pattern = source.Pattern,
         Action = source.Action,
         IsEnabled = source.IsEnabled,
+        IsAdvanced = source.IsAdvanced,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
     };
@@ -5117,6 +5266,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Milliseconds = source.Milliseconds,
         Commands = [.. source.Commands],
         CommandsText = source.CommandsText,
+        IsEnabled = source.IsEnabled,
+        IsAdvanced = source.IsAdvanced,
+        IsGlobal = source.IsGlobal,
+        FolderId = folderId,
+    };
+
+    private static ProfileScript CloneProfileScript(ProfileScript source, string? folderId) => new()
+    {
+        Id = Guid.NewGuid().ToString("N"),
+        Name = source.Name,
+        Code = source.Code,
+        GmcpPattern = source.GmcpPattern,
         IsEnabled = source.IsEnabled,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
@@ -5231,6 +5392,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            await ResetAutomationQueueAsync();
             lock (_characterRollerLock)
             {
                 // Keep the last targets as popup defaults, but require confirmation
@@ -5339,6 +5501,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         finally
         {
             IsConnected = false;
+            await ResetAutomationQueueAsync();
             IsBusy = false;
         }
     }
@@ -5366,62 +5529,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
         foreach (var segment in segments)
         {
-            if (TryHandleCharacterRollerCommand(segment))
-            {
-                continue;
-            }
-
-            if (await TryHandleMapEditorCommandAsync(segment))
-            {
-                continue;
-            }
-
-            if (TryHandleAutowalkCommand(segment))
-            {
-                continue;
-            }
-
-            if (string.Equals(segment, "/recast", StringComparison.OrdinalIgnoreCase))
-            {
-                await RecastMissingBuffsAsync();
-                continue;
-            }
-
-            // Alias processing happens per stacked segment so that an alias
-            // that replaces one segment can still produce multiple commands
-            // (via newlines in its replacement).
-            var commands = _aliases.ProcessCommands(segment, CommandStackingSeparator);
-
-            foreach (var command in commands)
-            {
-                if (TryHandleEchoCommand(command))
-                {
-                    continue;
-                }
-
-                var mapperDecision = Map.PrepareMapEditorCommand(command);
-                if (!mapperDecision.Allow)
-                {
-                    EmitSystem($"Mapper: {mapperDecision.Message}", 33);
-                    continue;
-                }
-
-                EmitCommandEcho(command);
-
-                try
-                {
-                    await _session.SendCommandAsync(command);
-                }
-                catch (Exception exception)
-                {
-                    if (Map.IsMapEditorAwaitingRoomInfo)
-                    {
-                        Map.CancelPendingMapMovement(
-                            $"Nie udało się wysłać ruchu mappera: {exception.Message}");
-                    }
-                    EmitSystem(exception.Message, 31);
-                }
-            }
+            await ExecuteClientCommandSegmentAsync(
+                segment,
+                expandAliases: true,
+                depth: 0,
+                CancellationToken.None);
         }
     }
 
@@ -5496,32 +5608,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                      command!,
                      CommandStackingSeparator))
         {
-            var commands = _aliases.ProcessCommands(
+            await ExecuteClientCommandSegmentAsync(
                 segment,
-                CommandStackingSeparator);
-            foreach (var expandedCommand in commands)
-            {
-                if (TryHandleEchoCommand(expandedCommand))
-                {
-                    continue;
-                }
-
-                EmitCommandEcho(expandedCommand);
-                try
-                {
-                    await _session.SendCommandAsync(
-                        expandedCommand,
-                        cancellationToken);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception exception)
-                {
-                    EmitSystem(exception.Message, 31);
-                }
-            }
+                expandAliases: true,
+                depth: 0,
+                cancellationToken);
         }
     }
 
@@ -5925,13 +6016,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             QueueTriggeredCommands([orderedCommand]);
         }
 
-        var commands = _triggers.Evaluate(line, CommandStackingSeparator);
-        if (commands.Count == 0)
-        {
-            return;
-        }
-
-        QueueTriggeredCommands(commands);
+        QueueMatchingTriggers(line);
     }
 
     private void AddChatLine(string line)
@@ -6213,7 +6298,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             foreach (var command in commands)
             {
-                await SendTriggeredCommandAsync(command);
+                await SendTriggeredCommandAsync(command, _triggerCts.Token);
             }
         }
         finally
@@ -6226,31 +6311,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         string command,
         CancellationToken cancellationToken = default)
     {
-        if (Map.IsMapEditorActive)
-        {
-            return;
-        }
-
-        if (EchoCommandParser.Parse(command, out _) != EchoCommandParseStatus.NotEcho)
-        {
-            Dispatcher.UIThread.Post(() => TryHandleEchoCommand(command));
-            return;
-        }
-
-        Dispatcher.UIThread.Post(() => EmitCommandEcho(command));
-
-        try
-        {
-            await _session.SendCommandAsync(command, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            Dispatcher.UIThread.Post(() => EmitSystem(exception.Message, 31));
-        }
+        await ExecuteClientCommandSegmentAsync(
+            command,
+            expandAliases: true,
+            depth: 0,
+            cancellationToken);
     }
 
     private void OnGmcpReceived(GmcpMessage message)
@@ -6261,6 +6326,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _roomExits.Process(message);
         _locationResolver.Process(message);
         _characterState.Process(message);
+        QueueGmcpScripts(message);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -6574,6 +6640,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void OnConnectionClosed()
     {
         _bookRefreshCts?.Cancel();
+        CancelAutomationQueue();
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
@@ -6586,6 +6653,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void OnConnectionError(Exception exception)
     {
+        CancelAutomationQueue();
         Dispatcher.UIThread.Post(() =>
         {
             IsConnected = false;
@@ -6768,6 +6836,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         SaveActiveProfile();
+        StopScriptingPersistence();
 
         List<Task> toastExpirationTasks;
         lock (_toastExpirationTasksLock)
@@ -6950,6 +7019,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // not yet released it.  Waiting ensures the release happened.
         await _triggerSendLock.WaitAsync();
         _triggerSendLock.Release();
+
+        // A script may have changed profile variables while the automation
+        // queue was being drained. Persist the final stable snapshot.
+        StopScriptingPersistence();
+        SaveActiveProfile();
 
         await _timers.DisposeAsync();
         await _session.DisposeAsync();

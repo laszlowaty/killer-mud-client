@@ -31,6 +31,8 @@
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewTimerIsAdvanced}"
+                          Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewTimerIsGlobal}" Content="Globalny" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding TimerFormButtonText}"
@@ -53,6 +55,9 @@
                       <TextBlock Text="{Binding CommandsText}"
                                  Classes="mud-muted"
                                  TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding LastError}"
+                                 Foreground="{StaticResource MudBrushCrimsonBright}"
+                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
                       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <ToggleButton Grid.Column="0"
                                       Content="{Binding StatusText}"
@@ -109,6 +114,8 @@
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
+                          Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding RuleFormButtonText}"
@@ -129,6 +136,9 @@
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
                       <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding LastError}"
+                                 Foreground="{StaticResource MudBrushCrimsonBright}"
+                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
                       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <ToggleButton Grid.Column="0"
                                     Content="{Binding StatusText}"
@@ -185,6 +195,8 @@
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          MinHeight="90" />
+                <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
+                          Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding RuleFormButtonText}"
@@ -205,6 +217,9 @@
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
                       <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding LastError}"
+                                 Foreground="{StaticResource MudBrushCrimsonBright}"
+                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
                       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <ToggleButton Grid.Column="0"
                                     Content="{Binding StatusText}"
@@ -232,6 +247,104 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="Skrypty">
+      <Grid RowDefinitions="Auto,*">
+        <Button Content="＋ Nowy skrypt"
+                Command="{Binding StartAddScriptCommand}"
+                Margin="0,0,0,8"
+                MinHeight="44" />
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="0,0,0,4" Spacing="8">
+            <Border Classes="mud-section" Padding="12"
+                    IsVisible="{Binding IsScriptFormExpanded}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding ScriptFormHeader}" Classes="mud-heading" />
+                <TextBox Text="{Binding NewScriptName}" PlaceholderText="Nazwa skryptu" />
+                <TextBox Text="{Binding NewScriptGmcpPattern}"
+                         PlaceholderText="GMCP, np. Char.Vitals (puste = ręcznie)" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="onGmcp(), execute(), send(), echo(), variables" />
+                <TextBox Text="{Binding NewScriptCode}"
+                         PlaceholderText="Kod JavaScript"
+                         AcceptsReturn="True"
+                         TextWrapping="NoWrap"
+                         MinHeight="160" />
+                <CheckBox IsChecked="{Binding NewScriptIsGlobal}" Content="Globalny" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Button Content="{Binding ScriptFormButtonText}"
+                          Command="{Binding AddScriptCommand}"
+                          MinHeight="44" />
+                  <Button Grid.Column="1" Content="Anuluj"
+                          Command="{Binding CancelScriptEditCommand}"
+                          MinHeight="44" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Scripts}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:ScriptEntry">
+                  <Border Classes="mud-section" Padding="12" Margin="0,3">
+                    <StackPanel Spacing="6">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
+                                 Classes="mud-faint" />
+                      <TextBlock Text="{Binding Code}" Classes="mud-muted"
+                                 TextWrapping="Wrap" MaxHeight="80" />
+                      <TextBlock Text="{Binding LastError}"
+                                 Foreground="{StaticResource MudBrushCrimsonBright}"
+                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                        <ToggleButton Content="{Binding StatusText}"
+                                      Command="{Binding $parent[UserControl].DataContext.ToggleScriptCommand}"
+                                      CommandParameter="{Binding}"
+                                      HorizontalAlignment="Left" MinWidth="110" MinHeight="44" />
+                        <Button Grid.Column="1" Content="▶"
+                                Command="{Binding $parent[UserControl].DataContext.RunScriptCommand}"
+                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+                        <Button Grid.Column="2" Content="✎"
+                                Command="{Binding $parent[UserControl].DataContext.EditScriptCommand}"
+                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+                        <Button Grid.Column="3" Content="✕" Classes="mud-danger"
+                                Command="{Binding $parent[UserControl].DataContext.DeleteScriptCommand}"
+                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="mud-section" Padding="12">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Zmienne profilu" Classes="mud-heading" />
+                <TextBox Text="{Binding NewScriptVariableName}"
+                         PlaceholderText="Nazwa, np. combat.target" />
+                <TextBox Text="{Binding NewScriptVariableJson}"
+                         PlaceholderText="Wartość JSON, np. &quot;ork&quot;" />
+                <Button Content="Zapisz zmienną"
+                        Command="{Binding AddScriptVariableCommand}" MinHeight="44" />
+                <ItemsControl ItemsSource="{Binding ScriptVariables}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:ScriptVariableEntry">
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,3">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding ValueJson}"
+                                   Classes="mud-faint" TextWrapping="Wrap" />
+                        <Button Grid.Column="2" Content="✕" Classes="mud-danger"
+                                Command="{Binding $parent[UserControl].DataContext.DeleteScriptVariableCommand}"
+                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
           </StackPanel>
         </ScrollViewer>
       </Grid>

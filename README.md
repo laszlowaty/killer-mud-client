@@ -36,6 +36,10 @@ SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexi
   krzyki i kanały `[Nadawca]: treść`) z kolorami ANSI, przewijaniem i kopiowaniem;
   w układzie **DEFAULT** jest zakładką obok terminala, a układy zapisane przez starsze
   wersje zachowują swój wygląd i otrzymują go jako ukryty panel w menu **Panele**,
+- domyślnie ukryte widżety **Konsola JavaScript** i **Zmienne**, dostępne przez
+  **Więcej → Przywróć panele**; konsola przechowuje 500 ostatnich wpisów `log()` /
+  `console.log`, ostrzeżeń, błędów i nazwę ich źródła, a widżet zmiennych pokazuje
+  aktualny magazyn JSON aktywnego profilu,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
 - opcjonalne dopisywanie liczbowych zakresów do opisowych statystyk postaci; wspólne ustawienie działa na desktopie i Androidzie,
 - opcjonalne dopisywanie liczbowych wartości do opisowych komunikatów zadawanych obrażeń, z zachowaniem osobnych progów zapisanych wielkimi literami,
@@ -123,12 +127,37 @@ aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
   podczas tworzenia postaci i otwiera konfigurację minimów (także sumy); każdą
   wartość można zignorować, a po udanym losowaniu opcjonalnie wysłać sekwencję
   kończącą tworzenie postaci. `/reroll` zatrzymuje automat i ponownie otwiera popup,
-- **Automaty** — aliasy i triggery z wzorcami oraz timery powtarzające komendy; aktywne timery mają countdown przy prawej krawędzi terminala, a usunięcie pojedynczego wpisu wymaga potwierdzenia,
-- **Foldery** — timery, aliasy, triggery, cele autowalk i notatki można układać w zagnieżdżonych folderach metodą drag&drop; folder obsługuje grupowe usuwanie, globalność oraz włączanie/wyłączanie tam, gdzie ma to zastosowanie, a usunięcie folderu timerów, aliasów lub triggerów wymaga potwierdzenia,
-- **Import i eksport** — pojedyncze aliasy, triggery i timery oraz całe drzewa ich folderów można przenosić w wersjonowanym formacie JSON; panel autowalka przenosi zawsze wszystkie zapisane cele wraz z pełną strukturą folderów; podczas importu identyfikatory folderów są bezpiecznie mapowane na nowe,
+- **Automaty** — aliasy, triggery i timery mogą działać w dotychczasowym trybie prostym albo wykonywać JavaScript. Komendy z każdego automatu przechodzą przez wspólny dispatcher klienta, dlatego mogą uruchamiać aliasy, `echo(...)` i komendy wbudowane takie jak `/idz`, `/recast`, `/reroll` czy `/map`,
+- **Skrypty** — samodzielne skrypty można uruchamiać przyciskiem, komendą `/script nazwa` albo podłączyć do dokładnego pakietu GMCP (`Char.Vitals`), prefiksu (`Char.*`) lub wszystkich pakietów (`*`). Pusty filtr GMCP oznacza skrypt wywoływany wyłącznie ręcznie,
+- **Zmienne profilu** — trwałe wartości JSON współdzielone przez zaawansowane aliasy, triggery, timery i skrypty. Proste akcje mogą wstawiać je przez `${nazwa}`,
+- **Foldery** — timery, aliasy, triggery, skrypty, cele autowalk i notatki można układać w zagnieżdżonych folderach metodą drag&drop; folder obsługuje grupowe usuwanie, globalność oraz włączanie/wyłączanie tam, gdzie ma to zastosowanie,
+- **Import i eksport** — pojedyncze aliasy, triggery, timery i skrypty oraz całe drzewa ich folderów można przenosić w wersjonowanym formacie JSON; panel autowalka przenosi zawsze wszystkie zapisane cele wraz z pełną strukturą folderów; podczas importu identyfikatory folderów są bezpiecznie mapowane na nowe,
 - **Autoassist** — opcjonalne wysłanie `as`, gdy GMCP wskaże walczącego członka drużyny w bieżącym pokoju; po asyście może wykonać dodatkowe komendy rozdzielone nowymi liniami lub skonfigurowanym separatorem, a cała sekwencja jest ponawiana, jeśli postać przestanie walczyć i członek drużyny nadal walczy,
 - **Ordery** — opcjonalne wykonywanie komendy z komunikatu `Gracz rozkazuje ci 'komenda'.`, wyłącznie gdy nadawca jest członkiem aktualnej grupy GMCP,
 - **Notatki** — panel na własne zapiski.
+
+API JavaScript jest identyczne na desktopie i Androidzie:
+
+```javascript
+onGmcp("Char.Vitals", event => {
+    variables.set("hp", event.data.hp);
+    if (event.data.hp < 25) {
+        echo("Mało HP!", "red");
+        execute("/idz lecznica"); // pełna ścieżka klienta: /komendy, aliasy, MUD
+    }
+});
+```
+
+- `execute(text)` i `runAlias(text)` wykonują tekst tak, jak pole komendy klienta,
+- `send(text)` wysyła tekst bezpośrednio do MUD-a przez bezpieczną kolejkę,
+- `echo(text, color)` wypisuje lokalny komunikat w terminalu,
+- `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
+  **Konsola JavaScript**,
+- `variables.get/set/has/remove/increment` korzystają z magazynu aktywnego profilu.
+
+Interpreter nie otrzymuje dostępu do CLR, plików, HTTP ani strumienia sieciowego.
+Każde wykonanie ma limity czasu, pamięci, liczby instrukcji, rekursji i efektów;
+rozłączenie lub zamknięcie klienta anuluje oczekującą automatyzację.
 
 ## Pobieranie
 
@@ -171,6 +200,11 @@ w `artifacts/verify`, wykrywa zawieszone procesy testowe korzystające z tego
 katalogu i domyślnie usuwa wszystkie artefakty w bloku `finally`. Przełącznik
 `-KeepArtifacts` pozostawia wyniki do diagnostyki; kolejne uruchomienie skryptu
 i tak wyczyści je przed rozpoczęciem pracy.
+
+Wariant `MudClient.App` używany jako biblioteka przez projekt Androida zapisuje
+skompilowane pliki w osobnych katalogach `bin/AndroidReference` oraz
+`obj/AndroidReference`. Dzięki temu build Androida nie może nadpisać desktopowego
+pliku wykonywalnego wariantem bez punktu wejścia.
 
 W VS Code możesz również nacisnąć `F5` albo uruchomić zadanie `run`. Skróty: `.\run.ps1` / `.\run.bat` (Windows), `./run.sh` (Linux/macOS).
 
@@ -310,7 +344,7 @@ Panel **Ustawienia** pozwala wyeksportować do ZIP cały katalog danych aplikacj
 
 ```text
 src/
-├── MudClient.Core/       # Telnet, GMCP, TCP, mapa, aliasy, triggery, timery
+├── MudClient.Core/       # Telnet, GMCP, TCP, mapa, automatyzacja i bezpieczny JavaScript
 └── MudClient.App/        # Avalonia, panele, widoki i renderowanie ANSI
 tests/
 ├── MudClient.Core.Tests/ # testy silnika bez uruchamiania GUI

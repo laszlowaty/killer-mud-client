@@ -123,4 +123,34 @@ public sealed class AutomationTransferTests : IAsyncDisposable
             .Single(entry => entry.Name == looseLocation.Name && !ReferenceEquals(entry, looseLocation));
         Assert.Null(importedLooseLocation.FolderId);
     }
+
+    [Fact]
+    public async Task ScriptPackage_RoundTripsGmcpHookAndFolder()
+    {
+        _vm.CreateFolderCommand.Execute(FolderKind.Scripts);
+        var folder = Assert.Single(_vm.Folders);
+        folder.IsGlobal = true;
+        var script = new ScriptEntry
+        {
+            Name = "witalne",
+            GmcpPattern = "Char.Vitals",
+            Code = "onGmcp(\"Char.Vitals\", event => echo(event.data.hp));",
+            IsGlobal = true,
+            FolderId = folder.Id,
+        };
+        _vm.Scripts.Add(script);
+
+        var exported = _vm.CreateAutomationTransferPackage(folder);
+        await using var stream = new MemoryStream();
+        await _service.WriteAsync(stream, exported, TestContext.Current.CancellationToken);
+        stream.Position = 0;
+        var imported = await _service.ReadAsync(stream, TestContext.Current.CancellationToken);
+        _vm.ImportAutomationTransferPackage(imported);
+
+        Assert.Equal(2, _vm.Scripts.Count);
+        var clone = _vm.Scripts.Single(item => !ReferenceEquals(item, script));
+        Assert.Equal("Char.Vitals", clone.GmcpPattern);
+        Assert.NotEqual(folder.Id, clone.FolderId);
+        Assert.True(clone.IsGlobal);
+    }
 }

@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.App.Views.Panels.JavaScriptConsolePanelView"
+             x:DataType="vm:MainWindowViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="8">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+      <TextBlock Grid.Column="0"
+                 Classes="mud-faint"
+                 VerticalAlignment="Center"
+                 Text="log() oraz console.log/warn/error" />
+      <Button Grid.Column="1"
+              Classes="mud-small"
+              Content="Wyczyść"
+              Command="{Binding ClearScriptLogsCommand}"
+              IsEnabled="{Binding ScriptLogs.Count}" />
+    </Grid>
+
+    <Grid Grid.Row="1">
+      <TextBlock Classes="mud-faint"
+                 TextWrapping="Wrap"
+                 Text="Konsola jest pusta. Użyj log() albo console.log() w JavaScript."
+                 IsVisible="{Binding !ScriptLogs.Count}" />
+
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto"
+                    IsVisible="{Binding ScriptLogs.Count}">
+        <ItemsControl ItemsSource="{Binding ScriptLogs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ScriptLogEntryViewModel">
+              <Border Classes="mud-section" Padding="8,6" Margin="0,2">
+                <Grid RowDefinitions="Auto,Auto"
+                      ColumnDefinitions="Auto,Auto,*"
+                      ColumnSpacing="8">
+                  <TextBlock Grid.Row="0" Grid.Column="0"
+                             Classes="mud-faint"
+                             Text="{Binding Time}" />
+                  <TextBlock Grid.Row="0" Grid.Column="1"
+                             FontWeight="Bold"
+                             Foreground="{StaticResource MudBrushGoldBright}"
+                             Text="{Binding Level}" />
+                  <TextBlock Grid.Row="0" Grid.Column="2"
+                             Classes="mud-muted"
+                             TextTrimming="CharacterEllipsis"
+                             Text="{Binding Source}" />
+                  <SelectableTextBlock Grid.Row="1"
+                                       Grid.ColumnSpan="3"
+                                       Margin="0,3,0,0"
+                                       FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding Message}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

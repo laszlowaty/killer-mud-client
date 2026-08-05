@@ -25,7 +25,7 @@ public sealed class AutomationTransferService
         var package = await JsonSerializer.DeserializeAsync<AutomationTransferPackage>(stream, Options, cancellationToken)
             .ConfigureAwait(false);
 
-        if (package is null || package.Version != 1)
+        if (package is null || package.Version is not (1 or 2))
         {
             throw new JsonException("Nieobsługiwana lub pusta paczka automatyzacji.");
         }
@@ -36,9 +36,15 @@ public sealed class AutomationTransferService
 
     public static void ValidatePackage(AutomationTransferPackage package)
     {
-        if (package.Kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers or FolderKind.Autowalk))
+        if (package.Kind is not (
+                FolderKind.Aliases
+                or FolderKind.Triggers
+                or FolderKind.Timers
+                or FolderKind.Autowalk
+                or FolderKind.Scripts))
         {
-            throw new JsonException("Paczka może zawierać wyłącznie aliasy, triggery, timery albo cele autowalka.");
+            throw new JsonException(
+                "Paczka może zawierać wyłącznie aliasy, triggery, timery, skrypty albo cele autowalka.");
         }
 
         if (package.Folders.Any(folder => folder.Kind != package.Kind))
@@ -75,7 +81,8 @@ public sealed class AutomationTransferService
         if (package.Kind != FolderKind.Aliases && package.Aliases.Count > 0 ||
             package.Kind != FolderKind.Triggers && package.Triggers.Count > 0 ||
             package.Kind != FolderKind.Timers && package.Timers.Count > 0 ||
-            package.Kind != FolderKind.Autowalk && package.Locations.Count > 0)
+            package.Kind != FolderKind.Autowalk && package.Locations.Count > 0 ||
+            package.Kind != FolderKind.Scripts && package.Scripts.Count > 0)
         {
             throw new JsonException("Typ zawartości paczki nie zgadza się z jej rodzajem.");
         }

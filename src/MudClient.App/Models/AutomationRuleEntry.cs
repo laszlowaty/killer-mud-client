@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Alias or trigger shown in the UI. Pattern is a .NET regex; Action may use
 /// capture-group substitutions like $1.
 /// </summary>
-public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderItem
+public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderItem, IScriptErrorSource
 {
     private string _name;
     private string _type;
@@ -14,9 +14,18 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
     private string _action;
     private bool _isEnabled;
     private bool _isGlobal;
+    private bool _isAdvanced;
     private string? _folderId;
+    private string _lastError = string.Empty;
 
-    public AutomationRuleEntry(string name, string type, string pattern, string action, bool isEnabled, bool isGlobal = false)
+    public AutomationRuleEntry(
+        string name,
+        string type,
+        string pattern,
+        string action,
+        bool isEnabled,
+        bool isGlobal = false,
+        bool isAdvanced = false)
     {
         _name = name;
         _type = type;
@@ -24,6 +33,7 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
         _action = action;
         _isEnabled = isEnabled;
         _isGlobal = isGlobal;
+        _isAdvanced = isAdvanced;
     }
 
     public string Name
@@ -72,10 +82,31 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
         set => SetProperty(ref _isGlobal, value);
     }
 
+    /// <summary>True when <see cref="Action"/> contains JavaScript.</summary>
+    public bool IsAdvanced
+    {
+        get => _isAdvanced;
+        set => SetProperty(ref _isAdvanced, value);
+    }
+
     /// <summary>Id of the containing folder, or null when loose.</summary>
     public string? FolderId
     {
         get => _folderId;
         set => SetProperty(ref _folderId, value);
     }
+
+    public string LastError
+    {
+        get => _lastError;
+        set
+        {
+            if (SetProperty(ref _lastError, value))
+            {
+                OnPropertyChanged(nameof(HasLastError));
+            }
+        }
+    }
+
+    public bool HasLastError => !string.IsNullOrWhiteSpace(LastError);
 }

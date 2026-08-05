@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace MudClient.App.Models;
 
 /// <summary>
@@ -40,6 +42,15 @@ public sealed class ProfileData
 
     public List<ProfileTimer> Timers { get; set; } = [];
 
+    public List<ProfileScript> Scripts { get; set; } = [];
+
+    /// <summary>
+    /// Persistent JSON values shared by scripts and advanced automations of
+    /// this profile. Global automations use the currently active profile.
+    /// </summary>
+    public Dictionary<string, JsonElement> ScriptVariables { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public List<ProfileLocation> Locations { get; set; } = [];
 
     /// <summary>Grouping folders (per kind) owned by this profile.</summary>
@@ -81,6 +92,8 @@ public sealed class GlobalData
     public List<ProfileRule> Rules { get; set; } = [];
 
     public List<ProfileTimer> Timers { get; set; } = [];
+
+    public List<ProfileScript> Scripts { get; set; } = [];
 
     public List<ProfileLocation> Locations { get; set; } = [];
 
@@ -165,6 +178,9 @@ public sealed class ProfileTimer
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
 
+    /// <summary>True when <see cref="CommandsText"/> contains JavaScript.</summary>
+    public bool IsAdvanced { get; set; }
+
     /// <summary>Id of the containing folder, or null when loose.</summary>
     public string? FolderId { get; set; }
 }
@@ -197,9 +213,34 @@ public sealed class ProfileRule
 
     public bool IsEnabled { get; set; } = true;
 
+    /// <summary>True when <see cref="Action"/> contains JavaScript.</summary>
+    public bool IsAdvanced { get; set; }
+
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }
 
     /// <summary>Id of the containing folder, or null when loose.</summary>
+    public string? FolderId { get; set; }
+}
+
+public sealed class ProfileScript
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// GMCP package name or prefix wildcard (for example Char.*). Empty means
+    /// the script runs only manually or through /script.
+    /// </summary>
+    public string GmcpPattern { get; set; } = string.Empty;
+
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>True when stored in the shared global file.</summary>
+    public bool IsGlobal { get; set; }
+
     public string? FolderId { get; set; }
 }

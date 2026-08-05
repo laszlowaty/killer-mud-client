@@ -54,6 +54,11 @@ public sealed class PinnedTabUiTests : IDisposable
         new DockLayoutService(_tempDirectory),
         layoutPresetService: new LayoutPresetService(_tempDirectory));
 
+    private static void AssertOnlyDefaultPanelsAreHidden(MainWindowViewModel viewModel) =>
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds,
+            viewModel.HiddenPanels.Select(panel => panel.Id!).ToHashSet());
+
     private static DockLayoutSnapshot CreateSnapshotWithPins(
         params (string ToolId, Alignment Edge)[] pins)
     {
@@ -346,7 +351,7 @@ public sealed class PinnedTabUiTests : IDisposable
         Assert.NotSame(firstFactory, secondFactory);
         Assert.NotSame(secondFactory, finalFactory);
         firstFactory.OnDockableClosed(firstFactory.AllTools.First(tool => tool.Id == "Gmcp"));
-        Assert.Empty(viewModel.HiddenPanels);
+        AssertOnlyDefaultPanelsAreHidden(viewModel);
 
         PumpUntil(window, () => RenderedPinItems(window).Count == 2);
 
@@ -360,7 +365,7 @@ public sealed class PinnedTabUiTests : IDisposable
         Assert.Contains(
             viewModel.Layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => dockable.Id == "Notes");
-        Assert.Empty(viewModel.HiddenPanels);
+        AssertOnlyDefaultPanelsAreHidden(viewModel);
     }
 
     [AvaloniaFact]
@@ -401,7 +406,7 @@ public sealed class PinnedTabUiTests : IDisposable
             RenderedPinItems(window)
                 .Select(control => Assert.IsType<PanelTool>(control.DataContext).Id)
                 .ToHashSet());
-        Assert.Empty(viewModel.HiddenPanels);
+        AssertOnlyDefaultPanelsAreHidden(viewModel);
     }
 
     [AvaloniaFact]

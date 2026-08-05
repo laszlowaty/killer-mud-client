@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// </summary>
 public sealed class AutomationTransferPackage
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     public FolderKind Kind { get; set; }
 
@@ -19,4 +19,6 @@ public sealed class AutomationTransferPackage
     public List<ProfileTimer> Timers { get; set; } = [];
 
     public List<ProfileLocation> Locations { get; set; } = [];
+
+    public List<ProfileScript> Scripts { get; set; } = [];
 }

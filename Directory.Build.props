@@ -6,4 +6,14 @@
     <Deterministic>true</Deterministic>
     <Version>0.6.9</Version>
   </PropertyGroup>
+
+  <!--
+    Android references MudClient.App as a library. Isolate the compiled library
+    and intermediate compiler output from the desktop WinExe, while deliberately
+    retaining the normal NuGet project extensions path (obj/project.assets.json).
+  -->
+  <PropertyGroup Condition="'$(BuildingForAndroidReference)' == 'true'">
+    <BaseOutputPath>bin\AndroidReference\</BaseOutputPath>
+    <IntermediateOutputPath>obj\AndroidReference\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
 </Project>

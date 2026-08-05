@@ -28,6 +28,23 @@ public sealed class MudDockFactory : Factory, IFactory
     /// <summary>Id of the required-buffs tool; its tab title carries a live x/y badge.</summary>
     public const string BuffsToolId = "Buffs";
     public const string ChatToolId = "Chat";
+    public const string JavaScriptConsoleToolId = "JavaScriptConsole";
+    public const string ScriptVariablesToolId = "ScriptVariables";
+
+    public static IReadOnlySet<string> DefaultHiddenToolIds { get; } =
+        new HashSet<string>
+        {
+            JavaScriptConsoleToolId,
+            ScriptVariablesToolId,
+        };
+
+    private static IReadOnlySet<string> MigratableMissingToolIds { get; } =
+        new HashSet<string>
+        {
+            ChatToolId,
+            JavaScriptConsoleToolId,
+            ScriptVariablesToolId,
+        };
 
     public List<PanelTool> AllTools { get; } = new();
 
@@ -226,6 +243,16 @@ public sealed class MudDockFactory : Factory, IFactory
         var notesTool = NewTool("Notes", "✎ Notatki", typeof(Views.Panels.NotesPanelView), _mainContext);
         var gmcpTool = NewTool("Gmcp", "⇅ GMCP", typeof(Views.Panels.GmcpPanelView), _mainContext);
         var settingsTool = NewTool("Settings", "🛠 Ustawienia", typeof(Views.Panels.SettingsPanelView), _mainContext);
+        var javaScriptConsoleTool = NewTool(
+            JavaScriptConsoleToolId,
+            "⌨ Konsola JavaScript",
+            typeof(Views.Panels.JavaScriptConsolePanelView),
+            _mainContext);
+        var scriptVariablesTool = NewTool(
+            ScriptVariablesToolId,
+            "◆ Zmienne",
+            typeof(Views.Panels.ScriptVariablesPanelView),
+            _mainContext);
 
         var leftDock = new ToolDock
         {
@@ -297,6 +324,8 @@ public sealed class MudDockFactory : Factory, IFactory
         rootDock.DefaultDockable = mainLayout;
 
         _root = rootDock;
+        HiddenTools.Add(javaScriptConsoleTool);
+        HiddenTools.Add(scriptVariablesTool);
 
         return rootDock;
     }
@@ -700,11 +729,11 @@ public sealed class MudDockFactory : Factory, IFactory
         var missing = new HashSet<string>(known.Except(accountedFor));
 
         // Every known tool must appear exactly once across the visible tree, the hidden
-        // list, and the pinned list. Chat is the one migration exception: layouts saved
-        // before it existed keep their exact arrangement and receive Chat as a hidden tool.
+        // list, and the pinned list. Newly introduced optional tools are migration exceptions:
+        // older layouts keep their exact arrangement and receive those tools in the restore menu.
         if (referenced.Overlaps(hidden) || referenced.Overlaps(pinned) || hidden.Overlaps(pinned)
             || accountedFor.Except(known).Any()
-            || (missing.Count > 0 && !missing.SetEquals([ChatToolId])))
+            || (missing.Count > 0 && !missing.IsSubsetOf(MigratableMissingToolIds)))
         {
             return false;
         }

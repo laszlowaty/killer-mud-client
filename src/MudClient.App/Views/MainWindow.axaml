@@ -372,6 +372,15 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="180,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="/script &lt;nazwa&gt;" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Uruchamia aktywny skrypt o podanej nazwie. Skrypt może wywoływać aliasy, komendy klienta i komendy MUD-a." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="220,*" ColumnSpacing="18">
                     <TextBlock Grid.Column="0" Text="/map &lt;komenda&gt;" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
@@ -403,7 +412,7 @@
                     <TextBlock Grid.Column="0" Text="alias(...) w triggerze/timerze" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="W komendzie triggera albo timera wpisz alias(nazwa-aliasu) lub alias(tekst-dopasowany-do-wzorca). Klient uruchomi istniejący alias i wyśle jego rozwinięcie, także wiele komend rozdzielonych nowymi liniami lub separatorem. Przykład: alias(buff)." />
+                               Text="W prostym triggerze albo timerze wpisz alias(nazwa-aliasu) lub alias(tekst-dopasowany-do-wzorca). Klient uruchomi istniejący alias i wyśle jego rozwinięcie, także wiele komend rozdzielonych nowymi liniami lub separatorem. Przykład: alias(buff)." />
                   </Grid>
                 </Border>
 
@@ -412,8 +421,124 @@
                     <TextBlock Grid.Column="0" Text="echo(&quot;kolor&quot;, &quot;tekst&quot;)" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="Wyświetla lokalny tekst w terminalu bez wysyłania go do MUD-a. Działa w aliasach, triggerach, timerach i floating buttonach. Klient używa czerwonego echo także do informacji o utracie efektu GMCP. Kolory: black, red, green, yellow, blue, magenta, cyan, white, gray. Przykład: echo(&quot;red&quot;, &quot;Straciłeś ochronę!&quot;)." />
+                               Text="W prostych automatach wyświetla lokalny tekst bez wysyłania go do MUD-a. Kolory: black, red, green, yellow, blue, magenta, cyan, white, gray. Przykład: echo(&quot;red&quot;, &quot;Straciłeś ochronę!&quot;). W JavaScript kolejność argumentów jest odwrotna: echo(tekst, kolor)." />
                   </Grid>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Header="Skryptowanie">
+            <ScrollViewer Margin="0,12,0,0">
+              <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+                <TextBlock Classes="mud-muted"
+                           TextWrapping="Wrap"
+                           Text="Aliasy, triggery i timery mogą działać w trybie prostym albo zaawansowanym. Tryb zaawansowany wykonuje JavaScript. Samodzielne skrypty znajdziesz w zakładce Skrypty panelu Automatów." />
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Kiedy używać którego trybu?"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Tryb prosty wystarcza do rozwijania wzorca na komendy, alias(...), echo(...) i podstawiania zmiennych przez ${nazwa}. Tryb zaawansowany wybierz, gdy potrzebujesz if, pętli, obliczeń, danych z dopasowania lub kilku zależnych akcji." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="execute(tekst)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Wykonuje tekst pełną ścieżką klienta. Obsługuje aliasy, separator komend oraz komendy wbudowane, np. /idz, /recast, /map i /script." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="runAlias(tekst)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Uruchamia tekst jak komendę wpisaną przez użytkownika. Może wskazywać nazwę lub tekst pasujący do istniejącego aliasu." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="send(tekst)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Wysyła tekst bezpośrednio do MUD-a. Nie rozwija aliasów i nie wykonuje komend klienta. Respektuje skonfigurowany separator komend." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="echo(tekst, kolor)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Wyświetla lokalny komunikat w terminalu. Kolor jest opcjonalny i domyślnie ma wartość cyan." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Konsola JavaScript"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="log(...wartości), console.log(...), console.warn(...) i console.error(...) zapisują wpisy w osobnym widżecie Konsola JavaScript. Konsola przechowuje 500 ostatnich wpisów wraz z godziną, poziomem i nazwą źródłowego automatu. Widżety Konsola JavaScript i Zmienne są domyślnie ukryte; przywrócisz je przez Więcej → Przywróć panele." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="input i match" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="input zawiera wejściową komendę lub linię. W aliasie i triggerze match.value zawiera całe dopasowanie, match.captures grupy numerowane, a match.groups grupy nazwane." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Zmienne profilu"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="variables.get(nazwa, wartośćDomyślna), set(nazwa, wartość), has(nazwa), remove(nazwa) i increment(nazwa, ilość) korzystają ze wspólnego magazynu aktywnego profilu. Wartości są zapisywane jako JSON i pozostają dostępne dla innych aliasów, triggerów, timerów oraz skryptów." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="GMCP"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Skrypt może mieć filtr dokładny, np. Char.Vitals, filtr prefiksu Char.* albo * dla wszystkich pakietów. Pusty filtr oznacza wywołanie wyłącznie ręczne. W obsłudze GMCP obiekt event udostępnia event.package, event.data i event.raw. Funkcja onGmcp(wzorzec, handler) uruchamia handler tylko dla pasującego pakietu." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Przykład: reakcja na niski poziom HP"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock FontFamily="Consolas"
+                               TextWrapping="Wrap"
+                               Text="onGmcp(&quot;Char.Vitals&quot;, event =&gt; {&#10;  variables.set(&quot;hp&quot;, event.data.hp);&#10;  if (event.data.hp &lt; 25) {&#10;    echo(&quot;Mało HP!&quot;, &quot;red&quot;);&#10;    execute(&quot;/idz lecznica&quot;);&#10;  }&#10;});" />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Bezpieczeństwo i błędy"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Skrypty nie mają dostępu do CLR, plików, HTTP ani strumienia sieciowego. Interpreter ogranicza czas, pamięć, liczbę instrukcji, rekurencję i liczbę akcji. Błąd jest wyświetlany przy konkretnym automacie i zapisywany w Konsoli JavaScript; rozłączenie anuluje oczekujące wykonania." />
+                  </StackPanel>
                 </Border>
               </StackPanel>
             </ScrollViewer>
@@ -441,7 +566,7 @@
               <TextBlock Classes="mud-heading-lg" Text="Wybierz konto" />
               <TextBlock Classes="mud-muted"
                          TextWrapping="Wrap"
-                         Text="Konto przechowuje hasło, notatki, aliasy, triggery i timery postaci." />
+                         Text="Konto przechowuje hasło, notatki, automaty, skrypty i ich wspólne zmienne." />
             </StackPanel>
           </Grid>
 

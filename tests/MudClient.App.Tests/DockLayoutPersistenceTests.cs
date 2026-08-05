@@ -57,12 +57,16 @@ public sealed class DockLayoutPersistenceTests : IDisposable
         service.Save(factory1.Snapshot(layout1));
         var loaded = service.Load();
         Assert.NotNull(loaded);
-        Assert.Equal(new[] { "Gmcp" }, loaded!.HiddenToolIds);
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds.Append("Gmcp").ToHashSet(),
+            loaded!.HiddenToolIds.ToHashSet());
 
         var factory2 = CreateFactory(out var layout2);
         Assert.True(factory2.TryApplySnapshot(layout2, loaded));
 
-        Assert.Equal("Gmcp", Assert.Single(factory2.HiddenTools).Id);
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds.Append("Gmcp").ToHashSet(),
+            factory2.HiddenTools.Select(tool => tool.Id!).ToHashSet());
         var panels = (layout2.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).ToList();
         Assert.DoesNotContain(panels, p => p.Id == "Gmcp");
         Assert.Contains(panels, p => p.Id == "Terminal");
@@ -147,6 +151,24 @@ public sealed class DockLayoutPersistenceTests : IDisposable
             PanelsIn(layout2),
             panel => panel.Id == MudDockFactory.ChatToolId);
         Assert.Contains(PanelsIn(layout2), panel => panel.Id == "Terminal");
+    }
+
+    [Fact]
+    public void TryApplySnapshot_MigratesLayoutWithoutJavaScriptDiagnosticTools()
+    {
+        var factory1 = CreateFactory(out var layout1);
+        var snapshot = factory1.Snapshot(layout1);
+        snapshot.HiddenToolIds.RemoveAll(MudDockFactory.DefaultHiddenToolIds.Contains);
+
+        var factory2 = CreateFactory(out var layout2);
+
+        Assert.True(factory2.TryApplySnapshot(layout2, snapshot));
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds,
+            factory2.HiddenTools.Select(tool => tool.Id!).ToHashSet());
+        Assert.All(
+            MudDockFactory.DefaultHiddenToolIds,
+            id => Assert.DoesNotContain(PanelsIn(layout2), panel => panel.Id == id));
     }
 
     [Fact]

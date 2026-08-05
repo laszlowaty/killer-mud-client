@@ -13,4 +13,5 @@ public enum FolderKind
     Triggers,
     Notes,
     Autowalk,
+    Scripts,
 }

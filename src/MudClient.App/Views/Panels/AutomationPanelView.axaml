@@ -25,6 +25,9 @@
                       ToolTip.Tip="Wspólny dla wszystkich kont">
                 <TextBlock Text="Globalny" />
               </Border>
+              <Border Classes="mud-badge mud-badge-gold" IsVisible="{Binding IsAdvanced}">
+                <TextBlock Text="JS" />
+              </Border>
             </StackPanel>
 
             <ToggleButton Grid.Column="1" Classes="mud-switch"
@@ -57,6 +60,9 @@
                        Foreground="{StaticResource MudBrushParchmentDim}"
                        TextWrapping="Wrap" />
           </Border>
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
 
         </StackPanel>
       </Border>
@@ -77,22 +83,25 @@
                     ToolTip.Tip="Wspólna dla wszystkich kont">
               <TextBlock Text="Globalna" />
             </Border>
-            <ToggleButton Grid.Column="2" Classes="mud-switch"
+            <Border Grid.Column="2" Classes="mud-badge" IsVisible="{Binding IsAdvanced}">
+              <TextBlock Text="JS" />
+            </Border>
+            <ToggleButton Grid.Column="3" Classes="mud-switch"
                           IsChecked="{Binding IsEnabled, Mode=OneWay}"
                           Content="{Binding StatusText}"
                           Click="ToggleRule_OnClick"
                           ToolTip.Tip="Włącz / wyłącz regułę" />
-            <Button Grid.Column="3"
+            <Button Grid.Column="4"
                     Classes="mud-small"
                     Content="✎" Padding="6,2"
                     ToolTip.Tip="Edytuj regułę"
                     Click="EditRule_OnClick" />
-            <Button Grid.Column="4"
+            <Button Grid.Column="5"
                     Classes="mud-small"
                     Content="⇩" Padding="6,2"
                     ToolTip.Tip="Eksportuj wpis do JSON"
                     Click="ExportItem_OnClick" />
-            <Button Grid.Column="5"
+            <Button Grid.Column="6"
                     Classes="mud-small mud-danger"
                     Content="✕" Padding="6,2"
                     ToolTip.Tip="Usuń regułę"
@@ -113,6 +122,49 @@
       </Border>
     </DataTemplate>
 
+    <DataTemplate x:Key="ScriptItemTemplate" x:DataType="models:ScriptEntry">
+      <Border Classes="mud-section" Padding="10,8" Margin="0,2">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+              <Border Classes="mud-badge"><TextBlock Text="JS" /></Border>
+              <Border Classes="mud-badge mud-badge-gold" IsVisible="{Binding IsGlobal}">
+                <TextBlock Text="Globalny" />
+              </Border>
+            </StackPanel>
+            <ToggleButton Grid.Column="1" Classes="mud-switch"
+                          IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                          Content="{Binding StatusText}"
+                          Click="ToggleScript_OnClick" />
+            <Button Grid.Column="2" Classes="mud-small" Content="▶" Padding="6,2"
+                    ToolTip.Tip="Uruchom skrypt"
+                    Click="RunScript_OnClick" />
+            <Button Grid.Column="3" Classes="mud-small" Content="✎" Padding="6,2"
+                    ToolTip.Tip="Edytuj skrypt"
+                    Click="EditScript_OnClick" />
+            <Button Grid.Column="4" Classes="mud-small" Content="⇩" Padding="6,2"
+                    ToolTip.Tip="Eksportuj skrypt do JSON"
+                    Click="ExportItem_OnClick" />
+            <Button Grid.Column="5" Classes="mud-small mud-danger" Content="✕" Padding="6,2"
+                    ToolTip.Tip="Usuń skrypt"
+                    Click="DeleteScript_OnClick" />
+          </Grid>
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
+          <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
+                     Classes="mud-faint" />
+          <TextBlock Text="{Binding Code}" Classes="mud-faint" TextWrapping="Wrap"
+                     MaxHeight="72" />
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
     <DataTemplate x:Key="TimerEditorTemplate" x:DataType="vm:MainWindowViewModel">
       <StackPanel Spacing="8">
         <TextBox Text="{Binding NewTimerName}" PlaceholderText="Nazwa timera…" />
@@ -125,7 +177,10 @@
           </Grid>
         </StackPanel>
         <StackPanel Spacing="3">
-          <TextBlock Classes="mud-faint" Text="Komendy — każda w osobnej linii" />
+          <CheckBox IsChecked="{Binding NewTimerIsAdvanced}"
+                    Content="Zaawansowany — kod JavaScript" />
+          <TextBlock Classes="mud-faint"
+                     Text="Komendy w osobnych liniach albo kod JavaScript w trybie zaawansowanym" />
           <TextBox Text="{Binding NewTimerCommands}"
                    PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
                    MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
@@ -152,7 +207,10 @@
                      TextWrapping="Wrap" IsVisible="{Binding HasNewRulePatternError}" />
         </StackPanel>
         <StackPanel Spacing="3">
-          <TextBlock Classes="mud-faint" Text="Akcja — komendy w osobnych liniach; grupy: $1, $2…" />
+          <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
+                    Content="Zaawansowany — kod JavaScript" />
+          <TextBlock Classes="mud-faint"
+                     Text="Akcja — komendy i grupy $1, $2 albo kod JavaScript z obiektem match" />
           <TextBox Text="{Binding NewRuleAction}"
                    PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
                    MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
@@ -324,6 +382,98 @@
                                ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
                                ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Skrypty" />
+          <Border Classes="mud-badge"><TextBlock Text="{Binding Scripts.Count}" /></Border>
+        </StackPanel>
+      </TabItem.Header>
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="mud-bar-bottom">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <Button Content="＋ Nowy skrypt" Command="{Binding StartAddScriptCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
+                    Command="{Binding CreateFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Scripts}" />
+            <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
+                    Tag="{x:Static models:FolderKind.Scripts}" Click="Import_OnClick" />
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8" Margin="10,8,10,12">
+            <Expander Classes="mud-expander"
+                      Header="{Binding ScriptFormHeader}"
+                      IsExpanded="{Binding IsScriptFormExpanded}"
+                      IsVisible="{Binding IsScriptFormExpanded}">
+              <StackPanel Spacing="8" Margin="0,8,0,0">
+                <TextBox Text="{Binding NewScriptName}" PlaceholderText="Nazwa skryptu…" />
+                <TextBox Text="{Binding NewScriptGmcpPattern}"
+                         PlaceholderText="Pakiet GMCP, np. Char.Vitals lub Char.* (puste = tylko ręcznie)" />
+                <TextBlock Classes="mud-faint"
+                           Text="JavaScript: onGmcp(), execute(), send(), echo(), variables" />
+                <TextBox Text="{Binding NewScriptCode}"
+                         AcceptsReturn="True" TextWrapping="NoWrap"
+                         MinHeight="150"
+                         PlaceholderText="onGmcp(&quot;Char.Vitals&quot;, event => {&#x0a;  if (event.data.hp &lt; 25) execute(&quot;/idz lecznica&quot;);&#x0a;});" />
+                <CheckBox IsChecked="{Binding NewScriptIsGlobal}"
+                          Content="Globalny — dostępny na wszystkich kontach" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <Button Content="{Binding ScriptFormButtonText}"
+                          Command="{Binding AddScriptCommand}" />
+                  <Button Grid.Column="1" Content="Anuluj"
+                          Command="{Binding CancelScriptEditCommand}" />
+                </Grid>
+              </StackPanel>
+            </Expander>
+
+            <controls:FolderTreeView Nodes="{Binding ScriptTree}"
+                                     ItemTemplate="{StaticResource ScriptItemTemplate}"
+                                     SupportsEnableToggle="True"
+                                     SupportsExport="True"
+                                     FolderExportRequested="FolderTree_OnFolderExportRequested"
+                                     MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
+                                     CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                                     RenameFolderCommand="{Binding RenameFolderCommand}"
+                                     DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=AutomationRoot}"
+                                     ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                                     ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
+
+            <Border Classes="mud-section" Padding="10">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="mud-heading" Text="Zmienne profilu" />
+                <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                           Text="Wspólne dla skryptów, aliasów, triggerów i timerów. Wartość musi być prawidłowym JSON-em." />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                  <TextBox Text="{Binding NewScriptVariableName}"
+                           PlaceholderText="Nazwa, np. combat.target" />
+                  <TextBox Grid.Column="1" Text="{Binding NewScriptVariableJson}"
+                           PlaceholderText="Wartość JSON, np. &quot;ork&quot;" />
+                </Grid>
+                <Button Content="Zapisz zmienną"
+                        Command="{Binding AddScriptVariableCommand}" />
+                <ItemsControl ItemsSource="{Binding ScriptVariables}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:ScriptVariableEntry">
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,2">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding ValueJson}"
+                                   Classes="mud-faint" TextWrapping="Wrap" />
+                        <Button Grid.Column="2" Classes="mud-small mud-danger" Content="✕"
+                                Command="{Binding $parent[UserControl].DataContext.DeleteScriptVariableCommand}"
+                                CommandParameter="{Binding}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
           </StackPanel>
         </ScrollViewer>
       </Grid>

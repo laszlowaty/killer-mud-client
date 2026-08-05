@@ -224,6 +224,221 @@ public sealed class AutomationCommandEchoUiTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task AdvancedAlias_CanUseVariablesAndEcho()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "js",
+                "alias",
+                "^js (?<name>.+)$",
+                """
+                variables.set("target", match.groups.name);
+                echo("Cel: " + variables.get("target"), "green");
+                """,
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+            viewModel.CommandText = "js ork";
+
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\u001b[32mCel: ork\u001b[0m\n", output);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task Alias_CanRunNamedScriptThroughBuiltInCommand()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            viewModel.Scripts.Add(new ScriptEntry
+            {
+                Name = "pomocnik",
+                Code = """echo("Skrypt uruchomiony", "cyan");""",
+            });
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "pomocnik",
+                "alias",
+                "^pomocnik$",
+                "/script pomocnik",
+                isEnabled: true));
+            InvokeApplyAutomation(viewModel);
+            viewModel.CommandText = "pomocnik";
+
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\u001b[36mSkrypt uruchomiony\u001b[0m\n", output);
+            Assert.DoesNotContain(output, line => line.Contains("> /script", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ScriptExecute_IdzIsHandledByClientInsteadOfSentToMud()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            var script = new ScriptEntry
+            {
+                Name = "droga",
+                Code = """execute("/idz nieznane");""",
+            };
+
+            await viewModel.RunScriptCommand.ExecuteAsync(script);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(
+                viewModel.Toasts,
+                toast => toast.Text.Contains("Nie znam lokacji", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(output, line => line.Contains("> /idz", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task AdvancedTrigger_ExecutesJavaScriptOffTheUiPath()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "obrażenia",
+                "trigger",
+                "^cios (?<damage>\\d+)$",
+                """
+                if (Number(match.groups.damage) > 50) {
+                    echo("Duży cios: " + match.groups.damage, "red");
+                }
+                """,
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+
+            InvokeQueueMatchingTriggers(viewModel, "cios 75");
+            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\u001b[31mDuży cios: 75\u001b[0m\n", output);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task AdvancedTimer_ExecutesJavaScript()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var echoReceived = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        viewModel.OutputReceived += text =>
+        {
+            if (text.Contains("Timer JS", StringComparison.Ordinal))
+            {
+                echoReceived.TrySetResult(text);
+            }
+        };
+
+        try
+        {
+            SetConnected(viewModel);
+            var timer = new TimerEntry
+            {
+                Name = "js",
+                Milliseconds = 10,
+                CommandsText = """echo("Timer JS", "yellow");""",
+                IsEnabled = true,
+                IsAdvanced = true,
+            };
+
+            InvokeSyncTimer(viewModel, timer);
+
+            Assert.Contains(
+                "Timer JS",
+                await echoReceived.Task.WaitAsync(TimeSpan.FromSeconds(2)),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ProfileScript_HandlesOnlyMatchingGmcpAndSharesVariables()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            viewModel.Scripts.Add(new ScriptEntry
+            {
+                Name = "hp",
+                GmcpPattern = "Char.Vitals",
+                Code =
+                    """
+                    onGmcp("Char.Vitals", event => {
+                        variables.set("hp", event.data.hp);
+                        echo("HP=" + variables.get("hp"));
+                    });
+                    """,
+            });
+
+            InvokeQueueGmcpScripts(
+                viewModel,
+                new GmcpMessage("Room.Info", """{"num":"1"}"""));
+            InvokeQueueGmcpScripts(
+                viewModel,
+                new GmcpMessage("Char.Vitals", """{"hp":42}"""));
+            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(output, line => line.Contains("HP=42", StringComparison.Ordinal));
+            var variable = Assert.Single(viewModel.ScriptVariables);
+            Assert.Equal("hp", variable.Name);
+            Assert.Equal("42", variable.ValueJson);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
     private static (MainWindowViewModel ViewModel, string Directory) CreateViewModel()
     {
         var directory = Path.Combine(
@@ -258,6 +473,42 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
         method!.Invoke(viewModel, [timer]);
+    }
+
+    private static void InvokeApplyAutomation(MainWindowViewModel viewModel)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "ApplyAutomation",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(viewModel, null);
+    }
+
+    private static void InvokeQueueMatchingTriggers(MainWindowViewModel viewModel, string line)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "QueueMatchingTriggers",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(viewModel, [line]);
+    }
+
+    private static Task GetAutomationQueueTail(MainWindowViewModel viewModel)
+    {
+        var field = typeof(MainWindowViewModel).GetField(
+            "_triggerQueueTail",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return Assert.IsAssignableFrom<Task>(field!.GetValue(viewModel));
+    }
+
+    private static void InvokeQueueGmcpScripts(MainWindowViewModel viewModel, GmcpMessage message)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "QueueGmcpScripts",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(viewModel, [message]);
     }
 
     private static void InvokeAffectsChanged(

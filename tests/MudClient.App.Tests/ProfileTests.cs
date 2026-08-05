@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
@@ -100,6 +101,62 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("T", note.Title);
         var rule = Assert.Single(loaded.Rules);
         Assert.Equal("look", rule.Action);
+    }
+
+    [Fact]
+    public void SaveAndLoad_RoundTripsAdvancedAutomationScriptsAndVariables()
+    {
+        var service = CreateService();
+        using var targetDocument = JsonDocument.Parse("\"ork\"");
+        using var countDocument = JsonDocument.Parse("3");
+        service.Save(new ProfileData
+        {
+            Name = "Skrypter",
+            Rules =
+            [
+                new ProfileRule
+                {
+                    Name = "leczenie",
+                    Type = "alias",
+                    Pattern = "^heal$",
+                    Action = "if (variables.get(\"hp\") < 20) execute(\"/idz lecznica\");",
+                    IsAdvanced = true,
+                },
+            ],
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Name = "kontrola",
+                    Seconds = 5,
+                    CommandsText = "echo(variables.get(\"target\"));",
+                    IsAdvanced = true,
+                },
+            ],
+            Scripts =
+            [
+                new ProfileScript
+                {
+                    Name = "witalne",
+                    GmcpPattern = "Char.Vitals",
+                    Code = "onGmcp(\"Char.Vitals\", event => variables.set(\"hp\", event.data.hp));",
+                },
+            ],
+            ScriptVariables = new Dictionary<string, JsonElement>
+            {
+                ["target"] = targetDocument.RootElement.Clone(),
+                ["count"] = countDocument.RootElement.Clone(),
+            },
+        });
+
+        var loaded = service.Load("Skrypter");
+
+        Assert.NotNull(loaded);
+        Assert.True(Assert.Single(loaded!.Rules).IsAdvanced);
+        Assert.True(Assert.Single(loaded.Timers).IsAdvanced);
+        Assert.Equal("Char.Vitals", Assert.Single(loaded.Scripts).GmcpPattern);
+        Assert.Equal("ork", loaded.ScriptVariables["target"].GetString());
+        Assert.Equal(3, loaded.ScriptVariables["count"].GetInt32());
     }
 
     [Fact]

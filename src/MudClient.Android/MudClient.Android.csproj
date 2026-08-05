@@ -31,6 +31,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MudClient.App\MudClient.App.csproj"
-                      AdditionalProperties="OutputType=Library" />
+                      AdditionalProperties="OutputType=Library;BuildingForAndroidReference=true" />
   </ItemGroup>
 </Project>

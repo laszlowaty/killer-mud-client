@@ -6,7 +6,7 @@ namespace MudClient.App.Models;
 /// Editable timer shown in the UI. Interval = Minutes + Seconds + Milliseconds;
 /// while enabled it fires repeatedly and sends its commands in order.
 /// </summary>
-public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
+public sealed class TimerEntry : ObservableObject, IActivatableFolderItem, IScriptErrorSource
 {
     private string _name = string.Empty;
     private int _minutes;
@@ -15,9 +15,11 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
     private string _commandsText = string.Empty;
     private bool _isEnabled;
     private bool _isGlobal;
+    private bool _isAdvanced;
     private string? _folderId;
     private DateTimeOffset? _nextActivationAt;
     private string _remainingText = string.Empty;
+    private string _lastError = string.Empty;
 
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
 
@@ -99,12 +101,33 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem
         set => SetProperty(ref _isGlobal, value);
     }
 
+    /// <summary>True when <see cref="CommandsText"/> contains JavaScript.</summary>
+    public bool IsAdvanced
+    {
+        get => _isAdvanced;
+        set => SetProperty(ref _isAdvanced, value);
+    }
+
     /// <summary>Id of the containing folder, or null when loose.</summary>
     public string? FolderId
     {
         get => _folderId;
         set => SetProperty(ref _folderId, value);
     }
+
+    public string LastError
+    {
+        get => _lastError;
+        set
+        {
+            if (SetProperty(ref _lastError, value))
+            {
+                OnPropertyChanged(nameof(HasLastError));
+            }
+        }
+    }
+
+    public bool HasLastError => !string.IsNullOrWhiteSpace(LastError);
 
     public TimeSpan Interval =>
         TimeSpan.FromMinutes(Minutes) +

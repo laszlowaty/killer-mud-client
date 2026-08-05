@@ -27,6 +27,11 @@ public sealed class DockRestoreTests
     private static bool Visible(IRootDock layout, string id) =>
         (layout.VisibleDockables ?? Enumerable.Empty<IDockable>()).SelectMany(PanelsIn).Any(p => p.Id == id);
 
+    private static void AssertOnlyDefaultToolsAreHidden(MudDockFactory factory) =>
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds,
+            factory.HiddenTools.Select(tool => tool.Id!).ToHashSet());
+
     [Fact]
     public void CreateLayout_UsesSingleCombinedRoomPanel()
     {
@@ -47,6 +52,25 @@ public sealed class DockRestoreTests
         Assert.Equal(
             ["Terminal", MudDockFactory.ChatToolId],
             center.VisibleDockables!.Select(dockable => dockable.Id));
+    }
+
+    [Fact]
+    public void CreateLayout_JavaScriptDiagnosticsAreHiddenAndRestorable()
+    {
+        var factory = CreateFactory(out var layout);
+
+        AssertOnlyDefaultToolsAreHidden(factory);
+        Assert.All(
+            MudDockFactory.DefaultHiddenToolIds,
+            id => Assert.False(Visible(layout, id)));
+
+        var console = GetTool(factory, MudDockFactory.JavaScriptConsoleToolId);
+        factory.RestoreToTopEdge(console);
+
+        Assert.DoesNotContain(console, factory.HiddenTools);
+        Assert.Contains(
+            layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(),
+            dockable => dockable.Id == MudDockFactory.JavaScriptConsoleToolId);
     }
 
     // Close every tool of the right-top dock one by one, then restore each. The dock
@@ -333,12 +357,14 @@ public sealed class DockRestoreTests
 
         Assert.Contains(tool, factory.HiddenTools);
         // Everything still visible or pinned must stay untouched.
-        Assert.Single(factory.HiddenTools);
+        Assert.Equal(
+            MudDockFactory.DefaultHiddenToolIds.Append("Gmcp").ToHashSet(),
+            factory.HiddenTools.Select(hidden => hidden.Id!).ToHashSet());
 
         // And the reclaimed panel restores fine.
         factory.Restore(tool);
         Assert.True(Visible(layout, "Gmcp"));
-        Assert.Empty(factory.HiddenTools);
+        AssertOnlyDefaultToolsAreHidden(factory);
     }
 
     // Pinned tools are reachable — reclaim must NOT touch them.
@@ -350,7 +376,7 @@ public sealed class DockRestoreTests
 
         factory.ReclaimLostTools(layout);
 
-        Assert.Empty(factory.HiddenTools);
+        AssertOnlyDefaultToolsAreHidden(factory);
         Assert.Contains(layout.TopPinnedDockables ?? Enumerable.Empty<IDockable>(), d => d.Id == "Gmcp");
     }
 
@@ -379,7 +405,7 @@ public sealed class DockRestoreTests
 
         factory.RepairUnrenderedPinnedTools(layout, new[] { tool });
 
-        Assert.Empty(factory.HiddenTools);
+        AssertOnlyDefaultToolsAreHidden(factory);
         Assert.Contains(
             layout.RightPinnedDockables ?? Enumerable.Empty<IDockable>(),
             dockable => ReferenceEquals(dockable, tool));

@@ -222,11 +222,31 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
         Assert.Contains("/recast", helpTexts);
+        Assert.Contains("/script <nazwa>", helpTexts);
         Assert.Contains("/map <komenda>", helpTexts);
         Assert.Contains("/map show <vnum>", helpTexts);
         Assert.Contains("Komendy mapowania", helpTexts);
         Assert.Contains("alias(...) w triggerze/timerze", helpTexts);
         Assert.Contains("echo(\"kolor\", \"tekst\")", helpTexts);
+
+        var helpTabs = Assert.Single(helpWidget.GetVisualDescendants().OfType<TabControl>());
+        Assert.Equal(2, helpTabs.Items.Count);
+        helpTabs.SelectedIndex = 1;
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        var scriptingTexts = helpWidget.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(text => text.Text)
+            .ToList();
+        Assert.Contains("execute(tekst)", scriptingTexts);
+        Assert.Contains("send(tekst)", scriptingTexts);
+        Assert.Contains("echo(tekst, kolor)", scriptingTexts);
+        Assert.Contains("Konsola JavaScript", scriptingTexts);
+        Assert.Contains("Zmienne profilu", scriptingTexts);
+        Assert.Contains("GMCP", scriptingTexts);
+        Assert.Contains("Bezpieczeństwo i błędy", scriptingTexts);
     }
 
     [AvaloniaFact]

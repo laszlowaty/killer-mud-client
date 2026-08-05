@@ -85,6 +85,39 @@ public sealed partial class AutomationPanelView : UserControl
         }
     }
 
+    private void EditScript_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { DataContext: ScriptEntry script } && _viewModel is not null)
+        {
+            _viewModel.EditScriptCommand.Execute(script);
+        }
+    }
+
+    private void ToggleScript_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is ToggleButton { DataContext: ScriptEntry script } && _viewModel is not null)
+        {
+            _viewModel.ToggleScriptCommand.Execute(script);
+        }
+    }
+
+    private void RunScript_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { DataContext: ScriptEntry script } && _viewModel is not null)
+        {
+            _viewModel.RunScriptCommand.Execute(script);
+        }
+    }
+
+    private async void DeleteScript_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { DataContext: ScriptEntry script } button && _viewModel is not null)
+        {
+            await ConfirmAndDeleteAsync(button, "skrypt", script.Name, () =>
+                _viewModel.DeleteScriptCommand.Execute(script));
+        }
+    }
+
     private async Task ConfirmAndDeleteAsync(Button button, string itemType, string itemName, Action delete)
     {
         if (TopLevel.GetTopLevel(this) is not Window owner)
@@ -120,6 +153,7 @@ public sealed partial class AutomationPanelView : UserControl
             FolderKind.Timers => "folder timerów",
             FolderKind.Aliases => "folder aliasów",
             FolderKind.Triggers => "folder triggerów",
+            FolderKind.Scripts => "folder skryptów",
             _ => "folder",
         };
 
@@ -231,6 +265,7 @@ public sealed partial class AutomationPanelView : UserControl
             FolderNode folder => folder.Name,
             TimerEntry timer => timer.Name,
             AutomationRuleEntry rule => rule.Name,
+            ScriptEntry script => script.Name,
             _ => "automatyzacja",
         };
         var invalid = Path.GetInvalidFileNameChars();
