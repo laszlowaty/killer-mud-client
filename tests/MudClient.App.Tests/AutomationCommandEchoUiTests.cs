@@ -470,6 +470,36 @@ public sealed class AutomationCommandEchoUiTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task ScriptVariableBurst_QueuesSingleUiRefresh()
+    {
+        var (viewModel, directory) = CreateViewModel();
+
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            var collectionChanges = 0;
+            viewModel.ScriptVariables.CollectionChanged += (_, _) => collectionChanges++;
+            var variables = GetScriptVariables(viewModel);
+
+            for (var index = 0; index < 100; index++)
+            {
+                variables.SetJson("counter", index.ToString());
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            var variable = Assert.Single(viewModel.ScriptVariables);
+            Assert.Equal("counter", variable.Name);
+            Assert.Equal("99", variable.ValueJson);
+            Assert.Equal(2, collectionChanges);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
     private static (MainWindowViewModel ViewModel, string Directory) CreateViewModel()
     {
         var directory = Path.Combine(
@@ -495,6 +525,15 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
         return Assert.IsType<AliasEngine>(field!.GetValue(viewModel));
+    }
+
+    private static ProfileScriptVariableStore GetScriptVariables(MainWindowViewModel viewModel)
+    {
+        var field = typeof(MainWindowViewModel).GetField(
+            "_scriptVariables",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return Assert.IsType<ProfileScriptVariableStore>(field!.GetValue(viewModel));
     }
 
     private static void InvokeSyncTimer(MainWindowViewModel viewModel, TimerEntry timer)

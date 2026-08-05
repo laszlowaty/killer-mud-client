@@ -28,6 +28,7 @@ public sealed partial class MainWindowViewModel
     private IReadOnlyList<AutomationRuleEntry> _activeTriggerRules = [];
     private CancellationTokenSource? _scriptVariableSaveCts;
     private readonly object _scriptVariableSaveLock = new();
+    private int _scriptVariableRefreshScheduled;
     private readonly AsyncLocal<int> _automationExecutionDepth = new();
 
     private ScriptEntry? _editedScript;
@@ -312,7 +313,7 @@ public sealed partial class MainWindowViewModel
 
     private void OnScriptVariablesChanged()
     {
-        Dispatcher.UIThread.Post(RefreshScriptVariableEntries);
+        ScheduleScriptVariableRefresh();
 
         CancellationTokenSource cancellation;
         lock (_scriptVariableSaveLock)
@@ -323,6 +324,22 @@ public sealed partial class MainWindowViewModel
         }
 
         _ = SaveScriptVariablesAfterDelayAsync(cancellation);
+    }
+
+    private void ScheduleScriptVariableRefresh()
+    {
+        if (Interlocked.Exchange(ref _scriptVariableRefreshScheduled, 1) != 0)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                Interlocked.Exchange(ref _scriptVariableRefreshScheduled, 0);
+                RefreshScriptVariableEntries();
+            },
+            DispatcherPriority.Background);
     }
 
     private async Task SaveScriptVariablesAfterDelayAsync(CancellationTokenSource cancellation)
