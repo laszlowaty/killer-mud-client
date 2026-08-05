@@ -525,7 +525,48 @@
                                FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock TextWrapping="Wrap"
-                               Text="Skrypt może mieć filtr dokładny, np. Char.Vitals, filtr prefiksu Char.* albo * dla wszystkich pakietów. Pusty filtr oznacza wywołanie wyłącznie ręczne. W obsłudze GMCP obiekt event udostępnia event.package, event.data i event.raw. Funkcja onGmcp(wzorzec, handler) uruchamia handler tylko dla pasującego pakietu." />
+                               Text="Skrypt może odbierać każdy przychodzący pakiet GMCP, również taki, którego klient sam nie interpretuje. W konfiguracji skryptu ustaw filtr dokładny, np. Char.Vitals, filtr prefiksu Char.* albo * dla wszystkich pakietów. Pusty filtr oznacza wywołanie wyłącznie ręczne." />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="W obsłudze GMCP event.package zawiera nazwę pakietu, event.data jego sparsowany JSON, a event.raw surowy tekst JSON. event.data może być obiektem, tablicą albo null. Funkcja onGmcp(wzorzec, handler) uruchamia handler tylko dla pasującego pakietu." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="Najczęstsze pakiety KillerMUD"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Char.Vitals — HP, MV, pamięć, poziom i pozycja postaci.&#10;Char.Condition — głód, pragnienie, stan i pozycja.&#10;Char.Affects — tablica aktywnych efektów, m.in. name, negative, ending i extraValue.&#10;Char.Group — lider oraz tablica members z członkami drużyny.&#10;Char.MemSpell — tablica zapamiętanych i zapamiętywanych czarów.&#10;Room.Info — dane pokoju, VNUM i wyjścia.&#10;Room.People — tablica postaci i NPC w pokoju." />
+                    <TextBlock Classes="mud-muted"
+                               TextWrapping="Wrap"
+                               Text="Dokładny zestaw pól zależy od serwera. Aktualne komunikaty można podejrzeć w panelu GMCP odebrane." />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Rozpoznawanie pakietów i ich struktury"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Ustaw filtr GMCP skryptu na *, a następnie wypisz nazwę pakietu i jego dane w Konsoli JavaScript:" />
+                    <TextBlock FontFamily="Consolas"
+                               TextWrapping="Wrap"
+                               Text="onGmcp(&quot;*&quot;, event =&gt; {&#10;  console.log(event.package, JSON.stringify(event.data));&#10;});" />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Zapamiętywanie ostatnich danych GMCP"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="GMCP jest zdarzeniem, więc poza jego obsługą nie ma synchronicznego getGmcp(). Dane potrzebne później zapisz w trwałych zmiennych profilu:" />
+                    <TextBlock FontFamily="Consolas"
+                               TextWrapping="Wrap"
+                               Text="onGmcp(&quot;Char.Vitals&quot;, event =&gt; {&#10;  variables.set(&quot;gmcp.vitals&quot;, event.data);&#10;});&#10;&#10;const vitals = variables.get(&quot;gmcp.vitals&quot;, {});" />
                   </StackPanel>
                 </Border>
 
