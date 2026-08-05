@@ -198,9 +198,7 @@ public sealed class MainWindowClickTests : IDisposable
 
         var moreActions = window.FindControl<Button>("MoreActionsButton")!;
         moreActions.Flyout!.ShowAt(moreActions);
-        Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        window.UpdateLayout();
 
         var helpButton = window.GetVisualDescendants()
             .OfType<Button>()
@@ -208,17 +206,20 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.NotNull(helpButton.Command);
         helpButton.Command.Execute(helpButton.CommandParameter);
         Assert.True(viewModel.IsHelpOpen);
-        Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        window.UpdateLayout();
 
         Assert.True(helpWidget.IsVisible);
-        var helpTexts = helpWidget.GetVisualDescendants()
+        var helpTabs = Assert.IsType<TabControl>(helpWidget.TabContent);
+        Assert.Equal(2, helpTabs.Items.Count);
+        var availableCommandsTab = Assert.IsType<TabItem>(helpTabs.Items[0]);
+        var availableCommandsContent = Assert.IsAssignableFrom<Control>(availableCommandsTab.Content);
+        var helpTexts = availableCommandsContent.GetLogicalDescendants()
             .OfType<TextBlock>()
             .Select(text => text.Text)
             .ToList();
         Assert.Contains("/idz", helpTexts);
         Assert.Contains("/idz <cel>", helpTexts);
+        Assert.Contains("/idz vnum <vnum>", helpTexts);
         Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
         Assert.Contains("/recast", helpTexts);
@@ -229,14 +230,9 @@ public sealed class MainWindowClickTests : IDisposable
         Assert.Contains("alias(...) w triggerze/timerze", helpTexts);
         Assert.Contains("echo(\"kolor\", \"tekst\")", helpTexts);
 
-        var helpTabs = Assert.Single(helpWidget.GetVisualDescendants().OfType<TabControl>());
-        Assert.Equal(2, helpTabs.Items.Count);
-        helpTabs.SelectedIndex = 1;
-        Dispatcher.UIThread.RunJobs();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        window.UpdateLayout();
-
-        var scriptingTexts = helpWidget.GetVisualDescendants()
+        var scriptingTab = Assert.IsType<TabItem>(helpTabs.Items[1]);
+        var scriptingContent = Assert.IsAssignableFrom<Control>(scriptingTab.Content);
+        var scriptingTexts = scriptingContent.GetLogicalDescendants()
             .OfType<TextBlock>()
             .Select(text => text.Text)
             .ToList();
