@@ -347,8 +347,12 @@ public sealed class RareCatalogRefreshTests : IDisposable
 
         var catalog = store.Load();
 
+        // The bundled snapshot ships fully mapped (see Assets/Data/rares.json), so new installs
+        // start with real Details text instead of an empty placeholder for every entry.
         Assert.Equal(274, catalog.Rares.Count);
-        Assert.Contains(catalog.Rares, rare => rare.Vnum == 29099 && rare.Name == "krasnoludzki kilof 'Potega Ziemi'");
-        Assert.All(catalog.Rares, rare => Assert.Equal(string.Empty, rare.Details));
+        var kilof = Assert.Single(
+            catalog.Rares, rare => rare.Vnum == 29099 && rare.Name == "krasnoludzki kilof 'Potega Ziemi'");
+        Assert.False(string.IsNullOrWhiteSpace(kilof.Details));
+        Assert.True(catalog.Rares.Count(rare => string.IsNullOrWhiteSpace(rare.Details)) <= 2);
     }
 }
