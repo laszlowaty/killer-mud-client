@@ -165,9 +165,12 @@ public sealed class LordModeMapUiTests
             contextMenu.Open(map);
             Dispatcher.UIThread.RunJobs();
 
-            var menuItem = Assert.Single(contextMenu.Items.OfType<MenuItem>());
+            // The map's context menu also carries the local-marker items (Dodaj/Usuń znacznik,
+            // added alongside Lord-mode goto) — look up the Walk item specifically instead of
+            // assuming it's the menu's only entry.
+            var menuItem = contextMenu.Items.OfType<MenuItem>()
+                .Single(item => Equals(item.Header, "Walk: Sala prób [6017]"));
             Assert.True(menuItem.IsVisible);
-            Assert.Equal("Walk: Sala prób [6017]", menuItem.Header);
             Assert.NotNull(menuItem.Command);
 
             menuItem.Command.Execute(menuItem.CommandParameter);

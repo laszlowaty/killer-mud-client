@@ -86,12 +86,29 @@ public sealed class RareCatalogRefreshCoordinator
         }
     }
 
+    private static readonly IReadOnlyDictionary<int, string> EmptyKnownDetails = new Dictionary<int, string>();
+
+    /// <summary>
+    /// Refreshes the rarelist catalog. <paramref name="knownDetails"/> lets a caller pass in
+    /// already-mapped vnum → Details text from a previously saved catalog — an item found there
+    /// is kept as-is instead of being re-fetched with "rarelist &lt;vnum&gt;", since the detail
+    /// text for a given vnum never changes. This is what makes repeat refreshes fast: only vnums
+    /// that are new or were never successfully mapped incur a round-trip.
+    /// <paramref name="onEntryMapped"/>, when given, is awaited right after each vnum newly
+    /// fetched from the MUD (not for ones reused from <paramref name="knownDetails"/>) with the
+    /// full list mapped so far — a full "rarelist all" refresh can take a very long time, and
+    /// without this a disconnect or crash partway through would silently discard everything
+    /// mapped in that run instead of letting the caller persist progress as it goes.
+    /// </summary>
     public async Task<RareCatalogDocument> RefreshAsync(
         Func<string, CancellationToken, Task> sendCommandAsync,
         IProgress<RareCatalogRefreshProgress>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyDictionary<int, string>? knownDetails = null,
+        Func<IReadOnlyList<RareEntry>, CancellationToken, Task>? onEntryMapped = null)
     {
         ArgumentNullException.ThrowIfNull(sendCommandAsync);
+        knownDetails ??= EmptyKnownDetails;
 
         progress?.Report(new RareCatalogRefreshProgress("Pobieranie listy przedmiotów", 0, 0));
         var lines = await CapturePagedListResponseAsync(
@@ -112,13 +129,28 @@ public sealed class RareCatalogRefreshCoordinator
         {
             cancellationToken.ThrowIfCancellationRequested();
             var entry = entries[index];
-            progress?.Report(new RareCatalogRefreshProgress(
-                $"Szczegóły przedmiotu {entry.Vnum}", index, entries.Length));
-            var detailLines = await CaptureOpenResponseAsync(
-                token => sendCommandAsync($"rarelist {entry.Vnum}", token),
-                _detailQuietPeriod,
-                _responseTimeout,
-                cancellationToken).ConfigureAwait(false);
+
+            string details;
+            var freshlyFetched = false;
+            if (knownDetails.TryGetValue(entry.Vnum, out var cached) && !string.IsNullOrWhiteSpace(cached))
+            {
+                progress?.Report(new RareCatalogRefreshProgress(
+                    $"Znane przedmiot {entry.Vnum} (pominięto)", index, entries.Length));
+                details = cached;
+            }
+            else
+            {
+                progress?.Report(new RareCatalogRefreshProgress(
+                    $"Szczegóły przedmiotu {entry.Vnum}", index, entries.Length));
+                var detailLines = await CaptureOpenResponseAsync(
+                    token => sendCommandAsync($"rarelist {entry.Vnum}", token),
+                    _detailQuietPeriod,
+                    _responseTimeout,
+                    cancellationToken).ConfigureAwait(false);
+                details = RareListParser.ExtractDetailText(detailLines);
+                freshlyFetched = true;
+            }
+
             rares.Add(new RareEntry
             {
                 Vnum = entry.Vnum,
@@ -127,8 +159,13 @@ public sealed class RareCatalogRefreshCoordinator
                 Slot = entry.Slot,
                 Flag = entry.Flag,
                 Category = entry.Category,
-                Details = RareListParser.ExtractDetailText(detailLines),
+                Details = details,
             });
+
+            if (freshlyFetched && onEntryMapped is not null)
+            {
+                await onEntryMapped(rares, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         progress?.Report(new RareCatalogRefreshProgress("Zapisywanie katalogu", rares.Count, rares.Count));

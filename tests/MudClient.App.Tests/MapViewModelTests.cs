@@ -848,6 +848,126 @@ public sealed class MapViewModelTests
     }
 
     // ====================================================================
+    // Local map markers (Phase 1 — see MapMarker/MapMarkerStore)
+    // ====================================================================
+
+    [Fact]
+    public void MarkerLegend_ContainsExactlyTheFixedSymbolSet()
+    {
+        var expected = new[] { "R", "@", "!", "!!", "X", "T", "B", "S", "Q", "?" };
+
+        Assert.Equal(expected, MapViewModel.MarkerLegend.Select(entry => entry.Symbol));
+        Assert.All(MapViewModel.MarkerLegend, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Label)));
+    }
+
+    [Fact]
+    public void CanEditSelectedRoomMarker_RequiresVnum()
+    {
+        using var vm = CreateViewModel();
+
+        vm.SelectedRoom = new MapRoom { Id = 1, AreaId = 1, Coordinates = new MapCoordinates(0, 0, 0) };
+        Assert.False(vm.CanEditSelectedRoomMarker);
+
+        vm.SelectedRoom = CreateSampleRoom();
+        Assert.True(vm.CanEditSelectedRoomMarker);
+    }
+
+    [Fact]
+    public void SetMarkerOnSelectedRoomCommand_SetsMarkerAndUpdatesSelectedRoomHasMarker()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = CreateSampleRoom();
+
+        Assert.False(vm.SelectedRoomHasMarker);
+        Assert.True(vm.SetMarkerOnSelectedRoomCommand.CanExecute("!!"));
+
+        vm.SetMarkerOnSelectedRoomCommand.Execute("!!");
+
+        Assert.True(vm.SelectedRoomHasMarker);
+    }
+
+    [Fact]
+    public void SetMarkerOnSelectedRoomCommand_WithoutSelectedRoom_CannotExecute()
+    {
+        using var vm = CreateViewModel();
+
+        Assert.False(vm.SetMarkerOnSelectedRoomCommand.CanExecute("!!"));
+    }
+
+    [Fact]
+    public void RemoveMarkerFromSelectedRoomCommand_ClearsMarker()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = CreateSampleRoom();
+        vm.SetMarkerOnSelectedRoomCommand.Execute("R");
+        Assert.True(vm.SelectedRoomHasMarker);
+        Assert.True(vm.RemoveMarkerFromSelectedRoomCommand.CanExecute(null));
+
+        vm.RemoveMarkerFromSelectedRoomCommand.Execute(null);
+
+        Assert.False(vm.SelectedRoomHasMarker);
+        Assert.False(vm.RemoveMarkerFromSelectedRoomCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void SettingNewMarker_ReplacesPreviousOneForSameRoom()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = CreateSampleRoom();
+
+        vm.SetMarkerOnSelectedRoomCommand.Execute("!!");
+        vm.SetMarkerOnSelectedRoomCommand.Execute("B");
+
+        SetMapIndexThroughProperty(vm, CreateSampleIndex());
+        Assert.Equal("B", Assert.Single(vm.RoomMarkers).Symbol);
+    }
+
+    [Fact]
+    public void RoomMarkers_ResolvesSetMarkerToItsRoomOnceMapIndexIsLoaded()
+    {
+        using var vm = CreateViewModel();
+        vm.SelectedRoom = CreateSampleRoom();
+        vm.SetMarkerOnSelectedRoomCommand.Execute("T");
+
+        Assert.Empty(vm.RoomMarkers); // no MapIndex loaded yet — can't resolve vnum to a room
+
+        SetMapIndexThroughProperty(vm, CreateSampleIndex());
+
+        var marker = Assert.Single(vm.RoomMarkers);
+        Assert.Equal("T", marker.Symbol);
+        Assert.Equal("100", marker.Room.Vnum);
+    }
+
+    [Fact]
+    public void MarkersPersistAcrossViewModelInstancesSharingTheSameDataRoot()
+    {
+        var dataRoot = Path.Combine(Path.GetTempPath(), "KillerMudClient_MapMarkerTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dataRoot);
+        try
+        {
+            using (var vm = new MapViewModel("C:\\dummy", new GmcpLocationResolver(), dataRoot))
+            {
+                vm.SelectedRoom = CreateSampleRoom();
+                vm.SetMarkerOnSelectedRoomCommand.Execute("@");
+            }
+
+            // SaveAsync is fire-and-forget from the command; give it a moment to land.
+            SpinWait.SpinUntil(
+                () => File.Exists(Path.Combine(dataRoot, "map-markers.json")),
+                TimeSpan.FromSeconds(2));
+
+            using var reloaded = new MapViewModel("C:\\dummy", new GmcpLocationResolver(), dataRoot);
+            reloaded.SelectedRoom = CreateSampleRoom();
+
+            Assert.True(reloaded.SelectedRoomHasMarker);
+        }
+        finally
+        {
+            Directory.Delete(dataRoot, recursive: true);
+        }
+    }
+
+    // ====================================================================
     // Helpers
     // ====================================================================
 

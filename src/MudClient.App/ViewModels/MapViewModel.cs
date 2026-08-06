@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MudClient.App.Controls;
+using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
@@ -84,6 +85,9 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     private IReadOnlyList<CharacterGroupMember> _groupMembers = [];
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private IReadOnlyList<DeathMapMarker> _deathMarkers = [];
+    private IReadOnlyList<RoomMapMarker> _roomMarkers = [];
+    private readonly MapMarkerStore? _markerStore;
+    private readonly Dictionary<string, MapMarker> _markersByVnum = new(StringComparer.Ordinal);
     private string? _currentSectorName;
     private bool _followPlayer = true;
     private bool _lordModeEnabled;
@@ -95,6 +99,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     private bool _moveExistingRoomsToNewArea;
     private MapDisplayModeOption _selectedDisplayMode;
     private readonly RelayCommand _lordGotoSelectedRoomCommand;
+    private readonly RelayCommand<string> _setMarkerOnSelectedRoomCommand;
+    private readonly RelayCommand _removeMarkerFromSelectedRoomCommand;
     private readonly RelayCommand _startMapEditorCommand;
     private readonly RelayCommand _stopMapEditorCommand;
     private readonly RelayCommand _undoMapEditorCommand;
@@ -116,6 +122,20 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             var editorDirectory = Path.Combine(dataRoot, "MapEditor");
             _mapEditorPath = Path.Combine(editorDirectory, "world-map.json");
             _mapEditorRecoveryStore = new MapEditorRecoveryStore(editorDirectory);
+
+            _markerStore = new MapMarkerStore(Path.Combine(dataRoot, "map-markers.json"));
+            try
+            {
+                foreach (var marker in _markerStore.Load().Markers)
+                {
+                    _markersByVnum[marker.Vnum] = marker;
+                }
+            }
+            catch (InvalidDataException)
+            {
+                // A corrupt local marker file shouldn't block the map from loading at all —
+                // start fresh; the file gets overwritten on the next SetMarkerOnSelectedRoom.
+            }
         }
         _mapMovementTimeout = mapMovementTimeout is { } timeout && timeout > TimeSpan.Zero
             ? timeout
@@ -131,6 +151,8 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
         _lordGotoSelectedRoomCommand = new RelayCommand(
             RequestLordGotoSelectedRoom,
             CanLordGotoSelectedRoom);
+        _setMarkerOnSelectedRoomCommand = new RelayCommand<string>(SetMarkerOnSelectedRoom, _ => CanEditSelectedRoomMarker);
+        _removeMarkerFromSelectedRoomCommand = new RelayCommand(RemoveMarkerFromSelectedRoom, () => SelectedRoomHasMarker);
         _startMapEditorCommand = new RelayCommand(StartMapEditor, CanStartMapEditor);
         _stopMapEditorCommand = new RelayCommand(StopMapEditor, () => IsMapEditorActive);
         _undoMapEditorCommand = new RelayCommand(UndoMapEditor, () => _mapEditor?.CanUndo == true);
@@ -165,6 +187,10 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
     public IRelayCommand CenterCommand { get; }
 
     public IRelayCommand LordGotoSelectedRoomCommand => _lordGotoSelectedRoomCommand;
+
+    public IRelayCommand<string> SetMarkerOnSelectedRoomCommand => _setMarkerOnSelectedRoomCommand;
+
+    public IRelayCommand RemoveMarkerFromSelectedRoomCommand => _removeMarkerFromSelectedRoomCommand;
 
     public IRelayCommand StartMapEditorCommand => _startMapEditorCommand;
 
@@ -208,6 +234,7 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             {
                 RefreshGroupMarkers();
                 RefreshDeathMarkers();
+                RefreshRoomMarkers();
             }
         }
     }
@@ -330,7 +357,11 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             {
                 OnPropertyChanged(nameof(SelectedRoomIcon));
                 OnPropertyChanged(nameof(LordGotoMenuHeader));
+                OnPropertyChanged(nameof(CanEditSelectedRoomMarker));
+                OnPropertyChanged(nameof(SelectedRoomHasMarker));
                 _lordGotoSelectedRoomCommand.NotifyCanExecuteChanged();
+                _setMarkerOnSelectedRoomCommand.NotifyCanExecuteChanged();
+                _removeMarkerFromSelectedRoomCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -533,6 +564,89 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             .Where(item => item.Room is not null)
             .Select(item => new DeathMapMarker(item.Room!, item.Death.Display, item.Death.When))
             .ToArray();
+    }
+
+    /// <summary>Player-placed local markers (see <see cref="SetMarkerOnSelectedRoomCommand"/>),
+    /// resolved to their rooms on the loaded map so <see cref="Controls.WorldMapControl"/> can
+    /// draw them directly.</summary>
+    public IReadOnlyList<RoomMapMarker> RoomMarkers
+    {
+        get => _roomMarkers;
+        private set => SetProperty(ref _roomMarkers, value);
+    }
+
+    private void RefreshRoomMarkers()
+    {
+        if (MapIndex is null)
+        {
+            RoomMarkers = [];
+            return;
+        }
+
+        RoomMarkers = _markersByVnum.Values
+            .Select(marker => (Marker: marker, Room: MapIndex.FindFirstRoomByVnum(marker.Vnum)))
+            .Where(item => item.Room is not null)
+            .Select(item => new RoomMapMarker(item.Room!, item.Marker.Symbol))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// The fixed set of marker symbols, shown both in the map's right-click "Dodaj znacznik"
+    /// submenu and as a read-only legend in the map settings flyout. Phase 1 offers no way to
+    /// add symbols beyond this list.
+    /// </summary>
+    public static IReadOnlyList<MarkerLegendEntry> MarkerLegend { get; } =
+    [
+        new("R", "Rent"),
+        new("@", "Oaza"),
+        new("!", "Niebezpieczeństwo (np. słaby agresywny mob)"),
+        new("!!", "Wielkie niebezpieczeństwo"),
+        new("X", "Przepaść, śmierć"),
+        new("T", "Nauczyciel"),
+        new("B", "Księga"),
+        new("S", "Sklep"),
+        new("Q", "Zadanie"),
+        new("?", "Inne..."),
+    ];
+
+    public bool CanEditSelectedRoomMarker => !string.IsNullOrWhiteSpace(SelectedRoom?.Vnum);
+
+    public bool SelectedRoomHasMarker =>
+        SelectedRoom?.Vnum is { } vnum && _markersByVnum.ContainsKey(vnum);
+
+    private void SetMarkerOnSelectedRoom(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol) || SelectedRoom?.Vnum is not { } vnum || string.IsNullOrWhiteSpace(vnum))
+        {
+            return;
+        }
+
+        _markersByVnum[vnum] = new MapMarker(vnum, symbol);
+        OnMarkersChanged();
+    }
+
+    private void RemoveMarkerFromSelectedRoom()
+    {
+        if (SelectedRoom?.Vnum is not { } vnum || !_markersByVnum.Remove(vnum))
+        {
+            return;
+        }
+
+        OnMarkersChanged();
+    }
+
+    private void OnMarkersChanged()
+    {
+        RefreshRoomMarkers();
+        OnPropertyChanged(nameof(SelectedRoomHasMarker));
+        _removeMarkerFromSelectedRoomCommand.NotifyCanExecuteChanged();
+
+        if (_markerStore is null)
+        {
+            return;
+        }
+
+        _ = _markerStore.SaveAsync(new MapMarkerDocument { Markers = _markersByVnum.Values.ToList() });
     }
 
     public IReadOnlyList<MapDisplayModeOption> DisplayModes { get; } = MapDisplayModeOption.All;

@@ -1,5 +1,5 @@
 {
-  "generatedAtUtc": null,
+  "generatedAtUtc": "2026-08-06T08:31:03.0110964+00:00",
   "rares": [
     {
       "vnum": 211,
@@ -8,7 +8,7 @@
       "slot": "nad glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: krysztal Tellany\n Losowo."
     },
     {
       "vnum": 215,
@@ -17,7 +17,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: trojzab Turlitha\n Losowo."
     },
     {
       "vnum": 874,
@@ -26,7 +26,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Krasnolud odchodzi na zachod.\n\n\n\n\nName: szkarlatny mlot bojowy z glowa smoka\n Do zdobycia:\n na mobie: opetany paladyn (\u002B# Koszmary Pustyni Kaan-ar)"
     },
     {
       "vnum": 1103,
@@ -35,7 +35,7 @@
       "slot": "nadgarstek",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: mithrilowa bransoleta smocza opieka\n Losowo."
     },
     {
       "vnum": 1143,
@@ -44,7 +44,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pancerz ze smoczej luski\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1144,
@@ -53,7 +53,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: przeklete skrzydla\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1145,
@@ -62,7 +62,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: nagolenice ze smoczej luski\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1146,
@@ -71,7 +71,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: rekawice ze smoczej luski\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1147,
@@ -80,7 +80,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: buty ze smoczej luski\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1148,
@@ -89,7 +89,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: helm z czaszki smoka\n Do zdobycia:\n na mobie: czarny smok Aulenath (\u002B# Nowe instancje)"
     },
     {
       "vnum": 1817,
@@ -98,7 +98,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: miecz Niewola Wiarusa\n Do zdobycia:\n na mobie: kapitan piratow (\u002B# Kryjowka piratow)"
     },
     {
       "vnum": 1818,
@@ -107,7 +107,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciany helm Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 1819,
@@ -116,7 +116,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciane naramienniki Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 1820,
@@ -125,7 +125,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciana zbroja Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 1821,
@@ -134,7 +134,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciane nakolanniki Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 1822,
@@ -143,7 +143,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciane buty Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 1823,
@@ -152,7 +152,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosciane rekawice Venreeh\u0027meyel\n Do zdobycia:\n na mobie: potezny kosciany smok Venreeh\u0027meyel (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 2014,
@@ -161,7 +161,7 @@
       "slot": "palec",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: Pierscien Tarczy\n Do zdobycia:\n na mobie: upiorny rycerz (\u002B# Cmentarz)"
     },
     {
       "vnum": 2023,
@@ -170,7 +170,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: ognisty cep bojowy\n Losowo."
     },
     {
       "vnum": 2891,
@@ -179,7 +179,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: diamentowa wlocznia\n Do zdobycia:\n na mobie: barbarzynca Y\u0027ergiz (\u002B# Krasnoludzka Forteca)"
     },
     {
       "vnum": 2892,
@@ -188,7 +188,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plugawa kosa \u0027Xe Vyj\u0027li-kuq\u0027\n Do zdobycia:\n na mobie: rogaty demon (\u002B# Magiczna jaskinia)"
     },
     {
       "vnum": 5324,
@@ -197,7 +197,7 @@
       "slot": "nadgarstek",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: bransoleta elfich wojownikow przeszlosci\n Losowo."
     },
     {
       "vnum": 5415,
@@ -206,7 +206,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dwureczny korbacz \u0022Zemsta Elfow\u0022\n Do zdobycia:\n na mobie: dowodca straznikow (\u002B# Lesne Elfy w Obilonie)\n na mobie: Caerion Hasteveral (\u002B# Stara Elfia Nekropolia)"
     },
     {
       "vnum": 5416,
@@ -215,7 +215,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: ciezki korbacz \u0022Zemsta Elfow\u0022\n Losowo \u002B Do zdobycia:\n na mobie: starozytne truchlo krola banitow (\u002B# Smocze Gory - czesc polnocna)"
     },
     {
       "vnum": 5417,
@@ -224,7 +224,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lekki korbacz \u0022Zemsta Elfow\u0022\n Do zdobycia:\n na mobie: Baradthrum (\u002B# Bagna Krabadasz)"
     },
     {
       "vnum": 5752,
@@ -233,7 +233,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: helm ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 5753,
@@ -242,7 +242,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rekawice ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 5754,
@@ -251,7 +251,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pancerz ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 5755,
@@ -260,7 +260,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: nagolennice ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 5756,
@@ -269,7 +269,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: naramienniki ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 5757,
@@ -278,7 +278,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: buty ze zlotej luski\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 6106,
@@ -287,7 +287,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: amulet \u0027Szarzujacego Byka\u0027\n Losowo."
     },
     {
       "vnum": 9301,
@@ -296,7 +296,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: dwureczny mithrilowy miecz\n Losowo."
     },
     {
       "vnum": 9333,
@@ -305,7 +305,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: prastara laska Ber\u0027ha\n Do zdobycia:\n na mobie: Armade Smialy (\u002B# Miasto Arras)"
     },
     {
       "vnum": 9336,
@@ -314,7 +314,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: prastara oponcza Ber\u0027ha\n Do zdobycia:\n na mobie: szaman barbarzyncow (\u002B# Osada barbarzyncow \u002B grobowiec)"
     },
     {
       "vnum": 9337,
@@ -323,7 +323,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: prastara lina Ber\u0027ha\n Do zdobycia:\n na mobie: kapelan (\u002B# Oboz wojskowy)"
     },
     {
       "vnum": 10262,
@@ -332,7 +332,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: skorzany kanczug \u0027Straz Vamyra\u0027\n Do zdobycia:\n na mobie: honorowy straznik Vamyra (\u002B# Krasnoludzka Forteca)"
     },
     {
       "vnum": 10931,
@@ -341,7 +341,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: laska \u0027Zaglada Dusz\u0027\n Do zdobycia:\n na mobie: Ymxahirativra (\u002B# Osada barbarzyncow \u002B grobowiec)"
     },
     {
       "vnum": 10951,
@@ -350,7 +350,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plonacy pas Ymxahirativry\n Do zdobycia:\n na mobie: Ymxahirativra (\u002B# Osada barbarzyncow \u002B grobowiec)"
     },
     {
       "vnum": 10956,
@@ -359,7 +359,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: rozdzka kompresji\n Losowo."
     },
     {
       "vnum": 11202,
@@ -368,7 +368,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: zdobiona mizerykordia celnosci\n Do zdobycia:\n na mobie: pustelnik Everyh (\u002B# Gory Zatokowe)"
     },
     {
       "vnum": 17907,
@@ -377,7 +377,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: zlota obraczka Y\u0027ergiza\n Losowo."
     },
     {
       "vnum": 17961,
@@ -386,7 +386,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rozdzka destrukcji\n Losowo."
     },
     {
       "vnum": 19014,
@@ -395,7 +395,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: wielki berdysz elementow\n Do zdobycia:\n na mobie: wodz orkow Arglung (\u002B# Jaskinie Naugrimow 2)"
     },
     {
       "vnum": 19401,
@@ -404,7 +404,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: katana Yukiakari\n Do zdobycia:\n w obiekcie: lodowa trumna (\u002B# Lodowa kraina)"
     },
     {
       "vnum": 22255,
@@ -413,7 +413,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: buty \u0027Skrzydla Nietoperza\u0027\n Do zdobycia:\n na mobie: Nietoperz (\u002B# Wioska z wampirem)"
     },
     {
       "vnum": 23607,
@@ -422,7 +422,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lsniacy luskowy pancerz\n Do zdobycia:\n na mobie: nieumarly kaplan starozytnego kultu (\u002B# (Karakris) Piramida)"
     },
     {
       "vnum": 23608,
@@ -431,7 +431,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lsniace luskowe nagolennice\n Do zdobycia:\n na mobie: nieumarly kaplan starozytnego kultu (\u002B# (Karakris) Piramida)\n\nKrasnoludzkie dziecko wlasnie przyszlo z zachodu."
     },
     {
       "vnum": 23609,
@@ -440,7 +440,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lsniace luskowe buty\n Do zdobycia:\n na mobie: majestatyczny zloto upierzony feniks (\u002B# (Karakris) Piramida)"
     },
     {
       "vnum": 23610,
@@ -449,7 +449,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lsniace luskowe naramienniki\n Do zdobycia:\n na mobie: majestatyczny zloto upierzony feniks (\u002B# (Karakris) Piramida)"
     },
     {
       "vnum": 23614,
@@ -458,7 +458,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lekkie luskowe rekawice\n Do zdobycia:\n na mobie: majestatyczny zloto upierzony feniks (\u002B# (Karakris) Piramida)"
     },
     {
       "vnum": 23617,
@@ -467,7 +467,7 @@
       "slot": "twarz",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lekka gadzia maska\n Do zdobycia:\n na mobie: nieumarly kaplan starozytnego kultu (\u002B# (Karakris) Piramida)"
     },
     {
       "vnum": 24770,
@@ -476,7 +476,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: czarna opaska zlodzieja\n Do zdobycia:\n w obiekcie: stara skrzynia (\u002B# Smocze legowisko)\n w obiekcie: antyczna skrzynia (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 24771,
@@ -485,7 +485,7 @@
       "slot": "twarz",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: maska Adra\u0027thila chciwego\n Do zdobycia:\n w obiekcie: kosciana skrzynia (\u002B# Zamek Melloris)\n w obiekcie: starozytna skrzynia (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 24772,
@@ -494,7 +494,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: naramienniki Utrundal\n Do zdobycia:\n w obiekcie: starozytna skrzynia (\u002B# Siedlisko Zlotego Smoka)\n w obiekcie: stara skrzynia (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 24773,
@@ -503,7 +503,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: opieka Adra\u0027thila\n Do zdobycia:\n w obiekcie: zasniezona skrzynia (\u002B# Gora Lodowego Smoka i wioska)\n w obiekcie: starozytna skrzynia (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 24774,
@@ -512,7 +512,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rubinowy pas\n Do zdobycia:\n w obiekcie: antyczna skrzynia (\u002B# [NK] Smocze jaskinie)\n w obiekcie: kosciana skrzynia (\u002B# Zamek Melloris)"
     },
     {
       "vnum": 24775,
@@ -521,7 +521,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: skorzane nogawice czern nocy\n Do zdobycia:\n w obiekcie: kosciana skrzynia (\u002B# Zamek Melloris)\n w obiekcie: stara skrzynia (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 24776,
@@ -530,7 +530,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lekkie buty szelest wiatru\n Do zdobycia:\n w obiekcie: zasniezona skrzynia (\u002B# Gora Lodowego Smoka i wioska)\n w obiekcie: antyczna skrzynia (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 26999,
@@ -539,7 +539,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kostur \u0022Kielich Wampira\u0027\n Losowo."
     },
     {
       "vnum": 27656,
@@ -548,7 +548,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dwureczny topor \u0027Bitewny Zaspiew\u0027\n Do zdobycia:\n na mobie: wodz barbarzyncow (\u002B# Osada barbarzyncow \u002B grobowiec)"
     },
     {
       "vnum": 29001,
@@ -557,7 +557,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: sztylet \u0027Lisie Pioro\u0027\n Losowo."
     },
     {
       "vnum": 29002,
@@ -566,7 +566,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zakrzywiony miecz \u0027ostrze sniegu\u0027\n Do zdobycia:\n na mobie: Deaven Medevi (Podmrok - Podziemne korytarze)"
     },
     {
       "vnum": 29003,
@@ -575,7 +575,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: dwureczny miecz \u0027Krwawa Klinga\u0027\n Losowo."
     },
     {
       "vnum": 29004,
@@ -584,7 +584,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: topor \u0027Zew Mlodosci\u0027\n Do zdobycia:\n na mobie: dowodca regimentu (\u002B# Oboz wojskowy)\n na mobie: honorowy straznik Vamyra (\u002B# Krasnoludzka Forteca)"
     },
     {
       "vnum": 29005,
@@ -593,7 +593,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: maczuga Svaina\n Losowo."
     },
     {
       "vnum": 29006,
@@ -602,7 +602,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: topor Jorila Snieznobrodego\n Losowo."
     },
     {
       "vnum": 29009,
@@ -611,7 +611,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kolec \u0027chochlika\u0027\n Losowo."
     },
     {
       "vnum": 29012,
@@ -620,7 +620,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Krasnolud wlasnie przyszedl z zachodu.\n\n\nName: miecz Zwinnosci Arbane\u0027a\n Do zdobycia:\n na mobie: Urthen Medevi (\u002B# Podmrok - Seeyma)"
     },
     {
       "vnum": 29019,
@@ -629,7 +629,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dwureczny miecz \u0027Gniew Sprawiedliwych\u0027\n Losowo."
     },
     {
       "vnum": 29020,
@@ -638,7 +638,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: Lilarcor\n Losowo."
     },
     {
       "vnum": 29022,
@@ -647,7 +647,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: krotki miecz \u0027Iluzja\u0027\n Do zdobycia:\n na mobie: widmo niziolka (\u002B# Martwe pola i stepy - od szczelin do bagien)\nKrasnoludzkie dziecko odchodzi na zachod."
     },
     {
       "vnum": 29028,
@@ -656,7 +656,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: adamantytowy bicz \u0027Pocalunek Kata\u0027\n Losowo."
     },
     {
       "vnum": 29030,
@@ -665,7 +665,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dwureczny miecz \u0027ostrze czarnego switu\u0027\n Do zdobycia:\n na mobie: upiorny rycerz (\u002B# Nawiedzone Hale)"
     },
     {
       "vnum": 29031,
@@ -674,7 +674,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: mlot \u0027Zelazny Szpon\u0027\n Losowo."
     },
     {
       "vnum": 29032,
@@ -683,7 +683,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lodowe tchnienie Branstena\n Losowo."
     },
     {
       "vnum": 29033,
@@ -692,7 +692,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plomienna piesc Brandahla\n Losowo."
     },
     {
       "vnum": 29036,
@@ -701,7 +701,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: szponton \u0027Smocze Przeklenstwo\u0027\n Do zdobycia:\n na mobie: zastepca Wielkiego Lowcy (\u002B# Lowcy Smokow)"
     },
     {
       "vnum": 29039,
@@ -710,7 +710,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: mlot bojowy Dar Zwyciestwa\n Losowo.\nKrasnoludzkie dziecko wlasnie przyszlo z zachodu."
     },
     {
       "vnum": 29040,
@@ -719,7 +719,7 @@
       "slot": "nad glowa",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: zapomniany relikt \u0022Sztandar Wojny\u0022\n Losowo."
     },
     {
       "vnum": 29043,
@@ -728,7 +728,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: sztylet \u0027Pozeracz Dusz\u0027\n Do zdobycia:\n na mobie: nekromantka Kaylin Ygresse (\u002B# Zamek Wyznawcow Variotha)"
     },
     {
       "vnum": 29050,
@@ -737,7 +737,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: katana \u0027Chokutou Reiki\u0027\n Do zdobycia:\n na mobie: Przeklety rycerz Kaelar (ruchome bossy v2)"
     },
     {
       "vnum": 29051,
@@ -746,7 +746,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: cwiekowany cep \u0027Pogrzebacz\u0027\n Do zdobycia:\n na mobie: upiorny rycerz (\u002B# Cmentarz)"
     },
     {
       "vnum": 29052,
@@ -755,7 +755,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: miecz Ares Dragon\n Do zdobycia:\n na mobie: tajemniczy elf (\u002B# Ruchomy boss - elf i bandyci)"
     },
     {
       "vnum": 29060,
@@ -764,7 +764,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: mityczny mlot \u0027Niszczyciel Magii\u0027\n Losowo."
     },
     {
       "vnum": 29065,
@@ -773,7 +773,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: medalion \u0027gniew wiatru\u0027\n Losowo."
     },
     {
       "vnum": 29070,
@@ -782,7 +782,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lekkie sai \u0022lza niebios\u0022\n Losowo."
     },
     {
       "vnum": 29071,
@@ -791,7 +791,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: ostrze akinakesa \u0022serce Golema\u0022\n Losowo."
     },
     {
       "vnum": 29073,
@@ -800,7 +800,7 @@
       "slot": "nogi",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zaklete nagolenniki Mystrala Telivirtara\n Losowo."
     },
     {
       "vnum": 29074,
@@ -809,7 +809,7 @@
       "slot": "twarz",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zakleta maska Mystrala Telivirtara\n Losowo."
     },
     {
       "vnum": 29075,
@@ -818,7 +818,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zaklete rekawice Mystrala Telivirtara\n Losowo."
     },
     {
       "vnum": 29076,
@@ -827,7 +827,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pancerz ze smoczej luski\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29077,
@@ -836,7 +836,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: naramienniki ze smoczej luski\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29079,
@@ -845,7 +845,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: nagolenice ze smoczej luski\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29080,
@@ -854,7 +854,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rekawice ze smoczej luski\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29081,
@@ -863,7 +863,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: buty ze smoczej luski\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29084,
@@ -872,7 +872,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: bat \u0022Krzyk Udreki\u0022\n Losowo."
     },
     {
       "vnum": 29085,
@@ -881,7 +881,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: bat \u0022Cierpienie Niewolnika\u0022\n Losowo."
     },
     {
       "vnum": 29087,
@@ -890,7 +890,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Krasnolud odchodzi na zachod.\n\n\nName: srebrny mlot \u0022Egzekutor\u0022\n Losowo."
     },
     {
       "vnum": 29089,
@@ -899,7 +899,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: legendarny elfi miecz \u0027Ghorun Nova\u0027\n Losowo."
     },
     {
       "vnum": 29091,
@@ -908,7 +908,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: ostrze zywiolow \u0027Pozoga\u0027\n Losowo."
     },
     {
       "vnum": 29092,
@@ -917,7 +917,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: ostrze zywiolow \u0027Wicher\u0027\n Losowo."
     },
     {
       "vnum": 29093,
@@ -926,7 +926,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: demoniczna katana \u0027szalenstwo krwi\u0027\n Losowo."
     },
     {
       "vnum": 29094,
@@ -935,7 +935,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dwureczny korbacz Blogoslawionego Ognia\n Do zdobycia:\n na mobie: Freaker Lytha (\u002B# Krypta Kamienia)"
     },
     {
       "vnum": 29095,
@@ -944,7 +944,7 @@
       "slot": "two hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: diamentowa laska \u0027Wladca Golemow\u0027\n Losowo."
     },
     {
       "vnum": 29096,
@@ -953,7 +953,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: tanto \u0027Ostatnie Tchnienie\u0027\n Losowo."
     },
     {
       "vnum": 29097,
@@ -962,7 +962,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: ciezki korbacz \u0027Obronca Niebios\u0027\n Losowo."
     },
     {
       "vnum": 29098,
@@ -971,7 +971,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: lekki korbacz \u0027Porazenie Niebios\u0027\n Losowo."
     },
     {
       "vnum": 29099,
@@ -980,7 +980,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: krasnoludzki kilof \u0027Potega Ziemi\u0027\n Losowo."
     },
     {
       "vnum": 29100,
@@ -989,7 +989,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: ostra hasta \u0027Dziki ogien\u0027\n Losowo."
     },
     {
       "vnum": 29101,
@@ -998,7 +998,7 @@
       "slot": "klatka",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zbroja wiecznej katuszy\n Losowo."
     },
     {
       "vnum": 29103,
@@ -1007,7 +1007,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: rekawice mistrzostwa\n Losowo."
     },
     {
       "vnum": 29104,
@@ -1016,7 +1016,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rekawice elfiej potegi\n Losowo."
     },
     {
       "vnum": 29110,
@@ -1025,7 +1025,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: mithrilowy pancerz Urthena Medevi\u0027ego\n Do zdobycia:\n na mobie: Urthen Medevi (\u002B# Podmrok - Seeyma)"
     },
     {
       "vnum": 29112,
@@ -1034,7 +1034,7 @@
       "slot": "ramiona",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zaklete naramienniki Mystrala Telivirtara\n Losowo."
     },
     {
       "vnum": 29113,
@@ -1043,7 +1043,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: zbroja ze skory mumaka\n Do zdobycia:\n na mobie: barbarzynca Y\u0027ergiz (\u002B# Krasnoludzka Forteca)"
     },
     {
       "vnum": 29114,
@@ -1052,7 +1052,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: naramienniki ze skory mumaka\n Do zdobycia:\n na mobie: barbarzynca Y\u0027ergiz (\u002B# Krasnoludzka Forteca)"
     },
     {
       "vnum": 29115,
@@ -1061,7 +1061,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: nakolanniki ze skory mumaka\n Do zdobycia:\n na mobie: wodz ogrow (\u002B# Ogrowisko - Orkowisko)"
     },
     {
       "vnum": 29116,
@@ -1070,7 +1070,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Krasnoludzkie dziecko odchodzi na wschod.\n\n\n\n\nName: buty ze skory mumaka\n Do zdobycia:\n na mobie: wodz Efilof (\u002B# [NK] Osada barbarzyncow)"
     },
     {
       "vnum": 29117,
@@ -1079,7 +1079,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: rekawice ze skory mumaka\n Do zdobycia:\n na mobie: Golevyn (\u002B# [NK] Wzgorzowi giganci)"
     },
     {
       "vnum": 29118,
@@ -1088,7 +1088,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: krotki noz \u0022Nadzieja Mysliwego\u0022\n Losowo."
     },
     {
       "vnum": 29120,
@@ -1097,7 +1097,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zbroja Tsurf Llihit\n Losowo."
     },
     {
       "vnum": 29125,
@@ -1106,7 +1106,7 @@
       "slot": "do rzucania",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: zestaw czarnych ostrzy \u0027Trzy Serca\u0027\n Losowo."
     },
     {
       "vnum": 29126,
@@ -1115,7 +1115,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: sai \u0022Lamacz zaklec\u0022\n Do zdobycia:\n na mobie: Artemis Entreri (#Podmrok - Gildia zlodziejska)\n na mobie: Jarlaxle (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29127,
@@ -1124,7 +1124,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zlamane ostrze \u0027pazur\u0027\n Do zdobycia:\n na mobie: drowi dowodca (Podmrok drowia straznica)"
     },
     {
       "vnum": 29129,
@@ -1133,7 +1133,7 @@
       "slot": "do rzucania",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: mithrilowe sztylety\n Do zdobycia:\n na mobie: przywodca zlodziei (\u002B# Kryjowka zlodziei)\n na mobie: przywodca rabusiow (\u002B# Karczma w Obilonie)\n na mobie: pustelnik Everyh (\u002B# Gory Zatokowe)"
     },
     {
       "vnum": 29130,
@@ -1142,7 +1142,7 @@
       "slot": "szyja",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: amulet \u0027Kwiat Pustyni\u0027\n Do zdobycia:\n na mobie: duch pradawnego zaklinacza (INSTNCJA piaski pustyni)"
     },
     {
       "vnum": 29131,
@@ -1151,7 +1151,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: bandana \u0027Opieka Pustyni\u0027\n Do zdobycia:\n na mobie: duch pradawnego zaklinacza (INSTNCJA piaski pustyni)"
     },
     {
       "vnum": 29132,
@@ -1160,7 +1160,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Sympatyczny krasnolud wlasnie przyszedl z zachodu.\n\n\n\n\nName: pancerz \u0027Serce Pustyni\u0027\n Do zdobycia:\n na mobie: zloty skorpion Aq\u0027raab (INSTNCJA piaski pustyni)"
     },
     {
       "vnum": 29133,
@@ -1169,7 +1169,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: naramienniki \u0027Sila Pustyni\u0027\n Do zdobycia:\n na mobie: duch pradawnego zaklinacza (INSTNCJA piaski pustyni)\n na mobie: zloty skorpion Aq\u0027raab (INSTNCJA piaski pustyni)"
     },
     {
       "vnum": 29134,
@@ -1187,7 +1187,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: nakolanniki \u0027Wiatr Pustyni\u0027\n Do zdobycia:\n na mobie: barbarzynski pustelnik Draman (INSTNCJA piaski pustyni)\n\n\n\n\nName: plaszcz \u0027Zycie Pustyni\u0027\n Do zdobycia:\n na mobie: barbarzynski pustelnik Draman (INSTNCJA piaski pustyni)"
     },
     {
       "vnum": 29136,
@@ -1196,7 +1196,7 @@
       "slot": "do rzucania",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: karakrijskie ostrza \u0027Szklane lzy\u0027\n Do zdobycia:\n w obiekcie: starozytna skrzynia (\u002B# Siedlisko Zlotego Smoka)\n w obiekcie: kosciana skrzynia (\u002B# Zamek Melloris)\n w obiekcie: zasniezona skrzynia (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 29155,
@@ -1205,7 +1205,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: helm dzikiej bestii \u0022Trzy Kly\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29156,
@@ -1214,7 +1214,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: naramienniki dzikiej bestii \u0022Niedzwiedzi Gniew\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29157,
@@ -1223,7 +1223,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: zbroja dzikiej bestii \u0022Serce Zmiennoksztaltnego\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29158,
@@ -1232,7 +1232,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: rekawice dzikiej bestii \u0022Szpony Dzikiej Natury\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29159,
@@ -1241,7 +1241,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: nagolenniki dzikiej bestii \u0022Szept Pantery\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29160,
@@ -1250,7 +1250,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: buty dzikiej bestii \u0022Wilczy Cien\u0022\n Do zdobycia:\n na mobie: runiczna bestia (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29202,
@@ -1259,7 +1259,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: helm z czaszki smoka\n Do zdobycia:\n na mobie: stary zielony smok Syrvern (\u002B# Smocze legowisko)"
     },
     {
       "vnum": 29203,
@@ -1268,7 +1268,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: smoczy helm\n Do zdobycia:\n na mobie: poldemon Quazabur (\u002B# [NK] Swiatynia Zapomnianego Boga)"
     },
     {
       "vnum": 29253,
@@ -1277,7 +1277,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: blogoslawiona Pawez Wiary Herdyata\n Do zdobycia:\n na mobie: stary zloty smok Lequeath (\u002B# Siedlisko Zlotego Smoka)"
     },
     {
       "vnum": 29254,
@@ -1286,7 +1286,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: ciezka tarcza rownowagi\n Losowo \u002B Do zdobycia:\n na mobie: sierzant (\u002B# Oboz wojskowy)"
     },
     {
       "vnum": 29255,
@@ -1295,7 +1295,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: demoniczna pawez \u0027wiez duszy\u0027\n Losowo."
     },
     {
       "vnum": 29256,
@@ -1304,7 +1304,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plomienista pawez \u0027Zar Paleniska\u0027\n Losowo."
     },
     {
       "vnum": 29257,
@@ -1313,7 +1313,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lekka pawez \u0027Odbicie\u0027\n Losowo."
     },
     {
       "vnum": 29258,
@@ -1322,7 +1322,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lekki korbacz \u0027Przebicie\u0027\n Losowo."
     },
     {
       "vnum": 29300,
@@ -1331,7 +1331,7 @@
       "slot": "ucho",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: kolczyk \u0027Lza Akidy\u0027\n Losowo."
     },
     {
       "vnum": 29399,
@@ -1340,7 +1340,7 @@
       "slot": "nadgarstek",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: demoniczna bransoleta \u0027Oslona\u0027\n Losowo."
     },
     {
       "vnum": 29401,
@@ -1349,7 +1349,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: buty \u0027Lapy Geparda\u0027\n Do zdobycia:\n na mobie: mistrz gildii (\u002B# [NK] Elderan)"
     },
     {
       "vnum": 29402,
@@ -1358,7 +1358,7 @@
       "slot": "klatka",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: szata Vekny\n Losowo."
     },
     {
       "vnum": 29403,
@@ -1367,7 +1367,7 @@
       "slot": "twarz",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: skorzana maska \u0022Oblicze Wojny\u0022\n Losowo."
     },
     {
       "vnum": 29404,
@@ -1376,7 +1376,7 @@
       "slot": "stopy",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: skrzydlate trzewiki\n Losowo."
     },
     {
       "vnum": 29406,
@@ -1385,7 +1385,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plaszcz ze skory czerwonego smoka\n Do zdobycia:\n na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)\n na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 29409,
@@ -1394,7 +1394,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: skorzane rekawice \u0022Kajdany Wojny\u0022\n Losowo."
     },
     {
       "vnum": 29410,
@@ -1403,7 +1403,7 @@
       "slot": "stopy",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: skorzane buty \u0022Okowy Wojny\u0022\n Losowo."
     },
     {
       "vnum": 29411,
@@ -1412,7 +1412,7 @@
       "slot": "glowa",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: diadem duchow\n Losowo."
     },
     {
       "vnum": 29412,
@@ -1421,7 +1421,7 @@
       "slot": "talia",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Galan mowi ci \u0027Hej\u0027\n\n\n\nName: sznur duchow\n Losowo."
     },
     {
       "vnum": 29413,
@@ -1430,7 +1430,7 @@
       "slot": "stopy",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: trzewiki duchow\n Losowo."
     },
     {
       "vnum": 29414,
@@ -1439,7 +1439,7 @@
       "slot": "nadgarstek",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: bransoleta duchow\n Losowo."
     },
     {
       "vnum": 29415,
@@ -1448,7 +1448,7 @@
       "slot": "nogi",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: nogawice duchow\n Losowo."
     },
     {
       "vnum": 29603,
@@ -1457,7 +1457,7 @@
       "slot": "twarz",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: tajemnicza maska \u0027oko proroka\u0027\n Losowo."
     },
     {
       "vnum": 29801,
@@ -1466,7 +1466,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: amulet tarczy Uscisk Wojownika\n Losowo."
     },
     {
       "vnum": 29804,
@@ -1475,7 +1475,7 @@
       "slot": "szyja",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: amulet metaczarow \u0027Wzmacniacz\u0027\n Do zdobycia:\n na mobie: czarny smok Aulenath (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 29805,
@@ -1484,7 +1484,7 @@
       "slot": "nadgarstek",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: bransoleta \u0027Straznik Doliny\u0027\n Losowo."
     },
     {
       "vnum": 29806,
@@ -1493,7 +1493,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pierscien Cichego Lotrzyka\n Losowo."
     },
     {
       "vnum": 29807,
@@ -1502,7 +1502,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: niebieski pierscien \u0027Siny Palec Anaegdialasa\u0027\n Losowo."
     },
     {
       "vnum": 29811,
@@ -1511,7 +1511,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Tybryc wlasnie przyszedl ze wschodu.\n\n\n\n\nName: obraczka Niraso\n Losowo \u002B Do zdobycia:\n na mobie: duch wedrowca Karhu\u0027irnara (\u002B# Martwe pola i stepy - od szczelin do bagien)"
     },
     {
       "vnum": 29812,
@@ -1520,7 +1520,7 @@
       "slot": "inventory",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Tybryc wchodzi do jubilera.\n\nName: boski owoc\n Losowo."
     },
     {
       "vnum": 29813,
@@ -1529,7 +1529,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: obosieczny topor \u0027skrzydlo kruka\u0027\n Do zdobycia:\n na mobie: rycerz mroku Svartur (\u002B# Nowe instancje)\n na mobie: jaszczuroczlek Akkedis (\u002B# Nowe instancje)"
     },
     {
       "vnum": 29814,
@@ -1538,7 +1538,7 @@
       "slot": "ucho",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: starozytny kolczyk \u0027smoczy pazur\u0027\n Losowo."
     },
     {
       "vnum": 29815,
@@ -1547,7 +1547,7 @@
       "slot": "palec",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: krwawy pierscien z kosci Behemota\n Do zdobycia:\n na mobie: Behemot (\u002B# Jaskinie Naugrimow)"
     },
     {
       "vnum": 29816,
@@ -1556,7 +1556,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: starozytny wisior \u0027smocze serce\u0027\n Losowo."
     },
     {
       "vnum": 29817,
@@ -1565,7 +1565,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: straozytny pierscien \u0027smocze oko\u0027\n Losowo."
     },
     {
       "vnum": 29818,
@@ -1574,7 +1574,7 @@
       "slot": "nadgarstek",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: starozytna bransoleta \u0027smoczy jezyk\u0027\n Losowo."
     },
     {
       "vnum": 29819,
@@ -1583,7 +1583,7 @@
       "slot": "inventory",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zrodlo zycia\n Losowo."
     },
     {
       "vnum": 29821,
@@ -1592,7 +1592,7 @@
       "slot": "szyja",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Krasnolud wlasnie przyszedl z zachodu.\n\n\nName: medalion \u0027oko kruka\u0027\n Do zdobycia:\n na mobie: Silenvil (Messholzarn)"
     },
     {
       "vnum": 29822,
@@ -1601,7 +1601,7 @@
       "slot": "klatka",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zbroja \u0027opieka kruka\u0027\n Losowo \u002B Do zdobycia:\n na mobie: drowi dowodca (Podmrok drowia straznica)"
     },
     {
       "vnum": 29823,
@@ -1610,7 +1610,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Tybryc wychodzi ze sklepu na aleje.\n\nName: czarny pas \u0027krucze piorko\u0027\n Do zdobycia:\n na mobie: rogaty demon (\u002B# Magiczna jaskinia)"
     },
     {
       "vnum": 29824,
@@ -1619,7 +1619,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dlugie buty \u0027krok kruka\u0027\n Do zdobycia:\n na mobie: Asher Verys (\u002B# Podmrok - Seeyma)\n\nTybryc odchodzi na wschod."
     },
     {
       "vnum": 29831,
@@ -1628,7 +1628,7 @@
       "slot": "palec",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: stalowa obraczka \u0027Wypalenie\u0027\n Losowo."
     },
     {
       "vnum": 29852,
@@ -1637,7 +1637,7 @@
       "slot": "nad glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: barylka \u0027Postrach Wodzow\u0027\n Do zdobycia:\n na mobie: wodz barbarzyncow (\u002B# Osada barbarzyncow \u002B grobowiec)\n na mobie: wodz Efilof (\u002B# [NK] Osada barbarzyncow)"
     },
     {
       "vnum": 29853,
@@ -1646,7 +1646,7 @@
       "slot": "ucho",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kolczyk mrocznego Pana\n Losowo."
     },
     {
       "vnum": 29894,
@@ -1655,7 +1655,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: nakolanniki Acherona\n Do zdobycia:\n na mobie: zapomniany bog Acheron (\u002B# [NK] Swiatynia Zapomnianego Boga c.d.)"
     },
     {
       "vnum": 29895,
@@ -1664,7 +1664,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: naramienniki Acherona\n Do zdobycia:\n na mobie: zapomniany bog Acheron (\u002B# [NK] Swiatynia Zapomnianego Boga c.d.)"
     },
     {
       "vnum": 29896,
@@ -1673,7 +1673,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zbroja Acherona\n Do zdobycia:\n na mobie: zapomniany bog Acheron (\u002B# [NK] Swiatynia Zapomnianego Boga c.d.)"
     },
     {
       "vnum": 29897,
@@ -1682,7 +1682,7 @@
       "slot": "nadgarstek",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: opalizujaca bransoleta rozmycia \u0027Smuga\u0027\n Do zdobycia:\n na mobie: prastara wiedzma Hil\u0027kurganna (demoniczny labirynt)"
     },
     {
       "vnum": 29898,
@@ -1691,7 +1691,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lekki plaszcz przesuniecia \u0027Smuga Swiatla\u0027\n Do zdobycia:\n na mobie: demoniczny smok Ha\u0027rgerdaril (demoniczny labirynt)"
     },
     {
       "vnum": 29899,
@@ -1700,7 +1700,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: lekka wlocznia \u0027Smuga Cienia\u0027\n Do zdobycia:\n na mobie: widmowy rycerz As\u0027trogerin (demoniczny labirynt)"
     },
     {
       "vnum": 29901,
@@ -1709,7 +1709,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pas ostrzy Obronca Niegodnych\n Do zdobycia:\n na mobie: Quaz\u0027gyved, astralny wojownik (\u002B# Jaskinie Umbrowych Kolosow)"
     },
     {
       "vnum": 29902,
@@ -1718,7 +1718,7 @@
       "slot": "talia",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: pas pomniejszej bariery Pervela\n Losowo."
     },
     {
       "vnum": 29903,
@@ -1727,7 +1727,7 @@
       "slot": "nad glowa",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: krysztalowa kula\n Losowo."
     },
     {
       "vnum": 29906,
@@ -1736,7 +1736,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: torba bez dna\n Losowo."
     },
     {
       "vnum": 29907,
@@ -1745,7 +1745,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: plytowe rekawice \u0022Niebianskie Tchnienie\u0022\n Losowo."
     },
     {
       "vnum": 29908,
@@ -1754,7 +1754,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pradawna kosa Variotha\n Do zdobycia:\n na mobie: antyczny rycerz (\u002B# Sciezka, las, podziemia)"
     },
     {
       "vnum": 29909,
@@ -1763,7 +1763,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: scimitar elfiej smierci\n Do zdobycia:\n na mobie: Ghrihwegg (\u002B# Podziemia nekromanty)"
     },
     {
       "vnum": 29914,
@@ -1772,7 +1772,7 @@
       "slot": "twarz",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: maska \u0027Oblicze Sprawiedliwosci\u0027\n Losowo."
     },
     {
       "vnum": 29920,
@@ -1781,7 +1781,7 @@
       "slot": "talia",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pas pomniejszego przyspieszenia\n Losowo."
     },
     {
       "vnum": 29988,
@@ -1790,7 +1790,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: eteryczne naramiennki \u0027oslona nocy\u0027\n Do zdobycia:\n na mobie: Jarlaxle (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29989,
@@ -1799,7 +1799,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: eteryczny plaszcz z kapturem \u0027ukrycie\u0027\n Do zdobycia:\n na mobie: Jarlaxle (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29990,
@@ -1808,7 +1808,7 @@
       "slot": "talia",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: eteryczny pas \u0027lancuch mroku\u0027\n Do zdobycia:\n na mobie: Jarlaxle (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29991,
@@ -1817,7 +1817,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: eteryczny pancerz \u0027czarne serce\u0027\n Do zdobycia:\n na mobie: Artemis Entreri (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29992,
@@ -1826,7 +1826,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: eteryczne nakolanniki \u0027lekki krok\u0027\n Do zdobycia:\n na mobie: Artemis Entreri (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29993,
@@ -1835,7 +1835,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Krasnolud odchodzi na wschod.\n\n\n\n\nName: eteryczne ostrze \u0027zabojczy cien\u0027\n Do zdobycia:\n na mobie: Artemis Entreri (#Podmrok - Gildia zlodziejska)"
     },
     {
       "vnum": 29994,
@@ -1844,7 +1844,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: boska pawez \u0027Mur\u0027\n Losowo."
     },
     {
       "vnum": 29995,
@@ -1853,7 +1853,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: boski mlot \u0027Spopielacz\u0027\n Losowo."
     },
     {
       "vnum": 29999,
@@ -1862,7 +1862,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: esencja zycia\n Losowo."
     },
     {
       "vnum": 30107,
@@ -1871,7 +1871,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: ciezki espadon \u0027Kherna Redana\u0027\n Do zdobycia:\n na mobie: Khern Redan (\u002B# Zamek Wyznawcow Variotha)"
     },
     {
       "vnum": 30118,
@@ -1880,7 +1880,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: demoniczny pancerz \u0027Kherna Redana\u0027\n Do zdobycia:\n na mobie: Khern Redan (\u002B# Zamek Wyznawcow Variotha)"
     },
     {
       "vnum": 30122,
@@ -1889,7 +1889,7 @@
       "slot": "twarz",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: mroczna maska \u0027Nekromantki Kaylin\u0027\n Do zdobycia:\n na mobie: nekromantka Kaylin Ygresse (\u002B# Zamek Wyznawcow Variotha)"
     },
     {
       "vnum": 33016,
@@ -1898,7 +1898,7 @@
       "slot": "glowa",
       "flag": "R",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zlota korona\n Losowo \u002B Do zdobycia:\n na mobie: Groslug (\u002B# Nawiedzone Hale)"
     },
     {
       "vnum": 35607,
@@ -1907,7 +1907,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: bojowy kij \u0027Strach Pioruna\u0027\n Do zdobycia:\n na mobie: szaman Yut\u0027niggar (\u002B# Kryjowka Yut\u0027niggara)"
     },
     {
       "vnum": 35609,
@@ -1916,7 +1916,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: bojowa laska \u0027Wladca piorunow\u0027\n Losowo."
     },
     {
       "vnum": 39439,
@@ -1925,7 +1925,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: krwawa \u0027Blizniacza Kosa\u0027\n Losowo."
     },
     {
       "vnum": 41222,
@@ -1934,7 +1934,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pancerz z czerwonej luski\n Do zdobycia:\n na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 41223,
@@ -1943,7 +1943,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: tarcza z czerwonej luski\n Do zdobycia:\n na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 41224,
@@ -1952,7 +1952,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: helm z czerwonej luski\n Do zdobycia:\n na mobie: antyczny czerwony smok Gexiraa\u0027grath (\u002B# [NK] Smocze jaskinie)"
     },
     {
       "vnum": 41228,
@@ -1961,7 +1961,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kosc czerwonego smoka\n Losowo."
     },
     {
       "vnum": 43055,
@@ -1970,7 +1970,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: szamanska rozdzka\n Do zdobycia:\n na mobie: podly nekromanta (\u002B# Wyspa nieumarlych)"
     },
     {
       "vnum": 44610,
@@ -1979,7 +1979,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: bojowy mlot \u0027Wzgorzowy Podmuch\u0027\n Do zdobycia:\n na mobie: Golevyn (\u002B# [NK] Wzgorzowi giganci)"
     },
     {
       "vnum": 44613,
@@ -1988,7 +1988,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: zdobiona korona \u0027Wladca Gor\u0027\n Do zdobycia:\n na mobie: Golevyn (\u002B# [NK] Wzgorzowi giganci)"
     },
     {
       "vnum": 45400,
@@ -1997,7 +1997,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: czarny, inkrustowany zlotem korbacz\n Losowo."
     },
     {
       "vnum": 45408,
@@ -2006,7 +2006,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: czarny topor inkrustowany zlotem\n Losowo."
     },
     {
       "vnum": 45409,
@@ -2015,7 +2015,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: czarny bicz inkrustowany zlotem\n Losowo."
     },
     {
       "vnum": 45410,
@@ -2024,7 +2024,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: czarny obuch inkrustowany zlotem\n Losowo."
     },
     {
       "vnum": 45411,
@@ -2033,7 +2033,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: czarny krotki miecz inkrustowany zlotem\n Losowo."
     },
     {
       "vnum": 50906,
@@ -2042,7 +2042,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "rzadki",
-      "details": ""
+      "details": "Name: chlodny maslak\n Do zdobycia:\n w obiekcie: duza kamienna szkatula (\u002B# Podmrok - Za brama w krasnoludzkiej kopalni)"
     },
     {
       "vnum": 51031,
@@ -2051,7 +2051,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dluga szata ze smoczej luski\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 51032,
@@ -2060,7 +2060,7 @@
       "slot": "palec",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: smoczy pierscien\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 51033,
@@ -2069,7 +2069,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: sandaly ze smoczej luski\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 51034,
@@ -2078,7 +2078,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rekawiczki ze smoczej luski\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 51035,
@@ -2087,7 +2087,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: kapelusz ze smoczej luski\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 51036,
@@ -2096,7 +2096,7 @@
       "slot": "cialo",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: dlugi plaszcz ze smoczej skory\n Do zdobycia:\n na mobie: prastary smok Kal\u0027tean (\u002B# Gora Lodowego Smoka i wioska)"
     },
     {
       "vnum": 55180,
@@ -2105,7 +2105,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Krasnolud wlasnie przyszedl ze wschodu.\n\n\n\n\nName: faliste ostrze \u0027Pustynny Wiatr\u0027\n Losowo."
     },
     {
       "vnum": 55181,
@@ -2114,7 +2114,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: dlugi sznur \u0027Pustynna Zamiec\u0027\n Losowo."
     },
     {
       "vnum": 55182,
@@ -2123,7 +2123,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: mroczny amulet \u0027Imitacja Zycia\u0027\n Losowo."
     },
     {
       "vnum": 55183,
@@ -2132,7 +2132,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien iluzji \u0027Lustro\u0027\n Losowo."
     },
     {
       "vnum": 55184,
@@ -2141,7 +2141,7 @@
       "slot": "glowa",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: swiecacy helm Lanserila\n Losowo."
     },
     {
       "vnum": 55185,
@@ -2150,7 +2150,7 @@
       "slot": "ramiona",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: swobodne naramienniki Oberona\n Losowo."
     },
     {
       "vnum": 55186,
@@ -2159,7 +2159,7 @@
       "slot": "klatka",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: ochronna zbroja Portena\n Losowo."
     },
     {
       "vnum": 55187,
@@ -2168,7 +2168,7 @@
       "slot": "rece",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: inspirujace rekawice Tellany\n Losowo."
     },
     {
       "vnum": 55188,
@@ -2177,7 +2177,7 @@
       "slot": "nogi",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: hartowane nagolenniki Sorenny\n Losowo."
     },
     {
       "vnum": 55189,
@@ -2186,7 +2186,7 @@
       "slot": "stopy",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: buty pasterskie Thorana\n Losowo."
     },
     {
       "vnum": 55191,
@@ -2195,7 +2195,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: zloty wisior \u0027Magia Wojny\u0027\n Losowo."
     },
     {
       "vnum": 55192,
@@ -2204,7 +2204,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: miedziany amulet \u0027Magia Szalenstwa\u0027\n Losowo."
     },
     {
       "vnum": 55193,
@@ -2213,7 +2213,7 @@
       "slot": "cialo",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: welniana oponcza \u0027Wyciszenie\u0027\n Losowo."
     },
     {
       "vnum": 55194,
@@ -2222,7 +2222,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: adamantytowy bicz \u0027Trupi Oddech\u0027\n Losowo."
     },
     {
       "vnum": 55195,
@@ -2231,7 +2231,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: burzowe ostrze \u0027Porazenie\u0027\n Do zdobycia:\n na mobie: przeklety arcylicz Ar\u0027than (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 55196,
@@ -2240,7 +2240,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: burzowe ostrze \u0027Grom\u0027\n Do zdobycia:\n na mobie: przeklety arcylicz Ar\u0027than (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 55197,
@@ -2249,7 +2249,7 @@
       "slot": "twarz",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: burzowa maska \u0027Wladca Burz\u0027\n Do zdobycia:\n na mobie: przeklety arcylicz Ar\u0027than (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 55198,
@@ -2258,7 +2258,7 @@
       "slot": "nad glowa",
       "flag": "N",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: burzowa kula \u0027Oko Cyklonu\u0027\n Do zdobycia:\n na mobie: przeklety arcylicz Ar\u0027than (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 55208,
@@ -2267,7 +2267,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: amulet iluzji \u0027Pryzmat\u0027\n Losowo."
     },
     {
       "vnum": 61504,
@@ -2276,7 +2276,7 @@
       "slot": "klatka",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: pancerz ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 61505,
@@ -2285,7 +2285,7 @@
       "slot": "glowa",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: helm ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 61506,
@@ -2294,7 +2294,7 @@
       "slot": "ramiona",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: naramienniki ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 61507,
@@ -2303,7 +2303,7 @@
       "slot": "rece",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: rekawice ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 61508,
@@ -2312,7 +2312,7 @@
       "slot": "stopy",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: buty ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 61509,
@@ -2321,7 +2321,7 @@
       "slot": "nogi",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: nagolenniki ze skory pustynnego smoka\n Do zdobycia:\n na mobie: wielki pustynny smok Va\u0027lustrisvel (\u002B# (Karakris) Wielka Pustynia 2)"
     },
     {
       "vnum": 64955,
@@ -2330,7 +2330,7 @@
       "slot": "two hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: piaskowa wlocznia \u0027wiatr pustyni\u0027\n Do zdobycia:\n na mobie: piaskowy demon (\u002B# Wyspa nieumarlych)\n na mobie: Nulbador Canoy (\u002B# Korytarze pod pustynia Kaan-ar)"
     },
     {
       "vnum": 67926,
@@ -2339,7 +2339,7 @@
       "slot": "one hand",
       "flag": "N",
       "category": "artefakt",
-      "details": ""
+      "details": "Name: drowi wezowy bicz\n Do zdobycia:\n na mobie: drowia kaplanka (ruchome bossy v2)"
     },
     {
       "vnum": 68126,
@@ -2348,7 +2348,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: zdobiony kaplanski modlitewnik\n Losowo."
     },
     {
       "vnum": 99100,
@@ -2357,7 +2357,7 @@
       "slot": "one hand",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: widmowy bicz \u0027Cien switu\u0027\n Losowo \u002B Do zdobycia:\n na mobie: przeklety arcylicz Ar\u0027than (rezerwuar INSTANCJE)"
     },
     {
       "vnum": 99102,
@@ -2366,7 +2366,7 @@
       "slot": "szyja",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: amulet zywiolow \u0027Jednosc\u0027\n Losowo."
     },
     {
       "vnum": 99103,
@@ -2375,7 +2375,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: boski pierscien \u0027Zycie\u0027\n Losowo."
     },
     {
       "vnum": 99104,
@@ -2393,7 +2393,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: mroczny pierscien \u0027Nieskonczonosc\u0027\n Losowo.\n\n\n\n\nName: eteryczny pierscien \u0027Wrota Bestii\u0027\n Losowo."
     },
     {
       "vnum": 99107,
@@ -2402,7 +2402,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien najwyzszej nekromancji\n Losowo."
     },
     {
       "vnum": 99108,
@@ -2411,7 +2411,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: sygnet mistrza transmutacji\n Losowo."
     },
     {
       "vnum": 99109,
@@ -2420,7 +2420,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien magii astralnej\n Losowo."
     },
     {
       "vnum": 99110,
@@ -2429,7 +2429,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien wypaczenia magii\n Losowo."
     },
     {
       "vnum": 99111,
@@ -2438,7 +2438,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien arkan poznania\n Losowo."
     },
     {
       "vnum": 99112,
@@ -2447,7 +2447,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: pierscien magii zludzen\n Losowo."
     },
     {
       "vnum": 99113,
@@ -2456,7 +2456,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: uroczy pierscien zaczarowan\n Losowo."
     },
     {
       "vnum": 99114,
@@ -2465,7 +2465,7 @@
       "slot": "palec",
       "flag": "R",
       "category": "instancyjny",
-      "details": ""
+      "details": "Name: obraczka najwyzszej inwokacji\n Losowo."
     }
   ]
 }

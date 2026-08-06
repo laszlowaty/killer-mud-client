@@ -75,6 +75,98 @@ public sealed class RareCatalogRefreshTests : IDisposable
     }
 
     [Fact]
+    public async Task Refresh_OnEntryMapped_FiresAfterEachFreshlyFetchedItemOnly()
+    {
+        var coordinator = new RareCatalogRefreshCoordinator(
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromSeconds(2));
+
+        Task Send(string command, CancellationToken cancellationToken)
+        {
+            if (command == "rarelist all")
+            {
+                coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [N] ( kilof             - one hand      ) [29099] krasnoludzki kilof 'Potega Ziemi'");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [R] ( wlocznia          - two hand      ) [  215] trojzab Turlitha");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+            else if (command == "rarelist 29099")
+            {
+                coordinator.TryCaptureLine("Kilof kuty przez krasnoludzkich mistrzów.");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        var snapshots = new List<IReadOnlyList<RareEntry>>();
+        var knownDetails = new Dictionary<int, string> { [215] = "Znany wczesniej trojzab." };
+        var catalog = await coordinator.RefreshAsync(
+            Send,
+            cancellationToken: TestContext.Current.CancellationToken,
+            knownDetails: knownDetails,
+            onEntryMapped: (mappedSoFar, _) =>
+            {
+                snapshots.Add(mappedSoFar.ToArray());
+                return Task.CompletedTask;
+            });
+
+        // Only vnum 29099 was actually fetched (215 came from knownDetails), so the callback
+        // fires exactly once, with the running list at that point.
+        var snapshot = Assert.Single(snapshots);
+        Assert.Contains(snapshot, rare => rare.Vnum == 29099 && rare.Details.Contains("Kilof"));
+        Assert.Equal(2, catalog.Rares.Count);
+    }
+
+    [Fact]
+    public async Task Refresh_KnownVnumWithDetails_SkipsDetailFetchAndReusesText()
+    {
+        var coordinator = new RareCatalogRefreshCoordinator(
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromSeconds(2));
+        var sent = new List<string>();
+
+        Task Send(string command, CancellationToken cancellationToken)
+        {
+            sent.Add(command);
+            if (command == "rarelist all")
+            {
+                coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [N] ( kilof             - one hand      ) [29099] krasnoludzki kilof 'Potega Ziemi'");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [R] ( wlocznia          - two hand      ) [  215] trojzab Turlitha");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+            else if (command == "rarelist 29099")
+            {
+                coordinator.TryCaptureLine("Kilof kuty przez krasnoludzkich mistrzów.");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        var knownDetails = new Dictionary<int, string> { [215] = "Znany wczesniej trojzab." };
+        var catalog = await coordinator.RefreshAsync(
+            Send,
+            cancellationToken: TestContext.Current.CancellationToken,
+            knownDetails: knownDetails);
+
+        var trojzab = Assert.Single(catalog.Rares, rare => rare.Vnum == 215);
+        Assert.Equal("Znany wczesniej trojzab.", trojzab.Details);
+        var kilof = Assert.Single(catalog.Rares, rare => rare.Vnum == 29099);
+        Assert.Equal("Kilof kuty przez krasnoludzkich mistrzów.", kilof.Details);
+
+        // Only the still-unmapped vnum (29099) triggers a "rarelist <vnum>" round-trip.
+        Assert.Equal(["rarelist all", "rarelist 29099"], sent);
+    }
+
+    [Fact]
     public async Task Refresh_PagesThroughPagerPromptsBeforeMovingToDetails()
     {
         var coordinator = new RareCatalogRefreshCoordinator(
@@ -255,8 +347,12 @@ public sealed class RareCatalogRefreshTests : IDisposable
 
         var catalog = store.Load();
 
+        // The bundled snapshot ships fully mapped (see Assets/Data/rares.json), so new installs
+        // start with real Details text instead of an empty placeholder for every entry.
         Assert.Equal(274, catalog.Rares.Count);
-        Assert.Contains(catalog.Rares, rare => rare.Vnum == 29099 && rare.Name == "krasnoludzki kilof 'Potega Ziemi'");
-        Assert.All(catalog.Rares, rare => Assert.Equal(string.Empty, rare.Details));
+        var kilof = Assert.Single(
+            catalog.Rares, rare => rare.Vnum == 29099 && rare.Name == "krasnoludzki kilof 'Potega Ziemi'");
+        Assert.False(string.IsNullOrWhiteSpace(kilof.Details));
+        Assert.True(catalog.Rares.Count(rare => string.IsNullOrWhiteSpace(rare.Details)) <= 2);
     }
 }

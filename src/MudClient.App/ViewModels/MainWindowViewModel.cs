@@ -39,6 +39,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomExitsResolver _roomExits = new();
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
+    private readonly WorldStateResolver _worldState = new();
+    private readonly SkillTimeoutResolver _skillTimeouts = new();
+    private readonly Dictionary<string, bool> _lastSkillTimeouts = new(StringComparer.OrdinalIgnoreCase);
     private readonly AutoAssistPolicy _autoAssist = new();
     private readonly GroupExhaustionRefreshPolicy _groupExhaustionRefresh = new();
     private readonly ProfileService _profiles;
@@ -337,6 +340,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.GroupChanged += OnGroupChanged;
         _characterState.AffectsChanged += OnCharacterAffectsChanged;
         _characterState.MemSpellsChanged += OnMemSpellsChanged;
+        _worldState.TimeChanged += OnWorldTimeChanged;
+        _worldState.WeatherChanged += OnWorldWeatherChanged;
+        _skillTimeouts.TimeoutsChanged += OnSkillTimeoutsChanged;
 
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
@@ -387,6 +393,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyOverlayFromSettings();
 
         Vitals.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
+        WorldTime.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
         UpdateTerminalToolTitle();
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
@@ -2136,6 +2143,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<TimerEntry> Timers { get; } = [];
 
+    // --- Skill-ready notices (live, from Char.Skills.Timeout GMCP) — shown alongside Timers. ---
+    public ObservableCollection<SkillReadyEntry> SkillReadyNotices { get; } = [];
+
+    // --- Skills currently on cooldown (live, from Char.Skills.Timeout GMCP) — shown as
+    // "* skillname" alongside Timers for as long as the skill's timeout stays true. ---
+    public ObservableCollection<string> SkillsOnCooldown { get; } = [];
+
     public RelayCommand AddTimerCommand { get; }
     public RelayCommand StartAddTimerCommand { get; }
     public RelayCommand<TimerEntry> DeleteTimerCommand { get; }
@@ -3884,10 +3898,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
-    /// Mirrors the character's live vitals onto the Terminal dock tab title — folds the former
-    /// standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja) into the Terminal's own
-    /// header bar instead of a separate row inside its content, so they're visible without
-    /// spending any of the Terminal's own vertical space.
+    /// Mirrors the character's live vitals and world time/weather onto the Terminal dock tab
+    /// title — folds the former standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja)
+    /// plus live Mud.TimeInfo/Mud.Weather GMCP data into the Terminal's own header bar instead
+    /// of a separate row inside its content, so they're visible without spending any of the
+    /// Terminal's own vertical space.
     /// </summary>
     private void UpdateTerminalToolTitle()
     {
@@ -3899,7 +3914,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         tool.Title = $"Terminal — Imię: {Vitals.Name}, Poziom: {Vitals.Level}, " +
-                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay}";
+                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay} | " +
+                     $"{WorldTime.DayName} ({WorldTime.Day} {WorldTime.Month}, {WorldTime.Year} r., {WorldTime.Era}), " +
+                     $"{WorldTime.TimeName}, Niebo: {WorldTime.Sky}, Wiatr: {WorldTime.Wind}";
     }
 
     public string NewBuffName
@@ -4852,6 +4869,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     // --- Character vitals (mock) ---
     public CharacterVitals Vitals { get; } = new();
+
+    // --- World time & weather (live, from Mud.TimeInfo / Mud.Weather GMCP) ---
+    public WorldTimeWeather WorldTime { get; } = new();
 
     // --- Character conditions (live, from Char.Condition GMCP) ---
     public ObservableCollection<string> Conditions { get; } = [];
@@ -6358,6 +6378,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _roomExits.Process(message);
         _locationResolver.Process(message);
         _characterState.Process(message);
+        _worldState.Process(message);
+        _skillTimeouts.Process(message);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -6401,6 +6423,113 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
             }
         });
+    }
+
+    private void OnWorldTimeChanged(WorldTimeUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Day is { } day) WorldTime.Day = day;
+            if (update.DayName is { } dayName) WorldTime.DayName = dayName;
+            if (update.Era is { } era) WorldTime.Era = era;
+            if (update.Month is { } month) WorldTime.Month = month;
+            if (update.Time is { } time) WorldTime.Time = time;
+            if (update.TimeName is { } timeName) WorldTime.TimeName = timeName;
+            if (update.Year is { } year) WorldTime.Year = year;
+        });
+    }
+
+    private void OnWorldWeatherChanged(WorldWeatherUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Sky is { } sky) WorldTime.Sky = sky;
+            if (update.Wind is { } wind) WorldTime.Wind = wind;
+        });
+    }
+
+    /// <summary>Not readonly — overridden via reflection in tests to avoid a real 10s wait.</summary>
+    private static TimeSpan SkillReadyNoticeLifetime = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Char.Skills.Timeout reports the current snapshot of skills on cooldown. While a skill's
+    /// timeout stays true it shows up persistently in SkillsOnCooldown ("* skillname"); once it
+    /// flips to timeout=false or drops out of the snapshot entirely, it's removed from there and
+    /// a transient "ready again" notice is shown instead.
+    /// </summary>
+    private void OnSkillTimeoutsChanged(IReadOnlyList<SkillTimeoutEntry> entries)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in entries)
+            {
+                seen.Add(entry.Name);
+                var wasOnCooldown = _lastSkillTimeouts.TryGetValue(entry.Name, out var previous) && previous;
+                if (wasOnCooldown && !entry.Timeout)
+                {
+                    AnnounceSkillReady(entry.Name);
+                }
+
+                _lastSkillTimeouts[entry.Name] = entry.Timeout;
+                SetSkillOnCooldown(entry.Name, entry.Timeout);
+            }
+
+            foreach (var name in _lastSkillTimeouts.Keys.ToList())
+            {
+                if (seen.Contains(name) || !_lastSkillTimeouts[name])
+                {
+                    continue;
+                }
+
+                AnnounceSkillReady(name);
+                _lastSkillTimeouts.Remove(name);
+                SetSkillOnCooldown(name, onCooldown: false);
+            }
+        });
+    }
+
+    private void SetSkillOnCooldown(string skillName, bool onCooldown)
+    {
+        var index = -1;
+        for (var i = 0; i < SkillsOnCooldown.Count; i++)
+        {
+            if (string.Equals(SkillsOnCooldown[i], skillName, StringComparison.OrdinalIgnoreCase))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (onCooldown)
+        {
+            if (index < 0)
+            {
+                SkillsOnCooldown.Add(skillName);
+            }
+        }
+        else if (index >= 0)
+        {
+            SkillsOnCooldown.RemoveAt(index);
+        }
+    }
+
+    private void AnnounceSkillReady(string skillName)
+    {
+        var entry = new SkillReadyEntry(skillName);
+        SkillReadyNotices.Add(entry);
+        while (SkillReadyNotices.Count > 10)
+        {
+            SkillReadyNotices.RemoveAt(0);
+        }
+
+        _ = RemoveSkillReadyNoticeAfterDelayAsync(entry);
+    }
+
+    private async Task RemoveSkillReadyNoticeAfterDelayAsync(SkillReadyEntry entry)
+    {
+        await Task.Delay(SkillReadyNoticeLifetime);
+        Dispatcher.UIThread.Post(() => SkillReadyNotices.Remove(entry));
     }
 
     private void OnCharacterConditionChanged(CharacterConditionUpdate update)
@@ -6788,7 +6917,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var catalog = await _rareCatalogRefreshCoordinator.RefreshAsync(
                 SendRareCatalogCommandAsync,
                 progress,
-                cancellation.Token);
+                cancellation.Token,
+                knownDetails: Killeropedia.GetKnownRareDetails(),
+                // A full refresh walks hundreds of vnums one at a time and can take a very long
+                // time — persist after every newly-mapped item so a disconnect or crash partway
+                // through doesn't throw away everything mapped in this run. The next refresh
+                // (or app launch) then only has to fetch whatever is still missing.
+                onEntryMapped: (mappedSoFar, token) => _rareCatalogStore.SaveAsync(
+                    new RareCatalogDocument { GeneratedAtUtc = DateTimeOffset.UtcNow, Rares = mappedSoFar.ToList() },
+                    token));
             await _rareCatalogStore.SaveAsync(catalog, cancellation.Token);
             Killeropedia.CompleteRareRefresh(catalog);
             AddToast($"Odświeżono katalog przedmiotów ({catalog.Rares.Count}).", "info");
@@ -6922,6 +7059,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.GroupChanged -= OnGroupChanged;
         _characterState.MemSpellsChanged -= OnMemSpellsChanged;
         _characterState.AffectsChanged -= OnCharacterAffectsChanged;
+        _worldState.TimeChanged -= OnWorldTimeChanged;
+        _worldState.WeatherChanged -= OnWorldWeatherChanged;
+        _skillTimeouts.TimeoutsChanged -= OnSkillTimeoutsChanged;
 
         _session.TextReceived -= OnTextReceived;
         _session.LineReceived -= OnLineReceived;

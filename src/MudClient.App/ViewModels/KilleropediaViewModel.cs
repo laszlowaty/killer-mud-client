@@ -479,6 +479,15 @@ public sealed class KilleropediaViewModel : ObservableObject
         RareRefreshStatus = "Rozpoczynanie odświeżania...";
     }
 
+    /// <summary>
+    /// Vnum → Details for every already-mapped item in the currently loaded catalog, so a new
+    /// refresh can skip re-fetching them (see RareCatalogRefreshCoordinator.RefreshAsync).
+    /// </summary>
+    public IReadOnlyDictionary<int, string> GetKnownRareDetails() =>
+        _allRares
+            .Where(rare => rare.HasDetails)
+            .ToDictionary(rare => rare.Vnum, rare => rare.Details);
+
     public void ReportRareRefresh(RareCatalogRefreshProgress progress) =>
         RareRefreshStatus = progress.DisplayText;
 

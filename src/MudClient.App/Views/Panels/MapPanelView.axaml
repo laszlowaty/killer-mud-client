@@ -23,6 +23,34 @@
               <MenuItem Header="{Binding LordGotoMenuHeader}"
                         Command="{Binding LordGotoSelectedRoomCommand}"
                         IsVisible="{Binding LordModeEnabled}" />
+              <!-- Local map markers (Phase 1 — not yet shared with other players). This fixed
+                   symbol set (see MapViewModel.MarkerLegend, also shown as a legend in the ⚙
+                   Ustawienia mapy flyout below) currently cannot be extended with custom symbols. -->
+              <MenuItem Header="Dodaj znacznik" IsVisible="{Binding CanEditSelectedRoomMarker}">
+                <MenuItem Header="R — Rent"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="R" />
+                <MenuItem Header="@ — Oaza"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="@" />
+                <MenuItem Header="! — Niebezpieczeństwo"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="!" />
+                <MenuItem Header="!! — Wielkie niebezpieczeństwo"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="!!" />
+                <MenuItem Header="X — Przepaść, śmierć"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="X" />
+                <MenuItem Header="T — Nauczyciel"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="T" />
+                <MenuItem Header="B — Księga"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="B" />
+                <MenuItem Header="S — Sklep"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="S" />
+                <MenuItem Header="Q — Zadanie"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="Q" />
+                <MenuItem Header="? — Inne..."
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="?" />
+              </MenuItem>
+              <MenuItem Header="Usuń znacznik"
+                        Command="{Binding RemoveMarkerFromSelectedRoomCommand}"
+                        IsVisible="{Binding SelectedRoomHasMarker}" />
             </ContextMenu>
           </controls:WorldMapControl.ContextMenu>
         </controls:WorldMapControl>
@@ -179,6 +207,23 @@
                              MaxWidth="300"
                              TextWrapping="Wrap" />
                 </StackPanel>
+
+                <!-- Read-only legend for the local map markers (Phase 1 — see "Dodaj znacznik"
+                     on the map's right-click menu above). Fixed set, not editable here. -->
+                <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,4" />
+                <TextBlock Classes="mud-heading" Text="Legenda znaczników" />
+                <ItemsControl ItemsSource="{Binding MarkerLegend}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:MarkerLegendEntry">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,1">
+                        <Border Grid.Column="0" Classes="mud-badge" MinWidth="26" HorizontalAlignment="Left">
+                          <TextBlock Text="{Binding Symbol}" HorizontalAlignment="Center" FontFamily="Consolas" />
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{Binding Label}" Classes="mud-faint" TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <!-- ==================================================================
                      Everything below was moved here from the former Autowalk panel —
