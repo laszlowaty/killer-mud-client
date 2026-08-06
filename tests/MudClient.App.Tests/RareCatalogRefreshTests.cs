@@ -32,7 +32,7 @@ public sealed class RareCatalogRefreshTests : IDisposable
         Task Send(string command, CancellationToken cancellationToken)
         {
             sent.Add(command);
-            if (command == "rarelist")
+            if (command == "rarelist all")
             {
                 coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
                 coordinator.TryCaptureLine(
@@ -70,7 +70,7 @@ public sealed class RareCatalogRefreshTests : IDisposable
         var kilof = Assert.Single(catalog.Rares, rare => rare.Vnum == 29099);
         Assert.Equal("Kilof kuty przez krasnoludzkich mistrzów.", kilof.Details);
 
-        Assert.Equal(["rarelist", "rarelist 215", "rarelist 29099"], sent);
+        Assert.Equal(["rarelist all", "rarelist 215", "rarelist 29099"], sent);
         Assert.False(coordinator.IsCapturing);
     }
 
@@ -87,7 +87,7 @@ public sealed class RareCatalogRefreshTests : IDisposable
         Task Send(string command, CancellationToken cancellationToken)
         {
             sent.Add(command);
-            if (command == "rarelist")
+            if (command == "rarelist all")
             {
                 coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
                 coordinator.TryCaptureLine(
@@ -123,7 +123,7 @@ public sealed class RareCatalogRefreshTests : IDisposable
         var catalog = await coordinator.RefreshAsync(Send, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(3, catalog.Rares.Count);
-        Assert.Equal(["rarelist", string.Empty, string.Empty], sent.Take(3));
+        Assert.Equal(["rarelist all", string.Empty, string.Empty], sent.Take(3));
         Assert.Equal(["rarelist 215", "rarelist 874", "rarelist 29099"], sent.Skip(3));
         Assert.False(coordinator.IsCapturing);
     }
@@ -139,7 +139,7 @@ public sealed class RareCatalogRefreshTests : IDisposable
         Task Send(string command, CancellationToken cancellationToken)
         {
             coordinator.ObserveText(
-                "rarelist\r\n"
+                "rarelist all\r\n"
                 + "<<============= lista przedmiotow unikalnych - artefact =============>>\r\n"
                 + "<418/488hp 90/100mv> ");
             return Task.CompletedTask;

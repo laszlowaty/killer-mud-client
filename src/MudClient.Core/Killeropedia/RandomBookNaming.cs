@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using MudClient.Core.Text;
 
 namespace MudClient.Core.Killeropedia;
 
@@ -76,15 +77,46 @@ public static class RandomBookNaming
     /// adjective) in <paramref name="line"/> and appends " (Klasa)" right after each match. Returns
     /// the line unchanged when nothing matches.
     /// </summary>
-    public static string AnnotateClasses(string line) =>
-        !line.Contains(' ') ? line : Pattern.Replace(line, EvaluateMatch);
-
-    private static string EvaluateMatch(Match match)
+    /// <remarks>
+    /// Matching runs against a diacritics-folded copy of <paramref name="line"/> rather than the
+    /// line itself — the word pools are sourced from a modern, properly-accented wiki page, but
+    /// this MUD's server never sends diacritics in its own output, so the pattern is built from
+    /// folded words (see <see cref="Alternation"/>) and needs folded input to match. Folding is
+    /// 1:1 per character (each Polish diacritic decomposes to exactly one base letter), so a
+    /// match's start/length found in the folded copy is still a valid offset into the original —
+    /// the annotation is spliced into <paramref name="line"/> itself, never into the folded copy,
+    /// so the original text (with or without real diacritics) is preserved verbatim.
+    /// </remarks>
+    public static string AnnotateClasses(string line)
     {
-        var classWord = match.Groups["classword"].Value;
-        return ClassByWord.TryGetValue(classWord, out var className)
-            ? $"{match.Value} ({className})"
-            : match.Value;
+        if (!line.Contains(' '))
+        {
+            return line;
+        }
+
+        var folded = PolishText.Fold(line);
+        var matches = Pattern.Matches(folded);
+        if (matches.Count == 0)
+        {
+            return line;
+        }
+
+        var builder = new System.Text.StringBuilder(line.Length + (matches.Count * 12));
+        var lastIndex = 0;
+        foreach (Match match in matches)
+        {
+            var matchEnd = match.Index + match.Length;
+            builder.Append(line, lastIndex, matchEnd - lastIndex);
+            if (ClassByWord.TryGetValue(match.Groups["classword"].Value, out var className))
+            {
+                builder.Append(" (").Append(className).Append(')');
+            }
+
+            lastIndex = matchEnd;
+        }
+
+        builder.Append(line, lastIndex, line.Length - lastIndex);
+        return builder.ToString();
     }
 
     private static IReadOnlyDictionary<string, string> BuildClassLookup()
@@ -102,7 +134,7 @@ public static class RandomBookNaming
     {
         foreach (var word in words)
         {
-            lookup[word] = className;
+            lookup[PolishText.Fold(word)] = className;
         }
     }
 
@@ -120,6 +152,11 @@ public static class RandomBookNaming
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     }
 
+    // Words are sourced from a modern (properly-accented) wiki page, but this MUD's server never
+    // sends diacritics in its own output — fold "księga" to "ksiega" etc. before building the
+    // pattern, or it would never match real game text.
     private static string Alternation(IEnumerable<string> phrases) =>
-        string.Join('|', phrases.OrderByDescending(phrase => phrase.Length).Select(Regex.Escape));
+        string.Join(
+            '|',
+            phrases.Select(PolishText.Fold).OrderByDescending(phrase => phrase.Length).Select(Regex.Escape));
 }

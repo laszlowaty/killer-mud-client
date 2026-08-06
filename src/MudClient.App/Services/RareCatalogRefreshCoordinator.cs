@@ -95,7 +95,7 @@ public sealed class RareCatalogRefreshCoordinator
 
         progress?.Report(new RareCatalogRefreshProgress("Pobieranie listy przedmiotów", 0, 0));
         var lines = await CapturePagedListResponseAsync(
-            "rarelist",
+            "rarelist all",
             sendCommandAsync,
             _listQuietPeriod,
             _responseTimeout,
