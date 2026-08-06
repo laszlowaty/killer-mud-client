@@ -163,6 +163,76 @@ public sealed class KilleropediaTests : IDisposable
     }
 
     [Fact]
+    public void TattooCatalog_ContainsClassBonusesWithGeneralInfo()
+    {
+        var catalog = TattooCatalogLoader.Load();
+
+        Assert.Equal(40, catalog.Bonuses.Count);
+        Assert.Equal(4, catalog.RuneTypes.Count);
+        Assert.Equal(3, catalog.Commands.Count);
+        Assert.False(string.IsNullOrWhiteSpace(catalog.Intro));
+        Assert.False(string.IsNullOrWhiteSpace(catalog.StackingNotes));
+
+        var nieumarly = Assert.Single(catalog.Bonuses, bonus => bonus.Name == "nieumarły");
+        Assert.Equal(["Nekromanta", "Czarny Rycerz"], nieumarly.Classes);
+
+        Assert.Contains(catalog.Bonuses, bonus => bonus.Name == "cień" && bonus.Classes.Contains("Złodziej"));
+        Assert.Contains(catalog.RuneTypes, rune => rune.Name == "runa umysłu");
+        Assert.Contains(catalog.Commands, command => command.Name.StartsWith("tattoo make", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TattooSearch_MatchesNameClassAndDescription()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.TattooSearchText = "nekromanta";
+        Assert.Contains(viewModel.FilteredTattoos, bonus => bonus.Name == "nieumarły");
+
+        viewModel.TattooSearchText = "backstab";
+        Assert.Contains(viewModel.FilteredTattoos, bonus => bonus.Name == "cios śmierci");
+
+        viewModel.TattooSearchText = "nie ma takiego bonusu";
+        Assert.Empty(viewModel.FilteredTattoos);
+        Assert.True(viewModel.HasNoTattooResults);
+    }
+
+    [Fact]
+    public void ToggleTattooInfoCommand_TogglesInfoPanelVisibility()
+    {
+        var viewModel = CreateViewModel();
+
+        Assert.False(viewModel.IsTattooInfoExpanded);
+        viewModel.ToggleTattooInfoCommand.Execute(null);
+        Assert.True(viewModel.IsTattooInfoExpanded);
+        viewModel.ToggleTattooInfoCommand.Execute(null);
+        Assert.False(viewModel.IsTattooInfoExpanded);
+    }
+
+    [AvaloniaFact]
+    public void TattoosView_RendersBonusListAndSelectedBonusDetails()
+    {
+        var viewModel = CreateViewModel();
+        var view = new KilleropediaTattoosView { DataContext = viewModel };
+        var window = new Window { Width = 1100, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var list = view.GetVisualDescendants().OfType<ListBox>().Single();
+        Assert.Equal(40, list.ItemCount);
+        Assert.NotNull(viewModel.SelectedTattoo);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == viewModel.SelectedTattoo.Name);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == viewModel.SelectedTattoo.Description);
+
+        window.Close();
+    }
+
+    [Fact]
     public void ShowTeacherOnMapCommand_OnlyInvokesCallbackForKnownRoom()
     {
         TeacherEntry? requestedTeacher = null;
@@ -476,15 +546,83 @@ public sealed class KilleropediaTests : IDisposable
         window.Close();
     }
 
+    [Fact]
+    public void RareCatalog_LoadsBundledArtifactSnapshot()
+    {
+        var rares = new RareCatalogStore(Path.Combine(_directory, "nie-istnieje.json")).Load();
+
+        Assert.Equal(274, rares.Rares.Count);
+        Assert.Contains(rares.Rares, rare => rare.Name == "trojzab Turlitha"
+            && rare.ItemType == "wlocznia"
+            && rare.Category == "artefakt");
+    }
+
+    [Fact]
+    public void RareSearch_MatchesNameTypeAndCategory()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.RareSearchText = "trojzab";
+        Assert.Contains(viewModel.FilteredRares, rare => rare.Vnum == 215);
+
+        viewModel.RareSearchText = string.Empty;
+        viewModel.SelectedRareCategory = "rzadki";
+        Assert.DoesNotContain(viewModel.FilteredRares, rare => rare.Category == "artefakt");
+        Assert.NotEmpty(viewModel.FilteredRares);
+    }
+
+    [AvaloniaFact]
+    public void ArtifactsView_RendersRareListAndSelectedRareDetails()
+    {
+        var viewModel = CreateViewModel();
+        var view = new KilleropediaArtifactsView { DataContext = viewModel };
+        var window = new Window { Width = 1100, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var list = view.GetVisualDescendants().OfType<ListBox>().Single();
+        Assert.Equal(274, list.ItemCount);
+        Assert.NotNull(viewModel.SelectedRare);
+        Assert.Contains(
+            view.GetVisualDescendants().OfType<TextBlock>(),
+            text => text.Text == viewModel.SelectedRare.Name);
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void BookNamingView_RendersClassWordSections()
+    {
+        var viewModel = CreateViewModel();
+        var view = new KilleropediaBookNamingView { DataContext = viewModel };
+        var window = new Window { Width = 900, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var textBlocks = view.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        Assert.Contains("triumfu", textBlocks);
+        Assert.Contains("magii", textBlocks);
+        Assert.Contains("piasku", textBlocks);
+        Assert.Contains("księga", textBlocks);
+
+        window.Close();
+    }
+
     private KilleropediaViewModel CreateViewModel() =>
         new(
             TeacherCatalogLoader.Load(),
             CreateBookStore(),
             null,
-            loreCatalog: CreateLoreCatalog());
+            loreCatalog: CreateLoreCatalog(),
+            rareCatalogStore: CreateRareStore());
 
     private static LoreCatalogData CreateLoreCatalog() => LoreCatalogLoader.LoadEmbedded();
 
     private BookCatalogStore CreateBookStore() =>
         new(Path.Combine(_directory, "killeropedia-books.json"));
+
+    private RareCatalogStore CreateRareStore() =>
+        new(Path.Combine(_directory, "killeropedia-rares.json"));
 }

@@ -71,6 +71,11 @@ public sealed class AppSettings
     /// with their approximate numeric tier — see <see cref="MudClient.Core.Combat.DamagePhrases"/>.</summary>
     public bool ShowNumericDamageEnabled { get; set; } = true;
 
+    /// <summary>Annotates random magic-book item names (e.g. "duża księga triumfu") with the
+    /// spellcasting class they belong to — see
+    /// <see cref="MudClient.Core.Killeropedia.RandomBookNaming"/>.</summary>
+    public bool AnnotateRandomBookClassEnabled { get; set; } = true;
+
     /// <summary>Clears the terminal command input after a manually submitted command.</summary>
     public bool ClearCommandInputAfterSend { get; set; }
 

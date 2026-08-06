@@ -72,11 +72,20 @@
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-books /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#48243B" />
   </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-book-naming /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#3B3560" />
+  </Style>
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-lore /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#642B1D" />
   </Style>
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-quests /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#315329" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-tattoos /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#2F3B3B" />
+  </Style>
+  <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-artifacts /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#4A4550" />
   </Style>
   <Style Selector="TabControl.killeropedia-book-tabs TabItem.killeropedia-tab-map /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#24324D" />

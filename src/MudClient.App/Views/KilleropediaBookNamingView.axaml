@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:b="using:MudClient.App.Behaviors"
+             x:Class="MudClient.App.Views.KilleropediaBookNamingView"
+             x:DataType="vm:KilleropediaViewModel"
+             Classes="killeropedia-page"
+             x:Name="Root">
+  <ScrollViewer Classes="killeropedia-content-scroll">
+    <StackPanel Spacing="16">
+      <TextBlock Classes="mud-heading-lg" Text="Rozpoznawanie losowych ksiąg" TextWrapping="Wrap" />
+
+      <TextBlock Classes="mud-muted"
+                 TextWrapping="Wrap"
+                 Text="Losowe księgi magiczne (random 'spellbook') mają nazwy budowane ze słów: opcjonalny przymiotnik wartości/wagi + rzeczownik + słowo wskazujące klasę. Np. „duża księga triumfu” = duża (wartość) + księga (rzeczownik) + triumfu (Paladyn). Klient dopisuje klasę automatycznie w terminalu, gdy taka księga pojawi się w tekście — patrz ustawienie „Pokaż klasę losowych ksiąg magicznych”." />
+
+      <TextBlock Classes="mud-heading" Text="SŁOWA KLASOWE" />
+      <TextBlock Classes="mud-faint"
+                 TextWrapping="Wrap"
+                 Text="Ostatnie słowo w nazwie księgi — ono wskazuje klasę." />
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Mag" />
+        <ItemsControl ItemsSource="{Binding RandomBookMagWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Kleryk" />
+        <ItemsControl ItemsSource="{Binding RandomBookKlerykWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Paladyn" />
+        <ItemsControl ItemsSource="{Binding RandomBookPaladynWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Druid" />
+        <ItemsControl ItemsSource="{Binding RandomBookDruidWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Nomad" />
+        <ItemsControl ItemsSource="{Binding RandomBookNomadWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <TextBlock Classes="mud-heading" Text="RESZTA NAZWY (nie wskazuje klasy)" />
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Rzeczownik" />
+        <ItemsControl ItemsSource="{Binding RandomBookNazwaWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Wartość — duża" />
+        <ItemsControl ItemsSource="{Binding RandomBookWartoscDuzaWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Wartość — mała" />
+        <ItemsControl ItemsSource="{Binding RandomBookWartoscMalaWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="SemiBold" Text="Waga — mała" />
+        <ItemsControl ItemsSource="{Binding RandomBookWagaMalaWords}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="mud-inset" Padding="9,5" Margin="0,0,6,6">
+                <TextBlock Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

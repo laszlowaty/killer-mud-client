@@ -1,0 +1,2471 @@
+{
+  "generatedAtUtc": null,
+  "rares": [
+    {
+      "vnum": 211,
+      "name": "krysztal Tellany",
+      "itemType": "swiatlo",
+      "slot": "nad glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 215,
+      "name": "trojzab Turlitha",
+      "itemType": "wlocznia",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 874,
+      "name": "szkarlatny mlot bojowy z glowa smoka",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 1103,
+      "name": "mithrilowa bransoleta smocza opieka",
+      "itemType": "bizuteria/klejnot",
+      "slot": "nadgarstek",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1143,
+      "name": "pancerz ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1144,
+      "name": "przeklete skrzydla",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1145,
+      "name": "nagolenice ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1146,
+      "name": "rekawice ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1147,
+      "name": "buty ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1148,
+      "name": "helm z czaszki smoka",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 1817,
+      "name": "miecz Niewola Wiarusa",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1818,
+      "name": "kosciany helm Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1819,
+      "name": "kosciane naramienniki Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1820,
+      "name": "kosciana zbroja Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1821,
+      "name": "kosciane nakolanniki Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1822,
+      "name": "kosciane buty Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 1823,
+      "name": "kosciane rekawice Venreeh\u0027meyel",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 2014,
+      "name": "Pierscien Tarczy",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 2023,
+      "name": "ognisty cep bojowy",
+      "itemType": "korbacz",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 2891,
+      "name": "diamentowa wlocznia",
+      "itemType": "wlocznia",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 2892,
+      "name": "plugawa kosa \u0027Xe Vyj\u0027li-kuq\u0027",
+      "itemType": "bron drzewcowa",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5324,
+      "name": "bransoleta elfich wojownikow przeszlosci",
+      "itemType": "bizuteria/klejnot",
+      "slot": "nadgarstek",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 5415,
+      "name": "dwureczny korbacz \u0022Zemsta Elfow\u0022",
+      "itemType": "korbacz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5416,
+      "name": "ciezki korbacz \u0022Zemsta Elfow\u0022",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5417,
+      "name": "lekki korbacz \u0022Zemsta Elfow\u0022",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5752,
+      "name": "helm ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5753,
+      "name": "rekawice ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5754,
+      "name": "pancerz ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5755,
+      "name": "nagolennice ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5756,
+      "name": "naramienniki ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 5757,
+      "name": "buty ze zlotej luski",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 6106,
+      "name": "amulet \u0027Szarzujacego Byka\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 9301,
+      "name": "dwureczny mithrilowy miecz",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 9333,
+      "name": "prastara laska Ber\u0027ha",
+      "itemType": "laska",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 9336,
+      "name": "prastara oponcza Ber\u0027ha",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 9337,
+      "name": "prastara lina Ber\u0027ha",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 10262,
+      "name": "skorzany kanczug \u0027Straz Vamyra\u0027",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 10931,
+      "name": "laska \u0027Zaglada Dusz\u0027",
+      "itemType": "laska",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 10951,
+      "name": "plonacy pas Ymxahirativry",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 10956,
+      "name": "rozdzka kompresji",
+      "itemType": "rozdzka",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 11202,
+      "name": "zdobiona mizerykordia celnosci",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 17907,
+      "name": "zlota obraczka Y\u0027ergiza",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 17961,
+      "name": "rozdzka destrukcji",
+      "itemType": "rozdzka",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 19014,
+      "name": "wielki berdysz elementow",
+      "itemType": "bron drzewcowa",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 19401,
+      "name": "katana Yukiakari",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 22255,
+      "name": "buty \u0027Skrzydla Nietoperza\u0027",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23607,
+      "name": "lsniacy luskowy pancerz",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23608,
+      "name": "lsniace luskowe nagolennice",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23609,
+      "name": "lsniace luskowe buty",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23610,
+      "name": "lsniace luskowe naramienniki",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23614,
+      "name": "lekkie luskowe rekawice",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 23617,
+      "name": "lekka gadzia maska",
+      "itemType": "zbroja",
+      "slot": "twarz",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24770,
+      "name": "czarna opaska zlodzieja",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24771,
+      "name": "maska Adra\u0027thila chciwego",
+      "itemType": "ubranie",
+      "slot": "twarz",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24772,
+      "name": "naramienniki Utrundal",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24773,
+      "name": "opieka Adra\u0027thila",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24774,
+      "name": "rubinowy pas",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24775,
+      "name": "skorzane nogawice czern nocy",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 24776,
+      "name": "lekkie buty szelest wiatru",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 26999,
+      "name": "kostur \u0022Kielich Wampira\u0027",
+      "itemType": "laska",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 27656,
+      "name": "dwureczny topor \u0027Bitewny Zaspiew\u0027",
+      "itemType": "topor",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29001,
+      "name": "sztylet \u0027Lisie Pioro\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29002,
+      "name": "zakrzywiony miecz \u0027ostrze sniegu\u0027",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29003,
+      "name": "dwureczny miecz \u0027Krwawa Klinga\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29004,
+      "name": "topor \u0027Zew Mlodosci\u0027",
+      "itemType": "topor",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29005,
+      "name": "maczuga Svaina",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29006,
+      "name": "topor Jorila Snieznobrodego",
+      "itemType": "topor",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29009,
+      "name": "kolec \u0027chochlika\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29012,
+      "name": "miecz Zwinnosci Arbane\u0027a",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29019,
+      "name": "dwureczny miecz \u0027Gniew Sprawiedliwych\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29020,
+      "name": "Lilarcor",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29022,
+      "name": "krotki miecz \u0027Iluzja\u0027",
+      "itemType": "krotki miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29028,
+      "name": "adamantytowy bicz \u0027Pocalunek Kata\u0027",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29030,
+      "name": "dwureczny miecz \u0027ostrze czarnego switu\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29031,
+      "name": "mlot \u0027Zelazny Szpon\u0027",
+      "itemType": "maczuga",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29032,
+      "name": "lodowe tchnienie Branstena",
+      "itemType": "topor",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29033,
+      "name": "plomienna piesc Brandahla",
+      "itemType": "topor",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29036,
+      "name": "szponton \u0027Smocze Przeklenstwo\u0027",
+      "itemType": "bron drzewcowa",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29039,
+      "name": "mlot bojowy Dar Zwyciestwa",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29040,
+      "name": "zapomniany relikt \u0022Sztandar Wojny\u0022",
+      "itemType": "swiatlo",
+      "slot": "nad glowa",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29043,
+      "name": "sztylet \u0027Pozeracz Dusz\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29050,
+      "name": "katana \u0027Chokutou Reiki\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29051,
+      "name": "cwiekowany cep \u0027Pogrzebacz\u0027",
+      "itemType": "korbacz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29052,
+      "name": "miecz Ares Dragon",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29060,
+      "name": "mityczny mlot \u0027Niszczyciel Magii\u0027",
+      "itemType": "maczuga",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29065,
+      "name": "medalion \u0027gniew wiatru\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29070,
+      "name": "lekkie sai \u0022lza niebios\u0022",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29071,
+      "name": "ostrze akinakesa \u0022serce Golema\u0022",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29073,
+      "name": "zaklete nagolenniki Mystrala Telivirtara",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29074,
+      "name": "zakleta maska Mystrala Telivirtara",
+      "itemType": "zbroja",
+      "slot": "twarz",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29075,
+      "name": "zaklete rekawice Mystrala Telivirtara",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29076,
+      "name": "pancerz ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29077,
+      "name": "naramienniki ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29079,
+      "name": "nagolenice ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29080,
+      "name": "rekawice ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29081,
+      "name": "buty ze smoczej luski",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29084,
+      "name": "bat \u0022Krzyk Udreki\u0022",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29085,
+      "name": "bat \u0022Cierpienie Niewolnika\u0022",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29087,
+      "name": "srebrny mlot \u0022Egzekutor\u0022",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29089,
+      "name": "legendarny elfi miecz \u0027Ghorun Nova\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29091,
+      "name": "ostrze zywiolow \u0027Pozoga\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29092,
+      "name": "ostrze zywiolow \u0027Wicher\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29093,
+      "name": "demoniczna katana \u0027szalenstwo krwi\u0027",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29094,
+      "name": "dwureczny korbacz Blogoslawionego Ognia",
+      "itemType": "korbacz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29095,
+      "name": "diamentowa laska \u0027Wladca Golemow\u0027",
+      "itemType": "laska",
+      "slot": "two hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29096,
+      "name": "tanto \u0027Ostatnie Tchnienie\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29097,
+      "name": "ciezki korbacz \u0027Obronca Niebios\u0027",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29098,
+      "name": "lekki korbacz \u0027Porazenie Niebios\u0027",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29099,
+      "name": "krasnoludzki kilof \u0027Potega Ziemi\u0027",
+      "itemType": "kilof",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29100,
+      "name": "ostra hasta \u0027Dziki ogien\u0027",
+      "itemType": "wlocznia",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29101,
+      "name": "zbroja wiecznej katuszy",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29103,
+      "name": "rekawice mistrzostwa",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29104,
+      "name": "rekawice elfiej potegi",
+      "itemType": "ubranie",
+      "slot": "rece",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29110,
+      "name": "mithrilowy pancerz Urthena Medevi\u0027ego",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29112,
+      "name": "zaklete naramienniki Mystrala Telivirtara",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29113,
+      "name": "zbroja ze skory mumaka",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29114,
+      "name": "naramienniki ze skory mumaka",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29115,
+      "name": "nakolanniki ze skory mumaka",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29116,
+      "name": "buty ze skory mumaka",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29117,
+      "name": "rekawice ze skory mumaka",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29118,
+      "name": "krotki noz \u0022Nadzieja Mysliwego\u0022",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29120,
+      "name": "zbroja Tsurf Llihit",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29125,
+      "name": "zestaw czarnych ostrzy \u0027Trzy Serca\u0027",
+      "itemType": "sztylet",
+      "slot": "do rzucania",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29126,
+      "name": "sai \u0022Lamacz zaklec\u0022",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29127,
+      "name": "zlamane ostrze \u0027pazur\u0027",
+      "itemType": "krotki miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29129,
+      "name": "mithrilowe sztylety",
+      "itemType": "sztylet",
+      "slot": "do rzucania",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29130,
+      "name": "amulet \u0027Kwiat Pustyni\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29131,
+      "name": "bandana \u0027Opieka Pustyni\u0027",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29132,
+      "name": "pancerz \u0027Serce Pustyni\u0027",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29133,
+      "name": "naramienniki \u0027Sila Pustyni\u0027",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29134,
+      "name": "nakolanniki \u0027Wiatr Pustyni\u0027",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29135,
+      "name": "plaszcz \u0027Zycie Pustyni\u0027",
+      "itemType": "zbroja",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29136,
+      "name": "karakrijskie ostrza \u0027Szklane lzy\u0027",
+      "itemType": "sztylet",
+      "slot": "do rzucania",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29155,
+      "name": "helm dzikiej bestii \u0022Trzy Kly\u0022",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29156,
+      "name": "naramienniki dzikiej bestii \u0022Niedzwiedzi Gniew\u0022",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29157,
+      "name": "zbroja dzikiej bestii \u0022Serce Zmiennoksztaltnego\u0022",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29158,
+      "name": "rekawice dzikiej bestii \u0022Szpony Dzikiej Natury\u0022",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29159,
+      "name": "nagolenniki dzikiej bestii \u0022Szept Pantery\u0022",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29160,
+      "name": "buty dzikiej bestii \u0022Wilczy Cien\u0022",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29202,
+      "name": "helm z czaszki smoka",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29203,
+      "name": "smoczy helm",
+      "itemType": "ubranie",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29253,
+      "name": "blogoslawiona Pawez Wiary Herdyata",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29254,
+      "name": "ciezka tarcza rownowagi",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29255,
+      "name": "demoniczna pawez \u0027wiez duszy\u0027",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29256,
+      "name": "plomienista pawez \u0027Zar Paleniska\u0027",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29257,
+      "name": "lekka pawez \u0027Odbicie\u0027",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29258,
+      "name": "lekki korbacz \u0027Przebicie\u0027",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29300,
+      "name": "kolczyk \u0027Lza Akidy\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "ucho",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29399,
+      "name": "demoniczna bransoleta \u0027Oslona\u0027",
+      "itemType": "ubranie",
+      "slot": "nadgarstek",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29401,
+      "name": "buty \u0027Lapy Geparda\u0027",
+      "itemType": "ubranie",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29402,
+      "name": "szata Vekny",
+      "itemType": "ubranie",
+      "slot": "klatka",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29403,
+      "name": "skorzana maska \u0022Oblicze Wojny\u0022",
+      "itemType": "ubranie",
+      "slot": "twarz",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29404,
+      "name": "skrzydlate trzewiki",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29406,
+      "name": "plaszcz ze skory czerwonego smoka",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29409,
+      "name": "skorzane rekawice \u0022Kajdany Wojny\u0022",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29410,
+      "name": "skorzane buty \u0022Okowy Wojny\u0022",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29411,
+      "name": "diadem duchow",
+      "itemType": "bizuteria/klejnot",
+      "slot": "glowa",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29412,
+      "name": "sznur duchow",
+      "itemType": "zbroja",
+      "slot": "talia",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29413,
+      "name": "trzewiki duchow",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29414,
+      "name": "bransoleta duchow",
+      "itemType": "bizuteria/klejnot",
+      "slot": "nadgarstek",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29415,
+      "name": "nogawice duchow",
+      "itemType": "ubranie",
+      "slot": "nogi",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29603,
+      "name": "tajemnicza maska \u0027oko proroka\u0027",
+      "itemType": "skarb",
+      "slot": "twarz",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29801,
+      "name": "amulet tarczy Uscisk Wojownika",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29804,
+      "name": "amulet metaczarow \u0027Wzmacniacz\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29805,
+      "name": "bransoleta \u0027Straznik Doliny\u0027",
+      "itemType": "ubranie",
+      "slot": "nadgarstek",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29806,
+      "name": "pierscien Cichego Lotrzyka",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29807,
+      "name": "niebieski pierscien \u0027Siny Palec Anaegdialasa\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29811,
+      "name": "obraczka Niraso",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29812,
+      "name": "boski owoc",
+      "itemType": "jedzenie",
+      "slot": "inventory",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29813,
+      "name": "obosieczny topor \u0027skrzydlo kruka\u0027",
+      "itemType": "topor",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29814,
+      "name": "starozytny kolczyk \u0027smoczy pazur\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "ucho",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29815,
+      "name": "krwawy pierscien z kosci Behemota",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29816,
+      "name": "starozytny wisior \u0027smocze serce\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29817,
+      "name": "straozytny pierscien \u0027smocze oko\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29818,
+      "name": "starozytna bransoleta \u0027smoczy jezyk\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "nadgarstek",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29819,
+      "name": "zrodlo zycia",
+      "itemType": "fiolka",
+      "slot": "inventory",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29821,
+      "name": "medalion \u0027oko kruka\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29822,
+      "name": "zbroja \u0027opieka kruka\u0027",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29823,
+      "name": "czarny pas \u0027krucze piorko\u0027",
+      "itemType": "zbroja",
+      "slot": "talia",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29824,
+      "name": "dlugie buty \u0027krok kruka\u0027",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29831,
+      "name": "stalowa obraczka \u0027Wypalenie\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29852,
+      "name": "barylka \u0027Postrach Wodzow\u0027",
+      "itemType": "fiolka",
+      "slot": "nad glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29853,
+      "name": "kolczyk mrocznego Pana",
+      "itemType": "bizuteria/klejnot",
+      "slot": "ucho",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29894,
+      "name": "nakolanniki Acherona",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29895,
+      "name": "naramienniki Acherona",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29896,
+      "name": "zbroja Acherona",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29897,
+      "name": "opalizujaca bransoleta rozmycia \u0027Smuga\u0027",
+      "itemType": "ubranie",
+      "slot": "nadgarstek",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29898,
+      "name": "lekki plaszcz przesuniecia \u0027Smuga Swiatla\u0027",
+      "itemType": "zbroja",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29899,
+      "name": "lekka wlocznia \u0027Smuga Cienia\u0027",
+      "itemType": "wlocznia",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29901,
+      "name": "pas ostrzy Obronca Niegodnych",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29902,
+      "name": "pas pomniejszej bariery Pervela",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 29903,
+      "name": "krysztalowa kula",
+      "itemType": "swiatlo",
+      "slot": "nad glowa",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29906,
+      "name": "torba bez dna",
+      "itemType": "pojemnik",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29907,
+      "name": "plytowe rekawice \u0022Niebianskie Tchnienie\u0022",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29908,
+      "name": "pradawna kosa Variotha",
+      "itemType": "bron drzewcowa",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29909,
+      "name": "scimitar elfiej smierci",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29914,
+      "name": "maska \u0027Oblicze Sprawiedliwosci\u0027",
+      "itemType": "zbroja",
+      "slot": "twarz",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29920,
+      "name": "pas pomniejszego przyspieszenia",
+      "itemType": "ubranie",
+      "slot": "talia",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29988,
+      "name": "eteryczne naramiennki \u0027oslona nocy\u0027",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29989,
+      "name": "eteryczny plaszcz z kapturem \u0027ukrycie\u0027",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29990,
+      "name": "eteryczny pas \u0027lancuch mroku\u0027",
+      "itemType": "zbroja",
+      "slot": "talia",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29991,
+      "name": "eteryczny pancerz \u0027czarne serce\u0027",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29992,
+      "name": "eteryczne nakolanniki \u0027lekki krok\u0027",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29993,
+      "name": "eteryczne ostrze \u0027zabojczy cien\u0027",
+      "itemType": "sztylet",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 29994,
+      "name": "boska pawez \u0027Mur\u0027",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29995,
+      "name": "boski mlot \u0027Spopielacz\u0027",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 29999,
+      "name": "esencja zycia",
+      "itemType": "skarb",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 30107,
+      "name": "ciezki espadon \u0027Kherna Redana\u0027",
+      "itemType": "miecz",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 30118,
+      "name": "demoniczny pancerz \u0027Kherna Redana\u0027",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 30122,
+      "name": "mroczna maska \u0027Nekromantki Kaylin\u0027",
+      "itemType": "ubranie",
+      "slot": "twarz",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 33016,
+      "name": "zlota korona",
+      "itemType": "bizuteria/klejnot",
+      "slot": "glowa",
+      "flag": "R",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 35607,
+      "name": "bojowy kij \u0027Strach Pioruna\u0027",
+      "itemType": "laska",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 35609,
+      "name": "bojowa laska \u0027Wladca piorunow\u0027",
+      "itemType": "laska",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 39439,
+      "name": "krwawa \u0027Blizniacza Kosa\u0027",
+      "itemType": "bron drzewcowa",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 41222,
+      "name": "pancerz z czerwonej luski",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 41223,
+      "name": "tarcza z czerwonej luski",
+      "itemType": "tarcza",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 41224,
+      "name": "helm z czerwonej luski",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 41228,
+      "name": "kosc czerwonego smoka",
+      "itemType": "rozdzka",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 43055,
+      "name": "szamanska rozdzka",
+      "itemType": "rozdzka",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 44610,
+      "name": "bojowy mlot \u0027Wzgorzowy Podmuch\u0027",
+      "itemType": "maczuga",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 44613,
+      "name": "zdobiona korona \u0027Wladca Gor\u0027",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 45400,
+      "name": "czarny, inkrustowany zlotem korbacz",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 45408,
+      "name": "czarny topor inkrustowany zlotem",
+      "itemType": "topor",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 45409,
+      "name": "czarny bicz inkrustowany zlotem",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 45410,
+      "name": "czarny obuch inkrustowany zlotem",
+      "itemType": "maczuga",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 45411,
+      "name": "czarny krotki miecz inkrustowany zlotem",
+      "itemType": "krotki miecz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 50906,
+      "name": "chlodny maslak",
+      "itemType": "korbacz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "rzadki",
+      "details": ""
+    },
+    {
+      "vnum": 51031,
+      "name": "dluga szata ze smoczej luski",
+      "itemType": "ubranie",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 51032,
+      "name": "smoczy pierscien",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 51033,
+      "name": "sandaly ze smoczej luski",
+      "itemType": "ubranie",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 51034,
+      "name": "rekawiczki ze smoczej luski",
+      "itemType": "ubranie",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 51035,
+      "name": "kapelusz ze smoczej luski",
+      "itemType": "ubranie",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 51036,
+      "name": "dlugi plaszcz ze smoczej skory",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 55180,
+      "name": "faliste ostrze \u0027Pustynny Wiatr\u0027",
+      "itemType": "miecz",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55181,
+      "name": "dlugi sznur \u0027Pustynna Zamiec\u0027",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55182,
+      "name": "mroczny amulet \u0027Imitacja Zycia\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55183,
+      "name": "pierscien iluzji \u0027Lustro\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55184,
+      "name": "swiecacy helm Lanserila",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55185,
+      "name": "swobodne naramienniki Oberona",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55186,
+      "name": "ochronna zbroja Portena",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55187,
+      "name": "inspirujace rekawice Tellany",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55188,
+      "name": "hartowane nagolenniki Sorenny",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55189,
+      "name": "buty pasterskie Thorana",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55191,
+      "name": "zloty wisior \u0027Magia Wojny\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55192,
+      "name": "miedziany amulet \u0027Magia Szalenstwa\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55193,
+      "name": "welniana oponcza \u0027Wyciszenie\u0027",
+      "itemType": "ubranie",
+      "slot": "cialo",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55194,
+      "name": "adamantytowy bicz \u0027Trupi Oddech\u0027",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55195,
+      "name": "burzowe ostrze \u0027Porazenie\u0027",
+      "itemType": "krotki miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55196,
+      "name": "burzowe ostrze \u0027Grom\u0027",
+      "itemType": "krotki miecz",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55197,
+      "name": "burzowa maska \u0027Wladca Burz\u0027",
+      "itemType": "zbroja",
+      "slot": "twarz",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55198,
+      "name": "burzowa kula \u0027Oko Cyklonu\u0027",
+      "itemType": "swiatlo",
+      "slot": "nad glowa",
+      "flag": "N",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 55208,
+      "name": "amulet iluzji \u0027Pryzmat\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 61504,
+      "name": "pancerz ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "klatka",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 61505,
+      "name": "helm ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "glowa",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 61506,
+      "name": "naramienniki ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "ramiona",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 61507,
+      "name": "rekawice ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "rece",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 61508,
+      "name": "buty ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "stopy",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 61509,
+      "name": "nagolenniki ze skory pustynnego smoka",
+      "itemType": "zbroja",
+      "slot": "nogi",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 64955,
+      "name": "piaskowa wlocznia \u0027wiatr pustyni\u0027",
+      "itemType": "wlocznia",
+      "slot": "two hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 67926,
+      "name": "drowi wezowy bicz",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "N",
+      "category": "artefakt",
+      "details": ""
+    },
+    {
+      "vnum": 68126,
+      "name": "zdobiony kaplanski modlitewnik",
+      "itemType": "rozdzka",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99100,
+      "name": "widmowy bicz \u0027Cien switu\u0027",
+      "itemType": "bat",
+      "slot": "one hand",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99102,
+      "name": "amulet zywiolow \u0027Jednosc\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "szyja",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99103,
+      "name": "boski pierscien \u0027Zycie\u0027",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99104,
+      "name": "mroczny pierscien \u0027Nieskonczonosc\u0027",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99105,
+      "name": "eteryczny pierscien \u0027Wrota Bestii\u0027",
+      "itemType": "bizuteria/klejnot",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99107,
+      "name": "pierscien najwyzszej nekromancji",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99108,
+      "name": "sygnet mistrza transmutacji",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99109,
+      "name": "pierscien magii astralnej",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99110,
+      "name": "pierscien wypaczenia magii",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99111,
+      "name": "pierscien arkan poznania",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99112,
+      "name": "pierscien magii zludzen",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99113,
+      "name": "uroczy pierscien zaczarowan",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    },
+    {
+      "vnum": 99114,
+      "name": "obraczka najwyzszej inwokacji",
+      "itemType": "wzmacniacz czarow",
+      "slot": "palec",
+      "flag": "R",
+      "category": "instancyjny",
+      "details": ""
+    }
+  ]
+}

@@ -43,6 +43,13 @@
                        Text="Dopisuje przybliżoną liczbę obrażeń pod liniami typu „Ranisz golema mieczem.” — tylko dla ciosów zadanych przez Ciebie." />
           </StackPanel>
 
+          <StackPanel Spacing="3">
+            <CheckBox Content="Pokaż klasę losowych ksiąg magicznych"
+                      IsChecked="{Binding AnnotateRandomBookClassEnabled}" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Dopisuje klasę po nazwie losowej księgi (random 'spellbook'), np. „duża księga triumfu (Paladyn)”." />
+          </StackPanel>
+
           <CheckBox Content="Pogrubiona"
                     IsChecked="{Binding OutputFontBold}" />
 

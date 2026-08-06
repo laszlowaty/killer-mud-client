@@ -184,6 +184,10 @@
             <views:KilleropediaBooksView
                                          DataContext="{Binding Killeropedia}" />
           </TabItem>
+          <TabItem Classes="killeropedia-tab-book-naming" Header="Losowe Księgi">
+            <views:KilleropediaBookNamingView
+                                              DataContext="{Binding Killeropedia}" />
+          </TabItem>
           <TabItem Classes="killeropedia-tab-lore" Header="Świat i lore">
             <views:KilleropediaLoreView
                                         DataContext="{Binding Killeropedia}" />
@@ -191,6 +195,14 @@
           <TabItem Classes="killeropedia-tab-quests" Header="Zadania">
             <views:KilleropediaQuestsView
                                         DataContext="{Binding Killeropedia}" />
+          </TabItem>
+          <TabItem Classes="killeropedia-tab-tattoos" Header="Tatuaże">
+            <views:KilleropediaTattoosView
+                                          DataContext="{Binding Killeropedia}" />
+          </TabItem>
+          <TabItem Classes="killeropedia-tab-artifacts" Header="Artefakty">
+            <views:KilleropediaArtifactsView
+                                            DataContext="{Binding Killeropedia}" />
           </TabItem>
           <TabItem Classes="killeropedia-tab-map" Header="Mapa Świata">
             <views:KilleropediaWorldMapView
