@@ -46,6 +46,57 @@ public sealed class SkillReadyNoticeTests
     }
 
     [AvaloniaFact]
+    public async Task SkillOnCooldown_AppearsInSkillsOnCooldown()
+    {
+        var viewModel = CreateViewModel();
+        try
+        {
+            InvokeSkillTimeoutsChanged(viewModel, new SkillTimeoutEntry("holy prayer", Timeout: true));
+
+            Assert.Equal(["holy prayer"], viewModel.SkillsOnCooldown);
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task SkillFlipsFromCooldownToFalse_RemovedFromSkillsOnCooldown()
+    {
+        var viewModel = CreateViewModel();
+        try
+        {
+            InvokeSkillTimeoutsChanged(viewModel, new SkillTimeoutEntry("holy prayer", Timeout: true));
+            InvokeSkillTimeoutsChanged(viewModel, new SkillTimeoutEntry("holy prayer", Timeout: false));
+
+            Assert.Empty(viewModel.SkillsOnCooldown);
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task SkillOnCooldownDropsOutOfSnapshot_RemovedFromSkillsOnCooldown()
+    {
+        var viewModel = CreateViewModel();
+        try
+        {
+            InvokeSkillTimeoutsChanged(viewModel, new SkillTimeoutEntry("call avatar", Timeout: true));
+            InvokeSkillTimeoutsChanged(viewModel, new SkillTimeoutEntry("torment", Timeout: true));
+
+            Assert.DoesNotContain("call avatar", viewModel.SkillsOnCooldown);
+            Assert.Contains("torment", viewModel.SkillsOnCooldown);
+        }
+        finally
+        {
+            await viewModel.DisposeAsync();
+        }
+    }
+
+    [AvaloniaFact]
     public async Task SkillFlipsFromCooldownToFalse_AnnouncesReady()
     {
         var viewModel = CreateViewModel();

@@ -62,68 +62,87 @@
          pausing one with ⏸ leaves its row in place (with ▶ to resume) instead of making it
          disappear until you go find it again in the Automaty panel. -->
     <StackPanel Grid.Column="1" Grid.Row="1">
-      <!-- Live in-game hour & sky (Mud.TimeInfo / Mud.Weather GMCP) — pinned to the left of the
-           same bottom strip that hosts the timers below, always visible regardless of how many
-           timers or skill-ready notices are active. -->
-      <Border Classes="mud-bar-bottom" Padding="8,3" HorizontalAlignment="Left">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="🕐" FontSize="9" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding WorldTime.TimeName}" FontSize="9" VerticalAlignment="Center"
-                       FontFamily="Consolas"
-                       Foreground="{StaticResource MudBrushGoldBright}" />
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="☁" FontSize="9" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding WorldTime.Sky}" FontSize="9" VerticalAlignment="Center"
-                       Foreground="{StaticResource MudBrushParchmentDim}" />
-          </StackPanel>
-        </StackPanel>
-      </Border>
+      <!-- Timers + skills on cooldown (left) share this bar with the live in-game hour & sky
+           (right), which stays pinned to the right edge regardless of how many timers/skills
+           are shown to its left. -->
+      <Border Classes="mud-bar-bottom" Padding="8,3">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+            <ItemsControl ItemsSource="{Binding Timers}" IsVisible="{Binding Timers.Count}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:TimerEntry">
+                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,12,0"
+                              ToolTip.Tip="{Binding Name}">
+                    <Button Content="⏸" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                            Classes="mud-small"
+                            IsVisible="{Binding IsEnabled}"
+                            ToolTip.Tip="Wstrzymaj timer"
+                            Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                            CommandParameter="{Binding}" />
+                    <Button Content="▶" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                            Classes="mud-small"
+                            IsVisible="{Binding !IsEnabled}"
+                            ToolTip.Tip="Wznów timer"
+                            Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
+                            CommandParameter="{Binding}" />
+                    <TextBlock Text="{Binding ShortName}" FontSize="9" VerticalAlignment="Center"
+                               Foreground="{StaticResource MudBrushParchmentDim}" />
+                    <TextBlock Text="{Binding RemainingText}" FontSize="9" VerticalAlignment="Center"
+                               IsVisible="{Binding IsEnabled}"
+                               FontFamily="Consolas"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Text="wstrzymany" FontSize="9" VerticalAlignment="Center"
+                               IsVisible="{Binding !IsEnabled}"
+                               Classes="mud-faint" />
+                    <Button Content="⟳" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
+                            Classes="mud-small"
+                            IsVisible="{Binding IsEnabled}"
+                            ToolTip.Tip="Zresetuj odliczanie"
+                            Command="{Binding $parent[UserControl].DataContext.RestartTimerCommand}"
+                            CommandParameter="{Binding}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-      <Border Classes="mud-bar-bottom" Padding="8,3"
-              IsVisible="{Binding Timers.Count}">
-        <ItemsControl ItemsSource="{Binding Timers}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="models:TimerEntry">
-              <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,12,0"
-                          ToolTip.Tip="{Binding Name}">
-                <Button Content="⏸" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
-                        Classes="mud-small"
-                        IsVisible="{Binding IsEnabled}"
-                        ToolTip.Tip="Wstrzymaj timer"
-                        Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
-                        CommandParameter="{Binding}" />
-                <Button Content="▶" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
-                        Classes="mud-small"
-                        IsVisible="{Binding !IsEnabled}"
-                        ToolTip.Tip="Wznów timer"
-                        Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
-                        CommandParameter="{Binding}" />
-                <TextBlock Text="{Binding ShortName}" FontSize="9" VerticalAlignment="Center"
-                           Foreground="{StaticResource MudBrushParchmentDim}" />
-                <TextBlock Text="{Binding RemainingText}" FontSize="9" VerticalAlignment="Center"
-                           IsVisible="{Binding IsEnabled}"
-                           FontFamily="Consolas"
-                           Foreground="{StaticResource MudBrushGoldBright}" />
-                <TextBlock Text="wstrzymany" FontSize="9" VerticalAlignment="Center"
-                           IsVisible="{Binding !IsEnabled}"
-                           Classes="mud-faint" />
-                <Button Content="⟳" FontSize="9" Padding="3,1" MinWidth="0" MinHeight="0"
-                        Classes="mud-small"
-                        IsVisible="{Binding IsEnabled}"
-                        ToolTip.Tip="Zresetuj odliczanie"
-                        Command="{Binding $parent[UserControl].DataContext.RestartTimerCommand}"
-                        CommandParameter="{Binding}" />
-              </StackPanel>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+            <!-- Skills currently on cooldown (Char.Skills.Timeout GMCP), shown as "* skillname"
+                 for as long as the skill's timeout stays true. -->
+            <ItemsControl ItemsSource="{Binding SkillsOnCooldown}" IsVisible="{Binding SkillsOnCooldown.Count}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding StringFormat='* {0}'}" FontSize="9" VerticalAlignment="Center"
+                             Margin="0,0,12,0"
+                             FontFamily="Consolas"
+                             Foreground="{StaticResource MudBrushCrimsonBright}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="🕐" FontSize="9" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding WorldTime.TimeName}" FontSize="9" VerticalAlignment="Center"
+                         FontFamily="Consolas"
+                         Foreground="{StaticResource MudBrushGoldBright}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="☁" FontSize="9" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding WorldTime.Sky}" FontSize="9" VerticalAlignment="Center"
+                         Foreground="{StaticResource MudBrushParchmentDim}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
       </Border>
 
       <!-- Skills that just came off cooldown (Char.Skills.Timeout GMCP) — transient notices in the
