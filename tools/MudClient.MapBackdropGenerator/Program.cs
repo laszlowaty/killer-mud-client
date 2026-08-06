@@ -289,15 +289,15 @@ static void DrawThickLine(
     int radius)
 {
     for (var offsetY = -radius; offsetY <= radius; offsetY++)
-    for (var offsetX = -radius; offsetX <= radius; offsetX++)
-        DrawLine(pixels, width, height, x0 + offsetX, y0 + offsetY, x1 + offsetX, y1 + offsetY, r, g, b, a);
+        for (var offsetX = -radius; offsetX <= radius; offsetX++)
+            DrawLine(pixels, width, height, x0 + offsetX, y0 + offsetY, x1 + offsetX, y1 + offsetY, r, g, b, a);
 }
 
 static void FillRect(byte[] pixels, int width, int height, int x, int y, int rectWidth, int rectHeight, byte r, byte g, byte b, byte a)
 {
     for (var py = Math.Max(y, 0); py < Math.Min(y + rectHeight, height); py++)
-    for (var px = Math.Max(x, 0); px < Math.Min(x + rectWidth, width); px++)
-        SetPixel(pixels, width, px, py, r, g, b, a);
+        for (var px = Math.Max(x, 0); px < Math.Min(x + rectWidth, width); px++)
+            SetPixel(pixels, width, px, py, r, g, b, a);
 }
 
 static void SetPixel(byte[] pixels, int width, int x, int y, byte r, byte g, byte b, byte a)

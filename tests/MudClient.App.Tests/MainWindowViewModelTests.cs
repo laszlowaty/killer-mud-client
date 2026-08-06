@@ -1,14 +1,14 @@
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
-using Avalonia.Headless.XUnit;
-using Avalonia.Threading;
 using MudClient.Core.Networking;
 
 namespace MudClient.App.Tests;
@@ -2075,9 +2075,9 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         SimulateMapIndexChangedRebuild(update);
 
         Assert.Equal(3, _vm.Group.Count);
-        Assert.Equal("Town Square",   _vm.Group[0].RoomDisplay);  // resolved
-        Assert.Equal("pokój 9999",    _vm.Group[1].RoomDisplay);  // fallback
-        Assert.Equal("?",             _vm.Group[2].RoomDisplay);  // null → ?
+        Assert.Equal("Town Square", _vm.Group[0].RoomDisplay);  // resolved
+        Assert.Equal("pokój 9999", _vm.Group[1].RoomDisplay);  // fallback
+        Assert.Equal("?", _vm.Group[2].RoomDisplay);  // null → ?
     }
 
     // ====================================================================

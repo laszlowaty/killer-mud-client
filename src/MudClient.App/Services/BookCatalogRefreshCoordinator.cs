@@ -1,6 +1,6 @@
-using System.Threading.Channels;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using MudClient.App.Models;
 using MudClient.Core.Killeropedia;
 

@@ -1,6 +1,6 @@
-using MudClient.Core.Map;
 using System.Globalization;
 using System.Text;
+using MudClient.Core.Map;
 
 namespace MudClient.App.ViewModels;
 

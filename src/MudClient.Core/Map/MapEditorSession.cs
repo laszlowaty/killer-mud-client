@@ -15,31 +15,56 @@ public sealed class MapEditorSession
     private static readonly IReadOnlyDictionary<string, string> DirectionAliases =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["n"] = "n", ["north"] = "n",
-            ["ne"] = "ne", ["northeast"] = "ne",
-            ["e"] = "e", ["east"] = "e",
-            ["se"] = "se", ["southeast"] = "se",
-            ["s"] = "s", ["south"] = "s",
-            ["sw"] = "sw", ["southwest"] = "sw",
-            ["w"] = "w", ["west"] = "w",
-            ["nw"] = "nw", ["northwest"] = "nw",
-            ["u"] = "u", ["up"] = "u",
-            ["d"] = "d", ["down"] = "d",
+            ["n"] = "n",
+            ["north"] = "n",
+            ["ne"] = "ne",
+            ["northeast"] = "ne",
+            ["e"] = "e",
+            ["east"] = "e",
+            ["se"] = "se",
+            ["southeast"] = "se",
+            ["s"] = "s",
+            ["south"] = "s",
+            ["sw"] = "sw",
+            ["southwest"] = "sw",
+            ["w"] = "w",
+            ["west"] = "w",
+            ["nw"] = "nw",
+            ["northwest"] = "nw",
+            ["u"] = "u",
+            ["up"] = "u",
+            ["d"] = "d",
+            ["down"] = "d",
         };
 
     private static readonly IReadOnlyDictionary<string, string> FullDirections =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["n"] = "north", ["ne"] = "northeast", ["e"] = "east", ["se"] = "southeast",
-            ["s"] = "south", ["sw"] = "southwest", ["w"] = "west", ["nw"] = "northwest",
-            ["u"] = "up", ["d"] = "down",
+            ["n"] = "north",
+            ["ne"] = "northeast",
+            ["e"] = "east",
+            ["se"] = "southeast",
+            ["s"] = "south",
+            ["sw"] = "southwest",
+            ["w"] = "west",
+            ["nw"] = "northwest",
+            ["u"] = "up",
+            ["d"] = "down",
         };
 
     private static readonly IReadOnlyDictionary<string, string> OppositeDirections =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["n"] = "s", ["ne"] = "sw", ["e"] = "w", ["se"] = "nw", ["s"] = "n",
-            ["sw"] = "ne", ["w"] = "e", ["nw"] = "se", ["u"] = "d", ["d"] = "u",
+            ["n"] = "s",
+            ["ne"] = "sw",
+            ["e"] = "w",
+            ["se"] = "nw",
+            ["s"] = "n",
+            ["sw"] = "ne",
+            ["w"] = "e",
+            ["nw"] = "se",
+            ["u"] = "d",
+            ["d"] = "u",
         };
 
     private readonly Stack<MapDocument> _undo = new();
@@ -1256,17 +1281,17 @@ public sealed class MapEditorSession
         MapCoordinates? coordinates = null,
         double? weight = null,
         int? areaId = null) => new()
-    {
-        Id = room.Id,
-        AreaId = areaId ?? room.AreaId,
-        Name = name ?? room.Name,
-        Coordinates = coordinates ?? room.Coordinates,
-        Environment = room.Environment,
-        Weight = weight ?? room.Weight,
-        Symbol = room.Symbol,
-        Exits = exits ?? room.Exits,
-        UserData = userData ?? room.UserData,
-    };
+        {
+            Id = room.Id,
+            AreaId = areaId ?? room.AreaId,
+            Name = name ?? room.Name,
+            Coordinates = coordinates ?? room.Coordinates,
+            Environment = room.Environment,
+            Weight = weight ?? room.Weight,
+            Symbol = room.Symbol,
+            Exits = exits ?? room.Exits,
+            UserData = userData ?? room.UserData,
+        };
 
     private static MapRoom CloneRoomWithSymbol(MapRoom room, string? symbol) => new()
     {

@@ -158,14 +158,14 @@ internal sealed class MapEditorRecoveryStore : IDisposable, IAsyncDisposable
         IReadOnlyList<MapDocument> undoHistory,
         bool isDirty,
         string baselineIdentity) => new()
-    {
-        SchemaVersion = CurrentSchemaVersion,
-        SavedAtUtc = DateTimeOffset.UtcNow,
-        IsDirty = isDirty,
-        BaselineIdentity = baselineIdentity,
-        Current = current,
-        UndoHistory = undoHistory.TakeLast(MaximumUndoEntries).ToArray(),
-    };
+        {
+            SchemaVersion = CurrentSchemaVersion,
+            SavedAtUtc = DateTimeOffset.UtcNow,
+            IsDirty = isDirty,
+            BaselineIdentity = baselineIdentity,
+            Current = current,
+            UndoHistory = undoHistory.TakeLast(MaximumUndoEntries).ToArray(),
+        };
 
     private static bool IsValidDocument(MapDocument document) =>
         document.Areas is not null &&

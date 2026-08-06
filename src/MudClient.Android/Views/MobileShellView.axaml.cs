@@ -844,6 +844,11 @@ public sealed partial class MobileShellView : UserControl
         OpenToolOverlay("Autowalk", "MobileAutowalkPanel");
     }
 
+    private void OpenHelp_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        OpenToolOverlay("Pomoc", "MobileHelpPanel");
+    }
+
     private void CloseToolOverlay_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         HideToolOverlay();
@@ -989,6 +994,7 @@ public sealed partial class MobileShellView : UserControl
                      "MobileSettingsPanel",
                      "MobileAutomationPanel",
                      "MobileAutowalkPanel",
+                     "MobileHelpPanel",
                  })
         {
             var panel = this.FindControl<Control>(panelName);

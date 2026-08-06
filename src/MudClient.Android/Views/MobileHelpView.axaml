@@ -1,0 +1,181 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             x:Class="MudClient.Android.Views.MobileHelpView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="12" Spacing="8">
+      <TextBlock Classes="mud-heading" Text="Dostępne komendy" />
+      <TextBlock Classes="mud-muted" Margin="0,0,0,8"
+                 Text="Komendy klienta wpisuj w polu komendy terminala. Wielkość liter nie ma znaczenia."
+                 TextWrapping="Wrap" />
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/idz" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Rozpoczyna marsz do celu wybranego dwuklikiem na mapie albo wznawia przerwaną podróż." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/idz &lt;cel&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Rozpoczyna marsz do członka grupy widocznego przez GMCP albo do zapisanej lokacji o podanej nazwie." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/idz vnum &lt;vnum&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Rozpoczyna marsz do pokoju o podanym numerze VNUM." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/idz_dodaj &lt;nazwa&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Zapisuje obecną lokację pod podaną nazwą dla aktywnego konta." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/stop" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Zatrzymuje trwający autowalk." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/recast" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów na postać." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/reroll" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Zatrzymuje automatyczne rolowanie statystyk postaci i ponownie otwiera konfigurację wartości docelowych." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/script &lt;nazwa&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Uruchamia aktywny skrypt o podanej nazwie. Skrypt może wywoływać aliasy, komendy klienta i komendy MUD-a." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/map &lt;komenda&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="W trybie lorda steruje edytorem mapy. Pełna lista komend mapowania znajduje się poniżej. Można też używać prefiksów /mapa i +map." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="/map show &lt;vnum&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Wyszukuje pokój o podanym VNUM-ie, ustawia go jako cel mapy i otwiera widok mapy. Użyj tej komendy, aby szybko przejść do konkretnego pokoju." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Komendy mapowania" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="start / stop — rozpoczęcie i zakończenie mapowania; save — zapis zmian; undo / redo — cofanie i ponawianie; cancel — odrzucenie bieżącej sesji; status lub info — stan i informacje o pokoju; check / diff — kontrola i porównanie map; import / export — wymiana mapy z plikiem; discard — odrzucenie mapy roboczej; resolve keep|gmcp — rozwiązanie konfliktu; step &lt;1-20&gt; — krok mapowania; area / reassign — praca z krainą; room — informacje o pokoju; symbol — symbol pokoju; label — etykieta; forget — usunięcie pokoju; special — przejście specjalne." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="alias(...) w triggerze/timerze" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="W prostym triggerze albo timerze wpisz alias(nazwa-aliasu) lub alias(tekst-dopasowany-do-wzorca). Klient uruchomi istniejący alias i wyśle jego rozwinięcie, także wiele komend rozdzielonych nowymi liniami lub separatorem. Przykład: alias(buff)." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="echo(&quot;kolor&quot;, &quot;tekst&quot;)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="W prostych automatach wyświetla lokalny tekst bez wysyłania go do MUD-a. Kolory: black, red, green, yellow, blue, magenta, cyan, white, gray. Przykład: echo(&quot;red&quot;, &quot;Straciłeś ochronę!&quot;). W JavaScript kolejność argumentów jest odwrotna: echo(tekst, kolor)." />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="Skryptowanie" Margin="0,12,0,0" />
+      <TextBlock Classes="mud-muted" Margin="0,0,0,8"
+                 TextWrapping="Wrap"
+                 Text="Aliasy, triggery i timery mogą działać w trybie prostym albo zaawansowanym. Tryb zaawansowany wykonuje JavaScript. Samodzielne skrypty znajdziesz w zakładce Skrypty panelu Automatów." />
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Kiedy używać którego trybu?" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Tryb prosty wystarcza do rozwijania wzorca na komendy, alias(...), echo(...) i podstawiania zmiennych przez ${nazwa}. Tryb zaawansowany wybierz, gdy potrzebujesz if, pętli, obliczeń, danych z dopasowania lub kilku zależnych akcji." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="execute(tekst)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Wykonuje tekst pełną ścieżką klienta. Obsługuje aliasy, separator komend oraz komendy wbudowane, np. /idz, /recast, /map i /script." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="runAlias(tekst)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Uruchamia tekst jak komendę wpisaną przez użytkownika. Może wskazywać nazwę lub tekst pasujący do istniejącego aliasu." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="send(tekst)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Wysyła tekst bezpośrednio do MUD-a. Nie rozwija aliasów i nie wykonuje komend klienta. Respektuje skonfigurowany separator komend." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="echo(tekst, kolor)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Wyświetla lokalny komunikat w terminalu. Kolor jest opcjonalny i domyślnie ma wartość cyan." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="input i match" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="input zawiera wejściową komendę lub linię. W aliasie i triggerze match.value zawiera całe dopasowanie, match.captures grupy numerowane, a match.groups grupy nazwane." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Zmienne profilu" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="variables.get(nazwa, wartośćDomyślna), set(nazwa, wartość), has(nazwa), remove(nazwa) i increment(nazwa, ilość) korzystają ze wspólnego magazynu aktywnego profilu. Wartości są zapisywane jako JSON i pozostają dostępne dla innych aliasów, triggerów, timerów oraz skryptów." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="GMCP" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Skrypt może odbierać każdy przychodzący pakiet GMCP, również taki, którego klient sam nie interpretuje. W konfiguracji skryptu ustaw filtr dokładny, np. Char.Vitals, filtr prefiksu Char.* albo * dla wszystkich pakietów. Pusty filtr oznacza wywołanie wyłącznie ręczne." />
+          <TextBlock TextWrapping="Wrap" Text="W obsłudze GMCP event.package zawiera nazwę pakietu, event.data jego sparsowany JSON, a event.raw surowy tekst JSON. event.data może być obiektem, tablicą albo null. Funkcja onGmcp(wzorzec, handler) uruchamia handler tylko dla pasującego pakietu." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Najczęstsze pakiety KillerMUD" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Char.Vitals — HP, MV, pamięć, poziom i pozycja postaci.&#10;Char.Condition — głód, pragnienie, stan i pozycja.&#10;Char.Affects — tablica aktywnych efektów, m.in. name, negative, ending i extraValue.&#10;Char.Group — lider oraz tablica members z członkami drużyny.&#10;Char.MemSpell — tablica zapamiętanych i zapamiętywanych czarów.&#10;Room.Info — dane pokoju, VNUM i wyjścia.&#10;Room.People — tablica postaci i NPC w pokoju." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Bezpieczeństwo i błędy" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Skrypty nie mają dostępu do CLR, plików, HTTP ani strumienia sieciowego. Interpreter ogranicza czas, pamięć, liczbę instrukcji, rekurencję i liczbę akcji." />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

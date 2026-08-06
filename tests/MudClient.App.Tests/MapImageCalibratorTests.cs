@@ -1,6 +1,6 @@
-using MudClient.MapImageCalibrator;
-using System.Text.Json.Nodes;
 using System.Buffers.Binary;
+using System.Text.Json.Nodes;
+using MudClient.MapImageCalibrator;
 
 namespace MudClient.App.Tests;
 

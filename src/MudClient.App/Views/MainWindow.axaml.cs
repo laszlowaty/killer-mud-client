@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -6,7 +7,6 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using System.ComponentModel;
 using MudClient.App.Controls;
 using MudClient.App.Docking;
 using MudClient.App.ViewModels;
@@ -36,7 +36,8 @@ public partial class MainWindow : Window
         Window,
         CharacterRollerConfiguration,
         CharacterRoll?,
-        Task<CharacterRollerConfiguration?>> ConfigureCharacterRollerAsync { get; set; } =
+        Task<CharacterRollerConfiguration?>> ConfigureCharacterRollerAsync
+    { get; set; } =
         CharacterRollerDialog.ShowAsync;
 
     public Exception? DeferredSettingsImportError { get; init; }

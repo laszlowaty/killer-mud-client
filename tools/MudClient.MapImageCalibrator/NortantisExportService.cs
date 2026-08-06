@@ -1,7 +1,7 @@
-using System.Text.Json;
 using System.Buffers.Binary;
-using System.IO.Compression;
 using System.Globalization;
+using System.IO.Compression;
+using System.Text.Json;
 
 namespace MudClient.MapImageCalibrator;
 

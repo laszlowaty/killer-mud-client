@@ -890,52 +890,52 @@ public sealed class MudDockFactory : Factory, IFactory
                 return new ProportionalDockSplitter { Id = node.Id ?? Guid.NewGuid().ToString() };
 
             case "Proportional":
-            {
-                var children = node.Children
-                    .Select(c => BuildFromSnapshot(c, toolsById))
-                    .Where(d => d is not null)
-                    .Cast<IDockable>()
-                    .ToList();
-                if (children.Count == 0)
                 {
-                    return null;
-                }
+                    var children = node.Children
+                        .Select(c => BuildFromSnapshot(c, toolsById))
+                        .Where(d => d is not null)
+                        .Cast<IDockable>()
+                        .ToList();
+                    if (children.Count == 0)
+                    {
+                        return null;
+                    }
 
-                return new ProportionalDock
-                {
-                    Id = node.Id ?? "Proportional",
-                    Proportion = node.Proportion,
-                    Orientation = Enum.TryParse<Orientation>(node.Orientation, out var orientation)
-                        ? orientation
-                        : Orientation.Horizontal,
-                    VisibleDockables = CreateList<IDockable>(children.ToArray()),
-                };
-            }
+                    return new ProportionalDock
+                    {
+                        Id = node.Id ?? "Proportional",
+                        Proportion = node.Proportion,
+                        Orientation = Enum.TryParse<Orientation>(node.Orientation, out var orientation)
+                            ? orientation
+                            : Orientation.Horizontal,
+                        VisibleDockables = CreateList<IDockable>(children.ToArray()),
+                    };
+                }
 
             case "ToolDock":
-            {
-                var children = node.Children
-                    .Select(c => BuildFromSnapshot(c, toolsById))
-                    .Where(d => d is not null)
-                    .Cast<IDockable>()
-                    .ToList();
-                if (children.Count == 0)
                 {
-                    return null;
+                    var children = node.Children
+                        .Select(c => BuildFromSnapshot(c, toolsById))
+                        .Where(d => d is not null)
+                        .Cast<IDockable>()
+                        .ToList();
+                    if (children.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    var active = node.ActiveDockableId is not null
+                        ? children.FirstOrDefault(c => c.Id == node.ActiveDockableId) ?? children[0]
+                        : children[0];
+
+                    return new ToolDock
+                    {
+                        Id = node.Id ?? "ToolDock",
+                        Proportion = node.Proportion,
+                        ActiveDockable = active,
+                        VisibleDockables = CreateList<IDockable>(children.ToArray()),
+                    };
                 }
-
-                var active = node.ActiveDockableId is not null
-                    ? children.FirstOrDefault(c => c.Id == node.ActiveDockableId) ?? children[0]
-                    : children[0];
-
-                return new ToolDock
-                {
-                    Id = node.Id ?? "ToolDock",
-                    Proportion = node.Proportion,
-                    ActiveDockable = active,
-                    VisibleDockables = CreateList<IDockable>(children.ToArray()),
-                };
-            }
 
             default:
                 return null;
