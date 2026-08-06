@@ -75,6 +75,51 @@ public sealed class RareCatalogRefreshTests : IDisposable
     }
 
     [Fact]
+    public async Task Refresh_KnownVnumWithDetails_SkipsDetailFetchAndReusesText()
+    {
+        var coordinator = new RareCatalogRefreshCoordinator(
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromSeconds(2));
+        var sent = new List<string>();
+
+        Task Send(string command, CancellationToken cancellationToken)
+        {
+            sent.Add(command);
+            if (command == "rarelist all")
+            {
+                coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [N] ( kilof             - one hand      ) [29099] krasnoludzki kilof 'Potega Ziemi'");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [R] ( wlocznia          - two hand      ) [  215] trojzab Turlitha");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+            else if (command == "rarelist 29099")
+            {
+                coordinator.TryCaptureLine("Kilof kuty przez krasnoludzkich mistrzów.");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        var knownDetails = new Dictionary<int, string> { [215] = "Znany wczesniej trojzab." };
+        var catalog = await coordinator.RefreshAsync(
+            Send,
+            cancellationToken: TestContext.Current.CancellationToken,
+            knownDetails: knownDetails);
+
+        var trojzab = Assert.Single(catalog.Rares, rare => rare.Vnum == 215);
+        Assert.Equal("Znany wczesniej trojzab.", trojzab.Details);
+        var kilof = Assert.Single(catalog.Rares, rare => rare.Vnum == 29099);
+        Assert.Equal("Kilof kuty przez krasnoludzkich mistrzów.", kilof.Details);
+
+        // Only the still-unmapped vnum (29099) triggers a "rarelist <vnum>" round-trip.
+        Assert.Equal(["rarelist all", "rarelist 29099"], sent);
+    }
+
+    [Fact]
     public async Task Refresh_PagesThroughPagerPromptsBeforeMovingToDetails()
     {
         var coordinator = new RareCatalogRefreshCoordinator(

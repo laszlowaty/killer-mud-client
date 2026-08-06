@@ -6885,7 +6885,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var catalog = await _rareCatalogRefreshCoordinator.RefreshAsync(
                 SendRareCatalogCommandAsync,
                 progress,
-                cancellation.Token);
+                cancellation.Token,
+                knownDetails: Killeropedia.GetKnownRareDetails());
             await _rareCatalogStore.SaveAsync(catalog, cancellation.Token);
             Killeropedia.CompleteRareRefresh(catalog);
             AddToast($"Odświeżono katalog przedmiotów ({catalog.Rares.Count}).", "info");

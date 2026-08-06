@@ -62,6 +62,25 @@
          pausing one with ⏸ leaves its row in place (with ▶ to resume) instead of making it
          disappear until you go find it again in the Automaty panel. -->
     <StackPanel Grid.Column="1" Grid.Row="1">
+      <!-- Live in-game hour & sky (Mud.TimeInfo / Mud.Weather GMCP) — pinned to the left of the
+           same bottom strip that hosts the timers below, always visible regardless of how many
+           timers or skill-ready notices are active. -->
+      <Border Classes="mud-bar-bottom" Padding="8,3" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="🕐" FontSize="9" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding WorldTime.TimeName}" FontSize="9" VerticalAlignment="Center"
+                       FontFamily="Consolas"
+                       Foreground="{StaticResource MudBrushGoldBright}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="☁" FontSize="9" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding WorldTime.Sky}" FontSize="9" VerticalAlignment="Center"
+                       Foreground="{StaticResource MudBrushParchmentDim}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <Border Classes="mud-bar-bottom" Padding="8,3"
               IsVisible="{Binding Timers.Count}">
         <ItemsControl ItemsSource="{Binding Timers}">
