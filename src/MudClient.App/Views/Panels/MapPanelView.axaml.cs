@@ -110,6 +110,7 @@ public sealed partial class MapPanelView : UserControl
         MapControl.Route = _viewModel.RouteRooms;
         MapControl.GroupMarkers = _viewModel.GroupMarkers;
         MapControl.DeathMarkers = _viewModel.DeathMarkers;
+        MapControl.RoomMarkers = _viewModel.RoomMarkers;
         MapControl.ShowGroupMembersAsNumbers = _viewModel.ShowGroupMembersAsNumbers;
         MapControl.DisplayMode = _viewModel.SelectedDisplayMode.Mode;
     }

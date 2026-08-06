@@ -73,6 +73,7 @@ public sealed class WorldMapControl : Control
     private IReadOnlyList<MapRoom>? _route;
     private IReadOnlyList<GroupMapMarker> _groupMarkers = [];
     private IReadOnlyList<DeathMapMarker> _deathMarkers = [];
+    private IReadOnlyList<RoomMapMarker> _roomMarkers = [];
     private bool _showGroupMembersAsNumbers;
     private MapDisplayMode _displayMode;
     private bool _isSimpleMap;
@@ -311,6 +312,16 @@ public sealed class WorldMapControl : Control
         set
         {
             _deathMarkers = value ?? [];
+            RequestInvalidateVisual();
+        }
+    }
+
+    public IReadOnlyList<RoomMapMarker> RoomMarkers
+    {
+        get => _roomMarkers;
+        set
+        {
+            _roomMarkers = value ?? [];
             RequestInvalidateVisual();
         }
     }
@@ -648,6 +659,7 @@ public sealed class WorldMapControl : Control
             DrawOverviewSelectionAndCurrent(context);
             DrawDeathMarkers(context, EmptyOffsets);
             DrawGroupMarkers(context, EmptyOffsets);
+            DrawRoomMarkers(context, EmptyOffsets);
             DrawCompass(context);
             return;
         }
@@ -668,6 +680,7 @@ public sealed class WorldMapControl : Control
         DrawSelectionAndCurrent(context, roomsWithOffsets);
         DrawDeathMarkers(context, roomLookup);
         DrawGroupMarkers(context, roomLookup);
+        DrawRoomMarkers(context, roomLookup);
         if (!_isSimpleMap)
         {
             DrawCompass(context);
@@ -1419,6 +1432,41 @@ public sealed class WorldMapControl : Control
                 radius * 1.4,
                 Brushes.White);
             context.DrawText(glyph, new Point(center.X - glyph.Width / 2, center.Y - glyph.Height / 2));
+        }
+    }
+
+    /// <summary>Draws one small amber badge per player-placed local marker (see MapViewModel's
+    /// SetMarkerOnSelectedRoomCommand), offset toward the room's upper-right corner so it doesn't
+    /// collide with the death-skull badge drawn at the room's center.</summary>
+    private void DrawRoomMarkers(DrawingContext context, IReadOnlyDictionary<int, MapOffset> offsets)
+    {
+        var visibleMarkers = _roomMarkers
+            .Where(marker => marker.Room.AreaId == _areaId && marker.Room.Coordinates.Z == _z);
+
+        foreach (var marker in visibleMarkers)
+        {
+            var roomOffset = offsets.GetValueOrDefault(marker.Room.Id, MapOffset.Zero);
+            var center = WorldToScreen(
+                marker.Room.Coordinates.X + roomOffset.X * 0.6,
+                marker.Room.Coordinates.Y + roomOffset.Y * 0.6);
+
+            var roomHalf = _settings.RoomSize * _zoom / 2;
+            var badgeRadius = Math.Clamp(_settings.RoomSize * _zoom * 0.28, 5, 10);
+            var badgeCenter = new Point(center.X + roomHalf * 0.75, center.Y - roomHalf * 0.75);
+
+            context.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(220, 150, 90, 0)),
+                new Pen(Brushes.Orange, 1),
+                badgeCenter, badgeRadius, badgeRadius);
+
+            var glyph = new FormattedText(
+                marker.Symbol,
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(WidgetFontFamily, FontStyle.Normal, FontWeight.Bold),
+                badgeRadius,
+                Brushes.White);
+            context.DrawText(glyph, new Point(badgeCenter.X - glyph.Width / 2, badgeCenter.Y - glyph.Height / 2));
         }
     }
 

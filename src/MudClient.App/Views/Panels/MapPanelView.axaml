@@ -23,6 +23,24 @@
               <MenuItem Header="{Binding LordGotoMenuHeader}"
                         Command="{Binding LordGotoSelectedRoomCommand}"
                         IsVisible="{Binding LordModeEnabled}" />
+              <!-- Local map markers (Phase 1 — not yet shared with other players). A marker is
+                   just a free-form symbol on a room; this preset list can grow later without any
+                   other code changes (see MapViewModel.MarkerSymbolPresets). -->
+              <MenuItem Header="Dodaj znacznik" IsVisible="{Binding CanEditSelectedRoomMarker}">
+                <MenuItem Header="!! — niebezpieczeństwo"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="!!" />
+                <MenuItem Header="@ — punkt zainteresowania"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="@" />
+                <MenuItem Header="R — rzadki przedmiot"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="R" />
+                <MenuItem Header="B — bank"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="B" />
+                <MenuItem Header="T — trener"
+                          Command="{Binding SetMarkerOnSelectedRoomCommand}" CommandParameter="T" />
+              </MenuItem>
+              <MenuItem Header="Usuń znacznik"
+                        Command="{Binding RemoveMarkerFromSelectedRoomCommand}"
+                        IsVisible="{Binding SelectedRoomHasMarker}" />
             </ContextMenu>
           </controls:WorldMapControl.ContextMenu>
         </controls:WorldMapControl>
