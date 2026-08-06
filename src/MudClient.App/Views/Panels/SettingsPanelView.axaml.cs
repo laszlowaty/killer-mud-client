@@ -138,6 +138,63 @@ public sealed partial class SettingsPanelView : UserControl
         }
     }
 
+    private void AddFloatingButtonSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var name = FloatingButtonSetNameInput.Text?.Trim() ?? string.Empty;
+        if (viewModel.AddFloatingButtonSet(name) is not null)
+        {
+            FloatingButtonSetNameInput.Text = string.Empty;
+            FloatingButtonStatusText.IsVisible = false;
+        }
+        else
+        {
+            FloatingButtonStatusText.Text = "Schemat o takiej nazwie już istnieje albo nazwa jest pusta.";
+            FloatingButtonStatusText.IsVisible = true;
+        }
+    }
+
+    private void DeleteFloatingButtonSet_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.RemoveSelectedFloatingButtonSet();
+        }
+    }
+
+    private void AddFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.AddFloatingButton(FloatingButtonNameInput.Text, FloatingButtonCommandInput.Text) is not null)
+        {
+            FloatingButtonNameInput.Text = string.Empty;
+            FloatingButtonCommandInput.Text = string.Empty;
+            FloatingButtonStatusText.IsVisible = false;
+        }
+        else
+        {
+            FloatingButtonStatusText.Text = "Nazwa i komenda przycisku nie mogą być puste.";
+            FloatingButtonStatusText.IsVisible = true;
+        }
+    }
+
+    private void DeleteFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is MainWindowViewModel viewModel
+            && sender is Control { Tag: MudClient.App.Models.FloatingButtonDefinition definition })
+        {
+            viewModel.RemoveFloatingButton(definition);
+        }
+    }
+
     private void CancelTransfer()
     {
         _transferCancellation?.Cancel();

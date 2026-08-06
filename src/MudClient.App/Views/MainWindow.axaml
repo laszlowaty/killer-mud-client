@@ -228,6 +228,8 @@
          ======================================================================== -->
     <dock:DockControl x:Name="MainDock" Grid.Row="1" Layout="{Binding Layout}" Margin="8" />
 
+    <controls:FloatingButtonsOverlay Grid.Row="1" Margin="8" />
+
     <!-- Transient messages float above the workspace instead of increasing header height. -->
     <StackPanel Grid.Row="1"
                 HorizontalAlignment="Right"

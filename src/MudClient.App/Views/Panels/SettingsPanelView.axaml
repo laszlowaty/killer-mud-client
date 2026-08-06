@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:services="using:MudClient.App.Services"
+             xmlns:models="using:MudClient.App.Models"
              x:Class="MudClient.App.Views.Panels.SettingsPanelView"
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
@@ -177,6 +178,105 @@
                     Classes="mud-small"
                     IsVisible="{Binding IsContentUpdateAvailable}" />
           </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="mud-heading" Text="Pływające przyciski" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label"
+                         Text="Przezroczystość przycisków" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding MobileControlsOpacityText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinMobileControlsOpacity}"
+                    Maximum="{Binding MaxMobileControlsOpacity}"
+                    Value="{Binding MobileControlsOpacity}"
+                    TickFrequency="0.05"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="mud-label"
+                         Text="Rozmiar pływających przycisków" />
+              <Border Grid.Column="1" Classes="mud-badge mud-badge-gold">
+                <TextBlock Text="{Binding MobileFloatingButtonScaleText}" />
+              </Border>
+            </Grid>
+            <Slider Minimum="{Binding MinMobileButtonScale}"
+                    Maximum="{Binding MaxMobileButtonScale}"
+                    Value="{Binding MobileFloatingButtonScale}"
+                    TickFrequency="0.1"
+                    IsSnapToTickEnabled="True" />
+          </StackPanel>
+          <TextBlock Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     Text="Każdy schemat ma własne przyciski i ich położenie. Dotknięcie wysyła komendę, a przytrzymanie pozwala przesunąć przycisk." />
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Aktywny schemat" />
+            <ComboBox ItemsSource="{Binding FloatingButtonSets}"
+                      SelectedItem="{Binding SelectedFloatingButtonSet}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="models:FloatingButtonSetDefinition">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="FloatingButtonSetNameInput"
+                     PlaceholderText="Nazwa nowego schematu" />
+            <Button Grid.Column="1"
+                    Content="Utwórz"
+                    Classes="mud-small"
+                    Click="AddFloatingButtonSet_OnClick" />
+          </Grid>
+          <Button Content="Usuń aktywny schemat"
+                  HorizontalAlignment="Right"
+                  Classes="mud-small"
+                  IsEnabled="{Binding CanDeleteFloatingButtonSet}"
+                  Click="DeleteFloatingButtonSet_OnClick" />
+          <TextBox x:Name="FloatingButtonNameInput"
+                   PlaceholderText="Nazwa przycisku"
+                   MaxLength="30" />
+          <TextBox x:Name="FloatingButtonCommandInput"
+                   PlaceholderText="Komenda"
+                   MaxLength="300" />
+          <Button Content="Dodaj pływający przycisk"
+                  HorizontalAlignment="Right"
+                  Classes="mud-small"
+                  Click="AddFloatingButton_OnClick" />
+          <TextBlock x:Name="FloatingButtonStatusText"
+                     Classes="mud-muted"
+                     TextWrapping="Wrap"
+                     IsVisible="False" />
+          <ItemsControl ItemsSource="{Binding FloatingButtons}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:FloatingButtonDefinition">
+                <Border Classes="mud-section" Padding="10" Margin="0,3">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}"
+                                 FontWeight="SemiBold"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Command}"
+                                 Classes="mud-muted"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="Usuń"
+                            Classes="mud-danger mud-small"
+                            Tag="{Binding}"
+                            Click="DeleteFloatingButton_OnClick" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Border>
 
