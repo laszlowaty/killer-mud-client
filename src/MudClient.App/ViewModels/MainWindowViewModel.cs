@@ -15,6 +15,7 @@ using MudClient.App.Services;
 using MudClient.Core.Automation;
 using MudClient.Core.Combat;
 using MudClient.Core.Gmcp;
+using MudClient.Core.Killeropedia;
 using MudClient.Core.Map;
 using MudClient.Core.Networking;
 
@@ -1440,6 +1441,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _settings.ShowNumericDamageEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    public bool AnnotateRandomBookClassEnabled
+    {
+        get => _settings.AnnotateRandomBookClassEnabled;
+        set
+        {
+            if (_settings.AnnotateRandomBookClassEnabled == value)
+            {
+                return;
+            }
+
+            _settings.AnnotateRandomBookClassEnabled = value;
             OnPropertyChanged();
             SaveSettings();
         }
@@ -5895,6 +5912,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _bookCatalogRefreshCoordinator.ObserveText(text);
         _rareCatalogRefreshCoordinator.ObserveText(text);
         var toDisplay = _settings.ShowNumericDamageEnabled ? AnnotateDamageLines(text) : text;
+        toDisplay = _settings.AnnotateRandomBookClassEnabled ? AnnotateBookClasses(toDisplay) : toDisplay;
         Dispatcher.UIThread.Post(() => OutputReceived?.Invoke(toDisplay));
     }
 
@@ -5945,6 +5963,36 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             output.Append(" (").Append(damage).Append(')');
         }
+    }
+
+    /// <summary>
+    /// Splices " (Klasa)" right after a recognized random-book name (e.g. "duża księga triumfu
+    /// (Paladyn)") — see <see cref="RandomBookNaming"/>. Unlike <see cref="AnnotateDamageLines"/>,
+    /// which only ever appends at a line's end (position-independent), this inserts mid-line, so
+    /// it only ever runs on complete, newline-terminated segments of a single chunk — never
+    /// reconstructed across a chunk boundary, since that could try to splice text into content
+    /// already flushed to the terminal by a previous call. This only misses the rare case of a
+    /// book name split exactly across a socket read, which is an acceptable trade for never
+    /// corrupting already-displayed output.
+    /// </summary>
+    private static string AnnotateBookClasses(string chunk)
+    {
+        if (!chunk.Contains('\n'))
+        {
+            return chunk;
+        }
+
+        var segments = chunk.Split('\n');
+        var output = new StringBuilder(chunk.Length + 16);
+
+        for (var i = 0; i < segments.Length - 1; i++)
+        {
+            output.Append(RandomBookNaming.AnnotateClasses(segments[i].TrimEnd('\r')));
+            output.Append('\n');
+        }
+
+        output.Append(segments[^1]);
+        return output.ToString();
     }
 
     private void OnLineReceived(string line)

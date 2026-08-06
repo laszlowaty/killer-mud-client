@@ -591,6 +591,25 @@ public sealed class KilleropediaTests : IDisposable
         window.Close();
     }
 
+    [AvaloniaFact]
+    public void BookNamingView_RendersClassWordSections()
+    {
+        var viewModel = CreateViewModel();
+        var view = new KilleropediaBookNamingView { DataContext = viewModel };
+        var window = new Window { Width = 900, Height = 720, Content = view };
+
+        window.Show();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var textBlocks = view.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        Assert.Contains("triumfu", textBlocks);
+        Assert.Contains("magii", textBlocks);
+        Assert.Contains("piasku", textBlocks);
+        Assert.Contains("księga", textBlocks);
+
+        window.Close();
+    }
+
     private KilleropediaViewModel CreateViewModel() =>
         new(
             TeacherCatalogLoader.Load(),

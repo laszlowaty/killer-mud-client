@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MudClient.App.Models;
 using MudClient.App.Services;
+using MudClient.Core.Killeropedia;
 
 namespace MudClient.App.ViewModels;
 
@@ -183,6 +184,24 @@ public sealed class KilleropediaViewModel : ObservableObject
     public string FilteredTattooCountText => $"Bonusy: {FilteredTattoos.Count} z {_tattooCatalog.Bonuses.Count}";
 
     public bool HasNoTattooResults => FilteredTattoos.Count == 0;
+
+    public IReadOnlyList<string> RandomBookMagWords => RandomBookNaming.MagWords;
+
+    public IReadOnlyList<string> RandomBookKlerykWords => RandomBookNaming.KlerykWords;
+
+    public IReadOnlyList<string> RandomBookPaladynWords => RandomBookNaming.PaladynWords;
+
+    public IReadOnlyList<string> RandomBookDruidWords => RandomBookNaming.DruidWords;
+
+    public IReadOnlyList<string> RandomBookNomadWords => RandomBookNaming.NomadWords;
+
+    public IReadOnlyList<string> RandomBookNazwaWords => RandomBookNaming.NazwaWords;
+
+    public IReadOnlyList<string> RandomBookWartoscDuzaWords => RandomBookNaming.WartoscDuzaWords;
+
+    public IReadOnlyList<string> RandomBookWartoscMalaWords => RandomBookNaming.WartoscMalaWords;
+
+    public IReadOnlyList<string> RandomBookWagaMalaWords => RandomBookNaming.WagaMalaWords;
 
     public ObservableCollection<LoreEntry> FilteredLoreEntries { get; } = [];
 

@@ -184,6 +184,10 @@
             <views:KilleropediaBooksView
                                          DataContext="{Binding Killeropedia}" />
           </TabItem>
+          <TabItem Classes="killeropedia-tab-book-naming" Header="Losowe Księgi">
+            <views:KilleropediaBookNamingView
+                                              DataContext="{Binding Killeropedia}" />
+          </TabItem>
           <TabItem Classes="killeropedia-tab-lore" Header="Świat i lore">
             <views:KilleropediaLoreView
                                         DataContext="{Binding Killeropedia}" />
