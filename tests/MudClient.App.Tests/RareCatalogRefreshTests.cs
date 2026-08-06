@@ -75,6 +75,53 @@ public sealed class RareCatalogRefreshTests : IDisposable
     }
 
     [Fact]
+    public async Task Refresh_OnEntryMapped_FiresAfterEachFreshlyFetchedItemOnly()
+    {
+        var coordinator = new RareCatalogRefreshCoordinator(
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromMilliseconds(5),
+            TimeSpan.FromSeconds(2));
+
+        Task Send(string command, CancellationToken cancellationToken)
+        {
+            if (command == "rarelist all")
+            {
+                coordinator.TryCaptureLine("<<============= lista przedmiotow unikalnych - artefact =============>>");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [N] ( kilof             - one hand      ) [29099] krasnoludzki kilof 'Potega Ziemi'");
+                coordinator.TryCaptureLine(
+                    "+[-1 d] [R] ( wlocznia          - two hand      ) [  215] trojzab Turlitha");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+            else if (command == "rarelist 29099")
+            {
+                coordinator.TryCaptureLine("Kilof kuty przez krasnoludzkich mistrzów.");
+                coordinator.ObserveText("<418/488hp 90/100mv> ");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        var snapshots = new List<IReadOnlyList<RareEntry>>();
+        var knownDetails = new Dictionary<int, string> { [215] = "Znany wczesniej trojzab." };
+        var catalog = await coordinator.RefreshAsync(
+            Send,
+            cancellationToken: TestContext.Current.CancellationToken,
+            knownDetails: knownDetails,
+            onEntryMapped: (mappedSoFar, _) =>
+            {
+                snapshots.Add(mappedSoFar.ToArray());
+                return Task.CompletedTask;
+            });
+
+        // Only vnum 29099 was actually fetched (215 came from knownDetails), so the callback
+        // fires exactly once, with the running list at that point.
+        var snapshot = Assert.Single(snapshots);
+        Assert.Contains(snapshot, rare => rare.Vnum == 29099 && rare.Details.Contains("Kilof"));
+        Assert.Equal(2, catalog.Rares.Count);
+    }
+
+    [Fact]
     public async Task Refresh_KnownVnumWithDetails_SkipsDetailFetchAndReusesText()
     {
         var coordinator = new RareCatalogRefreshCoordinator(

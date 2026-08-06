@@ -2,12 +2,12 @@ using System.Text.Json;
 
 namespace MudClient.Core.Gmcp;
 
-/// <summary>A single skill's on/off-cooldown state from Skills.Timeout GMCP.</summary>
+/// <summary>A single skill's on/off-cooldown state from Char.Skills.Timeout GMCP.</summary>
 public sealed record SkillTimeoutEntry(string Name, bool Timeout);
 
 /// <summary>
-/// Translates Skills.Timeout GMCP messages — a snapshot of skills currently tracked for
-/// cooldown, keyed by skill name (e.g. { "torment": { "timeout": true } }) — into typed
+/// Translates Char.Skills.Timeout GMCP messages — a snapshot of skills currently tracked for
+/// cooldown, keyed by skill name (e.g. { "holy prayer": { "timeout": true } }) — into typed
 /// updates. Malformed or unknown messages are ignored.
 /// </summary>
 public sealed class SkillTimeoutResolver
@@ -16,7 +16,7 @@ public sealed class SkillTimeoutResolver
 
     public void Process(GmcpMessage message)
     {
-        if (!string.Equals(message.Package, "Skills.Timeout", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(message.Package, "Char.Skills.Timeout", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -53,13 +53,27 @@ public sealed class SkillTimeoutResolver
                     continue;
                 }
 
-                var timeout = property.Value.TryGetProperty("timeout", out var timeoutValue)
-                              && timeoutValue.ValueKind == JsonValueKind.True;
+                if (!property.Value.TryGetProperty("timeout", out var timeoutValue))
+                {
+                    continue;
+                }
 
-                entries.Add(new SkillTimeoutEntry(name, timeout));
+                entries.Add(new SkillTimeoutEntry(name, ReadBool(timeoutValue)));
             }
 
             TimeoutsChanged?.Invoke(entries);
         }
     }
+
+    /// <summary>
+    /// The server has been observed sending "timeout" as both a real JSON boolean and as the
+    /// string "true"/"false" — accept either.
+    /// </summary>
+    private static bool ReadBool(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.String => bool.TryParse(value.GetString(), out var parsed) && parsed,
+        _ => false,
+    };
 }

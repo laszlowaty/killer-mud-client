@@ -8,7 +8,7 @@ using MudClient.Core.Gmcp;
 namespace MudClient.App.Tests;
 
 /// <summary>Covers OnSkillTimeoutsChanged's cooldown → ready-again transition detection (see
-/// Skills.Timeout GMCP handling in MainWindowViewModel). The handler does its work inside a
+/// Char.Skills.Timeout GMCP handling in MainWindowViewModel). The handler does its work inside a
 /// Dispatcher.UIThread.Post, so these need a real headless dispatcher pump.</summary>
 [Collection(AvaloniaUiCollection.Name)]
 public sealed class SkillReadyNoticeTests

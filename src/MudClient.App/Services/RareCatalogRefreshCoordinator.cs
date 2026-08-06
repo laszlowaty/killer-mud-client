@@ -94,12 +94,18 @@ public sealed class RareCatalogRefreshCoordinator
     /// is kept as-is instead of being re-fetched with "rarelist &lt;vnum&gt;", since the detail
     /// text for a given vnum never changes. This is what makes repeat refreshes fast: only vnums
     /// that are new or were never successfully mapped incur a round-trip.
+    /// <paramref name="onEntryMapped"/>, when given, is awaited right after each vnum newly
+    /// fetched from the MUD (not for ones reused from <paramref name="knownDetails"/>) with the
+    /// full list mapped so far — a full "rarelist all" refresh can take a very long time, and
+    /// without this a disconnect or crash partway through would silently discard everything
+    /// mapped in that run instead of letting the caller persist progress as it goes.
     /// </summary>
     public async Task<RareCatalogDocument> RefreshAsync(
         Func<string, CancellationToken, Task> sendCommandAsync,
         IProgress<RareCatalogRefreshProgress>? progress = null,
         CancellationToken cancellationToken = default,
-        IReadOnlyDictionary<int, string>? knownDetails = null)
+        IReadOnlyDictionary<int, string>? knownDetails = null,
+        Func<IReadOnlyList<RareEntry>, CancellationToken, Task>? onEntryMapped = null)
     {
         ArgumentNullException.ThrowIfNull(sendCommandAsync);
         knownDetails ??= EmptyKnownDetails;
@@ -125,6 +131,7 @@ public sealed class RareCatalogRefreshCoordinator
             var entry = entries[index];
 
             string details;
+            var freshlyFetched = false;
             if (knownDetails.TryGetValue(entry.Vnum, out var cached) && !string.IsNullOrWhiteSpace(cached))
             {
                 progress?.Report(new RareCatalogRefreshProgress(
@@ -141,6 +148,7 @@ public sealed class RareCatalogRefreshCoordinator
                     _responseTimeout,
                     cancellationToken).ConfigureAwait(false);
                 details = RareListParser.ExtractDetailText(detailLines);
+                freshlyFetched = true;
             }
 
             rares.Add(new RareEntry
@@ -153,6 +161,11 @@ public sealed class RareCatalogRefreshCoordinator
                 Category = entry.Category,
                 Details = details,
             });
+
+            if (freshlyFetched && onEntryMapped is not null)
+            {
+                await onEntryMapped(rares, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         progress?.Report(new RareCatalogRefreshProgress("Zapisywanie katalogu", rares.Count, rares.Count));

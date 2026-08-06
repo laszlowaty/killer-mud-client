@@ -126,7 +126,7 @@
         </ItemsControl>
       </Border>
 
-      <!-- Skills that just came off cooldown (Skills.Timeout GMCP) — transient notices in the
+      <!-- Skills that just came off cooldown (Char.Skills.Timeout GMCP) — transient notices in the
            same strip as the timers above, so a "ready again" skill is noticed without having
            to watch a separate panel. Each notice auto-dismisses a few seconds after it appears
            (see AnnounceSkillReady / RemoveSkillReadyNoticeAfterDelayAsync). -->

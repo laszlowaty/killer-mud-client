@@ -2143,7 +2143,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<TimerEntry> Timers { get; } = [];
 
-    // --- Skill-ready notices (live, from Skills.Timeout GMCP) — shown alongside Timers. ---
+    // --- Skill-ready notices (live, from Char.Skills.Timeout GMCP) — shown alongside Timers. ---
     public ObservableCollection<SkillReadyEntry> SkillReadyNotices { get; } = [];
 
     public RelayCommand AddTimerCommand { get; }
@@ -6448,7 +6448,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private static TimeSpan SkillReadyNoticeLifetime = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// Skills.Timeout reports the current snapshot of skills on cooldown. A skill that was
+    /// Char.Skills.Timeout reports the current snapshot of skills on cooldown. A skill that was
     /// on cooldown and either flips to timeout=false or drops out of the snapshot entirely
     /// has become usable again, so we surface a transient notice for it.
     /// </summary>
@@ -6886,7 +6886,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 SendRareCatalogCommandAsync,
                 progress,
                 cancellation.Token,
-                knownDetails: Killeropedia.GetKnownRareDetails());
+                knownDetails: Killeropedia.GetKnownRareDetails(),
+                // A full refresh walks hundreds of vnums one at a time and can take a very long
+                // time — persist after every newly-mapped item so a disconnect or crash partway
+                // through doesn't throw away everything mapped in this run. The next refresh
+                // (or app launch) then only has to fetch whatever is still missing.
+                onEntryMapped: (mappedSoFar, token) => _rareCatalogStore.SaveAsync(
+                    new RareCatalogDocument { GeneratedAtUtc = DateTimeOffset.UtcNow, Rares = mappedSoFar.ToList() },
+                    token));
             await _rareCatalogStore.SaveAsync(catalog, cancellation.Token);
             Killeropedia.CompleteRareRefresh(catalog);
             AddToast($"Odświeżono katalog przedmiotów ({catalog.Rares.Count}).", "info");
