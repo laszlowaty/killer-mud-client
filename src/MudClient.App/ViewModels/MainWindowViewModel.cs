@@ -39,6 +39,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomExitsResolver _roomExits = new();
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
+    private readonly WorldStateResolver _worldState = new();
     private readonly AutoAssistPolicy _autoAssist = new();
     private readonly GroupExhaustionRefreshPolicy _groupExhaustionRefresh = new();
     private readonly ProfileService _profiles;
@@ -337,6 +338,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.GroupChanged += OnGroupChanged;
         _characterState.AffectsChanged += OnCharacterAffectsChanged;
         _characterState.MemSpellsChanged += OnMemSpellsChanged;
+        _worldState.TimeChanged += OnWorldTimeChanged;
+        _worldState.WeatherChanged += OnWorldWeatherChanged;
 
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
@@ -387,6 +390,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         ApplyOverlayFromSettings();
 
         Vitals.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
+        WorldTime.PropertyChanged += (_, _) => UpdateTerminalToolTitle();
         UpdateTerminalToolTitle();
         RestorePanelCommand = new RelayCommand<PanelTool>(tool =>
         {
@@ -3884,10 +3888,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
-    /// Mirrors the character's live vitals onto the Terminal dock tab title — folds the former
-    /// standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja) into the Terminal's own
-    /// header bar instead of a separate row inside its content, so they're visible without
-    /// spending any of the Terminal's own vertical space.
+    /// Mirrors the character's live vitals and world time/weather onto the Terminal dock tab
+    /// title — folds the former standalone "Postać" panel's fields (Imię/Poziom/Płeć/Pozycja)
+    /// plus live Mud.TimeInfo/Mud.Weather GMCP data into the Terminal's own header bar instead
+    /// of a separate row inside its content, so they're visible without spending any of the
+    /// Terminal's own vertical space.
     /// </summary>
     private void UpdateTerminalToolTitle()
     {
@@ -3899,7 +3904,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
 
         tool.Title = $"Terminal — Imię: {Vitals.Name}, Poziom: {Vitals.Level}, " +
-                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay}";
+                     $"Płeć: {Vitals.SexDisplay}, Pozycja: {Vitals.PositionDisplay} | " +
+                     $"{WorldTime.DayName} ({WorldTime.Day} {WorldTime.Month}, {WorldTime.Year} r., {WorldTime.Era}), " +
+                     $"{WorldTime.TimeName}, Niebo: {WorldTime.Sky}, Wiatr: {WorldTime.Wind}";
     }
 
     public string NewBuffName
@@ -4852,6 +4859,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     // --- Character vitals (mock) ---
     public CharacterVitals Vitals { get; } = new();
+
+    // --- World time & weather (live, from Mud.TimeInfo / Mud.Weather GMCP) ---
+    public WorldTimeWeather WorldTime { get; } = new();
 
     // --- Character conditions (live, from Char.Condition GMCP) ---
     public ObservableCollection<string> Conditions { get; } = [];
@@ -6358,6 +6368,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _roomExits.Process(message);
         _locationResolver.Process(message);
         _characterState.Process(message);
+        _worldState.Process(message);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -6400,6 +6411,29 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     Vitals.MaxSpellPoints = mem;
                 }
             }
+        });
+    }
+
+    private void OnWorldTimeChanged(WorldTimeUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Day is { } day) WorldTime.Day = day;
+            if (update.DayName is { } dayName) WorldTime.DayName = dayName;
+            if (update.Era is { } era) WorldTime.Era = era;
+            if (update.Month is { } month) WorldTime.Month = month;
+            if (update.Time is { } time) WorldTime.Time = time;
+            if (update.TimeName is { } timeName) WorldTime.TimeName = timeName;
+            if (update.Year is { } year) WorldTime.Year = year;
+        });
+    }
+
+    private void OnWorldWeatherChanged(WorldWeatherUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.Sky is { } sky) WorldTime.Sky = sky;
+            if (update.Wind is { } wind) WorldTime.Wind = wind;
         });
     }
 
@@ -6922,6 +6956,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.GroupChanged -= OnGroupChanged;
         _characterState.MemSpellsChanged -= OnMemSpellsChanged;
         _characterState.AffectsChanged -= OnCharacterAffectsChanged;
+        _worldState.TimeChanged -= OnWorldTimeChanged;
+        _worldState.WeatherChanged -= OnWorldWeatherChanged;
 
         _session.TextReceived -= OnTextReceived;
         _session.LineReceived -= OnLineReceived;
