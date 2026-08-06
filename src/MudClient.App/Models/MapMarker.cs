@@ -10,3 +10,7 @@ public sealed class MapMarkerDocument
 {
     public List<MapMarker> Markers { get; set; } = [];
 }
+
+/// <summary>One entry in the fixed marker legend (see <see cref="MudClient.App.ViewModels.MapViewModel.MarkerLegend"/>).
+/// Phase 1 offers no way to add symbols beyond this list.</summary>
+public sealed record MarkerLegendEntry(string Symbol, string Label);

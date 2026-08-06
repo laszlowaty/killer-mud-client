@@ -590,10 +590,24 @@ public sealed class MapViewModel : ObservableObject, IDisposable, IAsyncDisposab
             .ToArray();
     }
 
-    /// <summary>Preset symbols offered in the map's right-click "Dodaj znacznik" submenu. Purely
-    /// a starting palette — a marker is just a free-form label with no attached behavior, so this
-    /// list can grow later without any other code changes.</summary>
-    public static IReadOnlyList<string> MarkerSymbolPresets { get; } = ["!!", "@", "R", "B", "T"];
+    /// <summary>
+    /// The fixed set of marker symbols, shown both in the map's right-click "Dodaj znacznik"
+    /// submenu and as a read-only legend in the map settings flyout. Phase 1 offers no way to
+    /// add symbols beyond this list.
+    /// </summary>
+    public static IReadOnlyList<MarkerLegendEntry> MarkerLegend { get; } =
+    [
+        new("R", "Rent"),
+        new("@", "Oaza"),
+        new("!", "Niebezpieczeństwo (np. słaby agresywny mob)"),
+        new("!!", "Wielkie niebezpieczeństwo"),
+        new("X", "Przepaść, śmierć"),
+        new("T", "Nauczyciel"),
+        new("B", "Księga"),
+        new("S", "Sklep"),
+        new("Q", "Zadanie"),
+        new("?", "Inne..."),
+    ];
 
     public bool CanEditSelectedRoomMarker => !string.IsNullOrWhiteSpace(SelectedRoom?.Vnum);
 

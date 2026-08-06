@@ -852,6 +852,15 @@ public sealed class MapViewModelTests
     // ====================================================================
 
     [Fact]
+    public void MarkerLegend_ContainsExactlyTheFixedSymbolSet()
+    {
+        var expected = new[] { "R", "@", "!", "!!", "X", "T", "B", "S", "Q", "?" };
+
+        Assert.Equal(expected, MapViewModel.MarkerLegend.Select(entry => entry.Symbol));
+        Assert.All(MapViewModel.MarkerLegend, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Label)));
+    }
+
+    [Fact]
     public void CanEditSelectedRoomMarker_RequiresVnum()
     {
         using var vm = CreateViewModel();
