@@ -7,10 +7,13 @@ using MudClient.App.ViewModels;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
 using MudClient.Core.Map;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using MudClient.Core.Networking;
 
 namespace MudClient.App.Tests;
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class MainWindowViewModelTests : IAsyncDisposable
 {
     private readonly string _tempDir;
@@ -118,7 +121,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Single(_vm.FloatingButtonSets);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task FloatingButton_UsesConfiguredCommandSeparator()
     {
         SetIsConnected(true);
@@ -1093,7 +1096,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Same(rule, _vm.TriggerRules[0]);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SendCommand_HistoryContainsAliasExpandedVersion()
     {
         // Arrange
@@ -1128,7 +1131,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Equal("   ", _vm.CommandText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SendCommand_PreservesEmptyText()
     {
         // Arrange
@@ -2272,7 +2275,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         // This exercises the WaitAsync/try/finally/Release pattern but
         // does NOT call SendTriggeredCommandAsync, so the Dispatcher
         // dependency is avoided.
-        var task = (Task)method.Invoke(_vm, [Array.Empty<string>()])!;
+        var task = (Task)method.Invoke(_vm, [Array.Empty<string>(), true])!;
         await task;
 
         // Assert: lock is released after batch completes
@@ -2440,12 +2443,12 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var tasksField = GetTriggerTasksField();
         var tasks = (List<Task>)tasksField.GetValue(isolatedVm)!;
 
-        var task = (Task)sendMethod.Invoke(isolatedVm, [Array.Empty<string>()])!;
+        var batchTask = (Task)sendMethod.Invoke(isolatedVm, [Array.Empty<string>(), true])!;
 
         // Track the task the same way OnLineReceived does.
         lock (tasks)
         {
-            tasks.Add(task);
+            tasks.Add(batchTask);
         }
 
         // Act: dispose should drain the tracked task without throwing.
@@ -2454,7 +2457,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         // Assert
         Assert.Null(exception);
-        Assert.True(task.IsCompleted);
+        Assert.True(batchTask.IsCompleted);
     }
 
     // ====================================================================
@@ -2781,7 +2784,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var commands = Array.Empty<string>();
 
         // Act: enqueue a batch that must wait for previousTcs.Task.
-        var batchTask = (Task)method.Invoke(_vm, [previousTcs.Task, commands])!;
+        var batchTask = (Task)method.Invoke(_vm, [previousTcs.Task, commands, true])!;
 
         // The method yields immediately (Task.Yield) then awaits previous.
         // Spin-wait briefly for the async machinery to reach the await point.
@@ -2812,7 +2815,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var commands = Array.Empty<string>();
 
         // Act
-        var batchTask = (Task)method.Invoke(_vm, [faultedPrevious, commands])!;
+        var batchTask = (Task)method.Invoke(_vm, [faultedPrevious, commands, true])!;
 
         // Assert: the batch completes successfully despite the faulted
         // previous (exception is caught and swallowed in EnqueueBatchAsync).
@@ -2831,7 +2834,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var commands = Array.Empty<string>();
 
         // Act
-        var batchTask = (Task)method.Invoke(_vm, [cancelledPrevious, commands])!;
+        var batchTask = (Task)method.Invoke(_vm, [cancelledPrevious, commands, true])!;
 
         // Assert
         await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
@@ -2848,7 +2851,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
 
         // Act: with Task.CompletedTask as previous, the batch proceeds
         // immediately after the initial yield.
-        var batchTask = (Task)method.Invoke(_vm, [Task.CompletedTask, commands])!;
+        var batchTask = (Task)method.Invoke(_vm, [Task.CompletedTask, commands, true])!;
 
         // Assert
         await batchTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);

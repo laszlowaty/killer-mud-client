@@ -120,11 +120,12 @@ public sealed class AutomationCommandEchoUiTests
         {
             var method = typeof(MainWindowViewModel).GetMethod(
                 "SendTriggeredCommandAsync",
-                BindingFlags.NonPublic | BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                new[] { typeof(string), typeof(bool), typeof(CancellationToken) });
             Assert.NotNull(method);
 
             await Assert.IsAssignableFrom<Task>(
-                method!.Invoke(viewModel, [EchoInvocation, CancellationToken.None]));
+                method!.Invoke(viewModel, [EchoInvocation, true, CancellationToken.None]));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Contains(ExpectedEcho, output);
@@ -206,10 +207,11 @@ public sealed class AutomationCommandEchoUiTests
         {
             var method = typeof(MainWindowViewModel).GetMethod(
                 "SendTriggeredCommandAsync",
-                BindingFlags.NonPublic | BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                new[] { typeof(string), typeof(bool), typeof(CancellationToken) });
             Assert.NotNull(method);
 
-            await Assert.IsAssignableFrom<Task>(method!.Invoke(viewModel, ["wstan", CancellationToken.None]));
+            await Assert.IsAssignableFrom<Task>(method!.Invoke(viewModel, ["wstan", true, CancellationToken.None]));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Contains(output, line => line.Contains("> wstan", StringComparison.Ordinal));
