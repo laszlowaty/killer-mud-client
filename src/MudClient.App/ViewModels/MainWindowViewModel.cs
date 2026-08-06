@@ -5834,19 +5834,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 break;
 
             case CharacterRollerAction.RollAgain:
-                Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    QueueTriggeredCommands([CharacterRollAgainCommand], expandAliases: false);
-                });
+                QueueTriggeredCommands([CharacterRollAgainCommand], expandAliases: false);
                 break;
 
             case CharacterRollerAction.FinishCharacterCreation:
-                Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    QueueTriggeredCommands(CharacterCreationFinishCommands, expandAliases: false);
-                });
+                QueueTriggeredCommands(CharacterCreationFinishCommands, expandAliases: false);
                 break;
 
             case CharacterRollerAction.Accepted:
