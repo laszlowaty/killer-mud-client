@@ -40,6 +40,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly RoomSnapshotResolver _roomSnapshots = new();
     private readonly CharacterStateResolver _characterState = new();
     private readonly WorldStateResolver _worldState = new();
+    private readonly SkillTimeoutResolver _skillTimeouts = new();
+    private readonly Dictionary<string, bool> _lastSkillTimeouts = new(StringComparer.OrdinalIgnoreCase);
     private readonly AutoAssistPolicy _autoAssist = new();
     private readonly GroupExhaustionRefreshPolicy _groupExhaustionRefresh = new();
     private readonly ProfileService _profiles;
@@ -340,6 +342,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.MemSpellsChanged += OnMemSpellsChanged;
         _worldState.TimeChanged += OnWorldTimeChanged;
         _worldState.WeatherChanged += OnWorldWeatherChanged;
+        _skillTimeouts.TimeoutsChanged += OnSkillTimeoutsChanged;
 
         _session.TextReceived += OnTextReceived;
         _session.LineReceived += OnLineReceived;
@@ -2139,6 +2142,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     // ========================================================================
 
     public ObservableCollection<TimerEntry> Timers { get; } = [];
+
+    // --- Skill-ready notices (live, from Skills.Timeout GMCP) — shown alongside Timers. ---
+    public ObservableCollection<SkillReadyEntry> SkillReadyNotices { get; } = [];
 
     public RelayCommand AddTimerCommand { get; }
     public RelayCommand StartAddTimerCommand { get; }
@@ -6369,6 +6375,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _locationResolver.Process(message);
         _characterState.Process(message);
         _worldState.Process(message);
+        _skillTimeouts.Process(message);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -6435,6 +6442,62 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (update.Sky is { } sky) WorldTime.Sky = sky;
             if (update.Wind is { } wind) WorldTime.Wind = wind;
         });
+    }
+
+    /// <summary>Not readonly — overridden via reflection in tests to avoid a real 10s wait.</summary>
+    private static TimeSpan SkillReadyNoticeLifetime = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Skills.Timeout reports the current snapshot of skills on cooldown. A skill that was
+    /// on cooldown and either flips to timeout=false or drops out of the snapshot entirely
+    /// has become usable again, so we surface a transient notice for it.
+    /// </summary>
+    private void OnSkillTimeoutsChanged(IReadOnlyList<SkillTimeoutEntry> entries)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in entries)
+            {
+                seen.Add(entry.Name);
+                var wasOnCooldown = _lastSkillTimeouts.TryGetValue(entry.Name, out var previous) && previous;
+                if (wasOnCooldown && !entry.Timeout)
+                {
+                    AnnounceSkillReady(entry.Name);
+                }
+
+                _lastSkillTimeouts[entry.Name] = entry.Timeout;
+            }
+
+            foreach (var name in _lastSkillTimeouts.Keys.ToList())
+            {
+                if (seen.Contains(name) || !_lastSkillTimeouts[name])
+                {
+                    continue;
+                }
+
+                AnnounceSkillReady(name);
+                _lastSkillTimeouts.Remove(name);
+            }
+        });
+    }
+
+    private void AnnounceSkillReady(string skillName)
+    {
+        var entry = new SkillReadyEntry(skillName);
+        SkillReadyNotices.Add(entry);
+        while (SkillReadyNotices.Count > 10)
+        {
+            SkillReadyNotices.RemoveAt(0);
+        }
+
+        _ = RemoveSkillReadyNoticeAfterDelayAsync(entry);
+    }
+
+    private async Task RemoveSkillReadyNoticeAfterDelayAsync(SkillReadyEntry entry)
+    {
+        await Task.Delay(SkillReadyNoticeLifetime);
+        Dispatcher.UIThread.Post(() => SkillReadyNotices.Remove(entry));
     }
 
     private void OnCharacterConditionChanged(CharacterConditionUpdate update)
@@ -6958,6 +7021,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _characterState.AffectsChanged -= OnCharacterAffectsChanged;
         _worldState.TimeChanged -= OnWorldTimeChanged;
         _worldState.WeatherChanged -= OnWorldWeatherChanged;
+        _skillTimeouts.TimeoutsChanged -= OnSkillTimeoutsChanged;
 
         _session.TextReceived -= OnTextReceived;
         _session.LineReceived -= OnLineReceived;
