@@ -49,7 +49,7 @@ public sealed class JavaScriptRunner
             var engine = new Engine(options =>
             {
                 options.Strict();
-                options.LimitMemory(8_000_000);
+                options.LimitMemory(16_000_000);
                 options.TimeoutInterval(ExecutionTimeout);
                 options.MaxStatements(20_000);
                 options.LimitRecursion(64);
