@@ -12,9 +12,6 @@
         <StackPanel Spacing="6">
           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
           <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
-          <TextBlock Text="{Binding CommandsText}"
-                     Classes="mud-muted"
-                     TextWrapping="Wrap" />
           <TextBlock Text="{Binding LastError}"
                      Foreground="{StaticResource MudBrushCrimsonBright}"
                      IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
@@ -48,8 +45,6 @@
       <Border Classes="mud-section" Padding="12" Margin="0,3">
         <StackPanel Spacing="6">
           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
           <TextBlock Text="{Binding LastError}"
                      Foreground="{StaticResource MudBrushCrimsonBright}"
                      IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
@@ -83,10 +78,6 @@
       <Border Classes="mud-section" Padding="12" Margin="0,3">
         <StackPanel Spacing="6">
           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
-                     Classes="mud-faint" />
-          <TextBlock Text="{Binding Code}" Classes="mud-muted"
-                     TextWrapping="Wrap" MaxHeight="80" />
           <TextBlock Text="{Binding LastError}"
                      Foreground="{StaticResource MudBrushCrimsonBright}"
                      IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
