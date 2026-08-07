@@ -6591,7 +6591,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         });
     }
 
-    internal void SetGroupContextMenuOpen(bool isOpen)
+    public void SetGroupContextMenuOpen(bool isOpen)
     {
         if (_isGroupContextMenuOpen == isOpen)
         {
