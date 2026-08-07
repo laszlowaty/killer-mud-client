@@ -1602,6 +1602,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public bool IsAndroidView => OperatingSystem.IsAndroid();
+    public bool IsDesktopView => !OperatingSystem.IsAndroid();
+
+    public string KillCommandDisplay => string.IsNullOrWhiteSpace(_settings.KillCommand) ? "kill" : _settings.KillCommand;
+
     public string KillCommand
     {
         get => _settings.KillCommand;
@@ -1615,6 +1620,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             _settings.KillCommand = trimmed;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(KillCommandDisplay));
             SaveSettings();
         }
     }

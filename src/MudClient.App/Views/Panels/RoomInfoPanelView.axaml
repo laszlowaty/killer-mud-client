@@ -68,7 +68,33 @@
         <TextBlock Classes="mud-heading" Text="Osoby w pokoju" />
         <TextBlock Classes="mud-faint" Text="Nikogo tu nie ma."
                    IsVisible="{Binding !People.Count}" />
-        <ItemsControl ItemsSource="{Binding People}">
+        <!-- Desktop list view -->
+        <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding IsDesktopView}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:PersonEntry">
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,1">
+                <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                            IsVisible="{Binding !IsSelf}">
+                  <Button Content="exa" Classes="mud-small" Padding="6,1"
+                          Command="{Binding #RoomInfoRoot.DataContext.ExaminePersonCommand}"
+                          CommandParameter="{Binding Name}" />
+                  <Button Content="{Binding #RoomInfoRoot.DataContext.KillCommandDisplay}" Classes="mud-small mud-danger" Padding="6,1"
+                          Command="{Binding #RoomInfoRoot.DataContext.KillPersonCommand}"
+                          CommandParameter="{Binding Name}" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                           Text="{Binding FightingText}"
+                           Foreground="{StaticResource MudBrushCrimsonBright}"
+                           IsVisible="{Binding IsFighting}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Android tile view -->
+        <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding IsAndroidView}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <WrapPanel Orientation="Horizontal" />
@@ -91,7 +117,7 @@
                               IsVisible="{Binding !IsSelf}"
                               Command="{Binding #RoomInfoRoot.DataContext.ExaminePersonCommand}"
                               CommandParameter="{Binding Name}" />
-                    <MenuItem Header="kill"
+                    <MenuItem Header="{Binding #RoomInfoRoot.DataContext.KillCommandDisplay}"
                               IsVisible="{Binding !IsSelf}"
                               Command="{Binding #RoomInfoRoot.DataContext.KillPersonCommand}"
                               CommandParameter="{Binding Name}" />
