@@ -62,6 +62,16 @@ public sealed class ConnectionForegroundService : Service
 
     public override global::Android.OS.IBinder? OnBind(Intent? intent) => null;
 
+    public override void OnTaskRemoved(Intent? rootIntent)
+    {
+        base.OnTaskRemoved(rootIntent);
+
+        // If the user swipes the app away from recent tasks, terminate the session
+        // so the background connection doesn't keep running indefinitely.
+        StopSelf();
+        Java.Lang.JavaSystem.Exit(0);
+    }
+
     private void EnsureNotificationChannel()
     {
         if (!OperatingSystem.IsAndroidVersionAtLeast(26))

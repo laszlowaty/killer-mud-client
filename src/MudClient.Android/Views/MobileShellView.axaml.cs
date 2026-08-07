@@ -834,6 +834,30 @@ public sealed partial class MobileShellView : UserControl
         }
     }
 
+    private async void Disconnect_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        var viewModel = _viewModel;
+        this.FindControl<Avalonia.Controls.Button>("MobileMenuButton")?.Flyout?.Hide();
+        HideToolOverlay();
+
+        if (viewModel is null || viewModel.IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            if (viewModel.IsConnected && viewModel.DisconnectCommand.CanExecute(null))
+            {
+                await viewModel.DisconnectCommand.ExecuteAsync(null);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.Error("KillerMudClient", $"Nie udało się rozłączyć: {exception}");
+        }
+    }
+
     private void OpenAutomation_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         OpenToolOverlay("Automaty", "MobileAutomationPanel");

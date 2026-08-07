@@ -314,6 +314,11 @@
                       MinHeight="44"
                       IsEnabled="{Binding !IsBusy}"
                       Click="SwitchProfile_OnClick" />
+              <Button Content="🔌  Rozłącz"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      IsEnabled="{Binding !IsBusy}"
+                      Click="Disconnect_OnClick" />
               <Button Content="⚙  Ustawienia"
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
