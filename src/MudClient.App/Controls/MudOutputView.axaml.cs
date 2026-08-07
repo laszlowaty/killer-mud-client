@@ -358,6 +358,14 @@ public partial class MudOutputView : UserControl
             return;
         }
 
+        // Only split when the user explicitly scrolls, not when layout changes
+        // (like opening/closing the keyboard or the map, which changes Viewport)
+        // or when new text arrives (Extent).
+        if (e.ViewportDelta.Y != 0 || e.ExtentDelta.Y != 0)
+        {
+            return;
+        }
+
         if (distanceFromBottom > splitActivationThreshold
             && !_isSplitMode
             && e.OffsetDelta.Y < 0)
