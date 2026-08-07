@@ -2,17 +2,127 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:controls="using:MudClient.App.Controls"
+             x:Name="MobileAutomationRoot"
              x:Class="MudClient.Android.Views.MobileAutomationView"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="TimerItemTemplate" x:DataType="models:TimerEntry">
+      <Border Classes="mud-section" Padding="12" Margin="0,3">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
+          <TextBlock Text="{Binding CommandsText}"
+                     Classes="mud-muted"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <ToggleButton Grid.Column="0"
+                          Content="{Binding StatusText}"
+                          Command="{Binding DataContext.ToggleTimerCommand, ElementName=MobileAutomationRoot}"
+                          CommandParameter="{Binding}"
+                          HorizontalAlignment="Left"
+                          MinWidth="120"
+                          MinHeight="44" />
+            <Button Grid.Column="1"
+                    Content="✎"
+                    Command="{Binding DataContext.EditTimerCommand, ElementName=MobileAutomationRoot}"
+                    CommandParameter="{Binding}"
+                    MinWidth="44"
+                    MinHeight="44" />
+            <Button Grid.Column="2"
+                    Content="✕"
+                    Classes="mud-danger"
+                    Command="{Binding DataContext.DeleteTimerCommand, ElementName=MobileAutomationRoot}"
+                    CommandParameter="{Binding}"
+                    MinWidth="44"
+                    MinHeight="44" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RuleItemTemplate" x:DataType="models:AutomationRuleEntry">
+      <Border Classes="mud-section" Padding="12" Margin="0,3">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <ToggleButton Grid.Column="0"
+                        Content="{Binding StatusText}"
+                        Command="{Binding DataContext.ToggleRuleCommand, ElementName=MobileAutomationRoot}"
+                        CommandParameter="{Binding}"
+                        HorizontalAlignment="Left"
+                        MinWidth="120"
+                        MinHeight="44" />
+            <Button Grid.Column="1"
+                  Content="✎"
+                  Command="{Binding DataContext.EditRuleCommand, ElementName=MobileAutomationRoot}"
+                  CommandParameter="{Binding}"
+                  MinWidth="44"
+                  MinHeight="44" />
+            <Button Grid.Column="2"
+                  Content="✕"
+                  Classes="mud-danger"
+                  Command="{Binding DataContext.DeleteRuleCommand, ElementName=MobileAutomationRoot}"
+                  CommandParameter="{Binding}"
+                  MinWidth="44"
+                  MinHeight="44" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ScriptItemTemplate" x:DataType="models:ScriptEntry">
+      <Border Classes="mud-section" Padding="12" Margin="0,3">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
+                     Classes="mud-faint" />
+          <TextBlock Text="{Binding Code}" Classes="mud-muted"
+                     TextWrapping="Wrap" MaxHeight="80" />
+          <TextBlock Text="{Binding LastError}"
+                     Foreground="{StaticResource MudBrushCrimsonBright}"
+                     IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+            <ToggleButton Content="{Binding StatusText}"
+                          Command="{Binding DataContext.ToggleScriptCommand, ElementName=MobileAutomationRoot}"
+                          CommandParameter="{Binding}"
+                          HorizontalAlignment="Left" MinWidth="110" MinHeight="44" />
+            <Button Grid.Column="1" Content="▶"
+                    Command="{Binding DataContext.RunScriptCommand, ElementName=MobileAutomationRoot}"
+                    CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+            <Button Grid.Column="2" Content="✎"
+                    Command="{Binding DataContext.EditScriptCommand, ElementName=MobileAutomationRoot}"
+                    CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+            <Button Grid.Column="3" Content="✕" Classes="mud-danger"
+                    Command="{Binding DataContext.DeleteScriptCommand, ElementName=MobileAutomationRoot}"
+                    CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
   <TabControl SelectedIndex="{Binding SelectedAutomationTabIndex, Mode=TwoWay}"
               Classes="mud-subtabs"
               Margin="12">
     <TabItem Header="Timery">
       <Grid RowDefinitions="Auto,*">
-        <Button Content="＋ Nowy timer"
-                Command="{Binding StartAddTimerCommand}"
-                Margin="0,0,0,8"
-                MinHeight="44" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+          <Button Content="＋ Nowy timer"
+                  Command="{Binding StartAddTimerCommand}"
+                  MinHeight="44" />
+          <Button Grid.Column="1" Content="📁 Folder"
+                  Command="{Binding CreateFolderCommand}"
+                  CommandParameter="{x:Static models:FolderKind.Timers}"
+                  MinHeight="44" />
+        </Grid>
         <ScrollViewer Grid.Row="1">
           <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
@@ -45,46 +155,15 @@
                 </Grid>
               </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding Timers}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:TimerEntry">
-                  <Border Classes="mud-section" Padding="12" Margin="0,3">
-                    <StackPanel Spacing="6">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding IntervalText}" Classes="mud-faint" />
-                      <TextBlock Text="{Binding CommandsText}"
-                                 Classes="mud-muted"
-                                 TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding LastError}"
-                                 Foreground="{StaticResource MudBrushCrimsonBright}"
-                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
-                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                        <ToggleButton Grid.Column="0"
-                                      Content="{Binding StatusText}"
-                                      Command="{Binding $parent[UserControl].DataContext.ToggleTimerCommand}"
-                                      CommandParameter="{Binding}"
-                                      HorizontalAlignment="Left"
-                                      MinWidth="120"
-                                      MinHeight="44" />
-                        <Button Grid.Column="1"
-                                Content="✎"
-                                Command="{Binding $parent[UserControl].DataContext.EditTimerCommand}"
-                                CommandParameter="{Binding}"
-                                MinWidth="44"
-                                MinHeight="44" />
-                        <Button Grid.Column="2"
-                                Content="✕"
-                                Classes="mud-danger"
-                                Command="{Binding $parent[UserControl].DataContext.DeleteTimerCommand}"
-                                CommandParameter="{Binding}"
-                                MinWidth="44"
-                                MinHeight="44" />
-                      </Grid>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <controls:FolderTreeView Nodes="{Binding TimerTree}"
+                                     ItemTemplate="{StaticResource TimerItemTemplate}"
+                                     SupportsEnableToggle="True"
+                                     MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
+                                     CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                                     RenameFolderCommand="{Binding RenameFolderCommand}"
+                                     DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=MobileAutomationRoot}"
+                                     ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                                     ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -92,10 +171,15 @@
 
     <TabItem Header="Aliasy">
       <Grid RowDefinitions="Auto,*">
-        <Button Content="＋ Nowy alias"
-                Command="{Binding StartAddAliasCommand}"
-                Margin="0,0,0,8"
-                MinHeight="44" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+          <Button Content="＋ Nowy alias"
+                  Command="{Binding StartAddAliasCommand}"
+                  MinHeight="44" />
+          <Button Grid.Column="1" Content="📁 Folder"
+                  Command="{Binding CreateFolderCommand}"
+                  CommandParameter="{x:Static models:FolderKind.Aliases}"
+                  MinHeight="44" />
+        </Grid>
         <ScrollViewer Grid.Row="1">
           <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
@@ -128,44 +212,15 @@
                 </Grid>
               </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding AliasRules}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:AutomationRuleEntry">
-                  <Border Classes="mud-section" Padding="12" Margin="0,3">
-                    <StackPanel Spacing="6">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding LastError}"
-                                 Foreground="{StaticResource MudBrushCrimsonBright}"
-                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
-                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                        <ToggleButton Grid.Column="0"
-                                    Content="{Binding StatusText}"
-                                    Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
-                                    CommandParameter="{Binding}"
-                                    HorizontalAlignment="Left"
-                                    MinWidth="120"
-                                    MinHeight="44" />
-                        <Button Grid.Column="1"
-                              Content="✎"
-                              Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
-                              CommandParameter="{Binding}"
-                              MinWidth="44"
-                              MinHeight="44" />
-                        <Button Grid.Column="2"
-                              Content="✕"
-                              Classes="mud-danger"
-                              Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
-                              CommandParameter="{Binding}"
-                              MinWidth="44"
-                              MinHeight="44" />
-                      </Grid>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <controls:FolderTreeView Nodes="{Binding AliasTree}"
+                                     ItemTemplate="{StaticResource RuleItemTemplate}"
+                                     SupportsEnableToggle="True"
+                                     MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
+                                     CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                                     RenameFolderCommand="{Binding RenameFolderCommand}"
+                                     DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=MobileAutomationRoot}"
+                                     ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                                     ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -173,10 +228,15 @@
 
     <TabItem Header="Triggery">
       <Grid RowDefinitions="Auto,*">
-        <Button Content="＋ Nowy trigger"
-                Command="{Binding StartAddTriggerCommand}"
-                Margin="0,0,0,8"
-                MinHeight="44" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+          <Button Content="＋ Nowy trigger"
+                  Command="{Binding StartAddTriggerCommand}"
+                  MinHeight="44" />
+          <Button Grid.Column="1" Content="📁 Folder"
+                  Command="{Binding CreateFolderCommand}"
+                  CommandParameter="{x:Static models:FolderKind.Triggers}"
+                  MinHeight="44" />
+        </Grid>
         <ScrollViewer Grid.Row="1">
           <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section"
@@ -209,44 +269,15 @@
                 </Grid>
               </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding TriggerRules}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:AutomationRuleEntry">
-                  <Border Classes="mud-section" Padding="12" Margin="0,3">
-                    <StackPanel Spacing="6">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Pattern}" Classes="mud-faint" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding Action}" Classes="mud-muted" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding LastError}"
-                                 Foreground="{StaticResource MudBrushCrimsonBright}"
-                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
-                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                        <ToggleButton Grid.Column="0"
-                                    Content="{Binding StatusText}"
-                                    Command="{Binding $parent[UserControl].DataContext.ToggleRuleCommand}"
-                                    CommandParameter="{Binding}"
-                                    HorizontalAlignment="Left"
-                                    MinWidth="120"
-                                    MinHeight="44" />
-                        <Button Grid.Column="1"
-                              Content="✎"
-                              Command="{Binding $parent[UserControl].DataContext.EditRuleCommand}"
-                              CommandParameter="{Binding}"
-                              MinWidth="44"
-                              MinHeight="44" />
-                        <Button Grid.Column="2"
-                              Content="✕"
-                              Classes="mud-danger"
-                              Command="{Binding $parent[UserControl].DataContext.DeleteRuleCommand}"
-                              CommandParameter="{Binding}"
-                              MinWidth="44"
-                              MinHeight="44" />
-                      </Grid>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <controls:FolderTreeView Nodes="{Binding TriggerTree}"
+                                     ItemTemplate="{StaticResource RuleItemTemplate}"
+                                     SupportsEnableToggle="True"
+                                     MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
+                                     CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                                     RenameFolderCommand="{Binding RenameFolderCommand}"
+                                     DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=MobileAutomationRoot}"
+                                     ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                                     ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -254,10 +285,15 @@
 
     <TabItem Header="Skrypty">
       <Grid RowDefinitions="Auto,*">
-        <Button Content="＋ Nowy skrypt"
-                Command="{Binding StartAddScriptCommand}"
-                Margin="0,0,0,8"
-                MinHeight="44" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+          <Button Content="＋ Nowy skrypt"
+                  Command="{Binding StartAddScriptCommand}"
+                  MinHeight="44" />
+          <Button Grid.Column="1" Content="📁 Folder"
+                  Command="{Binding CreateFolderCommand}"
+                  CommandParameter="{x:Static models:FolderKind.Scripts}"
+                  MinHeight="44" />
+        </Grid>
         <ScrollViewer Grid.Row="1">
           <StackPanel Margin="0,0,0,4" Spacing="8">
             <Border Classes="mud-section" Padding="12"
@@ -286,39 +322,15 @@
               </StackPanel>
             </Border>
 
-            <ItemsControl ItemsSource="{Binding Scripts}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:ScriptEntry">
-                  <Border Classes="mud-section" Padding="12" Margin="0,3">
-                    <StackPanel Spacing="6">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
-                                 Classes="mud-faint" />
-                      <TextBlock Text="{Binding Code}" Classes="mud-muted"
-                                 TextWrapping="Wrap" MaxHeight="80" />
-                      <TextBlock Text="{Binding LastError}"
-                                 Foreground="{StaticResource MudBrushCrimsonBright}"
-                                 IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-                        <ToggleButton Content="{Binding StatusText}"
-                                      Command="{Binding $parent[UserControl].DataContext.ToggleScriptCommand}"
-                                      CommandParameter="{Binding}"
-                                      HorizontalAlignment="Left" MinWidth="110" MinHeight="44" />
-                        <Button Grid.Column="1" Content="▶"
-                                Command="{Binding $parent[UserControl].DataContext.RunScriptCommand}"
-                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
-                        <Button Grid.Column="2" Content="✎"
-                                Command="{Binding $parent[UserControl].DataContext.EditScriptCommand}"
-                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
-                        <Button Grid.Column="3" Content="✕" Classes="mud-danger"
-                                Command="{Binding $parent[UserControl].DataContext.DeleteScriptCommand}"
-                                CommandParameter="{Binding}" MinWidth="44" MinHeight="44" />
-                      </Grid>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <controls:FolderTreeView Nodes="{Binding ScriptTree}"
+                                     ItemTemplate="{StaticResource ScriptItemTemplate}"
+                                     SupportsEnableToggle="True"
+                                     MoveIntoFolderCommand="{Binding MoveIntoFolderCommand}"
+                                     CreateSubfolderCommand="{Binding CreateSubfolderCommand}"
+                                     RenameFolderCommand="{Binding RenameFolderCommand}"
+                                     DeleteFolderCommand="{Binding ConfirmDeleteFolderCommand, ElementName=MobileAutomationRoot}"
+                                     ToggleFolderGlobalCommand="{Binding ToggleFolderGlobalCommand}"
+                                     ToggleFolderEnabledCommand="{Binding ToggleFolderEnabledCommand}" />
 
             <Border Classes="mud-section" Padding="12">
               <StackPanel Spacing="8">

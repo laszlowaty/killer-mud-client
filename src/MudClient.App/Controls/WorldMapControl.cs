@@ -456,6 +456,33 @@ public sealed class WorldMapControl : Control
         e.Handled = true;
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        AddHandler(InputElement.PinchEvent, OnPinch);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        RemoveHandler(InputElement.PinchEvent, OnPinch);
+    }
+
+    private void OnPinch(object? sender, PinchEventArgs e)
+    {
+        var worldBefore = ScreenToWorld(e.ScaleOrigin);
+
+        _zoom = Math.Clamp(_zoom * e.Scale, _settings.MinimumZoom, _settings.MaximumZoom);
+
+        var worldAfter = ScreenToWorld(e.ScaleOrigin);
+
+        _cameraX += worldBefore.X - worldAfter.X;
+        _cameraY += worldBefore.Y - worldAfter.Y;
+
+        RequestInvalidateVisual();
+        e.Handled = true;
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);

@@ -24,30 +24,39 @@
             BorderThickness="0,0,0,1">
       <Grid RowDefinitions="Auto,*">
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,Auto,Auto,*,Auto"
+              ColumnDefinitions="*,*,*,Auto"
               ColumnSpacing="4"
               Margin="8,6,108,5">
           <ToggleButton x:Name="MapTabButton"
                         Grid.Column="0"
-                        Content="MAPA"
                         IsChecked="True"
                         MinHeight="34"
-                        Padding="12,4"
-                        Click="MapTab_OnClick" />
+                        Padding="4,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="MapTab_OnClick">
+            <TextBlock Text="MAPA" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </ToggleButton>
           <ToggleButton x:Name="BuffsTabButton"
                         Grid.Column="1"
-                        Content="BUFFY"
                         MinHeight="34"
-                        Padding="12,4"
-                        Click="BuffsTab_OnClick" />
+                        Padding="4,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="BuffsTab_OnClick">
+            <TextBlock Text="BUFFY" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </ToggleButton>
           <ToggleButton x:Name="GroupTabButton"
                         Grid.Column="2"
-                        Content="DRUŻYNA"
                         MinHeight="34"
-                        Padding="12,4"
-                        Click="GroupTab_OnClick" />
+                        Padding="4,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="GroupTab_OnClick">
+            <TextBlock Text="DRUŻYNA" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </ToggleButton>
           <ToggleButton x:Name="PanelFullscreenToggle"
-                        Grid.Column="4"
+                        Grid.Column="3"
                         Width="38"
                         Height="34"
                         Padding="0"
