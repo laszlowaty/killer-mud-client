@@ -24,5 +24,15 @@
   { "name": "Zlecenia mistrza w Obilionie", "region": "Obilion", "giver": "Mistrz złodziejski" },
   { "name": "Bandyci przy zajeździe Kraken", "region": "Zajazd Kraken", "giver": "Młody poraniony mężczyzna" },
   { "name": "Próby Raszerów", "region": "Szkoły klasowe", "giver": "Raszer" },
-  { "name": "Większe zlecenie gildii w Silei", "region": "Silea", "giver": "Pracownik Gildii Łowców Głów" }
+  { "name": "Większe zlecenie gildii w Silei", "region": "Silea", "giver": "Pracownik Gildii Łowców Głów" },
+  { "name": "Podkowa stajennego z Krakenu", "region": "Zajazd Kraken", "giver": "Stajenny chłopak" },
+  { "name": "Zagubiona podkowa stajennego w karczmie pod Carrallak", "region": "Carrallak", "giver": "Chłopak stajenny" },
+  { "name": "Maść dla Lerurda", "region": "Różne", "giver": "Mag Lerurd" },
+  { "name": "Mikstura wiedźmy Gh'aty", "region": "Północny zachód", "giver": "Wiedźma Ho'Ghata" },
+  { "name": "Kantyczka paschalna", "region": "Biblioteka Naukowa", "giver": "Brat Chaunticleer" },
+  { "name": "Świecąca tulejka Avery'ego", "region": "Biblioteka Naukowa", "giver": "Avery" },
+  { "name": "Zabójcza groza w katakumbach Biblioteki", "region": "Biblioteka Naukowa", "giver": "Dziekan Thobikus" },
+  { "name": "Ślad ojca Vergrigma Otracla", "region": "Opuszczona sztolnia", "giver": "Vergrigm Otracl" },
+  { "name": "Zioła dla druida Enselara", "region": "Różne", "giver": "Everyh" },
+  { "name": "Spis urzędnika Silei", "region": "Silea", "giver": "Burmistrz Silei" }
 ]
