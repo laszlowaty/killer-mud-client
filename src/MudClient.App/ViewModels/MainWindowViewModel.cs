@@ -2143,9 +2143,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<TimerEntry> Timers { get; } = [];
 
-    // --- Skill-ready notices (live, from Char.Skills.Timeout GMCP) — shown alongside Timers. ---
-    public ObservableCollection<SkillReadyEntry> SkillReadyNotices { get; } = [];
-
     // --- Skills currently on cooldown (live, from Char.Skills.Timeout GMCP) — shown as
     // "* skillname" alongside Timers for as long as the skill's timeout stays true. ---
     public ObservableCollection<string> SkillsOnCooldown { get; } = [];
@@ -6448,14 +6445,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
-    /// <summary>Not readonly — overridden via reflection in tests to avoid a real 10s wait.</summary>
-    private static TimeSpan SkillReadyNoticeLifetime = TimeSpan.FromSeconds(10);
-
     /// <summary>
-    /// Char.Skills.Timeout reports the current snapshot of skills on cooldown. While a skill's
-    /// timeout stays true it shows up persistently in SkillsOnCooldown ("* skillname"); once it
-    /// flips to timeout=false or drops out of the snapshot entirely, it's removed from there and
-    /// a transient "ready again" notice is shown instead.
+    /// Char.Skills.Timeout reports the current snapshot of skills on cooldown. Only skills
+    /// currently unusable are surfaced (SkillsOnCooldown, "* skillname") — there is no separate
+    /// "ready again" notice, since a skill simply disappearing from that list already says it can
+    /// be used again.
     /// </summary>
     private void OnSkillTimeoutsChanged(IReadOnlyList<SkillTimeoutEntry> entries)
     {
@@ -6465,12 +6459,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             foreach (var entry in entries)
             {
                 seen.Add(entry.Name);
-                var wasOnCooldown = _lastSkillTimeouts.TryGetValue(entry.Name, out var previous) && previous;
-                if (wasOnCooldown && !entry.Timeout)
-                {
-                    AnnounceSkillReady(entry.Name);
-                }
-
                 _lastSkillTimeouts[entry.Name] = entry.Timeout;
                 SetSkillOnCooldown(entry.Name, entry.Timeout);
             }
@@ -6482,7 +6470,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     continue;
                 }
 
-                AnnounceSkillReady(name);
                 _lastSkillTimeouts.Remove(name);
                 SetSkillOnCooldown(name, onCooldown: false);
             }
@@ -6512,24 +6499,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             SkillsOnCooldown.RemoveAt(index);
         }
-    }
-
-    private void AnnounceSkillReady(string skillName)
-    {
-        var entry = new SkillReadyEntry(skillName);
-        SkillReadyNotices.Add(entry);
-        while (SkillReadyNotices.Count > 10)
-        {
-            SkillReadyNotices.RemoveAt(0);
-        }
-
-        _ = RemoveSkillReadyNoticeAfterDelayAsync(entry);
-    }
-
-    private async Task RemoveSkillReadyNoticeAfterDelayAsync(SkillReadyEntry entry)
-    {
-        await Task.Delay(SkillReadyNoticeLifetime);
-        Dispatcher.UIThread.Post(() => SkillReadyNotices.Remove(entry));
     }
 
     private void OnCharacterConditionChanged(CharacterConditionUpdate update)

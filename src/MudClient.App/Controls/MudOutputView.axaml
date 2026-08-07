@@ -14,11 +14,15 @@
     </Border.ContextMenu>
     <Grid x:Name="OutputGrid" RowDefinitions="*,Auto,0">
       <!-- Upper pane: scrollback buffer (manual scroll). Content is an OutputPaneControl
-           created in code-behind; it virtualizes rendering via ILogicalScrollable. -->
+           created in code-behind; it virtualizes rendering via ILogicalScrollable.
+           AllowAutoHide=False keeps the vertical scrollbar always visible and immediately
+           draggable (rather than Fluent's default thin overlay that only expands on hover),
+           so history can be navigated by dragging the thumb, not just the mouse wheel. -->
       <ScrollViewer Grid.Row="0"
                     x:Name="ScrollbackScroller"
                     HorizontalScrollBarVisibility="Auto"
-                    VerticalScrollBarVisibility="Auto" />
+                    VerticalScrollBarVisibility="Auto"
+                    AllowAutoHide="False" />
 
       <!-- Split bar. The button provides an explicit alternative to scrolling back
            to the bottom; a middle click anywhere in this control does the same. -->
