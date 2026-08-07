@@ -67,8 +67,13 @@
                     <TextBlock Text="{Binding UpdateNotificationText}"
                                TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                      <Button Content="Aktualizuj"
+                              Command="{Binding InstallAppUpdateCommand}"
+                              IsVisible="{Binding CanInstallAppUpdate}"
+                              Classes="mud-small" />
                       <Button Content="Pobierz"
                               Command="{Binding OpenUpdateReleaseCommand}"
+                              IsVisible="{Binding !CanInstallAppUpdate}"
                               Classes="mud-small" />
                       <Button Content="Lista zmian"
                               Command="{Binding OpenChangelogCommand}"

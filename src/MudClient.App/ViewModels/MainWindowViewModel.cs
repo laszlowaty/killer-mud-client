@@ -97,6 +97,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly IUpdateCheckService _updateCheckService;
     private readonly IContentUpdateService _contentUpdateService;
     private readonly IExternalLinkService _externalLinkService;
+    private readonly IAppUpdateInstaller? _appUpdateInstaller;
     private readonly IPasswordProtector _passwordProtector;
     private CancellationTokenSource? _updateCheckCts;
     private Task? _updateCheckTask;
@@ -256,6 +257,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         IUpdateCheckService? updateCheckService = null,
         IExternalLinkService? externalLinkService = null,
         IContentUpdateService? contentUpdateService = null,
+        IAppUpdateInstaller? appUpdateInstaller = null,
         string? appBaseDirectory = null,
         IPasswordProtector? passwordProtector = null,
         TimeSpan? toastLifetime = null)
@@ -286,6 +288,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _bookCatalogRefreshCoordinator = bookCatalogRefreshCoordinator ?? new BookCatalogRefreshCoordinator();
         _updateCheckService = updateCheckService ?? new UpdateCheckService();
         _contentUpdateService = contentUpdateService ?? new ContentUpdateService(_settingsService.DirectoryPath);
+        _appUpdateInstaller = appUpdateInstaller;
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
         _passwordProtector = passwordProtector ?? new DpapiPasswordProtector();
         Killeropedia = CreateKilleropediaViewModel();
@@ -440,6 +443,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         });
         OpenDiscordCommand = new RelayCommand(() => OpenExternalLink(DiscordInviteUri));
         OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
+        InstallAppUpdateCommand = new AsyncRelayCommand(
+            InstallAppUpdateAsync,
+            () => AvailableUpdate is not null && _appUpdateInstaller?.CanInstallUpdates == true);
         OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
         DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
         CheckContentUpdatesCommand = new AsyncRelayCommand(
@@ -521,6 +527,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public IRelayCommand OpenUpdateReleaseCommand { get; }
 
+    public IAsyncRelayCommand InstallAppUpdateCommand { get; }
+
     public IRelayCommand OpenChangelogCommand { get; }
 
     public IRelayCommand DismissUpdateCommand { get; }
@@ -543,6 +551,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     public bool IsUpdateAvailable => AvailableUpdate is not null;
+
+    public bool CanInstallAppUpdate => _appUpdateInstaller?.CanInstallUpdates == true;
 
     public string UpdateNotificationText => AvailableUpdate is { } update
         ? $"Dostępna jest wersja {update.Version}{(update.IsPrerelease ? " (beta)" : string.Empty)}."
@@ -840,6 +850,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         finally
         {
             IsContentUpdateBusy = false;
+        }
+    }
+
+    private async Task InstallAppUpdateAsync(CancellationToken cancellationToken)
+    {
+        var update = AvailableUpdate;
+        if (update is null || _appUpdateInstaller?.CanInstallUpdates != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await _appUpdateInstaller.DownloadAndInstallUpdateAsync(update, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Canceled
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Aktualizacja nie powiodła się: {exception.Message}", "error");
         }
     }
 

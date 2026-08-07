@@ -57,6 +57,7 @@ public sealed class MobileSessionHost
                 settingsService: new AppSettingsService(dataDirectory),
                 dockLayoutService: new DockLayoutService(dataDirectory),
                 layoutPresetService: new LayoutPresetService(dataDirectory),
+                appUpdateInstaller: new AndroidAppUpdateInstaller(_context),
                 appBaseDirectory: appBaseDirectory,
                 passwordProtector: new AndroidKeystorePasswordProtector());
 
