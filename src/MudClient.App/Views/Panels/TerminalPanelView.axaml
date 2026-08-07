@@ -108,7 +108,8 @@
                  MaxHeight="120"
                  textInput:TextInputOptions.Multiline="False"
                  textInput:TextInputOptions.ReturnKeyType="Send"
-                 KeyDown="CommandBox_OnKeyDown" />
+                 KeyDown="CommandBox_OnKeyDown"
+                 GotFocus="CommandBox_OnGotFocus" />
         <TextBox Grid.Column="1"
                  x:Name="SearchBox"
                  IsVisible="{Binding !#TerminalRoot.IsCompact}"

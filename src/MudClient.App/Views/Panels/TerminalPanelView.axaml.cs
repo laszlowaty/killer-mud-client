@@ -266,6 +266,14 @@ public sealed partial class TerminalPanelView : UserControl
         }
     }
 
+    private void CommandBox_OnGotFocus(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            Dispatcher.UIThread.Post(() => _commandBox.SelectAll(), DispatcherPriority.Background);
+        }
+    }
+
     private bool IsCaretOnFirstLine()
     {
         var text = _commandBox.Text ?? string.Empty;
