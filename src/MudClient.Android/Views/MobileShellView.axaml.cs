@@ -844,11 +844,6 @@ public sealed partial class MobileShellView : UserControl
         OpenToolOverlay("Autowalk", "MobileAutowalkPanel");
     }
 
-    private void OpenGroup_OnClick(object? sender, RoutedEventArgs eventArgs)
-    {
-        OpenToolOverlay("Drużyna", "MobileGroupPanel");
-    }
-
     private void OpenHelp_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         OpenToolOverlay("Pomoc", "MobileHelpPanel");
@@ -888,39 +883,31 @@ public sealed partial class MobileShellView : UserControl
     }
 
     private void MapTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        SelectAuxiliaryTab(showBuffs: false);
+        SelectAuxiliaryTab("Map");
 
     private void BuffsTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        SelectAuxiliaryTab(showBuffs: true);
+        SelectAuxiliaryTab("Buffs");
 
-    private void SelectAuxiliaryTab(bool showBuffs)
+    private void GroupTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        SelectAuxiliaryTab("Group");
+
+    private void SelectAuxiliaryTab(string activeTab)
     {
-        var mapButton =
-            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapTabButton");
-        var buffsButton =
-            this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("BuffsTabButton");
+        var mapButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapTabButton");
+        var buffsButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("BuffsTabButton");
+        var groupButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("GroupTabButton");
+        
         var mapPanel = this.FindControl<Control>("MobileMapPanel");
         var buffsPanel = this.FindControl<Control>("MobileBuffsPanel");
+        var groupPanel = this.FindControl<Control>("MobileGroupPanel");
 
-        if (mapButton is not null)
-        {
-            mapButton.IsChecked = !showBuffs;
-        }
+        if (mapButton is not null) mapButton.IsChecked = activeTab == "Map";
+        if (buffsButton is not null) buffsButton.IsChecked = activeTab == "Buffs";
+        if (groupButton is not null) groupButton.IsChecked = activeTab == "Group";
 
-        if (buffsButton is not null)
-        {
-            buffsButton.IsChecked = showBuffs;
-        }
-
-        if (mapPanel is not null)
-        {
-            mapPanel.IsVisible = !showBuffs;
-        }
-
-        if (buffsPanel is not null)
-        {
-            buffsPanel.IsVisible = showBuffs;
-        }
+        if (mapPanel is not null) mapPanel.IsVisible = activeTab == "Map";
+        if (buffsPanel is not null) buffsPanel.IsVisible = activeTab == "Buffs";
+        if (groupPanel is not null) groupPanel.IsVisible = activeTab == "Group";
     }
 
     private void PanelFullscreen_OnClick(
@@ -999,7 +986,6 @@ public sealed partial class MobileShellView : UserControl
                      "MobileSettingsPanel",
                      "MobileAutomationPanel",
                      "MobileAutowalkPanel",
-                     "MobileGroupPanel",
                      "MobileHelpPanel",
                  })
         {

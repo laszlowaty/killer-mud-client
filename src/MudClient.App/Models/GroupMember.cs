@@ -18,6 +18,8 @@ public sealed record GroupMember
     public bool IsNpc { get; }
     public string? Room { get; }
 
+    public string ShortName => Name.Length > 3 ? Name.Substring(0, 3) : Name;
+
     /// <summary>
     /// Final display string for the room column. Set by the view model after
     /// resolving the raw <see cref="Room"/> vnum through the loaded map index.

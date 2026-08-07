@@ -24,7 +24,7 @@
             BorderThickness="0,0,0,1">
       <Grid RowDefinitions="Auto,*">
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,Auto,*,Auto"
+              ColumnDefinitions="Auto,Auto,Auto,*,Auto"
               ColumnSpacing="4"
               Margin="8,6,108,5">
           <ToggleButton x:Name="MapTabButton"
@@ -40,8 +40,14 @@
                         MinHeight="34"
                         Padding="12,4"
                         Click="BuffsTab_OnClick" />
+          <ToggleButton x:Name="GroupTabButton"
+                        Grid.Column="2"
+                        Content="DRUŻYNA"
+                        MinHeight="34"
+                        Padding="12,4"
+                        Click="GroupTab_OnClick" />
           <ToggleButton x:Name="PanelFullscreenToggle"
-                        Grid.Column="3"
+                        Grid.Column="4"
                         Width="38"
                         Height="34"
                         Padding="0"
@@ -69,6 +75,9 @@
         <panels:BuffsPanelView x:Name="MobileBuffsPanel"
                               Grid.Row="1"
                               IsVisible="False" />
+        <local:MobileGroupPanelView x:Name="MobileGroupPanel"
+                               Grid.Row="1"
+                               IsVisible="False" />
       </Grid>
     </Border>
 
@@ -308,10 +317,6 @@
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
                       Click="OpenAutowalk_OnClick" />
-              <Button Content="👥  Drużyna"
-                      HorizontalContentAlignment="Left"
-                      MinHeight="44"
-                      Click="OpenGroup_OnClick" />
               <Button Content="❓  Pomoc"
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
@@ -351,9 +356,6 @@
         <panels:AutowalkPanelView x:Name="MobileAutowalkPanel"
                                   Grid.Row="1"
                                   IsVisible="False" />
-        <panels:GroupPanelView x:Name="MobileGroupPanel"
-                               Grid.Row="1"
-                               IsVisible="False" />
         <local:MobileHelpView x:Name="MobileHelpPanel"
                               Grid.Row="1"
                               IsVisible="False" />

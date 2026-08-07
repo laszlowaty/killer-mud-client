@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MudClient.App.ViewModels"
+             xmlns:models="using:MudClient.App.Models"
+             x:Class="MudClient.Android.Views.MobileGroupPanelView"
+             x:Name="MobileGroupPanelRoot"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="2" Margin="12">
+      <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                 Text="{Binding GroupEmptyMessage}"
+                 IsVisible="{Binding !Group.Count}" />
+      
+      <ItemsControl x:Name="GroupMembersList" ItemsSource="{Binding Group}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:GroupMember">
+            <Border Width="68" Height="68" Margin="4"
+                    CornerRadius="8"
+                    BorderBrush="{StaticResource MudBrushGoldDim}"
+                    BorderThickness="1"
+                    ClipToBounds="True"
+                    ToolTip.Tip="{Binding Name}">
+              <Border.ContextMenu>
+                <ContextMenu x:DataType="models:GroupMember"
+                             Opened="GroupContextMenu_OnOpened"
+                             Closed="GroupContextMenu_OnClosed">
+                  <MenuItem Header="goto room"
+                            Command="{Binding #MobileGroupPanelRoot.DataContext.LordGotoGroupRoomCommand}"
+                            CommandParameter="{Binding}"
+                            IsVisible="{Binding #MobileGroupPanelRoot.DataContext.LordModeEnabled}" />
+                  <MenuItem Header="{Binding Name, StringFormat='goto {0}'}"
+                            Command="{Binding #MobileGroupPanelRoot.DataContext.LordGotoGroupMemberCommand}"
+                            CommandParameter="{Binding}"
+                            IsVisible="{Binding #MobileGroupPanelRoot.DataContext.LordModeEnabled}" />
+                </ContextMenu>
+              </Border.ContextMenu>
+
+              <Grid>
+                <ProgressBar Minimum="0" Maximum="100"
+                             Value="{Binding HpPercent}"
+                             Orientation="Vertical"
+                             Background="Transparent"
+                             Foreground="{StaticResource MudBrushCrimson}"
+                             VerticalAlignment="Stretch"
+                             HorizontalAlignment="Stretch"
+                             BorderThickness="0" />
+                <Border Background="#66000000" />
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                  <TextBlock Text="{Binding ShortName}"
+                             FontWeight="SemiBold"
+                             FontSize="18"
+                             Foreground="White"
+                             HorizontalAlignment="Center" />
+                  <TextBlock Text="*"
+                             Foreground="{StaticResource MudBrushGoldBright}"
+                             FontSize="16"
+                             Height="16"
+                             IsVisible="{Binding IsLeader}"
+                             HorizontalAlignment="Center" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
