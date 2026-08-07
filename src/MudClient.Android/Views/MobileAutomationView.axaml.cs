@@ -1,8 +1,6 @@
-using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.Input;
-using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 
@@ -12,38 +10,23 @@ public sealed partial class MobileAutomationView : UserControl
 {
     private MainWindowViewModel? _viewModel;
 
-    internal Func<Window, string, string, Task<bool>> ConfirmDeletionAsync { get; set; } =
-        DeleteConfirmationDialog.ShowAsync;
-
     public MobileAutomationView()
     {
-        ConfirmDeleteFolderCommand = new AsyncRelayCommand<FolderNode>(ConfirmDeleteFolderAsync);
+        ConfirmDeleteFolderCommand = new RelayCommand<FolderNode>(ConfirmDeleteFolder);
         InitializeComponent();
         DataContextChanged += (_, _) => _viewModel = DataContext as MainWindowViewModel;
     }
 
-    public IAsyncRelayCommand<FolderNode> ConfirmDeleteFolderCommand { get; }
+    public IRelayCommand<FolderNode> ConfirmDeleteFolderCommand { get; }
 
-    private async Task ConfirmDeleteFolderAsync(FolderNode? folder)
+    private void ConfirmDeleteFolder(FolderNode? folder)
     {
-        if (folder is null ||
-            _viewModel is null ||
-            TopLevel.GetTopLevel(this) is not Window owner)
+        if (folder is null || _viewModel is null)
         {
             return;
         }
 
-        var itemType = folder.Kind switch
-        {
-            FolderKind.Timers => "folder timerów",
-            FolderKind.Aliases => "folder aliasów",
-            FolderKind.Triggers => "folder triggerów",
-            FolderKind.Scripts => "folder skryptów",
-            _ => "folder",
-        };
-
-        if (await ConfirmDeletionAsync(owner, itemType, folder.Name) &&
-            _viewModel.DeleteFolderCommand.CanExecute(folder))
+        if (_viewModel.DeleteFolderCommand.CanExecute(folder))
         {
             _viewModel.DeleteFolderCommand.Execute(folder);
         }
