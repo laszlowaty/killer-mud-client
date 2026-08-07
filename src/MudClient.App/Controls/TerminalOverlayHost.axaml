@@ -28,5 +28,11 @@
       <Setter Property="Opacity" Value="1" />
     </Style>
   </UserControl.Styles>
-  <StackPanel x:Name="ColumnsPanel" Orientation="Horizontal" HorizontalAlignment="Right" />
+  <!-- Right margin reserves a slim strip at the Terminal's true right edge for its scrollback
+       scrollbar (MudOutputView's ScrollbackScroller, AllowAutoHide="False") — without it, every
+       overlay column (however many, however wide) hugs the right edge and paints over the
+       scrollbar, since both are right-anchored in the same space. This keeps the columns
+       "before" (left of) that strip regardless of column count/width, rather than needing to
+       track the scrollbar's exact width dynamically. -->
+  <StackPanel x:Name="ColumnsPanel" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,20,0" />
 </UserControl>
