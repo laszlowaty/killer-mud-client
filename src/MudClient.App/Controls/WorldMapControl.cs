@@ -90,6 +90,7 @@ public sealed class WorldMapControl : Control
     {
         Focusable = true;
         ClipToBounds = true;
+        GestureRecognizers.Add(new PinchGestureRecognizer());
     }
 
     public event Action<MapRoom?>? RoomClicked;
