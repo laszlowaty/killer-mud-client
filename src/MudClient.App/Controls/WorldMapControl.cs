@@ -473,7 +473,9 @@ public sealed class WorldMapControl : Control
     {
         var worldBefore = ScreenToWorld(e.ScaleOrigin);
 
-        _zoom = Math.Clamp(_zoom * e.Scale, _settings.MinimumZoom, _settings.MaximumZoom);
+        // Reduce pinch-to-zoom sensitivity on touch screens
+        var adjustedScale = 1.0 + (e.Scale - 1.0) * 0.4;
+        _zoom = Math.Clamp(_zoom * adjustedScale, _settings.MinimumZoom, _settings.MaximumZoom);
 
         var worldAfter = ScreenToWorld(e.ScaleOrigin);
 
