@@ -55,11 +55,7 @@
                     Click="DeleteTimer_OnClick" />
           </Grid>
 
-          <Border Classes="mud-inset" Padding="8,5">
-            <TextBlock Text="{Binding CommandsText}"
-                       Foreground="{StaticResource MudBrushParchmentDim}"
-                       TextWrapping="Wrap" />
-          </Border>
+
           <TextBlock Text="{Binding LastError}"
                      Foreground="{StaticResource MudBrushCrimsonBright}"
                      TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
@@ -108,14 +104,11 @@
                     Click="DeleteRule_OnClick" />
           </Grid>
 
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="1">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" RowDefinitions="Auto" RowSpacing="1">
             <TextBlock Grid.Row="0" Grid.Column="0" Classes="mud-faint" Text="Wzorzec" />
             <TextBlock Grid.Row="0" Grid.Column="1" Classes="mud-faint"
                        Text="{Binding Pattern}" TextTrimming="CharacterEllipsis"
                        ToolTip.Tip="{Binding Pattern}" />
-            <TextBlock Grid.Row="1" Grid.Column="0" Classes="mud-faint" Text="Akcja" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Classes="mud-faint"
-                       Text="{Binding Action}" TextWrapping="Wrap" />
           </Grid>
 
         </StackPanel>
@@ -156,11 +149,7 @@
                      TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
           <TextBlock Text="{Binding GmcpPattern, StringFormat='GMCP: {0}'}"
                      Classes="mud-faint" />
-          <TextBlock Text="{Binding Code}" Classes="mud-faint" TextWrapping="Wrap"
-                     MaxHeight="72" />
-          <TextBlock Text="{Binding LastError}"
-                     Foreground="{StaticResource MudBrushCrimsonBright}"
-                     TextWrapping="Wrap" IsVisible="{Binding HasLastError}" />
+
         </StackPanel>
       </Border>
     </DataTemplate>

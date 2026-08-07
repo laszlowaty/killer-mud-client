@@ -29,5 +29,5 @@ public sealed partial class FolderNode : ObservableObject
 
     /// <summary>UI-only: whether the folder is expanded in the tree.</summary>
     [ObservableProperty]
-    private bool _isExpanded = true;
+    private bool _isExpanded = false;
 }
