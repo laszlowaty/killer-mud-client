@@ -844,6 +844,11 @@ public sealed partial class MobileShellView : UserControl
         OpenToolOverlay("Autowalk", "MobileAutowalkPanel");
     }
 
+    private void OpenGroup_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        OpenToolOverlay("Drużyna", "MobileGroupPanel");
+    }
+
     private void OpenHelp_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         OpenToolOverlay("Pomoc", "MobileHelpPanel");
@@ -994,6 +999,7 @@ public sealed partial class MobileShellView : UserControl
                      "MobileSettingsPanel",
                      "MobileAutomationPanel",
                      "MobileAutowalkPanel",
+                     "MobileGroupPanel",
                      "MobileHelpPanel",
                  })
         {

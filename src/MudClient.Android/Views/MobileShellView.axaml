@@ -308,6 +308,10 @@
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
                       Click="OpenAutowalk_OnClick" />
+              <Button Content="👥  Drużyna"
+                      HorizontalContentAlignment="Left"
+                      MinHeight="44"
+                      Click="OpenGroup_OnClick" />
               <Button Content="❓  Pomoc"
                       HorizontalContentAlignment="Left"
                       MinHeight="44"
@@ -347,6 +351,9 @@
         <panels:AutowalkPanelView x:Name="MobileAutowalkPanel"
                                   Grid.Row="1"
                                   IsVisible="False" />
+        <panels:GroupPanelView x:Name="MobileGroupPanel"
+                               Grid.Row="1"
+                               IsVisible="False" />
         <local:MobileHelpView x:Name="MobileHelpPanel"
                               Grid.Row="1"
                               IsVisible="False" />
