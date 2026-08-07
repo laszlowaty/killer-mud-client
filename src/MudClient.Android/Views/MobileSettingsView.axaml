@@ -236,6 +236,24 @@
                      IsVisible="False" />
         </StackPanel>
       </Border>
+      <TextBlock Classes="mud-heading" Text="Aplikacja" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{Binding AppUpdateStatus}"
+                     TextWrapping="Wrap" />
+          <ProgressBar IsIndeterminate="True"
+                       Height="4"
+                       IsVisible="{Binding IsAppUpdateBusy}" />
+          <Button Content="Sprawdź aktualizacje"
+                  Command="{Binding CheckAppUpdatesCommand}"
+                  MinHeight="44" />
+          <Button Content="Pobierz i instaluj"
+                  Command="{Binding InstallAppUpdateCommand}"
+                  MinHeight="44"
+                  IsVisible="{Binding IsUpdateAvailable}"
+                  IsEnabled="{Binding CanInstallAppUpdate}" />
+        </StackPanel>
+      </Border>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

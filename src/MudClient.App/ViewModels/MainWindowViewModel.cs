@@ -127,6 +127,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private bool _isKilleropediaOpen;
     private bool _isHelpOpen;
     private AvailableUpdate? _availableUpdate;
+    private string _appUpdateStatus = "Zainstalowana wersja jest prawdopodobnie najnowsza.";
+    private bool _isAppUpdateBusy;
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
@@ -445,9 +447,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OpenUpdateReleaseCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ReleasePageUri));
         InstallAppUpdateCommand = new AsyncRelayCommand(
             InstallAppUpdateAsync,
-            () => AvailableUpdate is not null && _appUpdateInstaller?.CanInstallUpdates == true);
+            () => AvailableUpdate is not null && _appUpdateInstaller?.CanInstallUpdates == true && !IsAppUpdateBusy);
         OpenChangelogCommand = new RelayCommand(() => OpenExternalLink(AvailableUpdate?.ChangelogUri));
         DismissUpdateCommand = new RelayCommand(() => AvailableUpdate = null);
+        CheckAppUpdatesCommand = new AsyncRelayCommand(
+            cancellationToken => CheckAppUpdatesAsync(reportErrors: true, cancellationToken),
+            () => !IsAppUpdateBusy);
         CheckContentUpdatesCommand = new AsyncRelayCommand(
             cancellationToken => CheckContentUpdatesAsync(reportErrors: true, cancellationToken),
             () => !IsContentUpdateBusy);
@@ -533,9 +538,30 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public IRelayCommand DismissUpdateCommand { get; }
 
+    public IAsyncRelayCommand CheckAppUpdatesCommand { get; }
+
     public IAsyncRelayCommand CheckContentUpdatesCommand { get; }
 
     public IAsyncRelayCommand InstallContentUpdateCommand { get; }
+
+    public string AppUpdateStatus
+    {
+        get => _appUpdateStatus;
+        private set => SetProperty(ref _appUpdateStatus, value);
+    }
+
+    public bool IsAppUpdateBusy
+    {
+        get => _isAppUpdateBusy;
+        private set
+        {
+            if (SetProperty(ref _isAppUpdateBusy, value))
+            {
+                CheckAppUpdatesCommand.NotifyCanExecuteChanged();
+                InstallAppUpdateCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
 
     public AvailableUpdate? AvailableUpdate
     {
@@ -737,18 +763,43 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private async Task CheckForUpdateAsync(CancellationToken cancellationToken)
     {
+        await CheckAppUpdatesAsync(reportErrors: false, cancellationToken);
+    }
+
+    private async Task CheckAppUpdatesAsync(bool reportErrors, CancellationToken cancellationToken)
+    {
+        if (IsAppUpdateBusy)
+        {
+            return;
+        }
+
+        IsAppUpdateBusy = true;
+        AppUpdateStatus = "Sprawdzanie dostępności nowej wersji…";
         try
         {
             AvailableUpdate = await _updateCheckService.CheckForUpdateAsync(cancellationToken);
+            AppUpdateStatus = AvailableUpdate is null
+                ? "Aplikacja jest aktualna."
+                : $"Dostępna nowa wersja: {AvailableUpdate.Version}.";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Closing the application cancels the optional background check.
+            AppUpdateStatus = "Sprawdzanie anulowano.";
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Update discovery is best-effort. Network, remote-data and platform failures must not
-            // interrupt startup or distract the user from the MUD session. The next launch retries.
+            if (reportErrors)
+            {
+                AppUpdateStatus = $"Nie udało się sprawdzić aktualizacji: {exception.Message}";
+            }
+            else
+            {
+                AppUpdateStatus = "Nie udało się sprawdzić aktualizacji automatycznie.";
+            }
+        }
+        finally
+        {
+            IsAppUpdateBusy = false;
         }
     }
 
@@ -856,22 +907,30 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private async Task InstallAppUpdateAsync(CancellationToken cancellationToken)
     {
         var update = AvailableUpdate;
-        if (update is null || _appUpdateInstaller?.CanInstallUpdates != true)
+        if (update is null || _appUpdateInstaller?.CanInstallUpdates != true || IsAppUpdateBusy)
         {
             return;
         }
 
+        IsAppUpdateBusy = true;
+        AppUpdateStatus = "Pobieranie i instalowanie aktualizacji…";
         try
         {
             await _appUpdateInstaller.DownloadAndInstallUpdateAsync(update, cancellationToken);
+            AppUpdateStatus = "Gotowe.";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Canceled
+            AppUpdateStatus = "Anulowano pobieranie.";
         }
         catch (Exception exception)
         {
+            AppUpdateStatus = $"Aktualizacja nie powiodła się: {exception.Message}";
             AddToast($"Aktualizacja nie powiodła się: {exception.Message}", "error");
+        }
+        finally
+        {
+            IsAppUpdateBusy = false;
         }
     }
 
