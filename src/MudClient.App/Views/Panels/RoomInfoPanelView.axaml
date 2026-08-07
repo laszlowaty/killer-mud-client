@@ -4,7 +4,8 @@
              xmlns:models="using:MudClient.App.Models"
              xmlns:local="using:MudClient.App.Views.Panels"
              x:Class="MudClient.App.Views.Panels.RoomInfoPanelView"
-             x:DataType="vm:MainWindowViewModel">
+             x:DataType="vm:MainWindowViewModel"
+             x:Name="RoomInfoRoot">
   <ScrollViewer>
     <StackPanel Spacing="12" Margin="12">
       <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding $parent[local:RoomInfoPanelView].ShowDetails}">
@@ -68,25 +69,51 @@
         <TextBlock Classes="mud-faint" Text="Nikogo tu nie ma."
                    IsVisible="{Binding !People.Count}" />
         <ItemsControl ItemsSource="{Binding People}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="models:PersonEntry">
-              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,1">
-                <TextBlock Grid.Column="0" Text="•" Classes="mud-muted" Margin="0,0,6,0" />
-                <TextBlock Grid.Column="1" Text="{Binding Name}" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
-                            IsVisible="{Binding !IsSelf}">
-                  <Button Content="exa" Classes="mud-small" Padding="6,1"
-                          Command="{Binding $parent[UserControl].DataContext.ExaminePersonCommand}"
-                          CommandParameter="{Binding Name}" />
-                  <Button Content="kill" Classes="mud-small mud-danger" Padding="6,1"
-                          Command="{Binding $parent[UserControl].DataContext.KillPersonCommand}"
-                          CommandParameter="{Binding Name}" />
-                </StackPanel>
-                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                           Text="{Binding FightingText}"
-                           Foreground="{StaticResource MudBrushCrimsonBright}"
-                           IsVisible="{Binding IsFighting}" />
-              </Grid>
+              <Button Width="65" Height="65"
+                      Background="{StaticResource MudBrushVoid}"
+                      BorderBrush="{StaticResource MudBrushGoldDim}"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Margin="4"
+                      Padding="2"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch">
+                <Button.Flyout>
+                  <MenuFlyout>
+                    <MenuItem Header="exam"
+                              IsVisible="{Binding !IsSelf}"
+                              Command="{Binding #RoomInfoRoot.DataContext.ExaminePersonCommand}"
+                              CommandParameter="{Binding Name}" />
+                    <MenuItem Header="kill"
+                              IsVisible="{Binding !IsSelf}"
+                              Command="{Binding #RoomInfoRoot.DataContext.KillPersonCommand}"
+                              CommandParameter="{Binding Name}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+                
+                <Grid RowDefinitions="*,Auto">
+                  <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="DownOnly">
+                    <TextBlock Text="{Binding Name}"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="80" />
+                  </Viewbox>
+                  <TextBlock Grid.Row="1"
+                             Text="{Binding FightingText}"
+                             Foreground="{StaticResource MudBrushCrimsonBright}"
+                             IsVisible="{Binding IsFighting}"
+                             FontSize="8"
+                             TextAlignment="Center"
+                             TextWrapping="Wrap" />
+                </Grid>
+              </Button>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

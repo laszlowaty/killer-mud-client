@@ -6676,15 +6676,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         Dispatcher.UIThread.Post(() =>
         {
-            People.Clear();
             var sortedPeople = people
                 .OrderByDescending(p => p.IsNpc || (p.Name.Length > 0 && char.IsLower(p.Name[0])))
                 .ThenBy(p => p.Name);
 
+            var newEntries = new List<PersonEntry>();
             foreach (var person in sortedPeople)
             {
                 var isSelf = string.Equals(person.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase);
-                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf, person.IsNpc));
+                newEntries.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf, person.IsNpc));
+            }
+
+            if (!People.SequenceEqual(newEntries))
+            {
+                People.Clear();
+                foreach (var entry in newEntries)
+                {
+                    People.Add(entry);
+                }
             }
         });
     }
