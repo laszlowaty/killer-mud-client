@@ -184,7 +184,7 @@ public sealed class KilleropediaTests : IDisposable
     {
         var quests = QuestCatalogLoader.Load();
 
-        Assert.Equal(26, quests.Count);
+        Assert.Equal(36, quests.Count);
         Assert.Contains(quests, quest => quest.Name == "Łowcy Smoków"
             && quest.Region == "Forteca"
             && quest.Giver == "Wielki Łowca");
@@ -202,7 +202,7 @@ public sealed class KilleropediaTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var list = view.GetVisualDescendants().OfType<ListBox>().Single();
-        Assert.Equal(26, list.ItemCount);
+        Assert.Equal(36, list.ItemCount);
         Assert.NotNull(viewModel.SelectedQuest);
         Assert.Contains(
             view.GetVisualDescendants().OfType<TextBlock>(),
