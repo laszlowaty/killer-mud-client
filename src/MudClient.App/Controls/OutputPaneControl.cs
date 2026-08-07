@@ -587,6 +587,10 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
     // Selection input
     // ------------------------------------------------------------------
 
+    private long _pendingAnchorLine;
+    private int _pendingAnchorChar;
+    private bool _isPointerDown;
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -597,49 +601,83 @@ internal sealed class OutputPaneControl : Control, ILogicalScrollable, ICustomHi
         }
 
         var (line, character) = HitTestPosition(e.GetPosition(this));
-        _anchorLine = line;
-        _anchorChar = character;
-        _caretLine = line;
-        _caretChar = character;
-        _isSelecting = true;
-        _hasSelection = false;
-        e.Pointer.Capture(this);
-        InvalidateVisual();
+        _pendingAnchorLine = line;
+        _pendingAnchorChar = character;
+        _isPointerDown = true;
 
         // Deliberately not handled: the event must keep bubbling so MainWindow can
-        // redirect keyboard focus to the command box. Pointer capture alone is enough
-        // to keep receiving the moves that drive the selection.
+        // redirect keyboard focus to the command box.
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
 
-        if (!_isSelecting)
+        if (!_isPointerDown)
         {
             return;
         }
 
         var (line, character) = HitTestPosition(e.GetPosition(this));
-        if (line != _caretLine || character != _caretChar)
+        
+        if (!_isSelecting)
         {
-            _caretLine = line;
-            _caretChar = character;
-            _hasSelection = line != _anchorLine || character != _anchorChar;
-            InvalidateVisual();
+            if (line != _pendingAnchorLine || character != _pendingAnchorChar)
+            {
+                _isSelecting = true;
+                _anchorLine = _pendingAnchorLine;
+                _anchorChar = _pendingAnchorChar;
+                _caretLine = line;
+                _caretChar = character;
+                _hasSelection = true;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
+            }
+        }
+        else
+        {
+            if (line != _caretLine || character != _caretChar)
+            {
+                _caretLine = line;
+                _caretChar = character;
+                _hasSelection = true;
+                InvalidateVisual();
+            }
         }
 
-        e.Handled = true;
+        if (_isSelecting)
+        {
+            e.Handled = true;
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
 
+        if (_isPointerDown)
+        {
+            _isPointerDown = false;
+            
+            if (_isSelecting)
+            {
+                _isSelecting = false;
+                e.Pointer.Capture(null);
+            }
+            else if (!e.Handled)
+            {
+                ClearSelection();
+            }
+        }
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        _isPointerDown = false;
         if (_isSelecting)
         {
             _isSelecting = false;
-            e.Pointer.Capture(null);
         }
     }
 
