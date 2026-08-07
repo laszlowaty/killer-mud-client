@@ -201,10 +201,12 @@ public partial class FolderTreeView : UserControl
             return false;
         }
 
-        return visual is Button or TextBox
+        bool IsInteractive(Visual v) => v is Button or TextBox || (v as Control)?.Name == "PART_ExpandCollapseChevronContainer";
+
+        return IsInteractive(visual)
                || visual.GetVisualAncestors()
                    .TakeWhile(ancestor => !ReferenceEquals(ancestor, row))
-                   .Any(ancestor => ancestor is Button or TextBox);
+                   .Any(IsInteractive);
     }
 
     private void Node_OnPointerPressed(object? sender, PointerPressedEventArgs e)
