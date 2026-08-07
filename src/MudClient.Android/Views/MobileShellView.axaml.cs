@@ -918,27 +918,34 @@ public sealed partial class MobileShellView : UserControl
     private void ChatTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
         SelectAuxiliaryTab("Chat");
 
+    private void RoomTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        SelectAuxiliaryTab("Room");
+
     private void SelectAuxiliaryTab(string activeTab)
     {
         var mapButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("MapTabButton");
         var buffsButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("BuffsTabButton");
         var groupButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("GroupTabButton");
         var chatButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("ChatTabButton");
+        var roomButton = this.FindControl<Avalonia.Controls.Primitives.ToggleButton>("RoomTabButton");
         
         var mapPanel = this.FindControl<Control>("MobileMapPanel");
         var buffsPanel = this.FindControl<Control>("MobileBuffsPanel");
         var groupPanel = this.FindControl<Control>("MobileGroupPanel");
         var chatPanel = this.FindControl<Control>("MobileChatPanel");
+        var roomPanel = this.FindControl<Control>("MobileRoomPanel");
 
         if (mapButton is not null) mapButton.IsChecked = activeTab == "Map";
         if (buffsButton is not null) buffsButton.IsChecked = activeTab == "Buffs";
         if (groupButton is not null) groupButton.IsChecked = activeTab == "Group";
         if (chatButton is not null) chatButton.IsChecked = activeTab == "Chat";
+        if (roomButton is not null) roomButton.IsChecked = activeTab == "Room";
 
         if (mapPanel is not null) mapPanel.IsVisible = activeTab == "Map";
         if (buffsPanel is not null) buffsPanel.IsVisible = activeTab == "Buffs";
         if (groupPanel is not null) groupPanel.IsVisible = activeTab == "Group";
         if (chatPanel is not null) chatPanel.IsVisible = activeTab == "Chat";
+        if (roomPanel is not null) roomPanel.IsVisible = activeTab == "Room";
     }
 
     private void PanelFullscreen_OnClick(

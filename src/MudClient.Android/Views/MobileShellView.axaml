@@ -24,7 +24,7 @@
             BorderThickness="0,0,0,1">
       <Grid RowDefinitions="Auto,*">
         <Grid Grid.Row="0"
-              ColumnDefinitions="*,*,*,*,Auto"
+              ColumnDefinitions="*,*,*,*,*,Auto"
               ColumnSpacing="4"
               Margin="8,6,108,5">
           <ToggleButton x:Name="MapTabButton"
@@ -55,8 +55,17 @@
                         Click="GroupTab_OnClick">
             <TextBlock Text="DRUŻYNA" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
           </ToggleButton>
-          <ToggleButton x:Name="ChatTabButton"
+          <ToggleButton x:Name="RoomTabButton"
                         Grid.Column="3"
+                        MinHeight="34"
+                        Padding="4,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="RoomTab_OnClick">
+            <TextBlock Text="POKÓJ" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </ToggleButton>
+          <ToggleButton x:Name="ChatTabButton"
+                        Grid.Column="4"
                         MinHeight="34"
                         Padding="4,0"
                         HorizontalAlignment="Stretch"
@@ -65,7 +74,7 @@
             <TextBlock Text="CZAT" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
           </ToggleButton>
           <ToggleButton x:Name="PanelFullscreenToggle"
-                        Grid.Column="4"
+                        Grid.Column="5"
                         Width="38"
                         Height="34"
                         Padding="0"
@@ -99,6 +108,10 @@
         <panels:ChatPanelView x:Name="MobileChatPanel"
                               Grid.Row="1"
                               IsVisible="False" />
+        <panels:RoomInfoPanelView x:Name="MobileRoomPanel"
+                                  Grid.Row="1"
+                                  ShowDetails="False"
+                                  IsVisible="False" />
       </Grid>
     </Border>
 

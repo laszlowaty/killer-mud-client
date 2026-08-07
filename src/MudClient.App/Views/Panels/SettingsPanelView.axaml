@@ -152,6 +152,16 @@
                        Text="Globalny separator dla komend wpisywanych, aliasów, triggerów i timerów. Pusta wartość wyłącza składanie (tylko nowe linie). Zapisywane automatycznie." />
           </StackPanel>
 
+          <StackPanel Spacing="3">
+            <TextBlock Classes="mud-label" Text="Komenda ataku z listy" />
+            <TextBox Text="{Binding KillCommand}"
+                     MaxLength="20"
+                     Width="150"
+                     HorizontalAlignment="Left" />
+            <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                       Text="Zastępuje standardowe 'kill' przyciskiem na listach osób w pokoju." />
+          </StackPanel>
+
         </StackPanel>
       </Border>
 

@@ -20,7 +20,7 @@ public sealed record CharacterConditionUpdate(
     IReadOnlyDictionary<string, bool> Flags);
 
 /// <summary>Someone visible in the room (player or NPC). Enemy is null unless they fight.</summary>
-public sealed record RoomPerson(string Name, bool IsFighting, string? Enemy);
+public sealed record RoomPerson(string Name, bool IsFighting, string? Enemy, bool IsNpc = false);
 
 /// <summary>A single member of the group from Char.Group GMCP.</summary>
 public sealed record CharacterGroupMember(
@@ -209,10 +209,14 @@ public sealed class CharacterStateResolver
 
             // The server pads "enemy" with spaces when there is none.
             var enemy = GetString(element, "enemy")?.Trim();
+            var isNpc = element.TryGetProperty("is_npc", out var npcProp)
+                        && npcProp.ValueKind == JsonValueKind.True;
+
             people.Add(new RoomPerson(
                 name,
                 isFighting,
-                string.IsNullOrEmpty(enemy) ? null : enemy));
+                string.IsNullOrEmpty(enemy) ? null : enemy,
+                isNpc));
         }
 
         return people;

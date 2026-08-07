@@ -1602,6 +1602,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public string KillCommand
+    {
+        get => _settings.KillCommand;
+        set
+        {
+            var trimmed = value?.Trim() ?? string.Empty;
+            if (_settings.KillCommand == trimmed)
+            {
+                return;
+            }
+
+            _settings.KillCommand = trimmed;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public bool AutoAssistEnabled
     {
         get => _settings.AutoAssistEnabled;
@@ -5745,7 +5762,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         if (!string.IsNullOrWhiteSpace(name) && IsConnected)
         {
-            _ = SendUiCommandAsync($"kill {name}");
+            var cmd = string.IsNullOrWhiteSpace(_settings.KillCommand) ? "kill" : _settings.KillCommand;
+            _ = SendUiCommandAsync($"{cmd} {name}");
         }
     }
 
@@ -6659,10 +6677,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Dispatcher.UIThread.Post(() =>
         {
             People.Clear();
-            foreach (var person in people)
+            var sortedPeople = people
+                .OrderByDescending(p => p.IsNpc || (p.Name.Length > 0 && char.IsLower(p.Name[0])))
+                .ThenBy(p => p.Name);
+
+            foreach (var person in sortedPeople)
             {
                 var isSelf = string.Equals(person.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase);
-                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf));
+                People.Add(new PersonEntry(person.Name, person.IsFighting, person.Enemy, isSelf, person.IsNpc));
             }
         });
     }

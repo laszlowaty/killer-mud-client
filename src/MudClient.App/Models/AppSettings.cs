@@ -58,6 +58,9 @@ public sealed class AppSettings
     /// <summary>Palette used for the standard 16 ANSI colors (including indices 0-15).</summary>
     public string TelnetColorScheme { get; set; } = DefaultTelnetColorScheme;
 
+    /// <summary>Command sent when killing a person from the room view.</summary>
+    public string KillCommand { get; set; } = "kill";
+
     /// <summary>
     /// Separator character used for command stacking (e.g. ";").
     /// Multiple commands in one text value are split on newlines and on this

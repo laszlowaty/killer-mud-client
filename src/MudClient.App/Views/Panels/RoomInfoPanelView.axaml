@@ -2,11 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MudClient.App.ViewModels"
              xmlns:models="using:MudClient.App.Models"
+             xmlns:local="using:MudClient.App.Views.Panels"
              x:Class="MudClient.App.Views.Panels.RoomInfoPanelView"
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
     <StackPanel Spacing="12" Margin="12">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding $parent[local:RoomInfoPanelView].ShowDetails}">
         <!-- Left: details -->
         <StackPanel Grid.Column="0" Spacing="8">
         <Border Background="{StaticResource MudBrushVoid}"
