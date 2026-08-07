@@ -179,6 +179,39 @@
                     Padding="12,6" />
           </StackPanel>
         </Border>
+
+        <!-- Zoom controls -->
+        <StackPanel Orientation="Vertical"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,16,16"
+                    Spacing="8"
+                    Opacity="0.7">
+          <Button x:Name="ZoomInButton"
+                  Content="+"
+                  Width="44"
+                  Height="44"
+                  FontSize="24"
+                  Classes="mud-button-icon"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  CornerRadius="22"
+                  Background="#333333"
+                  Foreground="White"
+                  Click="ZoomInButton_OnClick" />
+          <Button x:Name="ZoomOutButton"
+                  Content="−"
+                  Width="44"
+                  Height="44"
+                  FontSize="24"
+                  Classes="mud-button-icon"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  CornerRadius="22"
+                  Background="#333333"
+                  Foreground="White"
+                  Click="ZoomOutButton_OnClick" />
+        </StackPanel>
       </Panel>
     </Border>
 

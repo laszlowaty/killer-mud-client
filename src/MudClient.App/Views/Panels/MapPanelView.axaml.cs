@@ -145,4 +145,15 @@ public sealed partial class MapPanelView : UserControl
         MapControl.CenterOnRoom(room);
     }
 
+    private void ZoomInButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var center = new Point(MapControl.Bounds.Width / 2, MapControl.Bounds.Height / 2);
+        MapControl.ZoomAtPointer(1, center);
+    }
+
+    private void ZoomOutButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var center = new Point(MapControl.Bounds.Width / 2, MapControl.Bounds.Height / 2);
+        MapControl.ZoomAtPointer(-1, center);
+    }
 }
