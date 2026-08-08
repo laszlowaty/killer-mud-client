@@ -86,8 +86,19 @@ public sealed class MainActivity : AvaloniaMainActivity
 
     public override void OnConfigurationChanged(Configuration newConfig)
     {
-        _imeInsetsObserver?.ResetLayoutBaseline();
         base.OnConfigurationChanged(newConfig);
+
+        _imeInsetsObserver?.ResetLayoutBaseline();
+        _decorView?.RequestLayout();
+        if (_decorView is not null)
+        {
+            ViewCompat.RequestApplyInsets(_decorView);
+        }
+
+        if (Avalonia.Application.Current is MobileApp app)
+        {
+            app.RefreshLayoutAfterConfigurationChanged();
+        }
     }
 
     protected override void OnStart()

@@ -36,6 +36,7 @@ public sealed partial class MobileShellView : UserControl
     private Point _floatingButtonPressPosition;
     private Point _floatingButtonPositionAtPress;
     private MainWindowViewModel? _viewModel;
+    private bool _viewportRelayoutPending;
 
     public MobileShellView()
         : this(new MobileSessionHost(global::Android.App.Application.Context))
@@ -266,15 +267,37 @@ public sealed partial class MobileShellView : UserControl
         if (!_isImeVisible && eventArgs.NewSize.Height > 0)
         {
             _viewportHeightWithoutIme = eventArgs.NewSize.Height;
+        }
+
+        ScheduleViewportRelayout();
+    }
+
+    public void RefreshViewportLayout() => ScheduleViewportRelayout();
+
+    private void ScheduleViewportRelayout()
+    {
+        if (_viewportRelayoutPending)
+        {
             return;
         }
 
-        if (_isImeVisible)
+        _viewportRelayoutPending = true;
+        Dispatcher.UIThread.Post(() =>
         {
-            Dispatcher.UIThread.Post(
-                ApplyImeInsetFallback,
-                DispatcherPriority.Background);
-        }
+            _viewportRelayoutPending = false;
+            ApplyImeInsetFallback();
+            ApplyAuxiliaryPanelLayout();
+            UpdateMovementPadVisibility();
+            UpdateFloatingButtonVisibility();
+
+            var movementPad = this.FindControl<Border>("MovementPad");
+            if (movementPad?.RenderTransform is TranslateTransform transform)
+            {
+                SetMovementPadTranslation(new Vector(transform.X, transform.Y));
+            }
+
+            PositionFloatingButtons();
+        }, DispatcherPriority.Loaded);
     }
 
     private async void StartMapInitializationWhenConnected()

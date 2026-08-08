@@ -55,6 +55,17 @@ public sealed partial class MobileApp : Avalonia.Application
         });
     }
 
+    public void RefreshLayoutAfterConfigurationChanged()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_currentShellView?.TryGetTarget(out var shellView) == true)
+            {
+                shellView.RefreshViewportLayout();
+            }
+        }, DispatcherPriority.Loaded);
+    }
+
     private static void OnUnhandledException(
         object? sender,
         DispatcherUnhandledExceptionEventArgs eventArgs)
