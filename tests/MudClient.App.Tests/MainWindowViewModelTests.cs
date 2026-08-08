@@ -196,15 +196,18 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Theory]
-    [InlineData(true, new[] { "rest" })]
-    [InlineData(false, new string[0])]
+    [InlineData(true, false, new[] { "rest" })]
+    [InlineData(true, true, new[] { "rest", "recuperate" })]
+    [InlineData(false, false, new string[0])]
+    [InlineData(false, true, new string[0])]
     public void BuildAutowalkArrivalCommands_RespectsRestSetting(
         bool restOnArrival,
+        bool useRecuperate,
         string[] expected)
     {
         Assert.Equal(
             expected,
-            MainWindowViewModel.BuildAutowalkArrivalCommands(restOnArrival));
+            MainWindowViewModel.BuildAutowalkArrivalCommands(restOnArrival, useRecuperate));
     }
 
     [Fact]

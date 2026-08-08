@@ -3280,16 +3280,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void CompleteAutowalk(string? targetName)
     {
-        foreach (var command in BuildAutowalkArrivalCommands(AutowalkRestOnArrival))
-        {
-            _ = SendTriggeredCommandAsync(command);
-        }
+        var arrivalCommands = BuildAutowalkArrivalCommands(
+            AutowalkRestOnArrival,
+            AutowalkUseRecuperate);
 
         StopAutowalk($"Dotarłeś do lokacji „{targetName}”.");
+
+        if (arrivalCommands.Count > 0)
+        {
+            _ = SendTriggeredCommandsAsync(arrivalCommands, expandAliases: true);
+        }
     }
 
-    internal static IReadOnlyList<string> BuildAutowalkArrivalCommands(bool restOnArrival) =>
-        restOnArrival ? ["rest"] : [];
+    internal static IReadOnlyList<string> BuildAutowalkArrivalCommands(
+        bool restOnArrival,
+        bool useRecuperate) =>
+        restOnArrival ? AutowalkRecoveryPolicy.GetRestCommands(useRecuperate) : [];
 
     /// <summary>
     /// Executes the bare /idz action: walks to the temporary map-picked target
