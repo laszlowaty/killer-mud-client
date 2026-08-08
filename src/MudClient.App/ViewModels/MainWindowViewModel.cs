@@ -1690,6 +1690,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public bool AutowalkStartOnMapDoubleClick
+    {
+        get => _settings.AutowalkStartOnMapDoubleClick;
+        set
+        {
+            if (_settings.AutowalkStartOnMapDoubleClick == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkStartOnMapDoubleClick = value;
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     public string AutoAssistExcludedMobNamesText
     {
         get => string.Join(Environment.NewLine, _settings.AutoAssistExcludedMobNames);
@@ -2611,6 +2627,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void OnMapRoomDoubleClicked(MapRoom room)
     {
         PreviewRouteToRoom(room);
+
+        // MapPanelView and WorldMapControl are shared by desktop and Android,
+        // so this follows the same autowalk path on both platforms.
+        if (AutowalkStartOnMapDoubleClick &&
+            _temporaryTarget is { } target &&
+            string.Equals(target.Vnum, room.Vnum, StringComparison.Ordinal))
+        {
+            StartAutowalk(target);
+        }
     }
 
     private void OnLordGotoRequested(MapRoom room)

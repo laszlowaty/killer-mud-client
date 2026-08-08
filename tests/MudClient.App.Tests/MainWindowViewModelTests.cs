@@ -3169,6 +3169,35 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void OnMapRoomDoubleClicked_WithImmediateStartEnabled_AttemptsAutowalk()
+    {
+        _vm.AutowalkStartOnMapDoubleClick = true;
+        var room = CreateTestRoom(101, "2003", "Immediate Target");
+        _vm.Toasts.Clear();
+
+        _vm.Map.NotifyRoomDoubleClicked(room);
+
+        Assert.True(_vm.HasTemporaryTarget);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+    }
+
+    [Fact]
+    public void OnMapRoomDoubleClicked_WithoutVnum_DoesNotStartPreviousTarget()
+    {
+        _vm.AutowalkStartOnMapDoubleClick = true;
+        GetTemporaryTargetField().SetValue(_vm, new AutowalkLocation("Previous", "2003"));
+        _vm.Toasts.Clear();
+
+        _vm.Map.NotifyRoomDoubleClicked(CreateTestRoom(102, string.Empty));
+
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("nie ma vnum", toast.Text);
+        Assert.DoesNotContain("Mapa nie jest załadowana", toast.Text);
+        Assert.False(_vm.IsAutowalking);
+    }
+
+    [Fact]
     public void OnMapRoomDoubleClicked_WhenWalking_ClearsOldRouteAndSetsNewTarget()
     {
         // Arrange: set up walking state via reflection (simulate active autowalk)

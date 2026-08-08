@@ -88,6 +88,9 @@ public sealed class AppSettings
     /// <summary>Sends "rest" after autowalk reaches its destination.</summary>
     public bool AutowalkRestOnArrival { get; set; } = true;
 
+    /// <summary>Starts autowalk immediately after a room is double-clicked on the map.</summary>
+    public bool AutowalkStartOnMapDoubleClick { get; set; }
+
     /// <summary>Executes strictly formatted orders issued by current GMCP group members.</summary>
     public bool GroupOrdersEnabled { get; set; }
 

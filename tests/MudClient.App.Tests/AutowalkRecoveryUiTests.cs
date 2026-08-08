@@ -36,18 +36,23 @@ public sealed class AutowalkRecoveryUiTests
                 Equals(checkBox.Content, "Używaj recuperate"));
             var restOnArrival = Assert.Single(checkBoxes, checkBox =>
                 Equals(checkBox.Content, "Siadaj po dotarciu do celu"));
+            var startOnMapDoubleClick = Assert.Single(checkBoxes, checkBox =>
+                Equals(checkBox.Content, "Podwójne kliknięcie mapy od razu uruchamia /idz"));
 
             refreshes.IsChecked = true;
             recuperate.IsChecked = true;
             restOnArrival.IsChecked = false;
+            startOnMapDoubleClick.IsChecked = true;
 
             Assert.True(viewModel.AutowalkUseRefreshes);
             Assert.True(viewModel.AutowalkUseRecuperate);
             Assert.False(viewModel.AutowalkRestOnArrival);
+            Assert.True(viewModel.AutowalkStartOnMapDoubleClick);
             var stored = settingsService.Load();
             Assert.True(stored.AutowalkUseRefreshes);
             Assert.True(stored.AutowalkUseRecuperate);
             Assert.False(stored.AutowalkRestOnArrival);
+            Assert.True(stored.AutowalkStartOnMapDoubleClick);
         }
         finally
         {

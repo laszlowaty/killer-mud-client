@@ -96,6 +96,12 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
+    public void Constructor_AutowalkMapDoubleClickIsDisabledByDefault()
+    {
+        Assert.False(new AppSettings().AutowalkStartOnMapDoubleClick);
+    }
+
+    [Fact]
     public void Constructor_GroupOrdersAreDisabledByDefault()
     {
         Assert.False(new AppSettings().GroupOrdersEnabled);

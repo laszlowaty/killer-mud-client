@@ -198,6 +198,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             AutowalkUseRefreshes = true,
             AutowalkUseRecuperate = true,
             AutowalkRestOnArrival = false,
+            AutowalkStartOnMapDoubleClick = true,
             GroupOrdersEnabled = true,
             ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
@@ -236,6 +237,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(loaded.AutowalkUseRefreshes);
         Assert.True(loaded.AutowalkUseRecuperate);
         Assert.False(loaded.AutowalkRestOnArrival);
+        Assert.True(loaded.AutowalkStartOnMapDoubleClick);
         Assert.True(loaded.GroupOrdersEnabled);
         Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);
