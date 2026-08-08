@@ -173,6 +173,9 @@ dostępna nowsza wersja (również beta), w górnym pasku pojawia się powiadomi
 z odnośnikami do pobrania właściwego wydania i pełnej listy zmian. Brak sieci nie
 wpływa na uruchamianie ani korzystanie z klienta.
 
+Na Androidzie aktualizacja APK jest instalowana przez systemowy instalator. Po jej
+zatwierdzeniu i udanej instalacji klient uruchamia się ponownie automatycznie.
+
 Na macOS binarka nie jest podpisana — po rozpakowaniu:
 
 ```bash

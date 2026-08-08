@@ -1,5 +1,6 @@
+using Android.App;
 using Android.Content;
-using AndroidX.Core.Content;
+using Android.Content.PM;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using System.Net.Http;
@@ -12,6 +13,7 @@ namespace MudClient.Android.Services;
 
 public sealed class AndroidAppUpdateInstaller : IAppUpdateInstaller
 {
+    private const int InstallStatusRequestCode = 42018;
     private readonly Context _context;
     private readonly HttpClient _httpClient;
 
@@ -45,16 +47,53 @@ public sealed class AndroidAppUpdateInstaller : IAppUpdateInstaller
             await response.Content.CopyToAsync(fileStream, cancellationToken);
         }
 
-        var uri = FileProvider.GetUriForFile(
-            _context,
-            "pl.laszlowaty.killermudclient.fileprovider",
-            apkFile);
+        var packageInstaller = _context.PackageManager?.PackageInstaller
+            ?? throw new InvalidOperationException("Android nie udostępnił instalatora pakietów.");
+        using var parameters = new PackageInstaller.SessionParams(PackageInstallMode.FullInstall);
+        parameters.SetAppPackageName(_context.PackageName);
 
-        var intent = new Intent(Intent.ActionView);
-        intent.SetDataAndType(uri, "application/vnd.android.package-archive");
-        intent.AddFlags(ActivityFlags.GrantReadUriPermission);
-        intent.AddFlags(ActivityFlags.NewTask);
+        var sessionId = packageInstaller.CreateSession(parameters);
+        var committed = false;
+        try
+        {
+            using var session = packageInstaller.OpenSession(sessionId);
+            await using (var apkStream = File.OpenRead(apkFile.AbsolutePath))
+            await using (var sessionStream = session.OpenWrite(apkName, 0, apkStream.Length))
+            {
+                await apkStream.CopyToAsync(sessionStream, cancellationToken);
+                session.Fsync(sessionStream);
+            }
 
-        _context.StartActivity(intent);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var statusIntent = new Intent(_context, typeof(MainActivity));
+            statusIntent.SetAction(MainActivity.PackageInstallStatusAction);
+            statusIntent.AddFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+
+            var pendingIntentFlags = PendingIntentFlags.UpdateCurrent;
+            if (OperatingSystem.IsAndroidVersionAtLeast(31))
+            {
+                pendingIntentFlags |= PendingIntentFlags.Mutable;
+            }
+
+            using var statusPendingIntent = PendingIntent.GetActivity(
+                _context,
+                InstallStatusRequestCode,
+                statusIntent,
+                pendingIntentFlags)
+                ?? throw new InvalidOperationException("Android nie utworzył potwierdzenia instalacji.");
+
+            session.Commit(statusPendingIntent.IntentSender);
+            committed = true;
+        }
+        finally
+        {
+            if (!committed)
+            {
+                packageInstaller.AbandonSession(sessionId);
+            }
+
+            apkFile.Delete();
+        }
     }
 }

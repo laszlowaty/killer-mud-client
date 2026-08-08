@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.Content.Res;
 using Android.Graphics;
@@ -20,6 +21,9 @@ namespace MudClient.Android;
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public sealed class MainActivity : AvaloniaMainActivity
 {
+    internal const string PackageInstallStatusAction =
+        "pl.killermud.client.action.PACKAGE_INSTALL_STATUS";
+
     private ImeInsetsObserver? _imeInsetsObserver;
     private global::Android.Views.View? _decorView;
     private OnBackPressedCallback? _backPressedCallback;
@@ -32,6 +36,8 @@ public sealed class MainActivity : AvaloniaMainActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+
+        HandlePackageInstallStatus(Intent);
 
         RequestNotificationPermission();
 
@@ -50,6 +56,12 @@ public sealed class MainActivity : AvaloniaMainActivity
         _decorView.ViewTreeObserver?.AddOnGlobalLayoutListener(
             _imeInsetsObserver);
         ViewCompat.RequestApplyInsets(_decorView);
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        HandlePackageInstallStatus(intent);
     }
 
     protected override void OnDestroy()
@@ -130,6 +142,41 @@ public sealed class MainActivity : AvaloniaMainActivity
                 [global::Android.Manifest.Permission.PostNotifications],
                 requestCode: 1001);
         }
+    }
+
+    private void HandlePackageInstallStatus(Intent? intent)
+    {
+        if (intent?.Action != PackageInstallStatusAction)
+        {
+            return;
+        }
+
+        var status = (PackageInstallStatus)intent.GetIntExtra(
+            PackageInstaller.ExtraStatus,
+            (int)PackageInstallStatus.Failure);
+        if (status != PackageInstallStatus.PendingUserAction)
+        {
+            return;
+        }
+
+        var confirmationIntent = GetPackageInstallerConfirmationIntent(intent);
+        if (confirmationIntent is not null)
+        {
+            StartActivity(confirmationIntent);
+        }
+    }
+
+    private static Intent? GetPackageInstallerConfirmationIntent(Intent statusIntent)
+    {
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            using var intentClass = Java.Lang.Class.FromType(typeof(Intent));
+            return statusIntent.GetParcelableExtra(Intent.ExtraIntent, intentClass) as Intent;
+        }
+
+#pragma warning disable CS0618 // Required on Android 12 and older.
+        return statusIntent.GetParcelableExtra(Intent.ExtraIntent) as Intent;
+#pragma warning restore CS0618
     }
 
     private sealed class KeepAppVisibleBackPressedCallback(Action onBackPressed)
