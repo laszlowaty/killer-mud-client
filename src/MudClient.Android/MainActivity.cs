@@ -86,9 +86,13 @@ public sealed class MainActivity : AvaloniaMainActivity
 
     public override void OnConfigurationChanged(Configuration newConfig)
     {
+        // Android can dispatch a layout pass for the new orientation while the
+        // old, taller viewport is still the IME observer's baseline. Clear the
+        // cached keyboard state first; fresh insets below will immediately set
+        // it back when the keyboard is genuinely still visible.
+        _imeInsetsObserver?.ResetForConfigurationChange();
         base.OnConfigurationChanged(newConfig);
 
-        _imeInsetsObserver?.ResetLayoutBaseline();
         _decorView?.RequestLayout();
         if (_decorView is not null)
         {
@@ -210,6 +214,7 @@ public sealed class MainActivity : AvaloniaMainActivity
         private bool? _lastVisibility;
         private int _lastBottomInset;
         private int _largestDecorHeight;
+        private int _decorWidthAtBaseline;
 
         public WindowInsetsCompat? OnApplyWindowInsets(
             global::Android.Views.View? view,
@@ -238,6 +243,16 @@ public sealed class MainActivity : AvaloniaMainActivity
 
         public void OnGlobalLayout()
         {
+            // A rotation changes the viewport width. Never interpret the
+            // resulting portrait/landscape height difference as adjustResize
+            // caused by the software keyboard.
+            if (decorView.Width > 0
+                && _decorWidthAtBaseline != decorView.Width)
+            {
+                _decorWidthAtBaseline = decorView.Width;
+                _largestDecorHeight = decorView.Height;
+            }
+
             var rootInsets = ViewCompat.GetRootWindowInsets(decorView);
             var imeType = WindowInsetsCompat.Type.Ime();
             if (rootInsets?.IsVisible(imeType) == true)
@@ -277,9 +292,13 @@ public sealed class MainActivity : AvaloniaMainActivity
                 keyboardInset);
         }
 
-        public void ResetLayoutBaseline()
+        public void ResetForConfigurationChange()
         {
             _largestDecorHeight = 0;
+            _decorWidthAtBaseline = 0;
+            _lastVisibility = null;
+            _lastBottomInset = 0;
+            Publish(false, 0);
         }
 
         protected override void Dispose(bool disposing)
