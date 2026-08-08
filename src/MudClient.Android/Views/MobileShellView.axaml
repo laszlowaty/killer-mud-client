@@ -26,7 +26,7 @@
         <Grid Grid.Row="0"
               ColumnDefinitions="*,*,*,*,*,Auto"
               ColumnSpacing="4"
-              Margin="8,6,108,5">
+              Margin="8,6,92,5">
           <ToggleButton x:Name="MapTabButton"
                         Grid.Column="0"
                         IsChecked="True"
@@ -300,13 +300,15 @@
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Spacing="6"
-                Margin="8">
+                Spacing="4"
+                Margin="8,6,8,5">
       <ToggleButton x:Name="MapToggle"
                     IsChecked="True"
-                    Width="42"
-                    Height="42"
+                    Width="38"
+                    Height="34"
                     Padding="0"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     Background="#E61A1F22"
                     BorderBrush="{StaticResource MudBrushGoldDim}"
                     Click="AuxiliaryPanelToggle_OnClick"
@@ -323,43 +325,83 @@
         </Grid>
       </ToggleButton>
       <Button x:Name="MobileMenuButton"
-              Content="☰"
-              Width="42"
-              Height="42"
+              Width="38"
+              Height="34"
               Padding="0"
               FontSize="19"
+              HorizontalContentAlignment="Center"
+              VerticalContentAlignment="Center"
               Background="#E61A1F22"
               BorderBrush="{StaticResource MudBrushGoldDim}"
               ToolTip.Tip="Menu">
+        <TextBlock Text="☰"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
         <Button.Flyout>
           <Flyout Placement="Bottom">
-            <StackPanel Spacing="6" MinWidth="190">
-              <Button Content="👤  Zmień profil"
-                      HorizontalContentAlignment="Left"
+            <StackPanel Spacing="6" MinWidth="210">
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
+                      Padding="12,0"
                       IsEnabled="{Binding !IsBusy}"
-                      Click="SwitchProfile_OnClick" />
-              <Button Content="🔌  Rozłącz"
-                      HorizontalContentAlignment="Left"
+                      Click="SwitchProfile_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="👤" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Zmień profil" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
+                      Padding="12,0"
                       IsEnabled="{Binding !IsBusy}"
-                      Click="Disconnect_OnClick" />
-              <Button Content="⚙  Ustawienia"
-                      HorizontalContentAlignment="Left"
+                      Click="Disconnect_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="🔌" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Rozłącz" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
-                      Click="OpenSettings_OnClick" />
-              <Button Content="⚡  Automaty"
-                      HorizontalContentAlignment="Left"
+                      Padding="12,0"
+                      Click="OpenSettings_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="⚙" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Ustawienia" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
-                      Click="OpenAutomation_OnClick" />
-              <Button Content="⚑  Autowalk"
-                      HorizontalContentAlignment="Left"
+                      Padding="12,0"
+                      Click="OpenAutomation_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="⚡" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Automaty" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
-                      Click="OpenAutowalk_OnClick" />
-              <Button Content="❓  Pomoc"
-                      HorizontalContentAlignment="Left"
+                      Padding="12,0"
+                      Click="OpenAutowalk_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="⚑" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Autowalk" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+              <Button HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
                       MinHeight="44"
-                      Click="OpenHelp_OnClick" />
+                      Padding="12,0"
+                      Click="OpenHelp_OnClick">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Grid.Column="0" Text="❓" TextAlignment="Center" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Pomoc" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
             </StackPanel>
           </Flyout>
         </Button.Flyout>
