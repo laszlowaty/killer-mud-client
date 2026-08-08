@@ -21,6 +21,29 @@ namespace MudClient.App.Tests;
 public sealed class LordModeMapUiTests
 {
     [AvaloniaFact]
+    public void PinchZoom_AppliesCumulativeGestureScaleOnlyOnce()
+    {
+        var map = new WorldMapControl();
+
+        map.ApplyPinchScale(1.1, default);
+        map.ApplyPinchScale(1.2, default);
+
+        Assert.Equal(Math.Pow(1.2, 0.4), map.Zoom, precision: 10);
+    }
+
+    [AvaloniaFact]
+    public void PinchZoom_StartsNextGestureFromNeutralScale()
+    {
+        var map = new WorldMapControl();
+
+        map.ApplyPinchScale(1.2, default);
+        map.EndPinch();
+        map.ApplyPinchScale(1.2, default);
+
+        Assert.Equal(Math.Pow(1.2, 0.8), map.Zoom, precision: 10);
+    }
+
+    [AvaloniaFact]
     public void MapPanel_CompactModeHidesToolbar()
     {
         var panel = new MapPanelView();

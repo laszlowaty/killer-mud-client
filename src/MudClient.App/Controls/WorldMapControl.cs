@@ -79,6 +79,7 @@ public sealed class WorldMapControl : Control
     private double _cameraX;
     private double _cameraY;
     private double _zoom = 1.0;
+    private double _previousPinchScale = 1.0;
     private bool _invalidateQueued;
 
     private Point? _dragStartScreen;
@@ -461,30 +462,50 @@ public sealed class WorldMapControl : Control
     {
         base.OnAttachedToVisualTree(e);
         AddHandler(InputElement.PinchEvent, OnPinch);
+        AddHandler(InputElement.PinchEndedEvent, OnPinchEnded);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         RemoveHandler(InputElement.PinchEvent, OnPinch);
+        RemoveHandler(InputElement.PinchEndedEvent, OnPinchEnded);
+        EndPinch();
     }
 
     private void OnPinch(object? sender, PinchEventArgs e)
     {
-        var worldBefore = ScreenToWorld(e.ScaleOrigin);
+        ApplyPinchScale(e.Scale, e.ScaleOrigin);
+        e.Handled = true;
+    }
 
-        // Reduce pinch-to-zoom sensitivity on touch screens
-        var adjustedScale = 1.0 + (e.Scale - 1.0) * 0.4;
+    private void OnPinchEnded(object? sender, PinchEndedEventArgs e) => EndPinch();
+
+    internal void ApplyPinchScale(double cumulativeScale, Point scaleOrigin)
+    {
+        if (!double.IsFinite(cumulativeScale) || cumulativeScale <= 0)
+        {
+            return;
+        }
+
+        var worldBefore = ScreenToWorld(scaleOrigin);
+        var incrementalScale = cumulativeScale / _previousPinchScale;
+
+        // Avalonia reports scale relative to the start of the gesture. Apply only the
+        // change since the previous event, then soften it for touch screens.
+        var adjustedScale = Math.Pow(incrementalScale, 0.4);
         _zoom = Math.Clamp(_zoom * adjustedScale, _settings.MinimumZoom, _settings.MaximumZoom);
+        _previousPinchScale = cumulativeScale;
 
-        var worldAfter = ScreenToWorld(e.ScaleOrigin);
+        var worldAfter = ScreenToWorld(scaleOrigin);
 
         _cameraX += worldBefore.X - worldAfter.X;
         _cameraY += worldBefore.Y - worldAfter.Y;
 
         RequestInvalidateVisual();
-        e.Handled = true;
     }
+
+    internal void EndPinch() => _previousPinchScale = 1.0;
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
