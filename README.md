@@ -98,7 +98,8 @@ aplikacji; `BookCatalogOutputPath` pozwala twórcy wskazać ścieżkę snapshotu
 ### Pomoc aplikacji
 
 Przycisk **Pomoc** w górnym pasku otwiera opis dostępnych komend klienta: `/idz`,
-`/idz <cel>`, `/idz_dodaj <nazwa>`, `/stop`, `/recast`, `/reroll` oraz komend mappera `/map`.
+`/idz <cel>`, `/idz vnum <vnum>`, `/idz smierc`, `/idz_dodaj <nazwa>`, `/stop`,
+`/recast`, `/reroll` oraz komend mappera `/map`.
 W Trybie lorda mapper obsługuje `start`, `stop`, `save`, `undo`, `redo`, `cancel`,
 `status`, `info`, `check`, `diff`, `import`, `export`, `discard`, `resolve`,
 `step <1-20>`, `area`, `reassign`, `room`, `symbol`, `label`, `forget` i `special`; jako
@@ -122,6 +123,7 @@ aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
 `/map room name|sector|weight|move`, a etykiety wyświetlać i zmieniać przez
 `/map label list`, `/map label set <id> <tekst>` i `/map label delete <id>`. Komenda
 `/idz_dodaj <nazwa>` zapisuje obecną lokację dla aktywnego konta.
+`/idz smierc` rozpoczyna autowalk do najnowszego z maksymalnie 10 miejsc śmierci zapisanych dla aktywnego profilu.
 
 ### Automatyzacja
 

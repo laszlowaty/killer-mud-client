@@ -3470,6 +3470,37 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void TryHandleAutowalkCommand_Death_WalksToLatestDeath()
+    {
+        _vm.Deaths.Add(new DeathMarkEntry("7007", "Stara Brama", "2026-08-08 10:00"));
+        _vm.Deaths.Add(new DeathMarkEntry("6006", "Rynek", "2026-08-07 20:00"));
+        _vm.Toasts.Clear();
+
+        var target = _vm.BuildLatestDeathAutowalkTarget();
+        var consumed = InvokeTryHandleAutowalkCommand("/IDZ SMIERC");
+
+        Assert.NotNull(target);
+        Assert.Equal("7007", target!.Vnum);
+        Assert.Equal("Stara Brama", target.Name);
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Mapa nie jest załadowana", toast.Text);
+    }
+
+    [Fact]
+    public void TryHandleAutowalkCommand_DeathWithoutSavedMark_ShowsError()
+    {
+        _vm.Toasts.Clear();
+
+        var consumed = InvokeTryHandleAutowalkCommand("/idz smierc");
+
+        Assert.True(consumed);
+        var toast = Assert.Single(_vm.Toasts);
+        Assert.Contains("Brak zapisanego miejsca śmierci", toast.Text);
+        Assert.DoesNotContain("Mapa nie jest załadowana", toast.Text);
+    }
+
+    [Fact]
     public void BuildGroupMemberAutowalkTarget_UsesMemberNameAndRoomFromGmcp()
     {
         var target = _vm.BuildGroupMemberAutowalkTarget(

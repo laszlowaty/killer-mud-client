@@ -3339,13 +3339,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
         else
         {
-            AddToast("Użycie: /idz <nazwa lokacji>, /idz vnum <vnum> — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
+            AddToast("Użycie: /idz <nazwa lokacji>, /idz vnum <vnum>, /idz smierc — albo zaznacz cel podwójnym kliknięciem na mapie i wpisz samo /idz.", "info");
         }
     }
 
     /// <summary>
     /// Handles chat-bar commands: /idz &lt;nazwa lokacji lub członka grupy&gt;,
-    /// /idz vnum &lt;vnum&gt;, /idz_dodaj &lt;nazwa&gt; and /stop.
+    /// /idz vnum &lt;vnum&gt;, /idz smierc, /idz_dodaj &lt;nazwa&gt; and /stop.
     /// Returns true when consumed.
     /// </summary>
     private bool TryHandleAutowalkCommand(string command)
@@ -3390,6 +3390,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (argument.Length == 0)
         {
             HandleGoToSelectedTarget();
+            return true;
+        }
+
+        if (string.Equals(argument, "smierc", StringComparison.OrdinalIgnoreCase))
+        {
+            var latestDeathTarget = BuildLatestDeathAutowalkTarget();
+            if (latestDeathTarget is null)
+            {
+                AddToast("Brak zapisanego miejsca śmierci dla aktywnego profilu.", "info");
+                return true;
+            }
+
+            StartAutowalk(latestDeathTarget);
             return true;
         }
 
@@ -3917,11 +3930,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        StartAutowalk(new AutowalkLocation(
+        StartAutowalk(BuildDeathAutowalkTarget(entry));
+    }
+
+    internal AutowalkLocation? BuildLatestDeathAutowalkTarget()
+    {
+        var entry = Deaths.FirstOrDefault();
+        return entry is null ? null : BuildDeathAutowalkTarget(entry);
+    }
+
+    private static AutowalkLocation BuildDeathAutowalkTarget(DeathMarkEntry entry) =>
+        new(
             string.IsNullOrWhiteSpace(entry.RoomName) ? $"miejsce śmierci (vnum {entry.Vnum})" : entry.RoomName!,
             entry.Vnum,
-            entry.RoomName));
-    }
+            entry.RoomName);
 
     // ========================================================================
     // Required buffs (user-defined, matched against Char.Affects)

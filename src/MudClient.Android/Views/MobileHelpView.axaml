@@ -33,6 +33,13 @@
 
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
+          <TextBlock Text="/idz smierc" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Rozpoczyna marsz do ostatniego zapisanego miejsca śmierci aktywnego profilu." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
           <TextBlock Text="/idz_dodaj &lt;nazwa&gt;" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
           <TextBlock TextWrapping="Wrap" Text="Zapisuje obecną lokację pod podaną nazwą dla aktywnego konta." />
         </StackPanel>
