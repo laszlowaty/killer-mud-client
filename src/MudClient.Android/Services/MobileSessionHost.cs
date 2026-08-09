@@ -42,7 +42,8 @@ public sealed class MobileSessionHost
             Exception? importException = null;
             try
             {
-                new SettingsBackupService(dataDirectory).ApplyPendingImport();
+                await new SettingsBackupService(dataDirectory)
+                    .ApplyPendingImportAsync(cancellationToken);
             }
             catch (Exception exception) when (exception is IOException
                 or UnauthorizedAccessException

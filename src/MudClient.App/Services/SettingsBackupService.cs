@@ -271,6 +271,14 @@ public sealed class SettingsBackupService
         }
     }
 
+    /// <summary>
+    /// Applies a staged import on a worker thread. Directory replacement can include
+    /// deleting a large previous content cache, so mobile callers must not perform it
+    /// on the UI thread during application startup.
+    /// </summary>
+    public Task<bool> ApplyPendingImportAsync(CancellationToken cancellationToken = default) =>
+        Task.Run(ApplyPendingImport, cancellationToken);
+
     private static async Task ValidateManifestAsync(ZipArchive archive, CancellationToken cancellationToken)
     {
         var manifestEntry = archive.GetEntry(ManifestEntryName)

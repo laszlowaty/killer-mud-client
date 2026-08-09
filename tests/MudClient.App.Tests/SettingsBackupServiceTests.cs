@@ -86,6 +86,23 @@ public sealed class SettingsBackupServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyPendingImportAsync_ReplacesEntireSettingsDirectory()
+    {
+        File.WriteAllText(Path.Combine(_settingsDirectory, "old.json"), "stare");
+        var archive = await CreateBackupAsync(
+            ("settings.json", "nowe"),
+            ("Profiles/account.json", "konto"));
+        await _service.StageImportAsync(archive, TestContext.Current.CancellationToken);
+
+        Assert.True(await _service.ApplyPendingImportAsync(TestContext.Current.CancellationToken));
+
+        Assert.False(File.Exists(Path.Combine(_settingsDirectory, "old.json")));
+        Assert.Equal("nowe", File.ReadAllText(Path.Combine(_settingsDirectory, "settings.json")));
+        Assert.Equal("konto", File.ReadAllText(Path.Combine(_settingsDirectory, "Profiles", "account.json")));
+        Assert.False(Directory.Exists(_pendingDirectory));
+    }
+
+    [Fact]
     public async Task StageImportAsync_RejectsZipWithoutBackupManifest()
     {
         await using var archiveStream = new MemoryStream();
