@@ -42,13 +42,13 @@ public sealed class MovementButtonLayoutTests
         var layout = MovementButtonLayout.Create(
         [
             new RoomExitInfo("w", null, true, true),
-            new RoomExitInfo("e", "żółta brama", true, true),
+            new RoomExitInfo("e", "ŻÓŁTA BRAMA", true, true),
         ]);
 
         Assert.Equal(new MovementButtonState("w", "open w", "w"), layout.West);
         Assert.Equal(
             new MovementButtonState(
-                "żółta brama",
+                "ŻÓŁTA BRAMA",
                 "open \"zolta brama\"",
                 "zolta brama"),
             layout.East);

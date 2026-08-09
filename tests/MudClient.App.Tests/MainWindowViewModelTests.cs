@@ -3092,6 +3092,37 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void TryGetOpenCommand_NormalizesPolishExitNameForMud()
+    {
+        var exit = new RoomExitInfo("E", "Wyjście", HasDoor: true, IsClosed: true);
+
+        Assert.Equal("open wyjscie", MainWindowViewModel.TryGetOpenCommand(exit));
+    }
+
+    [Fact]
+    public void FindGmcpExit_MatchesAsciiMapCommandToPolishGmcpName()
+    {
+        var exit = new RoomExitInfo("custom", "Żółte wyjście", HasDoor: true, IsClosed: true);
+
+        var found = MainWindowViewModel.FindGmcpExit("zolte wyjscie", [exit]);
+
+        Assert.Same(exit, found);
+    }
+
+    [Theory]
+    [InlineData(null, "  Żółty Łotr  ", "kill zolty lotr")]
+    [InlineData("murder", "Leśny strażnik", "murder lesny straznik")]
+    public void BuildKillPersonCommand_NormalizesPersonNameForMud(
+        string? configuredCommand,
+        string personName,
+        string expected)
+    {
+        Assert.Equal(
+            expected,
+            MainWindowViewModel.BuildKillPersonCommand(configuredCommand, personName));
+    }
+
+    [Fact]
     public void SendAutowalkStep_WhileSitting_WaitsForStandingConfirmation()
     {
         var from = CreateTestRoom(998, "998");

@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -2999,7 +2998,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         // A named exit (GMCP "name" or a custom exit name in the map) must be
         // entered by its name — the plain direction command does not work.
         var exit = FindGmcpExit(step.Command);
-        var moveCommand = RemoveDiacritics(exit?.Name) ?? step.Command;
+        var moveCommand = string.IsNullOrWhiteSpace(exit?.Name)
+            ? step.Command
+            : MudCommandText.ToAsciiLowerInvariant(exit.Name);
         if (!string.Equals(moveCommand, step.Command, StringComparison.OrdinalIgnoreCase))
         {
             EmitSystem($"Autowalk: krok „{step.Command}” wysyłam jako „{moveCommand}”.", 90);
@@ -3112,14 +3113,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// direction when the exit has no name. (The map's "door" field holds the
     /// door state, e.g. "closed" — never a usable name.)
     /// </summary>
-    private static string? TryGetOpenCommand(RoomExitInfo? exit)
+    internal static string? TryGetOpenCommand(RoomExitInfo? exit)
     {
         if (exit is null || !exit.HasDoor || !exit.IsClosed)
         {
             return null;
         }
 
-        return $"open {RemoveDiacritics(exit.Name) ?? exit.Dir}";
+        var target = string.IsNullOrWhiteSpace(exit.Name) ? exit.Dir : exit.Name;
+        return $"open {MudCommandText.ToAsciiLowerInvariant(target)}";
     }
 
     /// <summary>
@@ -3130,7 +3132,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private RoomExitInfo? FindGmcpExit(string stepCommand)
         => FindGmcpExit(stepCommand, _roomExits.CurrentExits);
 
-    private static RoomExitInfo? FindGmcpExit(
+    internal static RoomExitInfo? FindGmcpExit(
         string stepCommand,
         IReadOnlyList<RoomExitInfo> exits)
     {
@@ -3139,7 +3141,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         foreach (var exit in exits)
         {
             if (string.Equals(CanonicalDirection(exit.Dir), canonical, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(exit.Name, stepCommand, StringComparison.OrdinalIgnoreCase))
+                (!string.IsNullOrWhiteSpace(exit.Name) &&
+                 string.Equals(
+                     MudCommandText.ToAsciiLowerInvariant(exit.Name),
+                     MudCommandText.ToAsciiLowerInvariant(stepCommand),
+                     StringComparison.Ordinal)))
             {
                 return exit;
             }
@@ -3182,22 +3188,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _autowalkOpeningStep = null;
         EmitSystem("Autowalk: przejście otwarte w GMCP — idę dalej.", 90);
         SendAutowalkStep();
-    }
-
-    /// <summary>Strips diacritics so autowalk commands are plain ASCII (e.g. "wyjście" → "wyjscie").</summary>
-    private static string? RemoveDiacritics(string? text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return text;
-
-        var normalized = text.Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder(text.Length);
-        foreach (var ch in normalized)
-        {
-            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark)
-                sb.Append(ch);
-        }
-        return sb.ToString().Normalize(NormalizationForm.FormC);
     }
 
     /// <summary>Maps full direction names to the short form used by GMCP dirs.</summary>
@@ -5821,9 +5811,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         if (!string.IsNullOrWhiteSpace(name) && IsConnected)
         {
-            var cmd = string.IsNullOrWhiteSpace(_settings.KillCommand) ? "kill" : _settings.KillCommand;
-            _ = SendUiCommandAsync($"{cmd} {name}");
+            _ = SendUiCommandAsync(BuildKillPersonCommand(_settings.KillCommand, name));
         }
+    }
+
+    internal static string BuildKillPersonCommand(string? configuredCommand, string name)
+    {
+        var command = string.IsNullOrWhiteSpace(configuredCommand) ? "kill" : configuredCommand;
+        var target = MudCommandText.ToAsciiLowerInvariant(name.Trim());
+        return $"{command} {target}";
     }
 
     private async Task SendUiCommandAsync(string command)

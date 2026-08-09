@@ -1,6 +1,5 @@
-using System.Globalization;
-using System.Text;
 using MudClient.Core.Map;
+using MudClient.Core.Text;
 
 namespace MudClient.App.ViewModels;
 
@@ -43,7 +42,7 @@ public sealed record MovementButtonLayout(
                 CanonicalDirection(exit.Name) != direction)
             {
                 label = exit.Name.Trim();
-                moveCommand = ToMudCommand(label);
+                moveCommand = MudCommandText.ToAsciiLowerInvariant(label);
             }
 
             buttons[direction] = exit.IsClosed
@@ -92,33 +91,10 @@ public sealed record MovementButtonLayout(
             _ => direction.Trim().ToUpperInvariant(),
         };
 
-    private static string ToMudCommand(string label)
-    {
-        var decomposed = label.Normalize(NormalizationForm.FormD);
-        var command = new StringBuilder(decomposed.Length);
-        foreach (var character in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) ==
-                UnicodeCategory.NonSpacingMark)
-            {
-                continue;
-            }
-
-            command.Append(character switch
-            {
-                'ł' => 'l',
-                'Ł' => 'L',
-                _ => character,
-            });
-        }
-
-        return command.ToString().Normalize(NormalizationForm.FormC);
-    }
-
     private static string CreateOpeningCommand(
         RoomExitInfo exit,
         string fallbackDirection) =>
         string.IsNullOrWhiteSpace(exit.Name)
             ? $"open {fallbackDirection}"
-            : $"open \"{ToMudCommand(exit.Name.Trim())}\"";
+            : $"open \"{MudCommandText.ToAsciiLowerInvariant(exit.Name.Trim())}\"";
 }
