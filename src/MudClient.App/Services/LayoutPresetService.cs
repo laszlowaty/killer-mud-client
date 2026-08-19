@@ -42,25 +42,13 @@ public sealed class LayoutPresetService
 
     public List<LayoutPreset> Load()
     {
-        try
-        {
-            if (File.Exists(_path))
-            {
-                return JsonSerializer.Deserialize<List<LayoutPreset>>(File.ReadAllText(_path), SerializerOptions)
-                    ?? new List<LayoutPreset>();
-            }
-        }
-        catch (Exception exception) when (exception is IOException or JsonException)
-        {
-            // Corrupted or unreadable presets — start from an empty set.
-        }
-
-        return new List<LayoutPreset>();
+        return DurableJsonFile.TryRead<List<LayoutPreset>>(_path, SerializerOptions, out var presets)
+            ? presets ?? []
+            : [];
     }
 
     public void Save(IEnumerable<LayoutPreset> presets)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        File.WriteAllText(_path, JsonSerializer.Serialize(presets.ToList(), SerializerOptions));
+        DurableJsonFile.Write(_path, presets.ToList(), SerializerOptions);
     }
 }

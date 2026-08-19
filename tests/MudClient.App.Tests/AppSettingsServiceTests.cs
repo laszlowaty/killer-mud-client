@@ -371,6 +371,32 @@ public sealed class AppSettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void Load_CorruptedPrimary_RecoversPreviousCompleteSettings()
+    {
+        _service.Save(new AppSettings { CommandStackingSeparator = "pierwszy" });
+        _service.Save(new AppSettings { CommandStackingSeparator = "drugi" });
+        File.WriteAllText(Path.Combine(_tempDir, "settings.json"), "{ urwany zapis");
+
+        var settings = _service.Load();
+
+        Assert.Equal("pierwszy", settings.CommandStackingSeparator);
+        Assert.True(File.Exists(Path.Combine(_tempDir, "settings.json.bak")));
+        Assert.Empty(Directory.EnumerateFiles(_tempDir, "settings.json.tmp-*"));
+    }
+
+    [Fact]
+    public void Load_MissingPrimaryAndBackup_RecoversFlushedTemporarySettings()
+    {
+        SaveRaw(
+            new AppSettings { CommandStackingSeparator = "odzyskany" },
+            "settings.json.tmp-przerwany");
+
+        var settings = _service.Load();
+
+        Assert.Equal("odzyskany", settings.CommandStackingSeparator);
+    }
+
+    [Fact]
     public void Load_InvalidWidgetFont_NormalizesToDefaultsAndRange()
     {
         SaveRaw(new AppSettings { WidgetFontFamily = "  ", WidgetFontSize = 100 });
@@ -385,9 +411,9 @@ public sealed class AppSettingsServiceTests : IDisposable
     // Helpers
     // ====================================================================
 
-    private void SaveRaw(AppSettings settings)
+    private void SaveRaw(AppSettings settings, string fileName = "settings.json")
     {
-        var path = Path.Combine(_tempDir, "settings.json");
+        var path = Path.Combine(_tempDir, fileName);
         var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
     }

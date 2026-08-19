@@ -347,6 +347,8 @@ Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każde konto
 
 Panel **Ustawienia** pozwala wyeksportować do ZIP cały katalog danych aplikacji (`%AppData%\KillerMudClient`), łącznie z ustawieniami, profilami, automatyzacją, zapisanym układem i pozostałymi danymi. Import jest najpierw sprawdzany i przygotowywany, po czym klient automatycznie uruchamia się ponownie i zastępuje cały obecny katalog zawartością kopii.
 
+Pliki konfiguracji są zapisywane przez plik tymczasowy i atomową podmianę po wymuszeniu zapisu danych na dysk. Poprzednia kompletna wersja pozostaje obok jako plik `.bak`; jeżeli główny JSON jest nieczytelny po awarii systemu lub zaniku zasilania, klient automatycznie odczytuje tę kopię.
+
 ## Struktura
 
 ```text

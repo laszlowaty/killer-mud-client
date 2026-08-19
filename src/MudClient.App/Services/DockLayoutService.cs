@@ -29,25 +29,14 @@ public sealed class DockLayoutService
 
     public DockLayoutSnapshot? Load()
     {
-        try
-        {
-            if (File.Exists(_path))
-            {
-                return JsonSerializer.Deserialize<DockLayoutSnapshot>(File.ReadAllText(_path), SerializerOptions);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or JsonException)
-        {
-            // Corrupted or unreadable layout — fall back to the default.
-        }
-
-        return null;
+        return DurableJsonFile.TryRead<DockLayoutSnapshot>(_path, SerializerOptions, out var snapshot)
+            ? snapshot
+            : null;
     }
 
     public void Save(DockLayoutSnapshot snapshot)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        File.WriteAllText(_path, JsonSerializer.Serialize(snapshot, SerializerOptions));
+        DurableJsonFile.Write(_path, snapshot, SerializerOptions);
     }
 
     public void Delete()
@@ -57,6 +46,12 @@ public sealed class DockLayoutService
             if (File.Exists(_path))
             {
                 File.Delete(_path);
+            }
+
+            var backupPath = _path + DurableJsonFile.BackupSuffix;
+            if (File.Exists(backupPath))
+            {
+                File.Delete(backupPath);
             }
         }
         catch (IOException)

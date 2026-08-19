@@ -73,6 +73,41 @@ public sealed class DockLayoutPersistenceTests : IDisposable
     }
 
     [Fact]
+    public void Load_CorruptedPrimary_RecoversPreviousCompleteSnapshot()
+    {
+        var factory = CreateFactory(out var layout);
+        var service = new DockLayoutService(_tempDir);
+        var first = factory.Snapshot(layout);
+        first.HiddenToolIds.Add("Gmcp");
+        service.Save(first);
+        var second = factory.Snapshot(layout);
+        second.HiddenToolIds.Add("Notes");
+        service.Save(second);
+        File.WriteAllText(Path.Combine(_tempDir, "dock-layout.json"), "{ urwany zapis");
+
+        var loaded = service.Load();
+
+        Assert.NotNull(loaded);
+        Assert.Contains("Gmcp", loaded!.HiddenToolIds);
+        Assert.DoesNotContain("Notes", loaded.HiddenToolIds);
+    }
+
+    [Fact]
+    public void Delete_RemovesPrimaryAndRecoveryCopy()
+    {
+        var factory = CreateFactory(out var layout);
+        var service = new DockLayoutService(_tempDir);
+        service.Save(factory.Snapshot(layout));
+        service.Save(factory.Snapshot(layout));
+
+        service.Delete();
+
+        Assert.False(File.Exists(Path.Combine(_tempDir, "dock-layout.json")));
+        Assert.False(File.Exists(Path.Combine(_tempDir, "dock-layout.json.bak")));
+        Assert.Null(service.Load());
+    }
+
+    [Fact]
     public void Restore_ReaddsClosedPanelToItsPreviousDock()
     {
         var factory = CreateFactory(out var layout);

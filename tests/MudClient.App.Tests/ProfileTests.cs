@@ -104,6 +104,54 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void Load_CorruptedPrimary_RecoversPreviousCompleteProfile()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Gandalf", Login = "pierwszy" });
+        service.Save(new ProfileData { Name = "Gandalf", Login = "drugi" });
+        File.WriteAllText(Path.Combine(_directory, "Gandalf.json"), "{ urwany zapis");
+
+        var loaded = service.Load("Gandalf");
+
+        Assert.NotNull(loaded);
+        Assert.Equal("pierwszy", loaded!.Login);
+        Assert.True(File.Exists(Path.Combine(_directory, "Gandalf.json.bak")));
+    }
+
+    [Fact]
+    public void LoadGlobal_CorruptedPrimary_RecoversPreviousCompleteGlobalData()
+    {
+        var service = CreateService();
+        service.SaveGlobal(new GlobalData
+        {
+            Locations = [new ProfileLocation { Name = "pierwsza", Vnum = "100" }],
+        });
+        service.SaveGlobal(new GlobalData
+        {
+            Locations = [new ProfileLocation { Name = "druga", Vnum = "200" }],
+        });
+        File.WriteAllText(Path.Combine(_directory, "_global.json"), "{ urwany zapis");
+
+        var loaded = service.LoadGlobal();
+
+        Assert.Equal("pierwsza", Assert.Single(loaded.Locations).Name);
+    }
+
+    [Fact]
+    public void Delete_RemovesPrimaryAndRecoveryCopy()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Gandalf", Login = "pierwszy" });
+        service.Save(new ProfileData { Name = "Gandalf", Login = "drugi" });
+
+        service.Delete("Gandalf");
+
+        Assert.False(File.Exists(Path.Combine(_directory, "Gandalf.json")));
+        Assert.False(File.Exists(Path.Combine(_directory, "Gandalf.json.bak")));
+        Assert.Null(service.Load("Gandalf"));
+    }
+
+    [Fact]
     public void SaveAndLoad_RoundTripsAdvancedAutomationScriptsAndVariables()
     {
         var service = CreateService();

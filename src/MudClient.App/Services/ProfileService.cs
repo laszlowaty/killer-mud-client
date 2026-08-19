@@ -54,64 +54,46 @@ public sealed class ProfileService
         {
             File.Delete(path);
         }
+
+        var backupPath = path + DurableJsonFile.BackupSuffix;
+        if (File.Exists(backupPath))
+        {
+            File.Delete(backupPath);
+        }
     }
 
     public ProfileData? Load(string name)
     {
         var path = GetPath(name);
-        if (!File.Exists(path))
+        if (DurableJsonFile.TryRead<ProfileData>(path, SerializerOptions, out var profile)
+            && profile is not null)
         {
-            return null;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(path);
-            var profile = JsonSerializer.Deserialize<ProfileData>(json, SerializerOptions);
-            if (profile is not null)
-            {
-                profile.Name = name;
-            }
-
+            profile.Name = name;
             return profile;
         }
-        catch (Exception exception) when (exception is IOException or JsonException)
-        {
-            return null;
-        }
+
+        return null;
     }
 
     public void Save(ProfileData profile)
     {
-        Directory.CreateDirectory(_directory);
-        var json = JsonSerializer.Serialize(profile, SerializerOptions);
-        File.WriteAllText(GetPath(profile.Name), json);
+        DurableJsonFile.Write(GetPath(profile.Name), profile, SerializerOptions);
     }
 
     public GlobalData LoadGlobal()
     {
         var path = Path.Combine(_directory, GlobalFileName + ".json");
-        if (!File.Exists(path))
-        {
-            return new GlobalData();
-        }
-
-        try
-        {
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<GlobalData>(json, SerializerOptions) ?? new GlobalData();
-        }
-        catch (Exception exception) when (exception is IOException or JsonException)
-        {
-            return new GlobalData();
-        }
+        return DurableJsonFile.TryRead<GlobalData>(path, SerializerOptions, out var data)
+            ? data ?? new GlobalData()
+            : new GlobalData();
     }
 
     public void SaveGlobal(GlobalData data)
     {
-        Directory.CreateDirectory(_directory);
-        var json = JsonSerializer.Serialize(data, SerializerOptions);
-        File.WriteAllText(Path.Combine(_directory, GlobalFileName + ".json"), json);
+        DurableJsonFile.Write(
+            Path.Combine(_directory, GlobalFileName + ".json"),
+            data,
+            SerializerOptions);
     }
 
     private string GetPath(string name) => Path.Combine(_directory, Sanitize(name) + ".json");
