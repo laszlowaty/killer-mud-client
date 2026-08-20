@@ -3157,6 +3157,63 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void SendAutowalkStep_WhileStanding_DoesNotEnterStandRecovery()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
+
+        typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
+
+        var recoveringField = typeof(MainWindowViewModel).GetField("_autowalkRecoveringPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        Assert.False((bool)recoveringField.GetValue(_vm)!);
+        Assert.DoesNotContain("wstaję", _vm.AutowalkStatusText);
+    }
+
+    [AvaloniaFact]
+    public async Task AutowalkRest_ReadyRefreshEndsWaitImmediately()
+    {
+        var latestSpellsField = typeof(MainWindowViewModel).GetField(
+            "_latestMemorizedSpells",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        latestSpellsField.SetValue(_vm, new MemorizedSpell[]
+        {
+            new(1, 3, "refresh", Memed: false, Meming: true),
+        });
+
+        var waitMethod = typeof(MainWindowViewModel).GetMethod(
+            "WaitForAutowalkRefreshOrTimeoutAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var waitTask = (Task<bool>)waitMethod.Invoke(
+            _vm,
+            [TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken])!;
+
+        var memSpellsChanged = typeof(MainWindowViewModel).GetMethod(
+            "OnMemSpellsChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        memSpellsChanged.Invoke(_vm, [new MemorizedSpell[]
+        {
+            new(1, 3, "refresh", Memed: true, Meming: false),
+        }]);
+
+        Assert.True(await waitTask.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public void OnMapRoomDoubleClicked_NoVnum_ShowsErrorToast()
     {
         // Arrange: a room with no vnum

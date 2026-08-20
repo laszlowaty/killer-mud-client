@@ -39,6 +39,25 @@ public static class AutowalkRecoveryPolicy
     public static IReadOnlyList<string> GetRestCommands(bool useRecuperate) =>
         useRecuperate ? ["rest", "recuperate"] : ["rest"];
 
+    /// <summary>Commands sent after resting, including spells that are currently ready.</summary>
+    public static IReadOnlyList<string> GetPostRestCommands(
+        IReadOnlyList<MemorizedSpell> memorizedSpells,
+        bool castRefresh)
+    {
+        var commands = new List<string> { "stand" };
+        if (HasMemorizedSpell(memorizedSpells, "float"))
+        {
+            commands.Add("cast 'float' self");
+        }
+
+        if (castRefresh && HasMemorizedSpell(memorizedSpells, "refresh"))
+        {
+            commands.Add("cast 'refresh' self");
+        }
+
+        return commands;
+    }
+
     /// <summary>True when the GMCP position reports the character is in combat.</summary>
     public static bool IsCombatPosition(string? position) =>
         string.Equals(position, "fighting", StringComparison.OrdinalIgnoreCase);

@@ -72,6 +72,48 @@ public sealed class AutowalkRecoveryPolicyTests
         Assert.Equal(expected, AutowalkRecoveryPolicy.GetRestCommands(useRecuperate));
     }
 
+    [Fact]
+    public void GetPostRestCommands_ReadyFloatAndRefresh_CastsBothAfterStanding()
+    {
+        MemorizedSpell[] spells =
+        [
+            new(1, 3, "float", Memed: true, Meming: false),
+            new(2, 3, "refresh", Memed: true, Meming: false),
+        ];
+
+        Assert.Equal(
+            ["stand", "cast 'float' self", "cast 'refresh' self"],
+            AutowalkRecoveryPolicy.GetPostRestCommands(spells, castRefresh: true));
+    }
+
+    [Fact]
+    public void GetPostRestCommands_UnreadySpells_OnlyStands()
+    {
+        MemorizedSpell[] spells =
+        [
+            new(1, 3, "float", Memed: false, Meming: true),
+            new(2, 3, "refresh", Memed: false, Meming: true),
+        ];
+
+        Assert.Equal(
+            ["stand"],
+            AutowalkRecoveryPolicy.GetPostRestCommands(spells, castRefresh: true));
+    }
+
+    [Fact]
+    public void GetPostRestCommands_RefreshWakeDisabled_DoesNotCastRefresh()
+    {
+        MemorizedSpell[] spells =
+        [
+            new(1, 3, "float", Memed: true, Meming: false),
+            new(2, 3, "refresh", Memed: true, Meming: false),
+        ];
+
+        Assert.Equal(
+            ["stand", "cast 'float' self"],
+            AutowalkRecoveryPolicy.GetPostRestCommands(spells, castRefresh: false));
+    }
+
     [Theory]
     [InlineData("Brama jest zamknięta na klucz.")]
     [InlineData("Brama jest zamknieta na klucz.")]

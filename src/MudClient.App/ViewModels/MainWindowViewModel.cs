@@ -197,6 +197,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private int? _latestMovement;
     private int? _latestMaximumMovement;
     private IReadOnlyList<MemorizedSpell> _latestMemorizedSpells = [];
+    private TaskCompletionSource<bool>? _autowalkRefreshReady;
     private bool _autowalkRecoveringMovement;
     private bool _autowalkRecoveringPosition;
     private int? _autowalkOpeningStep;
@@ -2892,11 +2893,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
         PaintRoute(path, 0);
-        if (!AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition))
-        {
-            _ = SendTriggeredCommandAsync("stand");
-        }
-
         SendAutowalkStep();
     }
 
@@ -2985,6 +2981,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 _autowalkRecoveringMovement = true;
                 _ = RecoverMovementAndContinueAsync(
                     action,
+                    AutowalkUseRefreshes,
                     AutowalkUseRecuperate,
                     _autowalkCts.Token);
                 return;
@@ -3038,6 +3035,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private async Task RecoverMovementAndContinueAsync(
         LowMovementAction action,
+        bool useRefreshes,
         bool useRecuperate,
         CancellationToken cancellationToken)
     {
@@ -3058,14 +3056,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     await SendTriggeredCommandAsync(command, cancellationToken);
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
-
-                // The character is still resting — stand up before walking on.
-                await SendTriggeredCommandAsync("stand", cancellationToken);
-
-                if (AutowalkRecoveryPolicy.HasMemorizedSpell(_latestMemorizedSpells, "float"))
+                bool refreshBecameReady;
+                if (useRefreshes)
                 {
-                    await SendTriggeredCommandAsync("cast 'float' self", cancellationToken);
+                    refreshBecameReady = await WaitForAutowalkRefreshOrTimeoutAsync(
+                        TimeSpan.FromSeconds(30),
+                        cancellationToken);
+                }
+                else
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                    refreshBecameReady = false;
+                }
+                var status = refreshBecameReady
+                    ? "Refresh zapamiętany — wstaję i rzucam czary."
+                    : "Odpoczynek zakończony — wstaję i wznawiam trasę.";
+                Dispatcher.UIThread.Post(() => AutowalkStatusText = status);
+
+                foreach (var command in AutowalkRecoveryPolicy.GetPostRestCommands(
+                             _latestMemorizedSpells,
+                             castRefresh: refreshBecameReady))
+                {
+                    await SendTriggeredCommandAsync(command, cancellationToken);
                 }
             }
 
@@ -3083,6 +3095,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Stopping autowalk also stops its pending recovery delay and sends.
+        }
+    }
+
+    private async Task<bool> WaitForAutowalkRefreshOrTimeoutAsync(
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        if (AutowalkRecoveryPolicy.HasMemorizedSpell(_latestMemorizedSpells, "refresh"))
+        {
+            return true;
+        }
+
+        var signal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _autowalkRefreshReady = signal;
+        try
+        {
+            // Close the race between the initial check and publishing the signal.
+            if (AutowalkRecoveryPolicy.HasMemorizedSpell(_latestMemorizedSpells, "refresh"))
+            {
+                signal.TrySetResult(true);
+            }
+
+            var delay = Task.Delay(timeout, cancellationToken);
+            var completed = await Task.WhenAny(signal.Task, delay);
+            if (completed == signal.Task)
+            {
+                return await signal.Task;
+            }
+
+            await delay;
+            return false;
+        }
+        finally
+        {
+            Interlocked.CompareExchange(ref _autowalkRefreshReady, null, signal);
         }
     }
 
@@ -6805,6 +6852,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void OnMemSpellsChanged(IReadOnlyList<MemorizedSpell> spells)
     {
         _latestMemorizedSpells = spells.ToArray();
+        if (AutowalkRecoveryPolicy.HasMemorizedSpell(_latestMemorizedSpells, "refresh"))
+        {
+            _autowalkRefreshReady?.TrySetResult(true);
+        }
 
         Dispatcher.UIThread.Post(() =>
         {
