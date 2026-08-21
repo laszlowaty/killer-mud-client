@@ -507,6 +507,15 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="reconnect()" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                               Text="Rozłącza klienta i ponownie łączy z MUD-em przy użyciu obecnego profilu, łącznie z automatycznym logowaniem. Działa w zaawansowanych aliasach, triggerach, timerach i skryptach." />
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <StackPanel Spacing="6">
                     <TextBlock Text="Konsola JavaScript"
                                FontWeight="Bold"

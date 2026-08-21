@@ -150,6 +150,13 @@
 
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
+          <TextBlock Text="reconnect()" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Rozłącza klienta i ponownie łączy z MUD-em przy użyciu obecnego profilu, łącznie z automatycznym logowaniem. Działa w zaawansowanych aliasach, triggerach, timerach i skryptach." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
           <TextBlock Text="input i match" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
           <TextBlock TextWrapping="Wrap" Text="input zawiera wejściową komendę lub linię. W aliasie i triggerze match.value zawiera całe dopasowanie, match.captures grupy numerowane, a match.groups grupy nazwane." />
         </StackPanel>

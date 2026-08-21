@@ -122,6 +122,25 @@ public sealed class JavaScriptRunnerTests
             result.Effects);
     }
 
+    [Theory]
+    [InlineData("alias")]
+    [InlineData("trigger")]
+    [InlineData("timer")]
+    [InlineData("script")]
+    public void Execute_Reconnect_ProducesReconnectEffectForEveryAutomationSource(string source)
+    {
+        var runner = new JavaScriptRunner();
+
+        var result = runner.Execute(
+            new ScriptInvocation("ponowne połączenie", source, "reconnect();"),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Reconnect, string.Empty),
+            Assert.Single(result.Effects));
+    }
+
     [Fact]
     public void Execute_InfiniteLoop_IsStopped()
     {

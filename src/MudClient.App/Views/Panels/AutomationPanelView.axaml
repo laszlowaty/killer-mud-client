@@ -406,7 +406,7 @@
                 <TextBox Text="{Binding NewScriptGmcpPattern}"
                          PlaceholderText="Pakiet GMCP, np. Char.Vitals lub Char.* (puste = tylko ręcznie)" />
                 <TextBlock Classes="mud-faint"
-                           Text="JavaScript: onGmcp(), execute(), send(), echo(), variables" />
+                           Text="JavaScript: onGmcp(), execute(), send(), echo(), reconnect(), variables" />
                 <TextBox Text="{Binding NewScriptCode}"
                          AcceptsReturn="True" TextWrapping="NoWrap"
                          MinHeight="150"

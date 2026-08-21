@@ -30,6 +30,11 @@ public sealed partial class MainWindowViewModel
     private readonly object _scriptVariableSaveLock = new();
     private int _scriptVariableRefreshScheduled;
     private readonly AsyncLocal<int> _automationExecutionDepth = new();
+    private readonly object _reconnectTaskLock = new();
+    private readonly CancellationTokenSource _reconnectCts = new();
+    private Task _reconnectTask = Task.CompletedTask;
+    private bool _acceptingReconnectRequests = true;
+    private int _reconnectScheduled;
 
     private ScriptEntry? _editedScript;
     private bool _isScriptFormExpanded;
@@ -599,8 +604,64 @@ public sealed partial class MainWindowViewModel
                         effect.Color ?? "info",
                         effect.Text);
                     break;
+                case ScriptEffectKind.Reconnect:
+                    ScheduleReconnect();
+                    return;
             }
         }
+    }
+
+    private void ScheduleReconnect()
+    {
+        lock (_reconnectTaskLock)
+        {
+            if (!_acceptingReconnectRequests
+                || Interlocked.CompareExchange(ref _reconnectScheduled, 1, 0) != 0)
+            {
+                return;
+            }
+
+            _reconnectTask = ReconnectAfterAutomationAsync(_reconnectCts.Token);
+        }
+    }
+
+    private async Task ReconnectAfterAutomationAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Reconnect cancels and drains the automation queue. Yield first so
+            // the invocation which requested it can leave that queue itself.
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ReconnectCurrentProfileAsync(cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Application shutdown supersedes a pending reconnect request.
+        }
+        catch (Exception exception)
+        {
+            Dispatcher.UIThread.Post(() => EmitSystem(exception.Message, 31));
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _reconnectScheduled, 0);
+        }
+    }
+
+    private async Task StopReconnectRequestsAsync()
+    {
+        Task pending;
+        lock (_reconnectTaskLock)
+        {
+            _acceptingReconnectRequests = false;
+            _reconnectCts.Cancel();
+            pending = _reconnectTask;
+        }
+
+        await pending;
     }
 
     private void ReportScriptError(

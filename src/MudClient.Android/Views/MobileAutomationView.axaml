@@ -295,7 +295,7 @@
                 <TextBox Text="{Binding NewScriptGmcpPattern}"
                          PlaceholderText="GMCP, np. Char.Vitals (puste = ręcznie)" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                           Text="onGmcp(), execute(), send(), echo(), variables" />
+                           Text="onGmcp(), execute(), send(), echo(), reconnect(), variables" />
                 <TextBox Text="{Binding NewScriptCode}"
                          PlaceholderText="Kod JavaScript"
                          AcceptsReturn="True"

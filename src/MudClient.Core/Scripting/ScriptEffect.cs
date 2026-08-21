@@ -6,6 +6,7 @@ public enum ScriptEffectKind
     Send,
     Echo,
     Log,
+    Reconnect,
 }
 
 /// <summary>

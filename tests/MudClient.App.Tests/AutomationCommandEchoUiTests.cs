@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Net;
+using System.Net.Sockets;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using MudClient.App.Models;
@@ -473,6 +475,47 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task ScriptReconnect_ReopensCurrentConnection()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var (viewModel, directory) = CreateViewModel();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        TcpClient? firstClient = null;
+        TcpClient? secondClient = null;
+
+        try
+        {
+            viewModel.Host = IPAddress.Loopback.ToString();
+            viewModel.Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var firstAccept = listener.AcceptTcpClientAsync(timeout.Token);
+
+            await viewModel.ConnectCommand.ExecuteAsync(null);
+            firstClient = await firstAccept;
+
+            var secondAccept = listener.AcceptTcpClientAsync(timeout.Token);
+            await viewModel.RunScriptCommand.ExecuteAsync(new ScriptEntry
+            {
+                Name = "reconnect",
+                Code = "reconnect();",
+            });
+
+            await GetReconnectTask(viewModel).WaitAsync(timeout.Token);
+            secondClient = await secondAccept;
+
+            Assert.True(viewModel.IsConnected);
+            Assert.False(viewModel.IsBusy);
+        }
+        finally
+        {
+            firstClient?.Dispose();
+            secondClient?.Dispose();
+            listener.Stop();
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ScriptVariableBurst_QueuesSingleUiRefresh()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -569,6 +612,15 @@ public sealed class AutomationCommandEchoUiTests
     {
         var field = typeof(MainWindowViewModel).GetField(
             "_triggerQueueTail",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return Assert.IsAssignableFrom<Task>(field!.GetValue(viewModel));
+    }
+
+    private static Task GetReconnectTask(MainWindowViewModel viewModel)
+    {
+        var field = typeof(MainWindowViewModel).GetField(
+            "_reconnectTask",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
         return Assert.IsAssignableFrom<Task>(field!.GetValue(viewModel));

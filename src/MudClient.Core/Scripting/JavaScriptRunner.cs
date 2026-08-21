@@ -133,6 +133,7 @@ public sealed class JavaScriptRunner
                 "send" => ScriptEffectKind.Send,
                 "echo" => ScriptEffectKind.Echo,
                 "log" => ScriptEffectKind.Log,
+                "reconnect" => ScriptEffectKind.Reconnect,
                 _ => throw new ArgumentException($"Nieznany rodzaj akcji skryptu: {kind}."),
             };
 
@@ -221,6 +222,10 @@ public sealed class JavaScriptRunner
 
         function echo(text, color = "cyan") {
             __addEffect("echo", String(text), String(color));
+        }
+
+        function reconnect() {
+            __addEffect("reconnect", "", null);
         }
 
         function __formatLogValues(values) {

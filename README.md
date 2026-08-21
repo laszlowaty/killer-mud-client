@@ -154,6 +154,8 @@ onGmcp("Char.Vitals", event => {
 
 - `execute(text)` i `runAlias(text)` wykonują tekst tak, jak pole komendy klienta,
 - `send(text)` wysyła tekst bezpośrednio do MUD-a przez bezpieczną kolejkę,
+- `reconnect()` rozłącza klienta i ponownie łączy z MUD-em przy użyciu obecnego
+  profilu; jest dostępne w zaawansowanych aliasach, triggerach, timerach i skryptach,
 - `echo(text, color)` wypisuje lokalny komunikat w terminalu,
 - `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
   **Konsola JavaScript**,

@@ -303,7 +303,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyWidgetFontResources();
         PopulateAvailableFonts();
         _settingsLoaded = true;
-        _connectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
+        _connectCommand = new AsyncRelayCommand(() => ConnectAsync(), CanConnect);
         _disconnectCommand = new AsyncRelayCommand(DisconnectAsync, CanDisconnect);
         _sendCommandCommand = new AsyncRelayCommand(SendCurrentCommandAsync, CanSendCommand);
         _sendMovementCommand = new AsyncRelayCommand<string>(
@@ -5690,7 +5690,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private bool CanSendCommand() => !IsBusy && IsConnected && _bookRefreshCts is null;
 
-    private async Task ConnectAsync()
+    private Task ConnectAsync() => ConnectAsync(CancellationToken.None);
+
+    private async Task ConnectAsync(CancellationToken cancellationToken)
     {
         IsBusy = true;
         EmitSystem($"Łączenie z {Host}:{Port}...", 36);
@@ -5706,9 +5708,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
 
             _session.EncodingMode = Encoding;
-            await _session.ConnectAsync(Host.Trim(), Port);
+            await _session.ConnectAsync(Host.Trim(), Port, cancellationToken);
             IsConnected = true;
-            await AutoLoginAsync();
+            await AutoLoginAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            IsConnected = false;
+            throw;
         }
         catch (Exception exception)
         {
@@ -5726,7 +5733,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// Sends the account name and stored password right after connecting,
     /// so the MUD login prompt is answered automatically.
     /// </summary>
-    private async Task AutoLoginAsync()
+    private async Task AutoLoginAsync(CancellationToken cancellationToken)
     {
         var login = _activeProfileLogin;
         if (string.IsNullOrWhiteSpace(login) || string.IsNullOrEmpty(_activeProfilePassword))
@@ -5735,7 +5742,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         // Give the server a moment to show the login prompt before answering it.
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken);
 
         if (_activeProfileNeedsRegistration)
         {
@@ -5744,28 +5751,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             // single space skips the intro screen. This runs only once — the
             // flag is cleared and persisted so later logins use the plain
             // name + password sequence below.
-            await _session.SendCommandAsync(login);
-            await Task.Delay(500);
-            await _session.SendCommandAsync("t");
-            await Task.Delay(500);
-            await _session.SendCommandAsync(_activeProfilePassword);
-            await Task.Delay(500);
-            await _session.SendCommandAsync(_activeProfilePassword);
-            await Task.Delay(500);
-            await _session.SendCommandAsync(" ");
+            await _session.SendCommandAsync(login, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            await _session.SendCommandAsync("t", cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            await _session.SendCommandAsync(_activeProfilePassword, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            await _session.SendCommandAsync(_activeProfilePassword, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            await _session.SendCommandAsync(" ", cancellationToken);
 
             _activeProfileNeedsRegistration = false;
             SaveActiveProfile();
             EmitSystem($"Utworzono i zalogowano nową postać {login}.", 36);
-            await SyncServerCodepageAsync();
+            await SyncServerCodepageAsync(cancellationToken);
             return;
         }
 
-        await _session.SendCommandAsync(login);
-        await Task.Delay(500);
-        await _session.SendCommandAsync(_activeProfilePassword);
+        await _session.SendCommandAsync(login, cancellationToken);
+        await Task.Delay(500, cancellationToken);
+        await _session.SendCommandAsync(_activeProfilePassword, cancellationToken);
         EmitSystem($"Zalogowano automatycznie jako {login}.", 36);
-        await SyncServerCodepageAsync();
+        await SyncServerCodepageAsync(cancellationToken);
     }
 
     /// <summary>
@@ -5775,7 +5782,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// server to match it so both sides actually agree instead of relying on detection.
     /// Auto/UTF-8 send nothing — the server has no matching "utf8" mode to request.
     /// </summary>
-    private async Task SyncServerCodepageAsync()
+    private async Task SyncServerCodepageAsync(CancellationToken cancellationToken)
     {
         var codepageArg = Encoding switch
         {
@@ -5789,8 +5796,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        await Task.Delay(300);
-        await _session.SendCommandAsync($"config codepage {codepageArg}");
+        await Task.Delay(300, cancellationToken);
+        await _session.SendCommandAsync($"config codepage {codepageArg}", cancellationToken);
     }
 
     private async Task DisconnectAsync()
@@ -5809,6 +5816,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             await ResetAutomationQueueAsync();
             IsBusy = false;
         }
+    }
+
+    private async Task ReconnectCurrentProfileAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (IsBusy)
+        {
+            EmitSystem("Nie można teraz wykonać reconnect(): klient jest zajęty.", 33);
+            return;
+        }
+
+        if (IsConnected)
+        {
+            await DisconnectAsync();
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await ConnectAsync(cancellationToken);
     }
 
     private async Task SendCurrentCommandAsync()
@@ -7209,6 +7235,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         SaveActiveProfile();
         StopScriptingPersistence();
+        await StopReconnectRequestsAsync();
 
         List<Task> toastExpirationTasks;
         lock (_toastExpirationTasksLock)
@@ -7400,6 +7427,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         await _timers.DisposeAsync();
         await _session.DisposeAsync();
         await Map.DisposeAsync();
+        _reconnectCts.Dispose();
         _triggerSendLock.Dispose();
         _triggerCts.Dispose();
         _autowalkCts.Dispose();
