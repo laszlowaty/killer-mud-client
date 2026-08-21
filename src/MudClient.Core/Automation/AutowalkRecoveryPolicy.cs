@@ -62,8 +62,10 @@ public static class AutowalkRecoveryPolicy
     public static bool IsCombatPosition(string? position) =>
         string.Equals(position, "fighting", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>True when GMCP reports that movement requires standing up first.</summary>
-    public static bool IsSittingPosition(string? position) =>
+    /// <summary>True when GMCP reports a position that requires standing before movement.</summary>
+    public static bool RequiresStandBeforeMovement(string? position) =>
+        string.Equals(position, "resting", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(position, "sleeping", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(position, "sitting", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when GMCP confirms that the character can resume walking.</summary>

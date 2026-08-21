@@ -84,6 +84,8 @@ public sealed class CharacterStateResolverTests
     [Theory]
     [InlineData("POS_FIGHTING", "fighting")]
     [InlineData("POS_SITTING", "sitting")]
+    [InlineData("POS_RESTING", "resting")]
+    [InlineData("POS_SLEEPING", "sleeping")]
     public void Process_PositionPrefix_IsNormalizedCaseInsensitively(string rawPosition, string expected)
     {
         CharacterConditionUpdate? update = null;

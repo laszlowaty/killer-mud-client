@@ -154,23 +154,25 @@ public sealed class AutowalkRecoveryPolicyTests
     }
 
     [Theory]
+    [InlineData("resting")]
+    [InlineData("RESTING")]
+    [InlineData("sleeping")]
+    [InlineData("SLEEPING")]
     [InlineData("sitting")]
-    [InlineData("Sitting")]
     [InlineData("SITTING")]
-    public void IsSittingPosition_RecognizesSitting(string position)
+    public void RequiresStandBeforeMovement_RecognizesNonStandingPositions(string position)
     {
-        Assert.True(AutowalkRecoveryPolicy.IsSittingPosition(position));
+        Assert.True(AutowalkRecoveryPolicy.RequiresStandBeforeMovement(position));
     }
 
     [Theory]
     [InlineData("standing")]
     [InlineData("fighting")]
-    [InlineData("resting")]
     [InlineData("")]
     [InlineData(null)]
-    public void IsSittingPosition_RejectsOtherPositions(string? position)
+    public void RequiresStandBeforeMovement_RejectsOtherPositions(string? position)
     {
-        Assert.False(AutowalkRecoveryPolicy.IsSittingPosition(position));
+        Assert.False(AutowalkRecoveryPolicy.RequiresStandBeforeMovement(position));
     }
 
     [Theory]

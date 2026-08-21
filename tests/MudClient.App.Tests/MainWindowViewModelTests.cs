@@ -3122,8 +3122,11 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             MainWindowViewModel.BuildKillPersonCommand(configuredCommand, personName));
     }
 
-    [Fact]
-    public void SendAutowalkStep_WhileSitting_WaitsForStandingConfirmation()
+    [Theory]
+    [InlineData("resting")]
+    [InlineData("sleeping")]
+    [InlineData("sitting")]
+    public void SendAutowalkStep_WhileNotStanding_WaitsForStandingConfirmation(string position)
     {
         var from = CreateTestRoom(998, "998");
         var to = CreateTestRoom(999, "999");
@@ -3137,7 +3140,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         typeof(MainWindowViewModel).GetField("_autowalkTargetName",
             BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
         typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
-            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "sitting");
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, position);
 
         typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
             BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);

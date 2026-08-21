@@ -2963,7 +2963,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        if (AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition))
+        if (AutowalkRecoveryPolicy.RequiresStandBeforeMovement(_latestCharacterPosition))
         {
             BeginAutowalkStandRecovery();
             return;
@@ -3017,7 +3017,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         _autowalkRecoveringPosition = true;
-        AutowalkStatusText = $"Postać siedzi — wstaję i wznawiam trasę do „{_autowalkTargetName}”.";
+        AutowalkStatusText = $"Postać nie stoi — wstaję i wznawiam trasę do „{_autowalkTargetName}”.";
         _ = StandForAutowalkAsync(_autowalkCts.Token);
     }
 
@@ -6351,10 +6351,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void UpdateCharacterPosition(string position)
     {
         var wasFighting = AutowalkRecoveryPolicy.IsCombatPosition(_latestCharacterPosition);
-        var wasSitting = AutowalkRecoveryPolicy.IsSittingPosition(_latestCharacterPosition);
+        var previouslyRequiredStand = AutowalkRecoveryPolicy.RequiresStandBeforeMovement(
+            _latestCharacterPosition);
         var wasStanding = AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition);
         var nowFighting = AutowalkRecoveryPolicy.IsCombatPosition(position);
-        var nowSitting = AutowalkRecoveryPolicy.IsSittingPosition(position);
+        var requiresStand = AutowalkRecoveryPolicy.RequiresStandBeforeMovement(position);
         var nowStanding = AutowalkRecoveryPolicy.IsStandingPosition(position);
         _latestCharacterPosition = position;
 
@@ -6363,9 +6364,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             OnAutowalkCombatStarted();
         }
 
-        if (nowSitting && !wasSitting)
+        if (requiresStand && !previouslyRequiredStand)
         {
-            OnAutowalkSitting();
+            OnAutowalkPositionRequiresStand();
         }
 
         if (nowStanding && !wasStanding)
@@ -6373,7 +6374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             OnAutowalkStanding();
         }
 
-        if (wasFighting && !nowFighting && !nowSitting)
+        if (wasFighting && !nowFighting && !requiresStand)
         {
             OnAutowalkCombatEnded();
         }
@@ -6410,16 +6411,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             _autowalkPausedForCombat = false;
             AutowalkStatusText = $"Walka skończona — wracam na trasę do „{_autowalkTargetName}”.";
-            if (!AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition))
-            {
-                _ = SendTriggeredCommandAsync("stand");
-            }
-
             SendAutowalkStep();
         });
     }
 
-    private void OnAutowalkSitting()
+    private void OnAutowalkPositionRequiresStand()
     {
         Dispatcher.UIThread.Post(BeginAutowalkStandRecovery);
     }
