@@ -3011,7 +3011,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void BeginAutowalkStandRecovery()
     {
-        if (_autowalkRecoveringPosition || _autowalkPath is null ||
+        if (_autowalkRecoveringMovement || _autowalkRecoveringPosition || _autowalkPath is null ||
             _autowalkStep >= _autowalkPath.Steps.Count)
         {
             return;
@@ -3143,7 +3143,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             foreach (var command in commands)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await SendTriggeredCommandAsync(command, cancellationToken);
+                // These commands were already resolved by the autowalk. In
+                // particular, a broad direction alias such as "u" must not
+                // intercept the literal "unlock ..." command.
+                await SendTriggeredCommandAsync(
+                    command,
+                    expandAliases: false,
+                    cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

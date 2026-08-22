@@ -3122,6 +3122,34 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             MainWindowViewModel.BuildAutowalkStepCommands(exit, "east", "wyjscie"));
     }
 
+    [AvaloniaFact]
+    public async Task SendAutowalkCommands_DirectionAlias_DoesNotInterceptUnlock()
+    {
+        _vm.NewRuleName = "Szeroki skrót góry";
+        _vm.NewRuleType = "alias";
+        _vm.NewRulePattern = "u";
+        _vm.NewRuleAction = "say alias przechwycil komende";
+        _vm.AddRuleCommand.Execute(null);
+        var output = new List<string>();
+        _vm.OutputReceived += output.Add;
+
+        var sendMethod = typeof(MainWindowViewModel).GetMethod(
+            "SendAutowalkCommandsAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var sendTask = (Task)sendMethod.Invoke(
+            _vm,
+            [new[] { "unlock east", "open east", "east" },
+             TestContext.Current.CancellationToken])!;
+        await sendTask;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains(output, line => line.Contains("> unlock east", StringComparison.Ordinal));
+        Assert.Contains(output, line => line.Contains("> open east", StringComparison.Ordinal));
+        Assert.Contains(output, line => line.Contains("> east", StringComparison.Ordinal));
+        Assert.DoesNotContain(output,
+            line => line.Contains("alias przechwycil komende", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void FindGmcpExit_MatchesAsciiMapCommandToPolishGmcpName()
     {
@@ -3206,6 +3234,30 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             BindingFlags.NonPublic | BindingFlags.Instance)!;
         Assert.False((bool)recoveringField.GetValue(_vm)!);
         Assert.DoesNotContain("wstaję", _vm.AutowalkStatusText);
+    }
+
+    [Fact]
+    public void BeginAutowalkStandRecovery_DuringLowMovementRest_DoesNotStand()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkRecoveringMovement",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, true);
+
+        typeof(MainWindowViewModel).GetMethod("BeginAutowalkStandRecovery",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, null);
+
+        var recoveringPositionField = typeof(MainWindowViewModel).GetField(
+            "_autowalkRecoveringPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        Assert.False((bool)recoveringPositionField.GetValue(_vm)!);
     }
 
     [AvaloniaFact]
