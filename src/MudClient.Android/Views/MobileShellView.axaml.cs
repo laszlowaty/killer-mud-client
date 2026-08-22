@@ -9,6 +9,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Android.Util;
+using MudClient.App.Controls;
 using MudClient.App.Models;
 using MudClient.App.ViewModels;
 using MudClient.Android.Services;
@@ -903,6 +904,11 @@ public sealed partial class MobileShellView : UserControl
 
     public bool TryNavigateBackToTerminal()
     {
+        if (FullscreenTextEditor.TryCloseOpenEditor())
+        {
+            return true;
+        }
+
         var overlay = this.FindControl<Border>("ToolOverlay");
         if (overlay?.IsVisible == true)
         {

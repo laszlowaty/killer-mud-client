@@ -170,9 +170,11 @@
                     Content="Zaawansowany — kod JavaScript" />
           <TextBlock Classes="mud-faint"
                      Text="Komendy w osobnych liniach albo kod JavaScript w trybie zaawansowanym" />
-          <TextBox Text="{Binding NewTimerCommands}"
-                   PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
-                   MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
+          <controls:FullscreenTextEditor Text="{Binding NewTimerCommands}"
+                                         EditorTitle="Komendy timera"
+                                         IsJavaScript="{Binding NewTimerIsAdvanced}"
+                                         PlaceholderText="np.&#x0a;rzuc 'leczenie'&#x0a;pij miksture"
+                                         MinHeight="76" TextWrapping="Wrap" />
         </StackPanel>
         <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
                   Content="Globalny — dostępny na wszystkich kontach" />
@@ -200,9 +202,11 @@
                     Content="Zaawansowany — kod JavaScript" />
           <TextBlock Classes="mud-faint"
                      Text="Akcja — komendy i grupy $1, $2 albo kod JavaScript z obiektem match" />
-          <TextBox Text="{Binding NewRuleAction}"
-                   PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
-                   MinHeight="76" AcceptsReturn="True" TextWrapping="Wrap" />
+          <controls:FullscreenTextEditor Text="{Binding NewRuleAction}"
+                                         EditorTitle="Akcja aliasu lub triggera"
+                                         IsJavaScript="{Binding NewRuleIsAdvanced}"
+                                         PlaceholderText="np.&#x0a;rzuc 'leczenie' $1&#x0a;pij miksture"
+                                         MinHeight="76" TextWrapping="Wrap" />
         </StackPanel>
         <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
                   Content="Globalny — dostępny na wszystkich kontach" />
@@ -407,10 +411,12 @@
                          PlaceholderText="Pakiet GMCP, np. Char.Vitals lub Char.* (puste = tylko ręcznie)" />
                 <TextBlock Classes="mud-faint"
                            Text="JavaScript: onGmcp(), execute(), send(), echo(), reconnect(), variables" />
-                <TextBox Text="{Binding NewScriptCode}"
-                         AcceptsReturn="True" TextWrapping="NoWrap"
-                         MinHeight="150"
-                         PlaceholderText="onGmcp(&quot;Char.Vitals&quot;, event => {&#x0a;  if (event.data.hp &lt; 25) execute(&quot;/idz lecznica&quot;);&#x0a;});" />
+                <controls:FullscreenTextEditor Text="{Binding NewScriptCode}"
+                                               EditorTitle="Kod JavaScript"
+                                               IsJavaScript="True"
+                                               TextWrapping="NoWrap"
+                                               MinHeight="150"
+                                               PlaceholderText="onGmcp(&quot;Char.Vitals&quot;, event => {&#x0a;  if (event.data.hp &lt; 25) execute(&quot;/idz lecznica&quot;);&#x0a;});" />
                 <CheckBox IsChecked="{Binding NewScriptIsGlobal}"
                           Content="Globalny — dostępny na wszystkich kontach" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">

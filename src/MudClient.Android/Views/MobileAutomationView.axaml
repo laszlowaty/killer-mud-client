@@ -127,11 +127,12 @@
                   <TextBox Grid.Column="1" Text="{Binding NewTimerSeconds}" PlaceholderText="s" />
                   <TextBox Grid.Column="2" Text="{Binding NewTimerMilliseconds}" PlaceholderText="ms" />
                 </Grid>
-                <TextBox Text="{Binding NewTimerCommands}"
-                         PlaceholderText="Komendy, każda w osobnej linii"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="90" />
+                <controls:FullscreenTextEditor Text="{Binding NewTimerCommands}"
+                                               EditorTitle="Komendy timera"
+                                               IsJavaScript="{Binding NewTimerIsAdvanced}"
+                                               PlaceholderText="Komendy, każda w osobnej linii"
+                                               TextWrapping="Wrap"
+                                               MinHeight="90" />
                 <CheckBox IsChecked="{Binding NewTimerIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewTimerIsGlobal}" Content="Globalny" />
@@ -184,11 +185,12 @@
                            Foreground="{StaticResource MudBrushCrimsonBright}"
                            IsVisible="{Binding HasNewRulePatternError}"
                            TextWrapping="Wrap" />
-                <TextBox Text="{Binding NewRuleAction}"
-                         PlaceholderText="Komendy"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="90" />
+                <controls:FullscreenTextEditor Text="{Binding NewRuleAction}"
+                                               EditorTitle="Akcja aliasu"
+                                               IsJavaScript="{Binding NewRuleIsAdvanced}"
+                                               PlaceholderText="Komendy"
+                                               TextWrapping="Wrap"
+                                               MinHeight="90" />
                 <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
@@ -241,11 +243,12 @@
                            Foreground="{StaticResource MudBrushCrimsonBright}"
                            IsVisible="{Binding HasNewRulePatternError}"
                            TextWrapping="Wrap" />
-                <TextBox Text="{Binding NewRuleAction}"
-                         PlaceholderText="Komendy"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="90" />
+                <controls:FullscreenTextEditor Text="{Binding NewRuleAction}"
+                                               EditorTitle="Akcja triggera"
+                                               IsJavaScript="{Binding NewRuleIsAdvanced}"
+                                               PlaceholderText="Komendy"
+                                               TextWrapping="Wrap"
+                                               MinHeight="90" />
                 <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
@@ -296,11 +299,12 @@
                          PlaceholderText="GMCP, np. Char.Vitals (puste = ręcznie)" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                            Text="onGmcp(), execute(), send(), echo(), reconnect(), variables" />
-                <TextBox Text="{Binding NewScriptCode}"
-                         PlaceholderText="Kod JavaScript"
-                         AcceptsReturn="True"
-                         TextWrapping="NoWrap"
-                         MinHeight="160" />
+                <controls:FullscreenTextEditor Text="{Binding NewScriptCode}"
+                                               EditorTitle="Kod JavaScript"
+                                               IsJavaScript="True"
+                                               PlaceholderText="Kod JavaScript"
+                                               TextWrapping="NoWrap"
+                                               MinHeight="160" />
                 <CheckBox IsChecked="{Binding NewScriptIsGlobal}" Content="Globalny" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding ScriptFormButtonText}"

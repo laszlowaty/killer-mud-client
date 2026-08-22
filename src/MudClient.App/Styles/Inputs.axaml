@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:MudClient.App.Controls">
 
   <Style Selector="TextBox">
     <Setter Property="Background" Value="{StaticResource MudBrushVoid}" />
@@ -18,6 +19,89 @@
     <Setter Property="Foreground" Value="{StaticResource MudBrushParchmentFaint}" />
   </Style>
 
+  <Style Selector="TextBox.automation-editor">
+    <Setter Property="Background" Value="White" />
+    <Setter Property="Foreground" Value="Black" />
+    <Setter Property="CaretBrush" Value="Black" />
+    <Setter Property="SelectionBrush" Value="#6EA8FE" />
+  </Style>
+  <Style Selector="TextBox.automation-editor /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="White" />
+  </Style>
+  <Style Selector="TextBox.automation-editor:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="White" />
+  </Style>
+  <Style Selector="TextBox.automation-editor /template/ TextBlock#PART_PlaceholderText">
+    <Setter Property="Foreground" Value="#666666" />
+  </Style>
+  <Style Selector="controls|JavaScriptTextBox.automation-editor">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <Border Name="PART_BorderElement"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}" />
+          <Border Margin="{TemplateBinding BorderThickness}">
+            <Grid Margin="{TemplateBinding Padding}" ColumnDefinitions="Auto,*">
+              <controls:JavaScriptLineNumberMargin Name="PART_LineNumberMargin"
+                                                       Text="{TemplateBinding Text}"
+                                                       Presenter="{Binding ElementName=PART_TextPresenter}"
+                                                       ScrollOffset="{Binding ElementName=PART_ScrollViewer, Path=Offset}"
+                                                       IsHitTestVisible="False"
+                                                       ClipToBounds="True" />
+              <ScrollViewer Name="PART_ScrollViewer"
+                            Grid.Column="1"
+                            HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                            VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                            IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                            AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}">
+                <Panel>
+                  <TextBlock Name="PART_PlaceholderText"
+                             Foreground="#666666"
+                             Text="{TemplateBinding PlaceholderText}"
+                             TextAlignment="{TemplateBinding TextAlignment}"
+                             TextWrapping="{TemplateBinding TextWrapping}"
+                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                    <TextBlock.IsVisible>
+                      <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding ElementName="PART_TextPresenter"
+                                 Path="PreeditText"
+                                 Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}"
+                                 Path="Text"
+                                 Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                      </MultiBinding>
+                    </TextBlock.IsVisible>
+                  </TextBlock>
+                  <controls:JavaScriptTextPresenter Name="PART_TextPresenter"
+                                                    Text="{TemplateBinding Text, Mode=TwoWay}"
+                                                    CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}"
+                                                    CaretIndex="{TemplateBinding CaretIndex}"
+                                                    SelectionStart="{TemplateBinding SelectionStart}"
+                                                    SelectionEnd="{TemplateBinding SelectionEnd}"
+                                                    TextAlignment="{TemplateBinding TextAlignment}"
+                                                    TextWrapping="{TemplateBinding TextWrapping}"
+                                                    LineHeight="{TemplateBinding LineHeight}"
+                                                    LetterSpacing="{TemplateBinding LetterSpacing}"
+                                                    PasswordChar="{TemplateBinding PasswordChar}"
+                                                    RevealPassword="{TemplateBinding RevealPassword}"
+                                                    SelectionBrush="{TemplateBinding SelectionBrush}"
+                                                    SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                                    CaretBrush="{TemplateBinding CaretBrush}"
+                                                    IsSyntaxHighlightingEnabled="{TemplateBinding IsSyntaxHighlightingEnabled}"
+                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Panel>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
   <Style Selector="TextBox.terminal-input">
     <Setter Property="FontFamily" Value="Cascadia Code,Consolas,monospace" />
     <Setter Property="FontSize" Value="15" />
