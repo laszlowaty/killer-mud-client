@@ -414,7 +414,7 @@ Domyślnie `GmcpLocationResolver` nasłuchuje pakietu `Room.Info` i szuka vnum p
 
 Przed każdym krokiem autowalk sprawdza ostatnie `mv/max_mv` z `Char.Vitals`. Przy poziomie 10% lub niższym i włączonej opcji **Używaj refreshy** rzuca `refresh` na siebie, jeśli gotowy czar znajduje się w `Char.MemSpell`; w przeciwnym razie wysyła `rest`. Opcja **Używaj recuperate** dodaje komendę `recuperate` bezpośrednio po `rest`. Autowalk czeka najwyżej 30 sekund, ale jeśli w tym czasie `refresh` zostanie zapamiętany, natychmiast wstaje, rzuca gotowy `float`, następnie `refresh` i wznawia trasę. Obie opcje są domyślnie wyłączone i zapisywane w ustawieniach aplikacji. Gdy GMCP `Char.Condition` lub `Char.Vitals` zgłosi `POS_RESTING`, `POS_SLEEPING` albo `POS_SITTING`, autowalk wysyła `stand` przed kierunkiem i czeka z następnym krokiem na potwierdzenie `POS_STANDING`. Zatrzymanie autowalku anuluje oczekiwanie.
 
-Jeżeli próba otwarcia bramy kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
+Jeżeli `Room.Info` oznacza wyjście jako zamknięte, klient najpierw wysyła `unlock <komenda przejścia z trasy>`, następnie otwiera wyjście i wykonuje ruch. Jeżeli próba otwarcia bramy mimo to kończy się komunikatem o zamknięciu na klucz, klient wysyła kolejno `zapukaj`, `pull`, `pociagnij` i `uderz`. Ruch jest wznawiany dopiero po wysłaniu całej sekwencji i potwierdzeniu przez `Room.Info`, że wyjście używane przez bieżący krok nie jest już zamknięte.
 
 ## Czego jeszcze nie ma
 

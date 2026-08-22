@@ -3005,7 +3005,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         var openCommand = TryGetOpenCommand(exit);
         _autowalkOpeningStep = openCommand is null ? null : _autowalkStep;
-        _ = SendAutowalkCommandsAsync(openCommand, moveCommand, _autowalkCts.Token);
+        var commands = BuildAutowalkStepCommands(exit, step.Command, moveCommand);
+        _ = SendAutowalkCommandsAsync(commands, _autowalkCts.Token);
     }
 
     private void BeginAutowalkStandRecovery()
@@ -3134,24 +3135,42 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     private async Task SendAutowalkCommandsAsync(
-        string? openCommand,
-        string moveCommand,
+        IReadOnlyList<string> commands,
         CancellationToken cancellationToken)
     {
         try
         {
-            if (openCommand is not null)
+            foreach (var command in commands)
             {
-                await SendTriggeredCommandAsync(openCommand, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                await SendTriggeredCommandAsync(command, cancellationToken);
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            await SendTriggeredCommandAsync(moveCommand, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // The user stopped or replaced this autowalk.
         }
+    }
+
+    /// <summary>
+    /// Builds one autowalk step. A closed door is first unlocked using the
+    /// transition command stored in the route, then opened using GMCP data.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildAutowalkStepCommands(
+        RoomExitInfo? exit,
+        string transitionCommand,
+        string moveCommand)
+    {
+        var commands = new List<string>(3);
+        var openCommand = TryGetOpenCommand(exit);
+        if (openCommand is not null)
+        {
+            commands.Add($"unlock {MudCommandText.ToAsciiLowerInvariant(transitionCommand)}");
+            commands.Add(openCommand);
+        }
+
+        commands.Add(moveCommand);
+        return commands;
     }
 
     /// <summary>

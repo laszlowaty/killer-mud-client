@@ -3100,6 +3100,29 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void BuildAutowalkStepCommands_ClosedDoor_UnlocksRouteTransitionBeforeOpeningAndMoving()
+    {
+        var exit = new RoomExitInfo("custom", "Brama pałacu", HasDoor: true, IsClosed: true);
+
+        Assert.Equal(
+            ["unlock zolte przejscie", "open brama palacu", "zolte przejscie"],
+            MainWindowViewModel.BuildAutowalkStepCommands(
+                exit,
+                "Żółte przejście",
+                "zolte przejscie"));
+    }
+
+    [Fact]
+    public void BuildAutowalkStepCommands_OpenExit_OnlyMoves()
+    {
+        var exit = new RoomExitInfo("E", "Wyjście", HasDoor: true, IsClosed: false);
+
+        Assert.Equal(
+            ["wyjscie"],
+            MainWindowViewModel.BuildAutowalkStepCommands(exit, "east", "wyjscie"));
+    }
+
+    [Fact]
     public void FindGmcpExit_MatchesAsciiMapCommandToPolishGmcpName()
     {
         var exit = new RoomExitInfo("custom", "Żółte wyjście", HasDoor: true, IsClosed: true);
