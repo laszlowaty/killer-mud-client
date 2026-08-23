@@ -3100,12 +3100,12 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void BuildAutowalkStepCommands_ClosedDoor_UnlocksRouteTransitionBeforeOpeningAndMoving()
+    public void BuildAutowalkStepCommands_ClosedDoor_BuildsWholeOpeningBatchWithoutMovement()
     {
         var exit = new RoomExitInfo("custom", "Brama pałacu", HasDoor: true, IsClosed: true);
 
         Assert.Equal(
-            ["unlock zolte przejscie", "open brama palacu", "zolte przejscie"],
+            ["unlock zolte przejscie", "open brama palacu", "zapukaj", "pull", "pociagnij", "uderz"],
             MainWindowViewModel.BuildAutowalkStepCommands(
                 exit,
                 "Żółte przejście",
@@ -3150,6 +3150,40 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             line => line.Contains("alias przechwycil komende", StringComparison.Ordinal));
     }
 
+    [AvaloniaFact]
+    public async Task SendGateCommands_SendsWholeOpeningBatchWithoutAliasExpansion()
+    {
+        _vm.NewRuleName = "Alias pull";
+        _vm.NewRuleType = "alias";
+        _vm.NewRulePattern = "^pull$";
+        _vm.NewRuleAction = "say alias przechwycil komende";
+        _vm.AddRuleCommand.Execute(null);
+        var output = new List<string>();
+        _vm.OutputReceived += output.Add;
+
+        var sendMethod = typeof(MainWindowViewModel).GetMethod(
+            "SendGateCommandsAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var commands = MainWindowViewModel.BuildAutowalkStepCommands(
+            new RoomExitInfo("N", "Brama", HasDoor: true, IsClosed: true),
+            "north",
+            "north");
+        var sendTask = (Task)sendMethod.Invoke(
+            _vm,
+            [commands, TestContext.Current.CancellationToken])!;
+        await sendTask;
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (var command in new[]
+                 { "unlock north", "open brama", "zapukaj", "pull", "pociagnij", "uderz" })
+        {
+            Assert.Contains(output,
+                line => line.Contains($"> {command}", StringComparison.Ordinal));
+        }
+        Assert.DoesNotContain(output,
+            line => line.Contains("alias przechwycil komende", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void FindGmcpExit_MatchesAsciiMapCommandToPolishGmcpName()
     {
@@ -3158,6 +3192,76 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var found = MainWindowViewModel.FindGmcpExit("zolte wyjscie", [exit]);
 
         Assert.Same(exit, found);
+    }
+
+    [AvaloniaFact]
+    public void OnRoomExitsChanged_StaleOpenUpdateDoesNotResumeThroughNewerClosedGate()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkWaitingForGate",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, true);
+        typeof(MainWindowViewModel).GetField("_autowalkGateCommandsSent",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, true);
+
+        var onExitsChanged = typeof(MainWindowViewModel).GetMethod(
+            "OnRoomExitsChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        onExitsChanged.Invoke(
+            _vm,
+            [new[] { new RoomExitInfo("N", "Brama", HasDoor: true, IsClosed: false) }]);
+
+        var resolver = (RoomExitsResolver)typeof(MainWindowViewModel).GetField(
+            "_roomExits",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!;
+        resolver.Process(new GmcpMessage(
+            "Room.Info",
+            """{"exits":[{"dir":"N","name":"Brama","door":true,"closed":true}]}"""));
+
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True((bool)typeof(MainWindowViewModel).GetField("_autowalkWaitingForGate",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
+        Assert.False((bool)typeof(MainWindowViewModel).GetField("_autowalkGateIsOpen",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
+    }
+
+    [Fact]
+    public void SendAutowalkStep_ClosedGateAlreadyAttempted_StopsWalk()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_autowalkGateRecoveryStep",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, 0);
+
+        var resolver = (RoomExitsResolver)typeof(MainWindowViewModel).GetField(
+            "_roomExits",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!;
+        resolver.Process(new GmcpMessage(
+            "Room.Info",
+            """{"exits":[{"dir":"N","name":"Brama","door":true,"closed":true}]}"""));
+
+        typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
+
+        Assert.False(_vm.IsAutowalking);
+        Assert.NotNull(GetPendingResumeTargetField().GetValue(_vm));
     }
 
     [Theory]

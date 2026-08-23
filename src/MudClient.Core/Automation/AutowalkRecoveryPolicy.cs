@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using MudClient.Core.Gmcp;
 
 namespace MudClient.Core.Automation;
@@ -78,25 +76,4 @@ public static class AutowalkRecoveryPolicy
             spell.Memed &&
             string.Equals(spell.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
 
-    public static bool IsLockedGateMessage(string line)
-    {
-        var normalized = RemoveDiacritics(line).Trim().TrimEnd('.').ToLowerInvariant();
-        return normalized.Contains("brama jest zamknieta na klucz", StringComparison.Ordinal) ||
-               normalized.Contains("brama jest zamknieta", StringComparison.Ordinal);
-    }
-
-    private static string RemoveDiacritics(string text)
-    {
-        var normalized = text.Normalize(NormalizationForm.FormD);
-        var result = new StringBuilder(normalized.Length);
-        foreach (var character in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
-            {
-                result.Append(character);
-            }
-        }
-
-        return result.ToString().Normalize(NormalizationForm.FormC);
-    }
 }

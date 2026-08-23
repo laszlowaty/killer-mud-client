@@ -200,10 +200,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private TaskCompletionSource<bool>? _autowalkRefreshReady;
     private bool _autowalkRecoveringMovement;
     private bool _autowalkRecoveringPosition;
-    private int? _autowalkOpeningStep;
     private bool _autowalkWaitingForGate;
     private bool _autowalkGateCommandsSent;
     private bool _autowalkGateIsOpen;
+    private int? _autowalkGateRecoveryStep;
 
     // Set while an active walk is on hold because a fight broke out mid-route:
     // no room change arrives during combat, so the walk must be nudged back to
@@ -2943,10 +2943,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         _autowalkRecoveringMovement = false;
         _autowalkRecoveringPosition = false;
-        _autowalkOpeningStep = null;
         _autowalkWaitingForGate = false;
         _autowalkGateCommandsSent = false;
         _autowalkGateIsOpen = false;
+        _autowalkGateRecoveryStep = null;
         _autowalkPausedForCombat = false;
     }
 
@@ -3004,9 +3004,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         var openCommand = TryGetOpenCommand(exit);
-        _autowalkOpeningStep = openCommand is null ? null : _autowalkStep;
         var commands = BuildAutowalkStepCommands(exit, step.Command, moveCommand);
-        _ = SendAutowalkCommandsAsync(commands, _autowalkCts.Token);
+        if (openCommand is null)
+        {
+            _ = SendAutowalkCommandsAsync(commands, _autowalkCts.Token);
+            return;
+        }
+
+        if (_autowalkGateRecoveryStep == _autowalkStep)
+        {
+            StopAutowalk(
+                $"Autowalk przerwany: brama na trasie do „{_autowalkTargetName}” pozostała zamknięta po próbie otwarcia. Wpisz /idz, aby spróbować dalej.",
+                "error",
+                resumable: true);
+            return;
+        }
+
+        _autowalkWaitingForGate = true;
+        _autowalkGateCommandsSent = false;
+        _autowalkGateIsOpen = false;
+        _autowalkGateRecoveryStep = _autowalkStep;
+        AutowalkStatusText = "Brama zamknięta w GMCP — próbuję ją uruchomić i czekam na otwarcie.";
+        _ = SendGateCommandsAsync(commands, _autowalkCts.Token);
     }
 
     private void BeginAutowalkStandRecovery()
@@ -3159,20 +3178,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     /// <summary>
-    /// Builds one autowalk step. A closed door is first unlocked using the
-    /// transition command stored in the route, then opened using GMCP data.
+    /// Builds one autowalk step. For a closed door it returns every opening
+    /// attempt as one batch; movement is sent only after GMCP reports it open.
     /// </summary>
     internal static IReadOnlyList<string> BuildAutowalkStepCommands(
         RoomExitInfo? exit,
         string transitionCommand,
         string moveCommand)
     {
-        var commands = new List<string>(3);
+        var commands = new List<string>(6);
         var openCommand = TryGetOpenCommand(exit);
         if (openCommand is not null)
         {
             commands.Add($"unlock {MudCommandText.ToAsciiLowerInvariant(transitionCommand)}");
             commands.Add(openCommand);
+            commands.AddRange(AutowalkRecoveryPolicy.GetGateOpeningCommands());
+            return commands;
         }
 
         commands.Add(moveCommand);
@@ -3238,13 +3259,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 return;
             }
 
-            var exit = FindGmcpExit(_autowalkPath.Steps[_autowalkStep].Command, exits);
-            if (exit is null || exit.IsClosed)
+            // Several Room.Info updates can be queued before the UI thread gets
+            // here. Use the resolver's newest snapshot so an older "open" event
+            // cannot resume walking after a newer event closed the gate again.
+            var exit = FindGmcpExit(
+                _autowalkPath.Steps[_autowalkStep].Command,
+                _roomExits.CurrentExits);
+            _autowalkGateIsOpen = exit is not null && !exit.IsClosed;
+            if (!_autowalkGateIsOpen)
             {
                 return;
             }
 
-            _autowalkGateIsOpen = true;
             TryContinueThroughOpenedGate();
         });
     }
@@ -3257,7 +3283,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         _autowalkWaitingForGate = false;
-        _autowalkOpeningStep = null;
         EmitSystem("Autowalk: przejście otwarte w GMCP — idę dalej.", 90);
         SendAutowalkStep();
     }
@@ -3294,10 +3319,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 return;
             }
 
-            _autowalkOpeningStep = null;
             _autowalkWaitingForGate = false;
             _autowalkGateCommandsSent = false;
             _autowalkGateIsOpen = false;
+            _autowalkGateRecoveryStep = null;
             // A room actually changed, so the walk is moving again — any combat
             // pause (e.g. after fleeing) no longer applies.
             _autowalkPausedForCombat = false;
@@ -6365,11 +6390,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             Dispatcher.UIThread.Post(RecordDeath);
         }
 
-        if (AutowalkRecoveryPolicy.IsLockedGateMessage(line))
-        {
-            Dispatcher.UIThread.Post(HandleLockedAutowalkGate);
-        }
-
         ObserveCharacterRollLine(line);
 
         if (GroupOrdersEnabled
@@ -6550,30 +6570,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _ = RemoveWhenCompleted(task);
     }
 
-    private void HandleLockedAutowalkGate()
-    {
-        if (_autowalkPath is null || _autowalkWaitingForGate ||
-            _autowalkOpeningStep != _autowalkStep)
-        {
-            return;
-        }
-
-        _autowalkWaitingForGate = true;
-        _autowalkOpeningStep = null;
-        _autowalkGateCommandsSent = false;
-        _autowalkGateIsOpen = false;
-        AutowalkStatusText = "Brama zamknięta — próbuję ją uruchomić i czekam na GMCP.";
-        _ = SendGateCommandsAsync(_autowalkCts.Token);
-    }
-
-    private async Task SendGateCommandsAsync(CancellationToken cancellationToken)
+    private async Task SendGateCommandsAsync(
+        IReadOnlyList<string> commands,
+        CancellationToken cancellationToken)
     {
         try
         {
-            foreach (var command in AutowalkRecoveryPolicy.GetGateOpeningCommands())
+            foreach (var command in commands)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await SendTriggeredCommandAsync(command, cancellationToken);
+                await SendTriggeredCommandAsync(
+                    command,
+                    expandAliases: false,
+                    cancellationToken);
             }
 
             Dispatcher.UIThread.Post(() =>
