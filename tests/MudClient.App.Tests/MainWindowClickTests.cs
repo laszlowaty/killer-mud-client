@@ -9,6 +9,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MudClient.App.Controls;
+using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.App.Views;
@@ -311,8 +312,36 @@ public sealed class MainWindowClickTests : IAsyncDisposable
             textBox => textBox.PlaceholderText == "Nazwa konta w aplikacji");
         Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText == "Login MUD");
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
+            textBox => textBox.PlaceholderText == "Nowa nazwa profilu");
+        Assert.Contains(window.GetVisualDescendants().OfType<Button>(),
+            button => Equals(button.Content, "Kopiuj"));
         Assert.DoesNotContain(connectionActions!.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText is "host" or "port");
+    }
+
+    [AvaloniaFact]
+    public void ProfileCopyMode_ShowsOnlyIdentityFields()
+    {
+        var profiles = new ProfileService(_tempDirectory);
+        profiles.Save(new ProfileData { Name = "Źródło", Login = "stare_konto" });
+        var viewModel = CreateViewModel();
+        var window = new MainWindow { DataContext = viewModel };
+        Show(window);
+        EnsureLayout(window);
+        viewModel.SelectedProfileName = "Źródło";
+
+        viewModel.StartCopyProfileCommand.Execute(null);
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var visibleFields = window.GetVisualDescendants()
+            .OfType<TextBox>()
+            .Where(textBox => textBox.IsEffectivelyVisible)
+            .Select(textBox => textBox.PlaceholderText)
+            .ToList();
+        Assert.Equal(
+            ["Nowa nazwa profilu", "Nowe konto MUD", "Nowe hasło"],
+            visibleFields);
     }
 
     [AvaloniaFact]

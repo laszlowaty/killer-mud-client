@@ -239,6 +239,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private string _newProfileEncoding = MudTextEncodings.Auto;
     private string _newProfilePassword = string.Empty;
     private string _selectedProfilePassword = string.Empty;
+    private string? _copyProfileSourceName;
+    private string _copyProfileName = string.Empty;
+    private string _copyProfileLogin = string.Empty;
+    private string _copyProfilePassword = string.Empty;
+    private bool _isCopyProfileEditorOpen;
 
     /// <summary>Decrypted password of the active account, kept only in memory.</summary>
     private string _activeProfilePassword = string.Empty;
@@ -323,6 +328,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             CanExecuteLordGotoGroupMember);
         SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
         CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
+        StartCopyProfileCommand = new RelayCommand(StartCopyProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
+        CopyProfileCommand = new RelayCommand(CopyProfile, CanCopyProfile);
+        CancelCopyProfileCommand = new RelayCommand(CancelCopyProfile);
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
         DeleteProfileCommand = new RelayCommand<string>(DeleteProfile);
         AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
@@ -4328,6 +4336,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public RelayCommand SelectProfileCommand { get; }
     public RelayCommand CreateProfileCommand { get; }
+    public RelayCommand StartCopyProfileCommand { get; }
+    public RelayCommand CopyProfileCommand { get; }
+    public RelayCommand CancelCopyProfileCommand { get; }
     public RelayCommand SwitchProfileCommand { get; }
     public RelayCommand<string> DeleteProfileCommand { get; }
 
@@ -4357,6 +4368,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 LoadSelectedProfileEndpoint(value);
                 SelectProfileCommand.NotifyCanExecuteChanged();
+                StartCopyProfileCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -4418,6 +4430,54 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         get => _newProfileEncoding;
         set => SetProperty(ref _newProfileEncoding, value);
+    }
+
+    public bool IsCopyProfileEditorOpen
+    {
+        get => _isCopyProfileEditorOpen;
+        private set
+        {
+            if (SetProperty(ref _isCopyProfileEditorOpen, value))
+            {
+                CopyProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string? CopyProfileSourceName
+    {
+        get => _copyProfileSourceName;
+        private set => SetProperty(ref _copyProfileSourceName, value);
+    }
+
+    public string CopyProfileName
+    {
+        get => _copyProfileName;
+        set
+        {
+            if (SetProperty(ref _copyProfileName, value))
+            {
+                CopyProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string CopyProfileLogin
+    {
+        get => _copyProfileLogin;
+        set
+        {
+            if (SetProperty(ref _copyProfileLogin, value))
+            {
+                CopyProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string CopyProfilePassword
+    {
+        get => _copyProfilePassword;
+        set => SetProperty(ref _copyProfilePassword, value);
     }
 
     private void LoadSelectedProfileEndpoint(string? name)
@@ -4514,6 +4574,80 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         NewProfileLogin = string.Empty;
         NewProfilePassword = string.Empty;
         ActivateProfile(profile);
+    }
+
+    private void StartCopyProfile()
+    {
+        var sourceName = SelectedProfileName?.Trim();
+        if (string.IsNullOrWhiteSpace(sourceName) || !_profiles.Exists(sourceName))
+        {
+            return;
+        }
+
+        CopyProfileSourceName = sourceName;
+        CopyProfileName = string.Empty;
+        CopyProfileLogin = string.Empty;
+        CopyProfilePassword = string.Empty;
+        IsCopyProfileEditorOpen = true;
+    }
+
+    private bool CanCopyProfile() =>
+        IsCopyProfileEditorOpen
+        && !string.IsNullOrWhiteSpace(CopyProfileSourceName)
+        && !string.IsNullOrWhiteSpace(CopyProfileName)
+        && !string.IsNullOrWhiteSpace(CopyProfileLogin);
+
+    private void CopyProfile()
+    {
+        var sourceName = CopyProfileSourceName?.Trim();
+        var name = CopyProfileName.Trim();
+        var login = CopyProfileLogin.Trim();
+        if (string.IsNullOrWhiteSpace(sourceName)
+            || string.IsNullOrWhiteSpace(name)
+            || string.IsNullOrWhiteSpace(login))
+        {
+            return;
+        }
+
+        if (_profiles.Exists(name))
+        {
+            AddToast($"Konto „{name}” już istnieje.", "error");
+            return;
+        }
+
+        var profile = _profiles.Load(sourceName);
+        if (profile is null)
+        {
+            AddToast($"Nie udało się odczytać konta „{sourceName}”.", "error");
+            return;
+        }
+
+        profile.Name = name;
+        profile.Login = login;
+        profile.EncryptedPassword = _passwordProtector.Protect(CopyProfilePassword);
+
+        try
+        {
+            _profiles.Save(profile);
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Nie udało się skopiować konta: {exception.Message}", "error");
+            return;
+        }
+
+        AvailableProfiles.Add(name);
+        CancelCopyProfile();
+        ActivateProfile(profile);
+    }
+
+    private void CancelCopyProfile()
+    {
+        IsCopyProfileEditorOpen = false;
+        CopyProfileSourceName = null;
+        CopyProfileName = string.Empty;
+        CopyProfileLogin = string.Empty;
+        CopyProfilePassword = string.Empty;
     }
 
     private void DeleteProfile(string? name)

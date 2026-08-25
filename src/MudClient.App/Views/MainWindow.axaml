@@ -694,6 +694,8 @@
                      Text="Brak zapisanych kont — utwórz pierwsze poniżej."
                      IsVisible="{Binding !HasProfiles}" />
 
+          <StackPanel IsVisible="{Binding !IsCopyProfileEditorOpen}"
+                      Spacing="10">
           <StackPanel x:Name="ProfileServerFields"
                       Spacing="6"
                       IsVisible="{Binding HasProfiles}">
@@ -731,13 +733,56 @@
                       ToolTip.Tip="Kodowanie tekstu dla wybranego konta (Auto wykrywa UTF-8 lub Windows-1250 automatycznie)" />
           </StackPanel>
 
-          <Button Content="Wybierz konto"
-                  Command="{Binding SelectProfileCommand}"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center"
-                  Padding="16,7"
-                  IsVisible="{Binding HasProfiles}" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding HasProfiles}">
+            <Button Grid.Column="0"
+                    Content="Wybierz konto"
+                    Command="{Binding SelectProfileCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Padding="16,7" />
+            <Button Grid.Column="1"
+                    Content="Kopiuj"
+                    Command="{Binding StartCopyProfileCommand}"
+                    Padding="16,7"
+                    ToolTip.Tip="Skopiuj wszystkie ustawienia wybranego konta" />
+          </Grid>
+          </StackPanel>
 
+          <Border IsVisible="{Binding IsCopyProfileEditorOpen}"
+                  BorderBrush="{StaticResource MudBrushSlate}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  Padding="10">
+            <StackPanel Spacing="8">
+              <TextBlock Text="{Binding CopyProfileSourceName, StringFormat='Kopia konta „{0}”'}"
+                         FontWeight="SemiBold" />
+              <TextBlock Classes="mud-faint"
+                         TextWrapping="Wrap"
+                         Text="Wszystkie ustawienia zostaną skopiowane. Zmień tylko nazwę profilu, konto MUD i hasło." />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding CopyProfileName}"
+                         PlaceholderText="Nowa nazwa profilu" />
+                <TextBox Grid.Column="1"
+                         Text="{Binding CopyProfileLogin}"
+                         PlaceholderText="Nowe konto MUD" />
+              </Grid>
+              <TextBox Text="{Binding CopyProfilePassword}"
+                       PasswordChar="●"
+                       PlaceholderText="Nowe hasło" />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Grid.Column="0"
+                        Content="Anuluj"
+                        Command="{Binding CancelCopyProfileCommand}" />
+                <Button Grid.Column="1"
+                        Content="Utwórz kopię"
+                        Command="{Binding CopyProfileCommand}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <StackPanel IsVisible="{Binding !IsCopyProfileEditorOpen}"
+                      Spacing="10">
           <Separator />
 
           <TextBlock Classes="mud-faint"
@@ -785,6 +830,7 @@
                     Command="{Binding CreateProfileCommand}"
                     Padding="16,7" />
           </Grid>
+          </StackPanel>
           </StackPanel>
         </ScrollViewer>
       </Border>

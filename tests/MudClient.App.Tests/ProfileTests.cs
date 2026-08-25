@@ -560,6 +560,77 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Vm_CopyProfile_CopiesEverySettingAndReplacesOnlyIdentityFields()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Wojownik",
+            Login = "stare_konto",
+            Host = "mud.example.org",
+            Port = 4444,
+            Encoding = "windows-1250",
+            EncryptedPassword = PasswordProtector.Protect("stare-haslo"),
+            NeedsRegistration = false,
+            Notes = [new ProfileNote { Title = "Notatka", Content = "Treść", CreatedAt = "teraz" }],
+            Rules = [new ProfileRule { Name = "Alias", Pattern = "^x$", Action = "look" }],
+            Timers = [new ProfileTimer { Name = "Timer", Seconds = 7, Commands = ["score"], IsEnabled = true }],
+            Scripts = [new ProfileScript { Name = "Skrypt", Code = "mud.send('look');" }],
+            ScriptVariables = new Dictionary<string, JsonElement>
+            {
+                ["licznik"] = JsonSerializer.SerializeToElement(12),
+            },
+            Locations = [new ProfileLocation { Name = "Dom", Vnum = "123" }],
+            Folders = [new ProfileFolder { Name = "Moje", Kind = FolderKind.Aliases }],
+            Deaths = [new ProfileDeath { Vnum = "321", RoomName = "Loch", When = "wczoraj" }],
+            RequiredBuffs = ["haste"],
+            BuffSets = [new ProfileBuffSet { Name = "Walka", Buffs = ["haste"] }],
+            ActiveBuffSetId = "aktywny",
+        });
+
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Wojownik";
+        vm.StartCopyProfileCommand.Execute(null);
+        vm.CopyProfileName = "Wojownik 2";
+        vm.CopyProfileLogin = "nowe_konto";
+        vm.CopyProfilePassword = "nowe-haslo";
+
+        vm.CopyProfileCommand.Execute(null);
+
+        var source = Assert.IsType<ProfileData>(service.Load("Wojownik"));
+        var copy = Assert.IsType<ProfileData>(service.Load("Wojownik 2"));
+        Assert.Equal("Wojownik 2", vm.ActiveProfileName);
+        Assert.Equal("nowe_konto", copy.Login);
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal("nowe-haslo", PasswordProtector.Unprotect(copy.EncryptedPassword));
+        }
+
+        source.Name = copy.Name = string.Empty;
+        source.Login = copy.Login = string.Empty;
+        source.EncryptedPassword = copy.EncryptedPassword = string.Empty;
+        Assert.Equal(JsonSerializer.Serialize(source), JsonSerializer.Serialize(copy));
+    }
+
+    [Fact]
+    public async Task Vm_CopyProfile_DoesNotOverwriteExistingProfile()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Źródło", Notes = [new ProfileNote { Title = "Źródłowa" }] });
+        service.Save(new ProfileData { Name = "Cel", Notes = [new ProfileNote { Title = "Istniejąca" }] });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Źródło";
+        vm.StartCopyProfileCommand.Execute(null);
+        vm.CopyProfileName = "Cel";
+        vm.CopyProfileLogin = "konto";
+
+        vm.CopyProfileCommand.Execute(null);
+
+        Assert.Null(vm.ActiveProfileName);
+        Assert.Equal("Istniejąca", Assert.Single(service.Load("Cel")!.Notes).Title);
+    }
+
+    [Fact]
     public async Task Vm_SelectProfile_LoadsAndUpdatesPerAccountEndpoint()
     {
         var service = CreateService();
