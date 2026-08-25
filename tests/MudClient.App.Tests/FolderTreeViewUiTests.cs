@@ -47,6 +47,10 @@ public sealed class FolderTreeViewUiTests
         var directory = Path.Combine(Path.GetTempPath(), "KillerMudClient_AutomationUi_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var viewModel = new MainWindowViewModel(new ProfileService(directory), new AppSettingsService(directory));
+        viewModel.NewScriptVariableName = "combat.target";
+        viewModel.NewScriptVariableJson = "\"wartosc-widoczna-tylko-w-widgecie\"";
+        viewModel.AddScriptVariableCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
         var window = new Window
         {
             Width = 520,
@@ -71,6 +75,12 @@ public sealed class FolderTreeViewUiTests
         tabs.SelectedIndex = 3;
         window.UpdateLayout();
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy skrypt"));
+        Assert.Contains(
+            window.GetLogicalDescendants().OfType<TextBlock>(),
+            text => Equals(text.Text, "combat.target"));
+        Assert.DoesNotContain(
+            window.GetLogicalDescendants().OfType<TextBlock>(),
+            text => text.Text?.Contains("wartosc-widoczna-tylko-w-widgecie", StringComparison.Ordinal) == true);
 
         tabs.SelectedIndex = 4;
         window.UpdateLayout();
