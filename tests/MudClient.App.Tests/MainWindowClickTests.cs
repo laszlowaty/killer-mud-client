@@ -245,6 +245,7 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.Contains("send(tekst)", scriptingTexts);
         Assert.Contains("echo(tekst, kolor)", scriptingTexts);
         Assert.Contains("reconnect()", scriptingTexts);
+        Assert.Contains("await http.get/post/put/patch/delete", scriptingTexts);
         Assert.Contains("Konsola JavaScript", scriptingTexts);
         Assert.Contains("Zmienne profilu", scriptingTexts);
         Assert.Contains("GMCP", scriptingTexts);

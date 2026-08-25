@@ -157,6 +157,15 @@
 
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
+          <TextBlock Text="await http.get/post/put/patch/delete" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Wykonuje asynchroniczny request HTTP lub HTTPS. Dostępne są http.get(url, opcje), http.post(url, body, opcje), http.put(...), http.patch(...), http.delete(url, opcje) oraz http.request(url, { method, headers, body, timeoutMs })." />
+          <TextBlock FontFamily="monospace" TextWrapping="Wrap" Text="const response = await http.get(&quot;https://example.com/api&quot;);&#10;if (response.ok) {&#10;  console.log(response.json());&#10;}" />
+          <TextBlock TextWrapping="Wrap" Text="Odpowiedź zawiera status, ok, reason, url, headers, text oraz json(). Obiekt lub tablica przekazane jako body są kodowane do JSON. Błędy obsłużysz przez try/catch." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
           <TextBlock Text="input i match" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
           <TextBlock TextWrapping="Wrap" Text="input zawiera wejściową komendę lub linię. W aliasie i triggerze match.value zawiera całe dopasowanie, match.captures grupy numerowane, a match.groups grupy nazwane." />
         </StackPanel>
@@ -187,7 +196,7 @@
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
           <TextBlock Text="Bezpieczeństwo i błędy" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
-          <TextBlock TextWrapping="Wrap" Text="Skrypty nie mają dostępu do CLR, plików, HTTP ani strumienia sieciowego. Interpreter ogranicza czas, pamięć, liczbę instrukcji, rekurencję i liczbę akcji." />
+          <TextBlock TextWrapping="Wrap" Text="Skrypty nie mają dostępu do CLR, plików ani strumienia MUD-a. HTTP działa wyłącznie przez ograniczone API dla publicznych adresów HTTP/HTTPS: bez localhosta i sieci prywatnych, najwyżej 5 requestów na wykonanie, 5 przekierowań, 256 KiB requestu, 1 MiB odpowiedzi i 30 s na request. Skrypt może wysłać do wskazanego serwera dane, które jawnie przekażesz w URL, nagłówkach lub body. Rozłączenie anuluje oczekujące requesty." />
         </StackPanel>
       </Border>
     </StackPanel>

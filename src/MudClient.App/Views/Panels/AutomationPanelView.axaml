@@ -410,7 +410,7 @@
                 <TextBox Text="{Binding NewScriptGmcpPattern}"
                          PlaceholderText="Pakiet GMCP, np. Char.Vitals lub Char.* (puste = tylko ręcznie)" />
                 <TextBlock Classes="mud-faint"
-                           Text="JavaScript: onGmcp(), execute(), send(), echo(), reconnect(), variables" />
+                           Text="JavaScript: onGmcp(), execute(), send(), echo(), reconnect(), await http.*, variables" />
                 <controls:FullscreenTextEditor Text="{Binding NewScriptCode}"
                                                EditorTitle="Kod JavaScript"
                                                IsJavaScript="True"

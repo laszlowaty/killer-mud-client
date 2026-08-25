@@ -12,6 +12,7 @@ namespace MudClient.Core.Scripting;
 public sealed class JavaScriptRunner
 {
     public const int MaximumEffects = 100;
+    public const int MaximumHttpRequests = 5;
     public const int MaximumEffectTextLength = 16_384;
     public const int MaximumVariableJsonLength = 262_144;
 
@@ -19,7 +20,14 @@ public sealed class JavaScriptRunner
         @"^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private static readonly TimeSpan ExecutionTimeout = TimeSpan.FromMilliseconds(250);
+    // Async HTTP may legitimately suspend the interpreter. MaxStatements still
+    // stops tight loops; this wall-clock limit bounds the complete invocation.
+    private static readonly TimeSpan ExecutionTimeout = TimeSpan.FromSeconds(35);
+    private static readonly TimeSpan PromiseTimeout = ExecutionTimeout;
+    private static readonly JsonSerializerOptions HttpSerializerOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     public string? Validate(string name, string code)
     {
@@ -34,15 +42,18 @@ public sealed class JavaScriptRunner
         }
     }
 
-    public ScriptExecutionResult Execute(
+    public async Task<ScriptExecutionResult> ExecuteAsync(
         ScriptInvocation invocation,
         IScriptVariableStore variables,
+        IScriptHttpClient httpClient,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(invocation);
         ArgumentNullException.ThrowIfNull(variables);
+        ArgumentNullException.ThrowIfNull(httpClient);
 
         var effects = new List<ScriptEffect>();
+        var httpRequestCount = 0;
 
         try
         {
@@ -54,6 +65,8 @@ public sealed class JavaScriptRunner
                 options.MaxStatements(20_000);
                 options.LimitRecursion(64);
                 options.CancellationToken(cancellationToken);
+                options.Constraints.PromiseTimeout = PromiseTimeout;
+                options.ExperimentalFeatures = ExperimentalFeature.TaskInterop;
             });
 
             engine.SetValue("__contextJson", BuildContextJson(invocation));
@@ -64,8 +77,14 @@ public sealed class JavaScriptRunner
             engine.SetValue("__incrementVariable", new Func<string, double, double>(IncrementVariable));
             engine.SetValue("__addEffect", new Action<string, string, string?>(AddEffect));
             engine.SetValue("__gmcpMatches", new Func<string, string, bool>(MatchesGmcpPackage));
+            engine.SetValue(
+                "__sendHttpRequest",
+                new Func<string, string, string, string?, int, Task<string>>(SendHttpRequestAsync));
 
-            engine.Execute(BuildProgram(invocation.Code));
+            _ = await engine.EvaluateAsync(
+                BuildProgram(invocation.Code),
+                invocation.Name,
+                cancellationToken).ConfigureAwait(false);
             return new ScriptExecutionResult(effects);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -138,6 +157,30 @@ public sealed class JavaScriptRunner
             };
 
             effects.Add(new ScriptEffect(effectKind, text, color));
+        }
+
+        async Task<string> SendHttpRequestAsync(
+            string method,
+            string url,
+            string headersJson,
+            string? body,
+            int timeoutMilliseconds)
+        {
+            if (++httpRequestCount > MaximumHttpRequests)
+            {
+                throw new InvalidOperationException(
+                    $"Skrypt może wykonać najwyżej {MaximumHttpRequests} requestów HTTP.");
+            }
+
+            var headers = JsonSerializer.Deserialize<Dictionary<string, string>>(
+                              headersJson,
+                              HttpSerializerOptions)
+                          ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var response = await httpClient.SendAsync(
+                    new ScriptHttpRequest(method, url, headers, body, timeoutMilliseconds),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return JsonSerializer.Serialize(response, HttpSerializerOptions);
         }
     }
 
@@ -228,6 +271,89 @@ public sealed class JavaScriptRunner
             __addEffect("reconnect", "", null);
         }
 
+        function __httpHeaders(value) {
+            if (value === undefined || value === null) {
+                return {};
+            }
+            if (typeof value !== "object" || Array.isArray(value)) {
+                throw new TypeError("Nagłówki HTTP muszą być obiektem.");
+            }
+
+            const headers = {};
+            for (const [name, headerValue] of Object.entries(value)) {
+                headers[String(name)] = String(headerValue);
+            }
+            return headers;
+        }
+
+        function __hasHeader(headers, searchedName) {
+            const normalized = searchedName.toLowerCase();
+            return Object.keys(headers).some(name => name.toLowerCase() === normalized);
+        }
+
+        async function __httpRequest(url, options) {
+            options = options ?? {};
+            if (typeof options !== "object" || Array.isArray(options)) {
+                throw new TypeError("Opcje requestu HTTP muszą być obiektem.");
+            }
+
+            const method = String(options.method ?? "GET").toUpperCase();
+            const headers = __httpHeaders(options.headers);
+            let body = options.body;
+            if (body === undefined || body === null) {
+                body = null;
+            } else if (typeof body !== "string") {
+                body = JSON.stringify(body);
+                if (!__hasHeader(headers, "content-type")) {
+                    headers["Content-Type"] = "application/json";
+                }
+            }
+
+            const timeoutMs = Number(options.timeoutMs ?? 10000);
+            if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+                throw new TypeError("timeoutMs musi być dodatnią liczbą.");
+            }
+
+            const response = JSON.parse(await __sendHttpRequest(
+                method,
+                String(url),
+                JSON.stringify(headers),
+                body,
+                Math.trunc(timeoutMs)));
+            return Object.freeze({
+                status: response.status,
+                ok: response.status >= 200 && response.status < 300,
+                reason: response.reason,
+                url: response.url,
+                headers: Object.freeze(response.headers),
+                text: response.text,
+                json() {
+                    return JSON.parse(response.text);
+                }
+            });
+        }
+
+        const http = Object.freeze({
+            request(url, options) {
+                return __httpRequest(url, options);
+            },
+            get(url, options) {
+                return __httpRequest(url, { ...(options ?? {}), method: "GET" });
+            },
+            post(url, body, options) {
+                return __httpRequest(url, { ...(options ?? {}), method: "POST", body });
+            },
+            put(url, body, options) {
+                return __httpRequest(url, { ...(options ?? {}), method: "PUT", body });
+            },
+            patch(url, body, options) {
+                return __httpRequest(url, { ...(options ?? {}), method: "PATCH", body });
+            },
+            delete(url, options) {
+                return __httpRequest(url, { ...(options ?? {}), method: "DELETE" });
+            }
+        });
+
         function __formatLogValues(values) {
             return values.map(value => {
                 if (typeof value === "string") {
@@ -266,7 +392,7 @@ public sealed class JavaScriptRunner
             }
         }
 
-        (() => {
+        (async () => {
         {{userCode}}
         })();
         """;

@@ -8,6 +8,7 @@ using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
+using MudClient.Core.Scripting;
 
 namespace MudClient.App.Tests;
 
@@ -360,6 +361,52 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task ScriptHttpRequest_AwaitsResponseBeforeDispatchingEffects()
+    {
+        var responseReleased = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var httpClient = new TestScriptHttpClient(async (request, cancellationToken) =>
+        {
+            await responseReleased.Task.WaitAsync(cancellationToken);
+            return new ScriptHttpResponse(
+                200,
+                "OK",
+                request.Url,
+                new Dictionary<string, string>(),
+                "odpowiedź");
+        });
+        var (viewModel, directory) = CreateViewModel(httpClient);
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            var execution = viewModel.RunScriptCommand.ExecuteAsync(new ScriptEntry
+            {
+                Name = "http",
+                Code = """
+                       const response = await http.get("https://example.com/");
+                       echo(response.text, "green");
+                       """,
+            });
+
+            await Task.Delay(50);
+            Dispatcher.UIThread.RunJobs();
+            Assert.DoesNotContain("\u001b[32modpowiedź\u001b[0m\n", output);
+
+            responseReleased.SetResult();
+            await execution;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\u001b[32modpowiedź\u001b[0m\n", output);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task AdvancedTrigger_ExecutesJavaScriptOffTheUiPath()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -545,13 +592,31 @@ public sealed class AutomationCommandEchoUiTests
         }
     }
 
-    private static (MainWindowViewModel ViewModel, string Directory) CreateViewModel()
+    private static (MainWindowViewModel ViewModel, string Directory) CreateViewModel(
+        IScriptHttpClient? scriptHttpClient = null)
     {
         var directory = Path.Combine(
             Path.GetTempPath(),
             "KillerMudClient_AutomationEcho_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        return (new MainWindowViewModel(settingsService: new AppSettingsService(directory)), directory);
+        return (new MainWindowViewModel(
+            settingsService: new AppSettingsService(directory),
+            scriptHttpClient: scriptHttpClient), directory);
+    }
+
+    private sealed class TestScriptHttpClient : IScriptHttpClient
+    {
+        private readonly Func<ScriptHttpRequest, CancellationToken, Task<ScriptHttpResponse>> _send;
+
+        public TestScriptHttpClient(
+            Func<ScriptHttpRequest, CancellationToken, Task<ScriptHttpResponse>> send)
+        {
+            _send = send;
+        }
+
+        public Task<ScriptHttpResponse> SendAsync(
+            ScriptHttpRequest request,
+            CancellationToken cancellationToken) => _send(request, cancellationToken);
     }
 
     private static void SetConnected(MainWindowViewModel viewModel)

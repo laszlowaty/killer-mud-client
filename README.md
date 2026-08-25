@@ -160,11 +160,19 @@ onGmcp("Char.Vitals", event => {
 - `echo(text, color)` wypisuje lokalny komunikat w terminalu,
 - `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
   **Konsola JavaScript**,
+- `await http.get(url, options)`, `post`, `put`, `patch`, `delete` oraz
+  `http.request(url, { method, headers, body, timeoutMs })` wykonują asynchroniczne
+  requesty HTTP/HTTPS. Odpowiedź udostępnia `status`, `ok`, `reason`, `url`,
+  `headers`, `text` i `json()`,
 - `variables.get/set/has/remove/increment` korzystają z magazynu aktywnego profilu.
 
-Interpreter nie otrzymuje dostępu do CLR, plików, HTTP ani strumienia sieciowego.
-Każde wykonanie ma limity czasu, pamięci, liczby instrukcji, rekursji i efektów;
-rozłączenie lub zamknięcie klienta anuluje oczekującą automatyzację.
+Interpreter nie otrzymuje dostępu do CLR, plików ani strumienia MUD-a. HTTP jest
+ograniczone do publicznych adresów HTTP/HTTPS; localhost i sieci prywatne są
+blokowane. Jedno wykonanie może wykonać najwyżej 5 requestów, każdy z limitem
+30 sekund, 256 KiB treści requestu, 1 MiB odpowiedzi i maksymalnie 5
+przekierowaniami. Każde wykonanie ma też limity czasu, pamięci, liczby instrukcji,
+rekursji i efektów; rozłączenie lub zamknięcie klienta anuluje oczekującą
+automatyzację.
 
 ## Pobieranie
 

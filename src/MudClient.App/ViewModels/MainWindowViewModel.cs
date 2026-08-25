@@ -267,7 +267,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         IAppUpdateInstaller? appUpdateInstaller = null,
         string? appBaseDirectory = null,
         IPasswordProtector? passwordProtector = null,
-        TimeSpan? toastLifetime = null)
+        TimeSpan? toastLifetime = null,
+        IScriptHttpClient? scriptHttpClient = null)
     {
         _toastLifetime = toastLifetime is { } lifetime && lifetime > TimeSpan.Zero
             ? lifetime
@@ -298,6 +299,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _appUpdateInstaller = appUpdateInstaller;
         _externalLinkService = externalLinkService ?? new ExternalLinkService();
         _passwordProtector = passwordProtector ?? new DpapiPasswordProtector();
+        _scriptHttpClient = scriptHttpClient ?? new ScriptHttpClient();
         Killeropedia = CreateKilleropediaViewModel();
         AutomationRules.CollectionChanged += (_, _) => OnFolderCollectionsChanged();
         Timers.CollectionChanged += (_, _) => OnFolderCollectionsChanged();

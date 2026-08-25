@@ -23,6 +23,7 @@ public sealed partial class MainWindowViewModel
         RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
     private readonly JavaScriptRunner _javaScriptRunner = new();
+    private readonly IScriptHttpClient _scriptHttpClient;
     private ProfileScriptVariableStore _scriptVariables = null!;
     private IReadOnlyList<AutomationRuleEntry> _activeAliasRules = [];
     private IReadOnlyList<AutomationRuleEntry> _activeTriggerRules = [];
@@ -562,7 +563,12 @@ public sealed partial class MainWindowViewModel
         }
 
         var result = await Task.Run(
-            () => _javaScriptRunner.Execute(invocation, _scriptVariables, cancellationToken),
+            async () => await _javaScriptRunner.ExecuteAsync(
+                    invocation,
+                    _scriptVariables,
+                    _scriptHttpClient,
+                    cancellationToken)
+                .ConfigureAwait(false),
             cancellationToken);
 
         if (!result.Success)
