@@ -175,7 +175,8 @@
                       </Flyout>
                     </Button.Flyout>
                   </Button>
-                  <Button Content="Układy paneli"
+                  <Button x:Name="LayoutMenuButton"
+                          Content="Układy paneli"
                           HorizontalContentAlignment="Left"
                           Classes="mud-menu-action">
                     <Button.Flyout>

@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _viewModel;
     private Dock.Avalonia.Controls.DockControl? _mainDock;
     private CancellationTokenSource? _pinnedPanelAuditCts;
+    private Flyout? _moreActionsFlyout;
+    private Flyout? _layoutFlyout;
     private bool _closingAfterRecoveryFlush;
     private bool _characterRollerDialogOpen;
     private readonly DispatcherTimer _idleRefreshTimer;
@@ -45,6 +47,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        _moreActionsFlyout = this.FindControl<Button>("MoreActionsButton")?.Flyout as Flyout;
+        _layoutFlyout = this.FindControl<Button>("LayoutMenuButton")?.Flyout as Flyout;
 
         _idleRefreshTimer = new DispatcherTimer
         {
@@ -207,6 +212,12 @@ public partial class MainWindow : Window
     {
         if (eventArgs.PropertyName == nameof(MainWindowViewModel.Layout))
         {
+            // Layout selection is initiated from a nested Flyout.  The old popup can survive
+            // the Dock tree replacement and leave its overlay above the newly rendered layout,
+            // dimming the whole workspace until the application is restarted.  Close both
+            // levels after the replacement so the popup overlay is always detached.
+            _layoutFlyout?.Hide();
+            _moreActionsFlyout?.Hide();
             SchedulePinnedPanelAudit();
         }
     }

@@ -111,6 +111,27 @@ public sealed class PinnedTabUiTests : IAsyncDisposable
             .ToList();
 
     [AvaloniaFact]
+    public void ApplyingLayout_ClosesNestedLayoutFlyouts()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        var moreActions = window.FindControl<Button>("MoreActionsButton")!;
+        var layoutMenu = window.FindControl<Button>("LayoutMenuButton")!;
+        var outerFlyout = Assert.IsType<Flyout>(moreActions.Flyout);
+        var layoutFlyout = Assert.IsType<Flyout>(layoutMenu.Flyout);
+        outerFlyout.IsOpen = true;
+        layoutFlyout.IsOpen = true;
+
+        viewModel.ApplyLayoutCommand.Execute(LayoutPresetService.DefaultName);
+        Pump(window);
+
+        Assert.False(layoutFlyout.IsOpen);
+        Assert.False(outerFlyout.IsOpen);
+    }
+
+    [AvaloniaFact]
     public void WidgetThreeDotMenu_ContainsExplicitPinEdges()
     {
         var viewModel = CreateViewModel();
