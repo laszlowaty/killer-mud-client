@@ -448,15 +448,18 @@
           Background="#F2080A0B">
       <ScrollViewer>
         <StackPanel Margin="20,30" Spacing="12" MaxWidth="520">
-          <TextBlock Text="Wybierz lub utwórz konto" Classes="mud-heading-lg" />
+          <TextBlock Text="Wybierz lub utwórz profil" Classes="mud-heading-lg" />
 
           <StackPanel IsVisible="{Binding HasProfiles}" Spacing="8">
             <StackPanel IsVisible="{Binding !IsCopyProfileEditorOpen}" Spacing="8">
+            <TextBlock Text="Nazwa profilu" Classes="mud-faint" />
             <ComboBox ItemsSource="{Binding AvailableProfiles}"
                       SelectedItem="{Binding SelectedProfileName}"
-                      PlaceholderText="Konto" />
-            <TextBox Text="{Binding SelectedProfileLogin}"
-                                 PlaceholderText="Login MUD" />
+                      PlaceholderText="Wybierz profil" />
+            <TextBlock Text="Login MUD" Classes="mud-faint" />
+            <TextBox x:Name="SelectedProfileLoginInput"
+                     Text="{Binding SelectedProfileLogin}"
+                     PlaceholderText="Login wysyłany do MUD-a" />
             <TextBox Text="{Binding SelectedProfilePassword}"
                                  PasswordChar="●"
                                  PlaceholderText="Hasło (puste zachowuje zapisane)" />
@@ -509,9 +512,9 @@
 
           <StackPanel IsVisible="{Binding !IsCopyProfileEditorOpen}" Spacing="12">
           <Border Height="1" Background="{StaticResource MudBrushSlate}" Margin="0,6" />
-          <TextBlock Text="Nowe konto" Classes="mud-heading" />
+          <TextBlock Text="Nowy profil" Classes="mud-heading" />
           <TextBox Text="{Binding NewProfileName}"
-                               PlaceholderText="Nazwa konta w aplikacji" />
+                               PlaceholderText="Nazwa profilu" />
           <TextBox Text="{Binding NewProfileLogin}"
                                PlaceholderText="Login MUD" />
           <TextBox Text="{Binding NewProfilePassword}"

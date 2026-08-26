@@ -289,7 +289,13 @@ public sealed class MainWindowClickTests : IAsyncDisposable
     [AvaloniaFact]
     public void ProfilePicker_ContainsServerFieldsAndHeaderDoesNot()
     {
-        var viewModel = CreateViewModel();
+        var profiles = new ProfileService(_tempDirectory);
+        profiles.Save(new ProfileData { Name = "Mag", Login = "Gandalf" });
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(_tempDirectory),
+            new DockLayoutService(_tempDirectory));
+        viewModel.SelectedProfileName = "Mag";
         var window = new MainWindow { DataContext = viewModel };
         Show(window);
         EnsureLayout(window);
@@ -310,9 +316,13 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.Contains(newProfileServerFields.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText == "port");
         Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
-            textBox => textBox.PlaceholderText == "Nazwa konta w aplikacji");
+            textBox => textBox.PlaceholderText == "Nazwa profilu");
         Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText == "Login MUD");
+        var selectedProfileLoginInput = window.FindControl<TextBox>("SelectedProfileLoginInput");
+        Assert.NotNull(selectedProfileLoginInput);
+        Assert.True(selectedProfileLoginInput!.IsEffectivelyVisible);
+        Assert.Equal("Login wysyłany do MUD-a", selectedProfileLoginInput.PlaceholderText);
         Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText == "Nowa nazwa profilu");
         Assert.Contains(window.GetVisualDescendants().OfType<Button>(),

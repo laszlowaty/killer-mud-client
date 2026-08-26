@@ -654,16 +654,16 @@
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
             <TextBlock Grid.Column="0" Text="⚔" FontSize="28" Foreground="{StaticResource MudBrushGoldBright}" />
             <StackPanel Grid.Column="1">
-              <TextBlock Classes="mud-heading-lg" Text="Wybierz konto" />
+              <TextBlock Classes="mud-heading-lg" Text="Wybierz profil" />
               <TextBlock Classes="mud-muted"
                          TextWrapping="Wrap"
-                         Text="Konto przechowuje hasło, notatki, automaty, skrypty i ich wspólne zmienne." />
+                         Text="Profil przechowuje hasło, notatki, automaty, skrypty i ich wspólne zmienne." />
             </StackPanel>
           </Grid>
 
           <TextBlock Classes="mud-faint"
                      TextWrapping="Wrap"
-                     Text="Dwuklik na koncie łączy od razu."
+                     Text="Dwuklik na profilu łączy od razu."
                      IsVisible="{Binding HasProfiles}" />
 
           <ListBox x:Name="ProfileListBox"
@@ -707,7 +707,7 @@
 
           <TextBlock Classes="mud-faint"
                      TextWrapping="Wrap"
-                     Text="Brak zapisanych kont — utwórz pierwsze poniżej."
+                     Text="Brak zapisanych profili — utwórz pierwszy poniżej."
                      IsVisible="{Binding !HasProfiles}" />
 
           <StackPanel IsVisible="{Binding !IsCopyProfileEditorOpen}"
@@ -715,21 +715,28 @@
           <StackPanel x:Name="ProfileServerFields"
                       Spacing="6"
                       IsVisible="{Binding HasProfiles}">
-            <TextBlock Text="Ustawienia wybranego konta"
+            <TextBlock Text="Ustawienia wybranego profilu"
                        FontSize="11"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource MudBrushParchmentDim}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-              <TextBox Grid.Column="0"
-                       Text="{Binding SelectedProfileLogin}"
-                       PlaceholderText="Login MUD"
-                       KeyDown="SelectProfileField_OnKeyDown" />
-              <TextBox Grid.Column="1"
-                       Text="{Binding SelectedProfilePassword}"
-                       PasswordChar="●"
-                       PlaceholderText="Nowe hasło (opcjonalnie)"
-                       KeyDown="SelectProfileField_OnKeyDown"
-                       ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
+              <StackPanel Grid.Column="0" Spacing="3">
+                <TextBlock Text="Login MUD"
+                           Classes="mud-faint" />
+                <TextBox x:Name="SelectedProfileLoginInput"
+                         Text="{Binding SelectedProfileLogin}"
+                         PlaceholderText="Login wysyłany do MUD-a"
+                         KeyDown="SelectProfileField_OnKeyDown" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="3">
+                <TextBlock Text="Hasło"
+                           Classes="mud-faint" />
+                <TextBox Text="{Binding SelectedProfilePassword}"
+                         PasswordChar="●"
+                         PlaceholderText="Nowe (opcjonalnie)"
+                         KeyDown="SelectProfileField_OnKeyDown"
+                         ToolTip.Tip="Puste pole zachowuje zapisane hasło. Hasło jest szyfrowane na dysku." />
+              </StackPanel>
             </Grid>
             <Grid ColumnDefinitions="*,110" ColumnSpacing="8">
               <TextBox Grid.Column="0"
@@ -751,7 +758,7 @@
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding HasProfiles}">
             <Button Grid.Column="0"
-                    Content="Wybierz konto"
+                    Content="Wybierz profil"
                     Command="{Binding SelectProfileCommand}"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
@@ -760,7 +767,7 @@
                     Content="Kopiuj"
                     Command="{Binding StartCopyProfileCommand}"
                     Padding="16,7"
-                    ToolTip.Tip="Skopiuj wszystkie ustawienia wybranego konta" />
+                    ToolTip.Tip="Skopiuj wszystkie ustawienia wybranego profilu" />
           </Grid>
           </StackPanel>
 
@@ -803,12 +810,12 @@
 
           <TextBlock Classes="mud-faint"
                      TextWrapping="Wrap"
-                     Text="Nowe konto — jego lokalna nazwa może być inna niż login wysyłany do MUD-a." />
+                     Text="Nowy profil — jego lokalna nazwa może być inna niż login wysyłany do MUD-a." />
 
           <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
             <TextBox Grid.Column="0"
                      Text="{Binding NewProfileName}"
-                     PlaceholderText="Nazwa konta w aplikacji"
+                     PlaceholderText="Nazwa profilu"
                      KeyDown="CreateProfileField_OnKeyDown" />
             <TextBox Grid.Column="1"
                      Text="{Binding NewProfileLogin}"
