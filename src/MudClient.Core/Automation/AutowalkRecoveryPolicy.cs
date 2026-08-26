@@ -62,6 +62,7 @@ public static class AutowalkRecoveryPolicy
 
     /// <summary>True when GMCP reports a position that requires standing before movement.</summary>
     public static bool RequiresStandBeforeMovement(string? position) =>
+        string.Equals(position, "resting", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(position, "sleeping", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(position, "sitting", StringComparison.OrdinalIgnoreCase);
 

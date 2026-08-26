@@ -3278,6 +3278,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Theory]
+    [InlineData("resting")]
     [InlineData("sleeping")]
     [InlineData("sitting")]
     public void SendAutowalkStep_WhileNotStanding_WaitsForStandingConfirmation(string position)
@@ -3313,10 +3314,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Contains("Idę do", _vm.AutowalkStatusText);
     }
 
-    [Theory]
-    [InlineData("standing")]
-    [InlineData("resting")]
-    public void SendAutowalkStep_WithoutAutomaticStand_DoesNotEnterStandRecovery(string position)
+    [Fact]
+    public void SendAutowalkStep_WhileStanding_DoesNotEnterStandRecovery()
     {
         var from = CreateTestRoom(998, "998");
         var to = CreateTestRoom(999, "999");
@@ -3330,7 +3329,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         typeof(MainWindowViewModel).GetField("_autowalkTargetName",
             BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
         typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
-            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, position);
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
 
         typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
             BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
