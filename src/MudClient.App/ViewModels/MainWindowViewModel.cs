@@ -231,6 +231,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private string? _activeProfileName;
     private string _activeProfileLogin = string.Empty;
     private string? _selectedProfileName;
+    private string _selectedProfileDisplayName = string.Empty;
     private string _selectedProfileLogin = string.Empty;
     private string _newProfileName = string.Empty;
     private string _newProfileLogin = string.Empty;
@@ -328,7 +329,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         LordGotoGroupMemberCommand = new RelayCommand<GroupMember>(
             ExecuteLordGotoGroupMember,
             CanExecuteLordGotoGroupMember);
-        SelectProfileCommand = new RelayCommand(SelectProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
+        SelectProfileCommand = new RelayCommand(SelectProfile, CanSelectProfile);
         CreateProfileCommand = new RelayCommand(CreateProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         StartCopyProfileCommand = new RelayCommand(StartCopyProfile, () => !string.IsNullOrWhiteSpace(SelectedProfileName));
         CopyProfileCommand = new RelayCommand(CopyProfile, CanCopyProfile);
@@ -4336,6 +4337,42 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public bool HasProfiles => AvailableProfiles.Count > 0;
 
+    public void MoveProfile(string sourceName, string targetName, bool placeAfterTarget)
+    {
+        var sourceIndex = AvailableProfiles.IndexOf(sourceName);
+        var targetIndex = AvailableProfiles.IndexOf(targetName);
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex == targetIndex)
+        {
+            return;
+        }
+
+        AvailableProfiles.Move(sourceIndex, targetIndex);
+        var currentIndex = AvailableProfiles.IndexOf(sourceName);
+        var currentTargetIndex = AvailableProfiles.IndexOf(targetName);
+        if (placeAfterTarget && currentIndex < currentTargetIndex)
+        {
+            AvailableProfiles.Move(currentIndex, currentTargetIndex);
+        }
+        else if (!placeAfterTarget && currentIndex > currentTargetIndex)
+        {
+            AvailableProfiles.Move(currentIndex, currentTargetIndex);
+        }
+
+        PersistProfileOrder();
+    }
+
+    private void PersistProfileOrder()
+    {
+        try
+        {
+            _profiles.SaveProfileOrder(AvailableProfiles);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AddToast($"Nie udało się zapisać kolejności profili: {exception.Message}", "error");
+        }
+    }
+
     public RelayCommand SelectProfileCommand { get; }
     public RelayCommand CreateProfileCommand { get; }
     public RelayCommand StartCopyProfileCommand { get; }
@@ -4379,6 +4416,34 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         get => _selectedProfileLogin;
         set => SetProperty(ref _selectedProfileLogin, value);
+    }
+
+    public string SelectedProfileDisplayName
+    {
+        get => _selectedProfileDisplayName;
+        set
+        {
+            if (SetProperty(ref _selectedProfileDisplayName, value))
+            {
+                OnPropertyChanged(nameof(SelectedProfileNameValidationMessage));
+                SelectProfileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public string SelectedProfileNameValidationMessage
+    {
+        get
+        {
+            var currentName = SelectedProfileName?.Trim();
+            var newName = SelectedProfileDisplayName.Trim();
+            return !string.IsNullOrWhiteSpace(currentName)
+                && !string.IsNullOrWhiteSpace(newName)
+                && !string.Equals(currentName, newName, StringComparison.OrdinalIgnoreCase)
+                && _profiles.Exists(newName)
+                    ? $"Profil „{newName}” już istnieje."
+                    : string.Empty;
+        }
     }
 
     /// <summary>Password for the account being created in the picker.</summary>
@@ -4486,6 +4551,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         if (string.IsNullOrWhiteSpace(name) || _profiles.Load(name) is not { } profile)
         {
+            SelectedProfileDisplayName = string.Empty;
             SelectedProfileLogin = string.Empty;
             Host = "killer-mud.pl";
             Port = 4004;
@@ -4493,23 +4559,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
+        SelectedProfileDisplayName = profile.Name;
         SelectedProfileLogin = ResolveProfileLogin(profile);
         Host = ResolveProfileHost(profile);
         Port = ResolveProfilePort(profile);
         Encoding = ResolveProfileEncoding(profile);
     }
 
+    private bool CanSelectProfile()
+    {
+        var currentName = SelectedProfileName?.Trim();
+        var newName = SelectedProfileDisplayName.Trim();
+        return !string.IsNullOrWhiteSpace(currentName)
+            && !string.IsNullOrWhiteSpace(newName)
+            && string.IsNullOrEmpty(SelectedProfileNameValidationMessage);
+    }
+
     private void SelectProfile()
     {
-        var name = SelectedProfileName?.Trim();
-        if (string.IsNullOrWhiteSpace(name))
+        var currentName = SelectedProfileName?.Trim();
+        var newName = SelectedProfileDisplayName.Trim();
+        if (string.IsNullOrWhiteSpace(currentName) || string.IsNullOrWhiteSpace(newName))
         {
             return;
         }
 
-        var profile = _profiles.Load(name) ?? new ProfileData { Name = name };
+        var profile = _profiles.Load(currentName) ?? new ProfileData { Name = currentName };
+        profile.Name = newName;
         profile.Login = string.IsNullOrWhiteSpace(SelectedProfileLogin)
-            ? name
+            ? newName
             : SelectedProfileLogin.Trim();
         profile.Host = Host.Trim();
         profile.Port = Port;
@@ -4523,7 +4601,36 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             SelectedProfilePassword = string.Empty;
         }
 
-        _profiles.Save(profile);
+        try
+        {
+            if (string.Equals(currentName, newName, StringComparison.Ordinal))
+            {
+                _profiles.Save(profile);
+            }
+            else if (!_profiles.TryRename(currentName, profile))
+            {
+                AddToast($"Nie udało się zmienić nazwy profilu na „{newName}”.", "error");
+                return;
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AddToast($"Nie udało się zapisać profilu: {exception.Message}", "error");
+            return;
+        }
+
+        if (!string.Equals(currentName, newName, StringComparison.Ordinal))
+        {
+            var index = AvailableProfiles.IndexOf(currentName);
+            if (index >= 0)
+            {
+                AvailableProfiles[index] = newName;
+                PersistProfileOrder();
+            }
+
+            SelectedProfileName = newName;
+        }
+
         ActivateProfile(profile);
     }
 
@@ -4570,6 +4677,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (!AvailableProfiles.Contains(name))
         {
             AvailableProfiles.Add(name);
+            PersistProfileOrder();
         }
 
         NewProfileName = string.Empty;
@@ -4639,6 +4747,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         AvailableProfiles.Add(name);
+        PersistProfileOrder();
         CancelCopyProfile();
         ActivateProfile(profile);
     }
@@ -4670,6 +4779,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         AvailableProfiles.Remove(name);
+        PersistProfileOrder();
         if (SelectedProfileName == name)
         {
             SelectedProfileName = null;

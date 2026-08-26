@@ -323,6 +323,10 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.NotNull(selectedProfileLoginInput);
         Assert.True(selectedProfileLoginInput!.IsEffectivelyVisible);
         Assert.Equal("Login wysyłany do MUD-a", selectedProfileLoginInput.PlaceholderText);
+        var selectedProfileNameInput = window.FindControl<TextBox>("SelectedProfileNameInput");
+        Assert.NotNull(selectedProfileNameInput);
+        Assert.True(selectedProfileNameInput!.IsEffectivelyVisible);
+        Assert.Equal("Mag", selectedProfileNameInput.Text);
         Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
             textBox => textBox.PlaceholderText == "Nowa nazwa profilu");
         Assert.Contains(window.GetVisualDescendants().OfType<Button>(),

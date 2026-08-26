@@ -17,6 +17,7 @@ public sealed class ProfileService
 
     /// <summary>File (without extension) holding globally shared rules/timers/locations.</summary>
     private const string GlobalFileName = "_global";
+    private const string ProfileOrderFileName = "_profiles-order";
 
     private readonly string _directory;
 
@@ -35,13 +36,35 @@ public sealed class ProfileService
             return [];
         }
 
-        return Directory.EnumerateFiles(_directory, "*.json")
+        var names = Directory.EnumerateFiles(_directory, "*.json")
             .Select(Path.GetFileNameWithoutExtension)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
-            .Where(name => !string.Equals(name, GlobalFileName, StringComparison.OrdinalIgnoreCase))
+            .Where(name => !string.Equals(name, GlobalFileName, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(name, ProfileOrderFileName, StringComparison.OrdinalIgnoreCase))
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        var orderPath = Path.Combine(_directory, ProfileOrderFileName + ".json");
+        if (!DurableJsonFile.TryRead<ProfileOrderData>(orderPath, SerializerOptions, out var savedOrder)
+            || savedOrder is null)
+        {
+            return names;
+        }
+
+        var remaining = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+        var ordered = new List<string>(names.Count);
+        foreach (var name in savedOrder.Names ?? [])
+        {
+            if (remaining.Remove(name))
+            {
+                ordered.Add(names.First(candidate =>
+                    string.Equals(candidate, name, StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        ordered.AddRange(names.Where(remaining.Contains));
+        return ordered;
     }
 
     public bool Exists(string name) => File.Exists(GetPath(name));
@@ -80,6 +103,57 @@ public sealed class ProfileService
         DurableJsonFile.Write(GetPath(profile.Name), profile, SerializerOptions);
     }
 
+    public bool TryRename(string currentName, ProfileData profile)
+    {
+        var currentPath = GetPath(currentName);
+        var newPath = GetPath(profile.Name);
+        if (!File.Exists(currentPath))
+        {
+            return false;
+        }
+
+        if (string.Equals(currentPath, newPath, StringComparison.Ordinal))
+        {
+            DurableJsonFile.Write(newPath, profile, SerializerOptions);
+            return true;
+        }
+
+        var samePathIgnoringCase = string.Equals(
+            currentPath,
+            newPath,
+            StringComparison.OrdinalIgnoreCase);
+        if (!samePathIgnoringCase && (File.Exists(newPath) || File.Exists(newPath + DurableJsonFile.BackupSuffix)))
+        {
+            return false;
+        }
+
+        Directory.CreateDirectory(_directory);
+        if (samePathIgnoringCase)
+        {
+            File.Move(currentPath, newPath);
+            var currentBackupPath = currentPath + DurableJsonFile.BackupSuffix;
+            if (File.Exists(currentBackupPath))
+            {
+                File.Move(currentBackupPath, newPath + DurableJsonFile.BackupSuffix);
+            }
+
+            DurableJsonFile.Write(newPath, profile, SerializerOptions);
+            return true;
+        }
+
+        DurableJsonFile.Write(newPath, profile, SerializerOptions);
+        Delete(currentName);
+        return true;
+    }
+
+    public void SaveProfileOrder(IEnumerable<string> names)
+    {
+        DurableJsonFile.Write(
+            Path.Combine(_directory, ProfileOrderFileName + ".json"),
+            new ProfileOrderData { Names = names.ToList() },
+            SerializerOptions);
+    }
+
     public GlobalData LoadGlobal()
     {
         var path = Path.Combine(_directory, GlobalFileName + ".json");
@@ -109,7 +183,13 @@ public sealed class ProfileService
 
         // A profile must never overwrite the shared global file.
         return string.Equals(sanitized, GlobalFileName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sanitized, ProfileOrderFileName, StringComparison.OrdinalIgnoreCase)
             ? sanitized + "_profil"
             : sanitized;
+    }
+
+    private sealed class ProfileOrderData
+    {
+        public List<string> Names { get; set; } = [];
     }
 }

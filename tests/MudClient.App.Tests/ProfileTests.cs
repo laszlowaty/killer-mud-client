@@ -152,6 +152,37 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void TryRename_MovesProfileAndDoesNotOverwriteAnotherProfile()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Mag", Login = "gandalf" });
+        service.Save(new ProfileData { Name = "Wojownik", Login = "aragorn" });
+        var profile = Assert.IsType<ProfileData>(service.Load("Mag"));
+        profile.Name = "Czarodziej";
+        profile.Login = "mithrandir";
+
+        Assert.True(service.TryRename("Mag", profile));
+        Assert.False(service.Exists("Mag"));
+        Assert.Equal("mithrandir", service.Load("Czarodziej")!.Login);
+
+        profile.Name = "Wojownik";
+        Assert.False(service.TryRename("Czarodziej", profile));
+        Assert.Equal("aragorn", service.Load("Wojownik")!.Login);
+    }
+
+    [Fact]
+    public void ListProfileNames_UsesSavedOrderAndAppendsNewProfiles()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Alfa" });
+        service.Save(new ProfileData { Name = "Beta" });
+        service.SaveProfileOrder(["Beta", "Alfa"]);
+        service.Save(new ProfileData { Name = "Gamma" });
+
+        Assert.Equal(["Beta", "Alfa", "Gamma"], service.ListProfileNames());
+    }
+
+    [Fact]
     public void SaveAndLoad_RoundTripsAdvancedAutomationScriptsAndVariables()
     {
         var service = CreateService();
@@ -658,6 +689,39 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("Mithrandir", stored.Login);
         Assert.Equal("second.example.org", stored.Host);
         Assert.Equal(5005, stored.Port);
+    }
+
+    [Fact]
+    public async Task Vm_SelectProfile_RenamesExistingProfileAndKeepsLoginSeparate()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Mag", Login = "Gandalf" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Mag";
+        vm.SelectedProfileDisplayName = "Czarodziej";
+        vm.SelectedProfileLogin = "Mithrandir";
+
+        vm.SelectProfileCommand.Execute(null);
+
+        Assert.False(service.Exists("Mag"));
+        Assert.Equal("Mithrandir", service.Load("Czarodziej")!.Login);
+        Assert.Equal("Czarodziej", vm.ActiveProfileName);
+        Assert.Equal(["Czarodziej"], vm.AvailableProfiles);
+    }
+
+    [Fact]
+    public async Task Vm_MoveProfile_PersistsDraggedOrder()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Alfa" });
+        service.Save(new ProfileData { Name = "Beta" });
+        service.Save(new ProfileData { Name = "Gamma" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+
+        vm.MoveProfile("Gamma", "Alfa", placeAfterTarget: true);
+
+        Assert.Equal(["Alfa", "Gamma", "Beta"], vm.AvailableProfiles);
+        Assert.Equal(["Alfa", "Gamma", "Beta"], service.ListProfileNames());
     }
 
     [Fact]

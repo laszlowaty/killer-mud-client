@@ -456,6 +456,13 @@
             <ComboBox ItemsSource="{Binding AvailableProfiles}"
                       SelectedItem="{Binding SelectedProfileName}"
                       PlaceholderText="Wybierz profil" />
+            <TextBox Text="{Binding SelectedProfileDisplayName}"
+                     PlaceholderText="Nazwa profilu" />
+            <TextBlock Text="{Binding SelectedProfileNameValidationMessage}"
+                       Foreground="#FFE57373"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding SelectedProfileNameValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <TextBlock Text="Login MUD" Classes="mud-faint" />
             <TextBox x:Name="SelectedProfileLoginInput"
                      Text="{Binding SelectedProfileLogin}"

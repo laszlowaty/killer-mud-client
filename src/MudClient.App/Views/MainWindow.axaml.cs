@@ -24,6 +24,10 @@ public partial class MainWindow : Window
     private Flyout? _layoutFlyout;
     private bool _closingAfterRecoveryFlush;
     private bool _characterRollerDialogOpen;
+    private string? _draggedProfileName;
+    private PointerPressedEventArgs? _profileDragStartEvent;
+    private Point _profileDragStart;
+    private bool _profileDragInProgress;
     private readonly DispatcherTimer _idleRefreshTimer;
 
     /// <summary>
@@ -448,6 +452,78 @@ public partial class MainWindow : Window
                 _viewModel.SelectProfileCommand.Execute(null);
             }
         }
+    }
+
+    private void ProfileItem_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (sender is not Control { DataContext: string profileName }
+            || !eventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || eventArgs.Source is Visual source
+                && source.FindAncestorOfType<Button>(includeSelf: true) is not null)
+        {
+            return;
+        }
+
+        _draggedProfileName = profileName;
+        _profileDragStartEvent = eventArgs;
+        _profileDragStart = eventArgs.GetPosition(this);
+    }
+
+    private async void ProfileItem_OnPointerMoved(object? sender, PointerEventArgs eventArgs)
+    {
+        if (_draggedProfileName is null
+            || _profileDragStartEvent is null
+            || _profileDragInProgress
+            || !eventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        var current = eventArgs.GetPosition(this);
+        if (Math.Abs(current.X - _profileDragStart.X) < 4
+            && Math.Abs(current.Y - _profileDragStart.Y) < 4)
+        {
+            return;
+        }
+
+        _profileDragInProgress = true;
+        try
+        {
+            var data = new DataTransfer();
+            data.Add(DataTransferItem.CreateText("KillerMudClient/Profile"));
+            await DragDrop.DoDragDropAsync(_profileDragStartEvent, data, DragDropEffects.Move);
+        }
+        finally
+        {
+            _profileDragInProgress = false;
+            _draggedProfileName = null;
+            _profileDragStartEvent = null;
+        }
+    }
+
+    private void ProfileItem_OnDragOver(object? sender, DragEventArgs eventArgs)
+    {
+        eventArgs.DragEffects = sender is Control { DataContext: string targetName }
+            && _draggedProfileName is not null
+            && !string.Equals(_draggedProfileName, targetName, StringComparison.Ordinal)
+                ? DragDropEffects.Move
+                : DragDropEffects.None;
+        eventArgs.Handled = true;
+    }
+
+    private void ProfileItem_OnDrop(object? sender, DragEventArgs eventArgs)
+    {
+        if (_viewModel is null
+            || _draggedProfileName is null
+            || sender is not Control { DataContext: string targetName }
+            || string.Equals(_draggedProfileName, targetName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var placeAfterTarget = eventArgs.GetPosition((Control)sender).Y > ((Control)sender).Bounds.Height / 2;
+        _viewModel.MoveProfile(_draggedProfileName, targetName, placeAfterTarget);
+        eventArgs.Handled = true;
     }
 
     protected override void OnClosing(WindowClosingEventArgs eventArgs)

@@ -352,7 +352,7 @@ Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull
 
 ## Gdzie wpisać adres MUD-a
 
-Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każdy profil ma własny host, port i login MUD-a oraz niezależną lokalną nazwę widoczną w aplikacji. Po zaznaczeniu istniejącego profilu jego login MUD jest pokazany w osobnym, opisanym polu edycyjnym; zmiany są zapisywane przy wybraniu profilu i połączeniu.
+Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każdy profil ma własny host, port i login MUD-a oraz niezależną lokalną nazwę widoczną w aplikacji. Po zaznaczeniu istniejącego profilu można osobno zmienić jego nazwę i login MUD; zmiany są zapisywane przy wybraniu profilu i połączeniu. Profile na liście można przeciągać, aby zapisać własną kolejność.
 
 ## Kopia i import ustawień
 
