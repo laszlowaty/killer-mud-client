@@ -14,7 +14,23 @@
       <ItemsControl x:Name="GroupMembersList" ItemsSource="{Binding Group}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:GroupMember">
-            <Border Classes="mud-section" Padding="6,4" Margin="0,1">
+            <StackPanel>
+              <Border Margin="0,8,0,3"
+                      Padding="7,4"
+                      CornerRadius="4"
+                      Background="{StaticResource MudBrushGoldDim}"
+                      IsVisible="{Binding StartsOwnerGroup}">
+                <Border.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="StartsOwnerGroup" />
+                    <Binding Path="#GroupPanel.DataContext.LordModeEnabled" />
+                  </MultiBinding>
+                </Border.IsVisible>
+                <TextBlock Text="{Binding OwnerGroupHeader}"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource MudBrushParchment}" />
+              </Border>
+              <Border Classes="mud-section" Padding="6,4" Margin="0,1">
               <Border.ContextMenu>
                 <ContextMenu x:DataType="models:GroupMember"
                              Opened="GroupContextMenu_OnOpened"
@@ -64,7 +80,8 @@
                              Text="{Binding RoomDisplay}" />
                 </StackPanel>
               </StackPanel>
-            </Border>
+              </Border>
+            </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>

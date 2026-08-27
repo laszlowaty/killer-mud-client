@@ -71,7 +71,7 @@ Dokowalne, konfigurowalne panele (układ można przestawiać, przycisk **Resetuj
   włącza natychmiastowe czerwone ostrzeżenie w terminalu po utracie wybranego
   efektu, a komenda `/recast` jednym ruchem rzuca wszystkie brakujące,
 - **Pokój** — szczegóły bieżącego pokoju (id, vnum, sektor, grafika),
-- **Drużyna** — skład i stan grupy,
+- **Drużyna** — skład i stan grupy, z przypisaniem summonów do właścicieli oraz czytelnym podziałem na grupy właścicieli w Lord Mode,
 - **Mem** — czary gotowe, zapamiętywane oraz niezapamiętane wyróżnione na czerwono,
 - **GMCP** — surowy podgląd pakietów GMCP.
 

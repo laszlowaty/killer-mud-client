@@ -33,7 +33,8 @@ public sealed record CharacterGroupMember(
     int? Mem,
     bool IsNpc,
     string? Room,
-    bool IsLeader);
+    bool IsLeader,
+    string? OwnerName = null);
 
 /// <summary>Full group state from Char.Group GMCP.</summary>
 public sealed record CharacterGroupUpdate(
@@ -388,6 +389,7 @@ public sealed class CharacterStateResolver
         }
 
         var members = new List<CharacterGroupMember>();
+        string? lastPlayerName = null;
         foreach (var element in membersElement.EnumerateArray())
         {
             if (element.ValueKind != JsonValueKind.Object)
@@ -409,6 +411,15 @@ public sealed class CharacterStateResolver
             var isNpc = element.TryGetProperty("is_npc", out var npcProp)
                         && npcProp.ValueKind == JsonValueKind.True;
 
+            // KillerMUD sends a player's summons directly after that player.
+            // Preserve that relationship explicitly so every UI can label and
+            // group summons without having to reinterpret the raw GMCP order.
+            var ownerName = isNpc ? lastPlayerName : null;
+            if (!isNpc)
+            {
+                lastPlayerName = name;
+            }
+
             members.Add(new CharacterGroupMember(
                 Name: name,
                 Position: position,
@@ -420,7 +431,8 @@ public sealed class CharacterStateResolver
                 IsNpc: isNpc,
                 Room: room,
                 IsLeader: leader != null
-                          && string.Equals(name, leader, StringComparison.OrdinalIgnoreCase)));
+                          && string.Equals(name, leader, StringComparison.OrdinalIgnoreCase),
+                OwnerName: ownerName));
         }
 
         GroupChanged?.Invoke(new CharacterGroupUpdate(leader, members));

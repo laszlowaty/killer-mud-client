@@ -117,6 +117,24 @@ public sealed class GroupMemberTests
             "Orc", false, null, "hp", null, "mv", null, null, true,
             null, "some room");
 
-        Assert.Equal("[NPC]", member.NpcDisplay);
+        Assert.Equal("[summon]", member.NpcDisplay);
+        Assert.Equal("Summony bez przypisanego gracza", member.OwnerGroupHeader);
+        Assert.Equal("↳ ?", member.OwnerCompactDisplay);
+    }
+
+    [Fact]
+    public void FromCore_SummonShowsOwnerAndOwnerGroupHeader()
+    {
+        var core = new CharacterGroupMember(
+            "Wilk", "standing", "bez ran", 7, "wypoczęty", 4, null,
+            true, "100", false, "Aragorn");
+
+        var member = GroupMember.FromCore(core, startsOwnerGroup: true);
+
+        Assert.Equal("Aragorn", member.OwnerName);
+        Assert.Equal("[summon → Aragorn]", member.NpcDisplay);
+        Assert.Equal("Grupa gracza: Aragorn", member.OwnerGroupHeader);
+        Assert.Equal("↳ Aragorn", member.OwnerCompactDisplay);
+        Assert.True(member.StartsOwnerGroup);
     }
 }

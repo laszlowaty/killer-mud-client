@@ -1669,6 +1669,53 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.NotEqual("Hero", _vm.Group[0].Name);
     }
 
+    [Fact]
+    public void RefreshVisibleGroup_StartsNewLordSectionForEachPlayerAndTheirSummons()
+    {
+        var update = new CharacterGroupUpdate("Aragorn",
+        [
+            new CharacterGroupMember("Aragorn", "standing", "", null, "", null, null,
+                false, "100", true),
+            new CharacterGroupMember("wilk", "standing", "", null, "", null, null,
+                true, "100", false, "Aragorn"),
+            new CharacterGroupMember("Gimli", "standing", "", null, "", null, null,
+                false, "100", false),
+            new CharacterGroupMember("golem", "standing", "", null, "", null, null,
+                true, "100", false, "Gimli"),
+        ]);
+
+        _vm.RefreshVisibleGroup(update);
+
+        Assert.Equal([true, false, true, false], _vm.Group.Select(member => member.StartsOwnerGroup));
+        Assert.Equal(
+            ["Grupa gracza: Aragorn", "Grupa gracza: Aragorn", "Grupa gracza: Gimli", "Grupa gracza: Gimli"],
+            _vm.Group.Select(member => member.OwnerGroupHeader));
+    }
+
+    [Fact]
+    public void RefreshVisibleGroup_KeepsOwnSummonsInNamedSectionWhenOwnPlayerIsHidden()
+    {
+        typeof(MainWindowViewModel)
+            .GetField("_latestCharacterName", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(_vm, "Aragorn");
+        var update = new CharacterGroupUpdate("Aragorn",
+        [
+            new CharacterGroupMember("Aragorn", "standing", "", null, "", null, null,
+                false, "100", true),
+            new CharacterGroupMember("wilk", "standing", "", null, "", null, null,
+                true, "100", false, "Aragorn"),
+            new CharacterGroupMember("Gimli", "standing", "", null, "", null, null,
+                false, "100", false),
+        ]);
+
+        _vm.RefreshVisibleGroup(update);
+
+        Assert.Equal(["wilk", "Gimli"], _vm.Group.Select(member => member.Name));
+        Assert.All(_vm.Group, member => Assert.True(member.StartsOwnerGroup));
+        Assert.Equal("Grupa gracza: Aragorn", _vm.Group[0].OwnerGroupHeader);
+        Assert.Equal("Grupa gracza: Gimli", _vm.Group[1].OwnerGroupHeader);
+    }
+
     // ====================================================================
     // GMCP tab structure — XAML validation note
     // ====================================================================

@@ -62,6 +62,13 @@
                              Height="16"
                              IsVisible="{Binding IsLeader}"
                              HorizontalAlignment="Center" />
+                  <TextBlock Text="{Binding OwnerCompactDisplay}"
+                             Foreground="{StaticResource MudBrushParchment}"
+                             FontSize="9"
+                             MaxWidth="62"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding IsNpc}"
+                             HorizontalAlignment="Center" />
                 </StackPanel>
               </Grid>
             </Border>

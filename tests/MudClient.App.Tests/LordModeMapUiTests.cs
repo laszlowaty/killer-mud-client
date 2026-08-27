@@ -286,7 +286,7 @@ public sealed class LordModeMapUiTests
             settingsService: new AppSettingsService(settingsDirectory));
         var member = GroupMember.FromCore(new CharacterGroupMember(
             "Aragorn", "standing", "bez ran", 7, "wypoczęty", 4, null,
-            false, "6017", false));
+            false, "6017", false), startsOwnerGroup: true);
         viewModel.Group.Add(member);
 
         var panel = new GroupPanelView { DataContext = viewModel };
@@ -306,6 +306,10 @@ public sealed class LordModeMapUiTests
             var groupMembersList = panel.FindControl<ItemsControl>("GroupMembersList");
             Assert.NotNull(groupMembersList);
             Assert.Null(groupMembersList.ContextMenu);
+            var ownerGroupHeader = Assert.Single(
+                panel.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.Text == "Grupa gracza: Aragorn");
+            Assert.False(ownerGroupHeader.IsEffectivelyVisible);
 
             var contextMenu = Assert.IsType<ContextMenu>(memberBorder.ContextMenu);
             contextMenu.Open(memberBorder);
@@ -320,6 +324,7 @@ public sealed class LordModeMapUiTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.All(menuItems, item => Assert.True(item.IsVisible));
+            Assert.True(ownerGroupHeader.IsEffectivelyVisible);
             Assert.Equal("goto room", menuItems[0].Header);
             Assert.Equal("goto Aragorn", menuItems[1].Header);
             Assert.Same(member, menuItems[0].CommandParameter);

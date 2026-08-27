@@ -17,6 +17,8 @@ public sealed record GroupMember
     public int? Mem { get; }
     public bool IsNpc { get; }
     public string? Room { get; }
+    public string? OwnerName { get; }
+    public bool StartsOwnerGroup { get; }
 
     public string ShortName => Name.Length > 3 ? Name.Substring(0, 3) : Name;
 
@@ -48,7 +50,16 @@ public sealed record GroupMember
             ? $"MEM {mem}"
             : string.Empty;
 
-    public string NpcDisplay => IsNpc ? "[NPC]" : "[Gracz]";
+    public string NpcDisplay => IsNpc
+        ? string.IsNullOrWhiteSpace(OwnerName) ? "[summon]" : $"[summon → {OwnerName}]"
+        : "[Gracz]";
+
+    public string OwnerGroupHeader => IsNpc && string.IsNullOrWhiteSpace(OwnerName)
+        ? "Summony bez przypisanego gracza"
+        : $"Grupa gracza: {(string.IsNullOrWhiteSpace(OwnerName) ? Name : OwnerName)}";
+
+    public string OwnerCompactDisplay =>
+        string.IsNullOrWhiteSpace(OwnerName) ? "↳ ?" : $"↳ {OwnerName}";
 
     /// <summary>HP scale as a 0-100 value for progress bar display.</summary>
     public double HpPercent => HpScale is { } scale ? scale / 7.0 * 100 : 0;
@@ -67,7 +78,9 @@ public sealed record GroupMember
         int? mem,
         bool isNpc,
         string? room,
-        string roomDisplay)
+        string roomDisplay,
+        string? ownerName = null,
+        bool startsOwnerGroup = false)
     {
         Name = name;
         IsLeader = isLeader;
@@ -80,9 +93,14 @@ public sealed record GroupMember
         IsNpc = isNpc;
         Room = room;
         RoomDisplay = roomDisplay;
+        OwnerName = ownerName;
+        StartsOwnerGroup = startsOwnerGroup;
     }
 
-    public static GroupMember FromCore(CharacterGroupMember core, string? roomDisplay = null) =>
+    public static GroupMember FromCore(
+        CharacterGroupMember core,
+        string? roomDisplay = null,
+        bool startsOwnerGroup = false) =>
         new(
             name: core.Name,
             isLeader: core.IsLeader,
@@ -94,5 +112,7 @@ public sealed record GroupMember
             mem: core.Mem,
             isNpc: core.IsNpc,
             room: core.Room,
-            roomDisplay: roomDisplay ?? core.Room ?? "?");
+            roomDisplay: roomDisplay ?? core.Room ?? "?",
+            ownerName: core.OwnerName,
+            startsOwnerGroup: startsOwnerGroup);
 }

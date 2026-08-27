@@ -694,6 +694,26 @@ public sealed class CharacterStateResolverTests
         Assert.Equal(0, update.Members[2].MvScale);
         Assert.True(update.Members[2].IsNpc);
         Assert.Equal("Dungeon", update.Members[2].Room);
+        Assert.Equal("Gimli", update.Members[2].OwnerName);
+    }
+
+    [Fact]
+    public void Process_CharGroup_AssignsEachSummonToPrecedingPlayer()
+    {
+        CharacterGroupUpdate? update = null;
+        _resolver.GroupChanged += value => update = value;
+
+        _resolver.Process(new GmcpMessage(
+            "Char.Group",
+            """{"leader":"Aragon","members":[{"name":"bezpański duch","is_npc":true},{"name":"Aragon","is_npc":false},{"name":"wilk","is_npc":true},{"name":"kruk","is_npc":true},{"name":"Gimli","is_npc":false},{"name":"golem","is_npc":true}]}"""));
+
+        Assert.NotNull(update);
+        Assert.Null(update!.Members[0].OwnerName);
+        Assert.Null(update.Members[1].OwnerName);
+        Assert.Equal("Aragon", update.Members[2].OwnerName);
+        Assert.Equal("Aragon", update.Members[3].OwnerName);
+        Assert.Null(update.Members[4].OwnerName);
+        Assert.Equal("Gimli", update.Members[5].OwnerName);
     }
 
     [Fact]

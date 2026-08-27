@@ -7139,6 +7139,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         Group.Clear();
+        string? visibleOwnerGroup = null;
         foreach (var member in update.Members)
         {
             if (string.Equals(member.Name, _latestCharacterName, StringComparison.OrdinalIgnoreCase))
@@ -7147,7 +7148,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
 
             var roomDisplay = ResolveRoomDisplay(member.Room);
-            Group.Add(GroupMember.FromCore(member, roomDisplay));
+            // An empty sentinel keeps consecutive unassigned summons together
+            // while still opening their section when it is the first visible one.
+            var ownerGroup = member.IsNpc ? member.OwnerName ?? string.Empty : member.Name;
+            var startsOwnerGroup = !string.Equals(
+                ownerGroup,
+                visibleOwnerGroup,
+                StringComparison.OrdinalIgnoreCase);
+            Group.Add(GroupMember.FromCore(member, roomDisplay, startsOwnerGroup));
+            visibleOwnerGroup = ownerGroup;
         }
     }
 
