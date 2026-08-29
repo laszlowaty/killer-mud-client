@@ -3388,6 +3388,85 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void StallWatchdog_StandingInSameRoom_ClearsStaleCombatPauseAndRetries()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        SetCurrentVnum("998");
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
+        typeof(MainWindowViewModel).GetField("_autowalkPausedForCombat",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, true);
+        typeof(MainWindowViewModel).GetField("_autowalkObservedRoomVnum",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "998");
+        var now = DateTimeOffset.UtcNow;
+        typeof(MainWindowViewModel).GetField("_autowalkRoomEnteredAt",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, now - TimeSpan.FromSeconds(6));
+
+        typeof(MainWindowViewModel).GetMethod("TryRecoverStalledAutowalk",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [now]);
+
+        Assert.False((bool)typeof(MainWindowViewModel).GetField("_autowalkPausedForCombat",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
+        Assert.Contains("Idę do", _vm.AutowalkStatusText);
+        Assert.Equal(now, (DateTimeOffset)typeof(MainWindowViewModel)
+            .GetField("_autowalkLastStallRetryAt", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_vm)!);
+    }
+
+    [Fact]
+    public void BareIdz_WhileAutowalkIsActive_ReplansToItsCurrentDestination()
+    {
+        var to = CreateTestRoom(999, "999", "Cel podróży");
+        var from = new MapRoom
+        {
+            Id = 998,
+            AreaId = 1,
+            Coordinates = new MapCoordinates(0, 0, 0),
+            Name = "Start",
+            UserData = new Dictionary<string, JsonElement>
+            {
+                ["vnum"] = JsonSerializer.SerializeToElement("998"),
+            },
+            Exits = [new MapExit { Name = "north", ExitId = to.Id }],
+        };
+        var document = new MapDocument
+        {
+            Areas = [new MapArea { Id = 1, Name = "Test", Rooms = [from, to] }],
+        };
+        typeof(MapViewModel).GetProperty(nameof(MapViewModel.MapIndex))!
+            .SetValue(_vm.Map, new MapIndex(document));
+        SetCurrentVnum("998");
+        var oldPath = new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        };
+        GetAutowalkPathField().SetValue(_vm, oldPath);
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+
+        var consumed = InvokeTryHandleAutowalkCommand("/idz");
+
+        Assert.True(consumed);
+        Assert.True(_vm.IsAutowalking);
+        Assert.NotSame(oldPath, GetAutowalkPathField().GetValue(_vm));
+        Assert.Equal("Cel", typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm));
+    }
+
+    [Fact]
     public void BeginAutowalkStandRecovery_DuringLowMovementRest_DoesNotStand()
     {
         var from = CreateTestRoom(998, "998");

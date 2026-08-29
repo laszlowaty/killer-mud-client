@@ -204,6 +204,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private bool _autowalkGateCommandsSent;
     private bool _autowalkGateIsOpen;
     private int? _autowalkGateRecoveryStep;
+    private string? _autowalkObservedRoomVnum;
+    private DateTimeOffset _autowalkRoomEnteredAt;
+    private DateTimeOffset _autowalkLastStallRetryAt;
+
+    private static readonly TimeSpan AutowalkStallTimeout = TimeSpan.FromSeconds(5);
 
     // Set while an active walk is on hold because a fight broke out mid-route:
     // no room change arrives during combat, so the walk must be nudged back to
@@ -2901,9 +2906,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _autowalkRecomputes = 0;
         _autowalkTargetName = entry.Name;
         _pendingResumeTarget = null;
+        _autowalkObservedRoomVnum = currentVnum;
+        _autowalkRoomEnteredAt = DateTimeOffset.UtcNow;
+        _autowalkLastStallRetryAt = DateTimeOffset.MinValue;
         OnPropertyChanged(nameof(IsAutowalking));
         AutowalkStatusText = $"Idę do „{entry.Name}” — {path.Steps.Count} kroków.";
         PaintRoute(path, 0);
+        _ = WatchAutowalkStallsAsync(_autowalkCts.Token);
         SendAutowalkStep();
     }
 
@@ -2959,6 +2968,51 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _autowalkGateIsOpen = false;
         _autowalkGateRecoveryStep = null;
         _autowalkPausedForCombat = false;
+        _autowalkObservedRoomVnum = null;
+        _autowalkRoomEnteredAt = default;
+        _autowalkLastStallRetryAt = default;
+    }
+
+    private async Task WatchAutowalkStallsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(AutowalkStallTimeout, cancellationToken);
+                Dispatcher.UIThread.Post(() => TryRecoverStalledAutowalk(DateTimeOffset.UtcNow));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Stopping or replacing the autowalk also stops its watchdog.
+        }
+    }
+
+    private void TryRecoverStalledAutowalk(DateTimeOffset now)
+    {
+        if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count ||
+            !AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition) ||
+            _autowalkRecoveringMovement || _autowalkWaitingForGate)
+        {
+            return;
+        }
+
+        var currentVnum = Map.CurrentVnum;
+        if (string.IsNullOrWhiteSpace(currentVnum) ||
+            !string.Equals(currentVnum, _autowalkObservedRoomVnum, StringComparison.Ordinal) ||
+            now - _autowalkRoomEnteredAt < AutowalkStallTimeout ||
+            now - _autowalkLastStallRetryAt < AutowalkStallTimeout)
+        {
+            return;
+        }
+
+        _autowalkLastStallRetryAt = now;
+        _autowalkPausedForCombat = false;
+        _autowalkRecoveringPosition = false;
+        AutowalkStatusText = $"Brak zmiany pokoju przez 5 sekund — ponawiam krok do „{_autowalkTargetName}”.";
+        EmitSystem("Autowalk: postać stoi w tym samym pokoju od 5 sekund — ponawiam krok.", 90);
+        SendAutowalkStep();
     }
 
     private void SendAutowalkStep(bool skipMovementCheck = false)
@@ -3330,6 +3384,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 return;
             }
 
+            _autowalkObservedRoomVnum = vnum;
+            _autowalkRoomEnteredAt = DateTimeOffset.UtcNow;
+            _autowalkLastStallRetryAt = DateTimeOffset.MinValue;
             _autowalkWaitingForGate = false;
             _autowalkGateCommandsSent = false;
             _autowalkGateIsOpen = false;
@@ -3429,6 +3486,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (_temporaryTarget is { } target)
         {
             StartAutowalk(target);
+        }
+        else if (_autowalkPath is { To.Vnum: { Length: > 0 } activeVnum } activePath)
+        {
+            var activeTarget = new AutowalkLocation(
+                _autowalkTargetName ?? activePath.To.Name ?? $"pokój {activeVnum}",
+                activeVnum,
+                activePath.To.Name);
+            AddToast($"Ponawiam podróż do „{activeTarget.Name}”.", "info");
+            StartAutowalk(activeTarget);
         }
         else if (_pendingResumeTarget is { } resume)
         {
