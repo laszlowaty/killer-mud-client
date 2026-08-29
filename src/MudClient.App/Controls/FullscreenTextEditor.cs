@@ -13,9 +13,11 @@ namespace MudClient.App.Controls;
 public sealed class FullscreenTextEditor : UserControl
 {
     private const double DefaultMaximumHeight = 420;
+    internal const int LiveJavaScriptFeaturesMaximumLength = 100_000;
     private static readonly JavaScriptRunner JavaScriptValidator = new();
     private static readonly IBrush ValidSyntaxBrush = new SolidColorBrush(Color.Parse("#2E7D32"));
     private static readonly IBrush InvalidSyntaxBrush = new SolidColorBrush(Color.Parse("#C62828"));
+    private static readonly IBrush LargeDocumentBrush = new SolidColorBrush(Color.Parse("#8A5A00"));
     private static WeakReference<FullscreenTextEditor>? _openEditor;
 
     public static readonly StyledProperty<string?> TextProperty =
@@ -147,6 +149,7 @@ public sealed class FullscreenTextEditor : UserControl
         _fullscreenEditor.Text = Text;
         _fullscreenEditor.HorizontalAlignment = HorizontalAlignment.Stretch;
         _fullscreenEditor.VerticalAlignment = VerticalAlignment.Stretch;
+        ApplyLiveEditorFeatures(_fullscreenEditor, IsLargeJavaScriptDocument);
         _fullscreenValidationMessage = CreateValidationMessage("FullscreenJavaScriptValidationMessage");
         ApplyValidationMessage(_fullscreenValidationMessage);
 
@@ -219,7 +222,9 @@ public sealed class FullscreenTextEditor : UserControl
 
         if (_fullscreenEditor is not null)
         {
-            SetCurrentValue(TextProperty, _fullscreenEditor.Text);
+            var fullscreenText = _fullscreenEditor.Text;
+            SetCurrentValue(TextProperty, fullscreenText);
+            SynchronizeEditors(fullscreenText, _fullscreenEditor);
         }
 
         _fullscreenHost?.Children.Remove(_fullscreenOverlay);
@@ -257,12 +262,6 @@ public sealed class FullscreenTextEditor : UserControl
         }
         else if (change.Property == IsJavaScriptProperty)
         {
-            _inlineEditor.IsSyntaxHighlightingEnabled = IsJavaScript;
-            if (_fullscreenEditor is not null)
-            {
-                _fullscreenEditor.IsSyntaxHighlightingEnabled = IsJavaScript;
-            }
-
             UpdateValidation();
         }
         else if (change.Property == EditorTitleProperty)
@@ -289,7 +288,6 @@ public sealed class FullscreenTextEditor : UserControl
             Foreground = Brushes.Black,
             CaretBrush = Brushes.Black,
             SelectionBrush = new SolidColorBrush(Color.Parse("#6EA8FE")),
-            IsSyntaxHighlightingEnabled = IsJavaScript,
         };
         editor.Classes.Add("automation-editor");
         editor.TextChanged += Editor_OnTextChanged;
@@ -318,7 +316,6 @@ public sealed class FullscreenTextEditor : UserControl
         try
         {
             SetCurrentValue(TextProperty, editor.Text);
-            SynchronizeEditors(editor.Text, editor);
         }
         finally
         {
@@ -356,7 +353,14 @@ public sealed class FullscreenTextEditor : UserControl
 
     private void UpdateValidation()
     {
-        JavaScriptValidationError = IsJavaScript
+        var isLargeJavaScriptDocument = IsLargeJavaScriptDocument;
+        ApplyLiveEditorFeatures(_inlineEditor, isLargeJavaScriptDocument);
+        if (_fullscreenEditor is not null)
+        {
+            ApplyLiveEditorFeatures(_fullscreenEditor, isLargeJavaScriptDocument);
+        }
+
+        JavaScriptValidationError = IsJavaScript && !isLargeJavaScriptDocument
             ? JavaScriptValidator.Validate(EditorTitle, Text ?? string.Empty)
             : null;
         ApplyValidationMessage(_validationMessage);
@@ -369,8 +373,27 @@ public sealed class FullscreenTextEditor : UserControl
     private void ApplyValidationMessage(TextBlock message)
     {
         message.IsVisible = IsJavaScript;
+        if (IsLargeJavaScriptDocument)
+        {
+            message.Text = "Duży kod: podświetlanie, numery linii i walidacja na żywo są wyłączone, aby edytor działał płynnie.";
+            message.Foreground = LargeDocumentBrush;
+            return;
+        }
+
         message.Text = JavaScriptValidationError ?? "Składnia JavaScript poprawna";
         message.Foreground = JavaScriptValidationError is null ? ValidSyntaxBrush : InvalidSyntaxBrush;
+    }
+
+    internal bool IsLargeJavaScriptDocument =>
+        IsJavaScript && (Text?.Length ?? 0) > LiveJavaScriptFeaturesMaximumLength;
+
+    private void ApplyLiveEditorFeatures(
+        JavaScriptTextBox editor,
+        bool isLargeJavaScriptDocument)
+    {
+        var enableLiveFeatures = IsJavaScript && !isLargeJavaScriptDocument;
+        editor.IsSyntaxHighlightingEnabled = enableLiveFeatures;
+        editor.IsLineNumbersEnabled = !isLargeJavaScriptDocument;
     }
 
     private static TextBlock CreateValidationMessage(string name) => new()

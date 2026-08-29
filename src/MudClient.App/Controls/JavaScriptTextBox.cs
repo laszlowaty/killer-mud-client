@@ -18,6 +18,17 @@ public sealed class JavaScriptTextBox : TextBox
         get => GetValue(IsSyntaxHighlightingEnabledProperty);
         set => SetValue(IsSyntaxHighlightingEnabledProperty, value);
     }
+
+    public static readonly StyledProperty<bool> IsLineNumbersEnabledProperty =
+        AvaloniaProperty.Register<JavaScriptTextBox, bool>(
+            nameof(IsLineNumbersEnabled),
+            defaultValue: true);
+
+    public bool IsLineNumbersEnabled
+    {
+        get => GetValue(IsLineNumbersEnabledProperty);
+        set => SetValue(IsLineNumbersEnabledProperty, value);
+    }
 }
 
 public sealed class JavaScriptTextPresenter : TextPresenter

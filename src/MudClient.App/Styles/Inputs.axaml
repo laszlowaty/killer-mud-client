@@ -49,6 +49,7 @@
                                                        Text="{TemplateBinding Text}"
                                                        Presenter="{Binding ElementName=PART_TextPresenter}"
                                                        ScrollOffset="{Binding ElementName=PART_ScrollViewer, Path=Offset}"
+                                                       IsVisible="{TemplateBinding IsLineNumbersEnabled}"
                                                        IsHitTestVisible="False"
                                                        ClipToBounds="True" />
               <ScrollViewer Name="PART_ScrollViewer"

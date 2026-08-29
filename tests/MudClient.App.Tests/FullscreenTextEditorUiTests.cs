@@ -217,6 +217,61 @@ public sealed class FullscreenTextEditorUiTests
         }
     }
 
+    [AvaloniaFact]
+    public void LargeJavaScript_DisablesLiveAnalysisAndDefersHiddenEditorSynchronization()
+    {
+        var originalText = new string('x', FullscreenTextEditor.LiveJavaScriptFeaturesMaximumLength + 1);
+        var editor = new FullscreenTextEditor
+        {
+            IsJavaScript = true,
+            Text = originalText,
+        };
+        var applicationRoot = new Grid { Children = { editor } };
+        var window = new Window { Width = 700, Height = 600, Content = applicationRoot };
+        window.Show();
+
+        try
+        {
+            Pump(window);
+            var inlineEditor = editor.GetVisualDescendants()
+                .OfType<JavaScriptTextBox>()
+                .Single(control => control.Name == "InlineEditor");
+            var inlinePresenter = inlineEditor.GetVisualDescendants()
+                .OfType<JavaScriptTextPresenter>()
+                .Single();
+            var lineNumbers = inlineEditor.GetVisualDescendants()
+                .OfType<JavaScriptLineNumberMargin>()
+                .Single();
+            var validationMessage = editor.GetVisualDescendants()
+                .OfType<TextBlock>()
+                .Single(control => control.Name == "JavaScriptValidationMessage");
+
+            Assert.True(editor.IsLargeJavaScriptDocument);
+            Assert.False(inlinePresenter.IsSyntaxHighlightingEnabled);
+            Assert.False(lineNumbers.IsVisible);
+            Assert.Contains("walidacja na żywo", validationMessage.Text);
+
+            editor.OpenFullscreenEditor();
+            Pump(window);
+            var fullscreenEditor = window.GetVisualDescendants()
+                .OfType<JavaScriptTextBox>()
+                .Single(control => control.Name == "FullscreenEditor");
+            fullscreenEditor.Text = originalText + "y";
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(originalText + "y", editor.Text);
+            Assert.Equal(originalText, inlineEditor.Text);
+
+            editor.CloseFullscreenEditor();
+            Assert.Equal(originalText + "y", inlineEditor.Text);
+        }
+        finally
+        {
+            FullscreenTextEditor.TryCloseOpenEditor();
+            window.Close();
+        }
+    }
+
     [Fact]
     public void JavaScriptHighlighter_FindsBasicTokensWithoutChangingTheText()
     {
