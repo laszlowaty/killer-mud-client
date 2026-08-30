@@ -466,6 +466,7 @@ public sealed class AutomationCommandEchoUiTests
                 text.Contains("ukryta", StringComparison.Ordinal));
 
             InvokeReceivedLine(viewModel, "widoczna");
+            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Contains(output, text =>
