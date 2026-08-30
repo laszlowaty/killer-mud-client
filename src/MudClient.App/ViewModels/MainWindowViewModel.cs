@@ -48,6 +48,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly object _characterRollerLock = new();
     private readonly ProfileService _profiles;
     private readonly UiOutputBatcher _uiOutputBatcher;
+    private readonly TriggerOutputCoordinator _triggerOutputCoordinator;
     private readonly TimeSpan _toastLifetime;
     private readonly CancellationTokenSource _toastExpirationCts = new();
     private readonly object _toastExpirationTasksLock = new();
@@ -283,6 +284,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _profiles = profileService ?? new ProfileService();
         _uiOutputBatcher = new UiOutputBatcher(
             text => OutputReceived?.Invoke(text),
+            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background));
+        _triggerOutputCoordinator = new TriggerOutputCoordinator(
+            _uiOutputBatcher.Enqueue,
             action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background));
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
@@ -6679,11 +6683,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         displayText = _combatDamageRangeTransformer.Transform(
             displayText,
             ShowNumericCombatDamage);
-        _uiOutputBatcher.Enqueue(displayText);
+        _triggerOutputCoordinator.Feed(displayText);
     }
 
     private void OnLineReceived(string line)
     {
+        var outputLineId = _triggerOutputCoordinator.ClaimNextLine();
         if (ChatLineClassifier.IsChatLine(line))
         {
             Dispatcher.UIThread.Post(() => AddChatLine(line));
@@ -6693,6 +6698,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         // reaches the terminal through TextReceived, but booklist output must not fire user triggers.
         if (_bookCatalogRefreshCoordinator.TryCaptureLine(line))
         {
+            _triggerOutputCoordinator.ResolveLine(outputLineId, deleteLine: false);
             return;
         }
 
@@ -6711,7 +6717,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             QueueTriggeredCommands([orderedCommand]);
         }
 
-        QueueMatchingTriggers(line);
+        _ = ResolveTriggeredOutputAsync(line, outputLineId);
+    }
+
+    private async Task ResolveTriggeredOutputAsync(string line, long outputLineId)
+    {
+        var deleteLine = false;
+        try
+        {
+            deleteLine = await QueueMatchingTriggers(line).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // A disconnect cancels automation; the received line remains visible.
+        }
+        catch (Exception exception)
+        {
+            // Individual JavaScript failures are reported by ExecuteScriptAsync;
+            // this covers an unexpected failure of the surrounding trigger queue.
+            ReportScriptError(
+                owner: null,
+                $"Nie udało się przetworzyć linii triggera: {exception.Message}",
+                source: "trigger");
+        }
+        finally
+        {
+            _triggerOutputCoordinator.ResolveLine(outputLineId, deleteLine);
+        }
     }
 
     private void AddChatLine(string line)

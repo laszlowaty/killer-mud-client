@@ -145,6 +145,24 @@ public sealed class JavaScriptRunnerTests
             Assert.Single(result.Effects));
     }
 
+    [Theory]
+    [InlineData("alias")]
+    [InlineData("trigger")]
+    [InlineData("timer")]
+    [InlineData("script")]
+    public async Task Execute_DeleteLine_ProducesSharedEffect(string source)
+    {
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation("ukrywanie", source, "deleteLine();"),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.DeleteLine, string.Empty),
+            Assert.Single(result.Effects));
+    }
+
     [Fact]
     public async Task Execute_InfiniteLoop_IsStopped()
     {

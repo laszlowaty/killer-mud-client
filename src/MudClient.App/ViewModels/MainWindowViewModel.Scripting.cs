@@ -396,7 +396,7 @@ public sealed partial class MainWindowViewModel
             .ToArray();
     }
 
-    private void QueueMatchingTriggers(string line)
+    private Task<bool> QueueMatchingTriggers(string line)
     {
         var matches = new List<(AutomationRuleEntry Rule, ScriptMatchContext Match, string? Commands)>();
         foreach (var rule in _activeTriggerRules)
@@ -432,17 +432,18 @@ public sealed partial class MainWindowViewModel
                 QueueTriggeredCommands(coreCommands);
             }
 
-            return;
+            return Task.FromResult(false);
         }
 
-        QueueAutomationWork(async cancellationToken =>
+        var deleteLine = false;
+        var task = QueueAutomationWork(async cancellationToken =>
         {
             foreach (var item in matches)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.Rule.IsAdvanced)
                 {
-                    await ExecuteScriptAsync(
+                    deleteLine |= await ExecuteScriptAsync(
                         new ScriptInvocation(
                             item.Rule.Name,
                             "trigger",
@@ -463,6 +464,14 @@ public sealed partial class MainWindowViewModel
                 }
             }
         });
+
+        return CompleteTriggerLineAsync(task, () => deleteLine);
+    }
+
+    private static async Task<bool> CompleteTriggerLineAsync(Task task, Func<bool> getDeleteLine)
+    {
+        await task.ConfigureAwait(false);
+        return getDeleteLine();
     }
 
     private void QueueGmcpScripts(GmcpMessage message)
@@ -547,7 +556,7 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private async Task ExecuteScriptAsync(
+    private async Task<bool> ExecuteScriptAsync(
         ScriptInvocation invocation,
         IScriptErrorSource? owner,
         int depth,
@@ -559,7 +568,7 @@ public sealed partial class MainWindowViewModel
                 owner,
                 "Przekroczono limit zagnieżdżenia automatyzacji.",
                 invocation.Name);
-            return;
+            return false;
         }
 
         var result = await Task.Run(
@@ -574,7 +583,7 @@ public sealed partial class MainWindowViewModel
         if (!result.Success)
         {
             ReportScriptError(owner, result.Error!, invocation.Name);
-            return;
+            return false;
         }
 
         if (owner is not null && owner.HasLastError)
@@ -582,6 +591,7 @@ public sealed partial class MainWindowViewModel
             Dispatcher.UIThread.Post(() => owner.LastError = string.Empty);
         }
 
+        var deleteLine = false;
         foreach (var effect in result.Effects)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -612,9 +622,14 @@ public sealed partial class MainWindowViewModel
                     break;
                 case ScriptEffectKind.Reconnect:
                     ScheduleReconnect();
-                    return;
+                    return deleteLine;
+                case ScriptEffectKind.DeleteLine:
+                    deleteLine = true;
+                    break;
             }
         }
+
+        return deleteLine;
     }
 
     private void ScheduleReconnect()

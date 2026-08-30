@@ -157,6 +157,8 @@ onGmcp("Char.Vitals", event => {
 - `send(text)` wysyła tekst bezpośrednio do MUD-a przez bezpieczną kolejkę,
 - `reconnect()` rozłącza klienta i ponownie łączy z MUD-em przy użyciu obecnego
   profilu; jest dostępne w zaawansowanych aliasach, triggerach, timerach i skryptach,
+- `deleteLine()` ukrywa w terminalu bieżącą linię dopasowaną przez zaawansowany
+  trigger; poza obsługą linii triggera nie zmienia terminala,
 - `echo(text, color)` wypisuje lokalny komunikat w terminalu,
 - `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
   **Konsola JavaScript**,

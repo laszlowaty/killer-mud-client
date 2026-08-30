@@ -7,6 +7,7 @@ public enum ScriptEffectKind
     Echo,
     Log,
     Reconnect,
+    DeleteLine,
 }
 
 /// <summary>

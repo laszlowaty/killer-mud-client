@@ -441,6 +441,43 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task AdvancedTrigger_DeleteLine_HidesMatchedLineFromTerminal()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "ukrywanie",
+                "trigger",
+                "^ukryta$",
+                "deleteLine();",
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+
+            InvokeReceivedLine(viewModel, "ukryta");
+            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(output, text =>
+                text.Contains("ukryta", StringComparison.Ordinal));
+
+            InvokeReceivedLine(viewModel, "widoczna");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(output, text =>
+                text.Contains("widoczna", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task AdvancedTimer_ExecutesJavaScript()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -671,6 +708,21 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
         method!.Invoke(viewModel, [line]);
+    }
+
+    private static void InvokeReceivedLine(MainWindowViewModel viewModel, string line)
+    {
+        var onTextReceived = typeof(MainWindowViewModel).GetMethod(
+            "OnTextReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var onLineReceived = typeof(MainWindowViewModel).GetMethod(
+            "OnLineReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(onTextReceived);
+        Assert.NotNull(onLineReceived);
+
+        onTextReceived!.Invoke(viewModel, [line + "\n"]);
+        onLineReceived!.Invoke(viewModel, [line]);
     }
 
     private static Task GetAutomationQueueTail(MainWindowViewModel viewModel)

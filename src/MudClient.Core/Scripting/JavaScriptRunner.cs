@@ -153,6 +153,7 @@ public sealed class JavaScriptRunner
                 "echo" => ScriptEffectKind.Echo,
                 "log" => ScriptEffectKind.Log,
                 "reconnect" => ScriptEffectKind.Reconnect,
+                "deleteLine" => ScriptEffectKind.DeleteLine,
                 _ => throw new ArgumentException($"Nieznany rodzaj akcji skryptu: {kind}."),
             };
 
@@ -269,6 +270,10 @@ public sealed class JavaScriptRunner
 
         function reconnect() {
             __addEffect("reconnect", "", null);
+        }
+
+        function deleteLine() {
+            __addEffect("deleteLine", "", null);
         }
 
         function __httpHeaders(value) {

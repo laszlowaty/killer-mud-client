@@ -517,6 +517,19 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="deleteLine()" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <StackPanel Grid.Column="1" Spacing="7">
+                      <TextBlock TextWrapping="Wrap"
+                                 Text="Ukrywa w terminalu bieżącą linię dopasowaną przez zaawansowany trigger. Wywołanie poza obsługą linii triggera nie zmienia terminala." />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap"
+                                 Text="// Trigger: ^Nie masz wystarczająco many\.$&#10;if (match) {&#10;  deleteLine();&#10;}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <StackPanel Spacing="7">
                     <TextBlock Text="await http.get/post/put/patch/delete"
                                FontWeight="Bold"
