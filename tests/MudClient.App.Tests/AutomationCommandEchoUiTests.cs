@@ -445,7 +445,16 @@ public sealed class AutomationCommandEchoUiTests
     {
         var (viewModel, directory) = CreateViewModel();
         var output = new List<string>();
-        viewModel.OutputReceived += output.Add;
+        var visibleLineReceived = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        viewModel.OutputReceived += text =>
+        {
+            output.Add(text);
+            if (text.Contains("widoczna", StringComparison.Ordinal))
+            {
+                visibleLineReceived.TrySetResult(text);
+            }
+        };
 
         try
         {
@@ -459,16 +468,11 @@ public sealed class AutomationCommandEchoUiTests
             InvokeApplyAutomation(viewModel);
 
             InvokeReceivedLine(viewModel, "ukryta");
-            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
-            Dispatcher.UIThread.RunJobs();
+            InvokeReceivedLine(viewModel, "widoczna");
+            await visibleLineReceived.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
             Assert.DoesNotContain(output, text =>
                 text.Contains("ukryta", StringComparison.Ordinal));
-
-            InvokeReceivedLine(viewModel, "widoczna");
-            await GetAutomationQueueTail(viewModel).WaitAsync(TimeSpan.FromSeconds(2));
-            Dispatcher.UIThread.RunJobs();
-
             Assert.Contains(output, text =>
                 text.Contains("widoczna", StringComparison.Ordinal));
         }
