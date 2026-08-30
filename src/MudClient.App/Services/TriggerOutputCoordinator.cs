@@ -5,7 +5,8 @@ namespace MudClient.App.Services;
 /// <summary>
 /// Keeps complete MUD lines in receive order until trigger JavaScript decides
 /// whether each line should be displayed. Incomplete prompts are released on
-/// the next UI pass so the terminal remains responsive.
+/// the next UI pass so the terminal remains responsive. Complete lines decoded
+/// from one received text batch are emitted together to avoid line-by-line rendering.
 /// </summary>
 internal sealed class TriggerOutputCoordinator(
     Action<string> emit,
@@ -15,6 +16,7 @@ internal sealed class TriggerOutputCoordinator(
     private readonly Queue<PendingLine> _lines = new();
     private readonly StringBuilder _partial = new();
     private bool _partialFlushScheduled;
+    private long _nextBatchId;
     private long _nextLineId;
 
     public void Feed(string text)
@@ -28,6 +30,7 @@ internal sealed class TriggerOutputCoordinator(
         var shouldSchedulePartialFlush = false;
         lock (_gate)
         {
+            var batchId = ++_nextBatchId;
             foreach (var character in text)
             {
                 completedLine.Append(character);
@@ -37,7 +40,7 @@ internal sealed class TriggerOutputCoordinator(
                 }
 
                 _partial.Append(completedLine);
-                _lines.Enqueue(new PendingLine(++_nextLineId, _partial.ToString()));
+                _lines.Enqueue(new PendingLine(++_nextLineId, batchId, _partial.ToString()));
                 _partial.Clear();
                 completedLine.Clear();
             }
@@ -130,21 +133,47 @@ internal sealed class TriggerOutputCoordinator(
     private string DrainResolvedLines()
     {
         var output = new StringBuilder();
-        while (_lines.TryPeek(out var line) && line.IsResolved)
+        while (_lines.TryPeek(out var line))
         {
-            _lines.Dequeue();
-            if (!line.ShouldDelete)
+            var batchId = line.BatchId;
+            var isBatchResolved = true;
+            foreach (var candidate in _lines)
             {
-                output.Append(line.Text);
+                if (candidate.BatchId != batchId)
+                {
+                    break;
+                }
+
+                if (!candidate.IsResolved)
+                {
+                    isBatchResolved = false;
+                    break;
+                }
+            }
+
+            if (!isBatchResolved)
+            {
+                break;
+            }
+
+            while (_lines.TryPeek(out line) && line.BatchId == batchId)
+            {
+                _lines.Dequeue();
+                if (!line.ShouldDelete)
+                {
+                    output.Append(line.Text);
+                }
             }
         }
 
         return output.ToString();
     }
 
-    private sealed class PendingLine(long id, string text)
+    private sealed class PendingLine(long id, long batchId, string text)
     {
         public long Id { get; } = id;
+
+        public long BatchId { get; } = batchId;
 
         public string Text { get; } = text;
 

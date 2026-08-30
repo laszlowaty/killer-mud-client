@@ -5,7 +5,7 @@ namespace MudClient.App.Tests;
 public sealed class TriggerOutputCoordinatorTests
 {
     [Fact]
-    public void ResolveNextLine_DeletesOnlySelectedCompleteLineAndPreservesOrder()
+    public void ResolveBatch_DeletesOnlySelectedCompleteLineAndEmitsRemainingTextTogether()
     {
         var output = new List<string>();
         var scheduled = new Queue<Action>();
@@ -13,10 +13,14 @@ public sealed class TriggerOutputCoordinatorTests
 
         coordinator.Feed("pierwsza\nukryta\ntrzecia\n");
         coordinator.ResolveLine(coordinator.ClaimNextLine(), deleteLine: false);
+        Assert.Empty(output);
+
         coordinator.ResolveLine(coordinator.ClaimNextLine(), deleteLine: true);
+        Assert.Empty(output);
+
         coordinator.ResolveLine(coordinator.ClaimNextLine(), deleteLine: false);
 
-        Assert.Equal(["pierwsza\n", "trzecia\n"], output);
+        Assert.Equal(["pierwsza\ntrzecia\n"], output);
     }
 
     [Fact]

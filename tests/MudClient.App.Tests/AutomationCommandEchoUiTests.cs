@@ -483,6 +483,48 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task ReceivedTextBlock_WithDeletedLine_IsDisplayedAsOneTerminalBatch()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        var outputReceived = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        viewModel.OutputReceived += text =>
+        {
+            output.Add(text);
+            outputReceived.TrySetResult(text);
+        };
+
+        try
+        {
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "ukrywanie",
+                "trigger",
+                "^ukryta$",
+                "deleteLine();",
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+
+            InvokeReceivedTextBlock(
+                viewModel,
+                "pierwsza\nukryta\ntrzecia\n",
+                "pierwsza",
+                "ukryta",
+                "trzecia");
+
+            Assert.Equal(
+                "pierwsza\ntrzecia\n",
+                await outputReceived.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            Assert.Equal(["pierwsza\ntrzecia\n"], output);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task AdvancedTimer_ExecutesJavaScript()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -728,6 +770,27 @@ public sealed class AutomationCommandEchoUiTests
 
         onTextReceived!.Invoke(viewModel, [line + "\n"]);
         onLineReceived!.Invoke(viewModel, [line]);
+    }
+
+    private static void InvokeReceivedTextBlock(
+        MainWindowViewModel viewModel,
+        string text,
+        params string[] lines)
+    {
+        var onTextReceived = typeof(MainWindowViewModel).GetMethod(
+            "OnTextReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var onLineReceived = typeof(MainWindowViewModel).GetMethod(
+            "OnLineReceived",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(onTextReceived);
+        Assert.NotNull(onLineReceived);
+
+        onTextReceived!.Invoke(viewModel, [text]);
+        foreach (var line in lines)
+        {
+            onLineReceived!.Invoke(viewModel, [line]);
+        }
     }
 
     private static Task GetAutomationQueueTail(MainWindowViewModel viewModel)
