@@ -87,7 +87,7 @@ i jest uzupełniony o wpisy utrzymywane w `TeacherCatalogLoader`.
 Przycisk **Pokaż na mapie** przy nauczycielu z rozpoznanym pokojem zamyka Killeropedię,
 zaznacza jego lokalizację i rysuje dostępną trasę bez uruchamiania autowalka.
 
-Zakładka **Księgi Magiczne** czyta lokalny `killeropedia-books.json` i pozwala
+Zakładka **Księgi Magiczne** czyta lokalny `%AppData%/KillerMudClient/Killeropedia/books.json` i pozwala
 wyszukiwać po nazwie księgi, zaklęciu, profesji, miejscu ładowania oraz vnum.
 Katalog może odtworzyć wyłącznie narzędzie deweloperskie sterowane stałymi w
 `DeveloperFeatures.cs`: osobno można pokazać/ukryć przycisk **Odśwież** oraz zezwolić
@@ -362,6 +362,28 @@ Poza tym workflow **CI** buduje projekt i odpala testy przy każdym pushu i pull
 ## Gdzie wpisać adres MUD-a
 
 Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każdy profil ma własny host, port i login MUD-a oraz niezależną lokalną nazwę widoczną w aplikacji. Po zaznaczeniu istniejącego profilu można osobno zmienić jego nazwę i login MUD; zmiany są zapisywane przy wybraniu profilu i połączeniu. Profile na liście można przeciągać, aby zapisać własną kolejność.
+
+Każdy profil jest katalogiem w `%AppData%/KillerMudClient/Profiles`. Podstawowe dane
+konta znajdują się w `profile.json`, a `Aliases`, `Triggers`, `Timers`, `Scripts`,
+`Notes` i `Autowalk` zawierają po jednym pliku JSON na wpis. Foldery utworzone w
+aplikacji są prawdziwymi podkatalogami; przeniesienie albo edycja pliku na dysku jest
+wykrywana i przeładowywana bez restartu. Wspólne automaty mają taki sam układ w
+`Profiles/_global`. Przy pierwszym uruchomieniu stare pliki `Profiles/<nazwa>.json`
+i `Profiles/_global.json` są automatycznie migrowane po udanym odczycie.
+
+Proste aliasy, triggery i timery są plikami `.json`. Ich warianty zaawansowane oraz
+samodzielne skrypty są zapisywane jako `.js`: pierwsza linia jest komentarzem
+`// KillerMudClient: {...}` z nazwą, wzorcem/interwałem, stanem aktywności i filtrem
+GMCP, a kolejne linie są niezmienionym kodem JavaScript. Plik `.js` dodany ręcznie
+do `Scripts` nie wymaga nagłówka (nazwa pochodzi wtedy z nazwy pliku); pliki dodane
+do `Aliases`, `Triggers` i `Timers` wymagają nagłówka, ponieważ aplikacja potrzebuje
+odpowiednio wzorca albo interwału. Zaawansowane wpisy zapisane wcześniej jako JSON
+są odczytywane i przy następnym zapisie automatycznie zmieniane na `.js`.
+
+Dane Killeropedii są niezależne od profili: własny katalog ksiąg i pobrane paczki
+znajdują się pod `%AppData%/KillerMudClient/Killeropedia`. Starszy
+`killeropedia-books.json` oraz poprzedni cache `Content/killeropedia` są przenoszone
+automatycznie, z zachowaniem awaryjnego odczytu starego cache.
 
 ## Kopia i import ustawień
 

@@ -6,6 +6,7 @@ using MudClient.App.ViewModels;
 
 namespace MudClient.App.Tests;
 
+[Collection(AvaloniaUiCollection.Name)]
 public sealed class ProfileTests : IDisposable
 {
     private readonly string _directory =
@@ -71,7 +72,7 @@ public sealed class ProfileTests : IDisposable
         {
             Assert.Equal("mellon", PasswordProtector.Unprotect(loaded.EncryptedPassword));
         }
-        var json = File.ReadAllText(Path.Combine(_directory, "Gandalf.json"));
+        var json = File.ReadAllText(Path.Combine(_directory, "Gandalf", "profile.json"));
         Assert.DoesNotContain("mellon", json);
     }
 
@@ -109,13 +110,13 @@ public sealed class ProfileTests : IDisposable
         var service = CreateService();
         service.Save(new ProfileData { Name = "Gandalf", Login = "pierwszy" });
         service.Save(new ProfileData { Name = "Gandalf", Login = "drugi" });
-        File.WriteAllText(Path.Combine(_directory, "Gandalf.json"), "{ urwany zapis");
+        File.WriteAllText(Path.Combine(_directory, "Gandalf", "profile.json"), "{ urwany zapis");
 
         var loaded = service.Load("Gandalf");
 
         Assert.NotNull(loaded);
         Assert.Equal("pierwszy", loaded!.Login);
-        Assert.True(File.Exists(Path.Combine(_directory, "Gandalf.json.bak")));
+        Assert.True(File.Exists(Path.Combine(_directory, "Gandalf", "profile.json.bak")));
     }
 
     [Fact]
@@ -124,17 +125,19 @@ public sealed class ProfileTests : IDisposable
         var service = CreateService();
         service.SaveGlobal(new GlobalData
         {
-            Locations = [new ProfileLocation { Name = "pierwsza", Vnum = "100" }],
+            Locations = [new ProfileLocation { Name = "plac", Vnum = "100" }],
         });
         service.SaveGlobal(new GlobalData
         {
-            Locations = [new ProfileLocation { Name = "druga", Vnum = "200" }],
+            Locations = [new ProfileLocation { Name = "plac", Vnum = "200" }],
         });
-        File.WriteAllText(Path.Combine(_directory, "_global.json"), "{ urwany zapis");
+        var locationPath = Assert.Single(
+            Directory.EnumerateFiles(Path.Combine(_directory, "_global", "Autowalk"), "*.json"));
+        File.WriteAllText(locationPath, "{ urwany zapis");
 
         var loaded = service.LoadGlobal();
 
-        Assert.Equal("pierwsza", Assert.Single(loaded.Locations).Name);
+        Assert.Equal("100", Assert.Single(loaded.Locations).Vnum);
     }
 
     [Fact]
@@ -146,8 +149,7 @@ public sealed class ProfileTests : IDisposable
 
         service.Delete("Gandalf");
 
-        Assert.False(File.Exists(Path.Combine(_directory, "Gandalf.json")));
-        Assert.False(File.Exists(Path.Combine(_directory, "Gandalf.json.bak")));
+        Assert.False(Directory.Exists(Path.Combine(_directory, "Gandalf")));
         Assert.Null(service.Load("Gandalf"));
     }
 
@@ -340,6 +342,409 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal(250, timer.Milliseconds);
         Assert.Equal(["rzuc 'leczenie'", "pij miksture"], timer.Commands);
         Assert.True(timer.IsEnabled);
+    }
+
+    [Fact]
+    public void Save_UsesProfileFolderTreeAndOneFilePerAutomationEntry()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Dyskowy",
+            Folders =
+            [
+                new ProfileFolder { Id = "walka", Name = "Walka", Kind = FolderKind.Aliases },
+                new ProfileFolder { Id = "boss", ParentId = "walka", Name = "Bossowie", Kind = FolderKind.Aliases },
+            ],
+            Rules =
+            [
+                new ProfileRule { Name = "atak", Type = "alias", Pattern = "^a$", Action = "kill", FolderId = "boss" },
+                new ProfileRule { Name = "leczenie", Type = "trigger", Pattern = "ranny", Action = "heal" },
+            ],
+            Timers = [new ProfileTimer { Name = "status", Seconds = 10 }],
+            Scripts = [new ProfileScript { Name = "gmcp", Code = "echo('ok');" }],
+        });
+
+        var profileDirectory = Path.Combine(_directory, "Dyskowy");
+        Assert.True(File.Exists(Path.Combine(profileDirectory, "profile.json")));
+        Assert.True(File.Exists(Path.Combine(profileDirectory, "Aliases", "Walka", "Bossowie", "atak.json")));
+        Assert.True(File.Exists(Path.Combine(profileDirectory, "Triggers", "leczenie.json")));
+        Assert.True(File.Exists(Path.Combine(profileDirectory, "Timers", "status.json")));
+        Assert.True(File.Exists(Path.Combine(profileDirectory, "Scripts", "gmcp.js")));
+
+        var metadata = File.ReadAllText(Path.Combine(profileDirectory, "profile.json"));
+        Assert.DoesNotContain("\"Rules\"", metadata);
+        Assert.DoesNotContain("\"Timers\"", metadata);
+    }
+
+    [Fact]
+    public void Load_ReflectsFileEditsAndMovesBetweenDiskFolders()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Edytowany",
+            Folders =
+            [
+                new ProfileFolder { Id = "pierwszy", Name = "Pierwszy", Kind = FolderKind.Aliases },
+                new ProfileFolder { Id = "drugi", Name = "Drugi", Kind = FolderKind.Aliases },
+            ],
+            Rules = [new ProfileRule
+            {
+                Name = "ruch",
+                Type = "alias",
+                Pattern = "^r$",
+                Action = "north",
+                FolderId = "pierwszy",
+            }],
+        });
+
+        var aliases = Path.Combine(_directory, "Edytowany", "Aliases");
+        var source = Path.Combine(aliases, "Pierwszy", "ruch.json");
+        var destination = Path.Combine(aliases, "Drugi", "ruch.json");
+        var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(source))!;
+        rule.Action = "south";
+        File.WriteAllText(source, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
+        File.Move(source, destination);
+        Directory.Move(Path.Combine(aliases, "Drugi"), Path.Combine(aliases, "Inny"));
+
+        var loaded = Assert.IsType<ProfileData>(service.Load("Edytowany"));
+        var loadedRule = Assert.Single(loaded.Rules);
+        Assert.Equal("south", loadedRule.Action);
+        Assert.Equal(loaded.Folders.Single(folder => folder.Name == "Inny").Id, loadedRule.FolderId);
+    }
+
+    [Fact]
+    public void Save_ReflectsApplicationFolderRenameOnDiskWithoutLeavingOldTree()
+    {
+        var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "Foldery",
+            Folders = [new ProfileFolder { Id = "f1", Name = "Stara", Kind = FolderKind.Scripts }],
+            Scripts = [new ProfileScript { Name = "start", Code = "echo('x');", FolderId = "f1" }],
+        };
+        service.Save(profile);
+
+        profile.Folders[0].Name = "Nowa";
+        service.Save(profile);
+
+        var scripts = Path.Combine(_directory, "Foldery", "Scripts");
+        Assert.False(Directory.Exists(Path.Combine(scripts, "Stara")));
+        Assert.True(File.Exists(Path.Combine(scripts, "Nowa", "start.js")));
+        Assert.Equal("Nowa", Assert.Single(service.Load("Foldery")!.Folders).Name);
+    }
+
+    [Fact]
+    public void Save_StoresAdvancedAutomationAsJavaScriptAndSimpleAutomationAsJson()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "JavaScript",
+            Rules =
+            [
+                new ProfileRule { Name = "prosty", Type = "alias", Pattern = "^p$", Action = "look" },
+                new ProfileRule
+                {
+                    Name = "zaawansowany",
+                    Type = "alias",
+                    Pattern = "^z (.+)$",
+                    Action = "execute(match.groups[1]);",
+                    IsAdvanced = true,
+                },
+                new ProfileRule
+                {
+                    Name = "alarm",
+                    Type = "trigger",
+                    Pattern = "^Alarm!$",
+                    Action = "echo('uwaga');",
+                    IsAdvanced = true,
+                    IsEnabled = false,
+                },
+            ],
+            Timers =
+            [
+                new ProfileTimer { Name = "zegar", Seconds = 5, CommandsText = "look" },
+                new ProfileTimer
+                {
+                    Id = "timer-id",
+                    Name = "javascriptowy zegar",
+                    Minutes = 1,
+                    Milliseconds = 250,
+                    CommandsText = "variables.increment('ticks');",
+                    IsAdvanced = true,
+                },
+            ],
+            Scripts = [new ProfileScript
+            {
+                Id = "script-id",
+                Name = "gmcp status",
+                GmcpPattern = "Char.Vitals",
+                Code = "echo(gmcp.data.hp);",
+            }],
+        });
+
+        var root = Path.Combine(_directory, "JavaScript");
+        Assert.True(File.Exists(Path.Combine(root, "Aliases", "prosty.json")));
+        Assert.True(File.Exists(Path.Combine(root, "Aliases", "zaawansowany.js")));
+        Assert.True(File.Exists(Path.Combine(root, "Triggers", "alarm.js")));
+        Assert.True(File.Exists(Path.Combine(root, "Timers", "zegar.json")));
+        Assert.True(File.Exists(Path.Combine(root, "Timers", "javascriptowy zegar.js")));
+        var scriptPath = Path.Combine(root, "Scripts", "gmcp status.js");
+        Assert.True(File.Exists(scriptPath));
+        var scriptText = File.ReadAllText(scriptPath);
+        Assert.StartsWith("// KillerMudClient: {", scriptText);
+        Assert.EndsWith("echo(gmcp.data.hp);", scriptText);
+
+        var loaded = Assert.IsType<ProfileData>(service.Load("JavaScript"));
+        var alias = loaded.Rules.Single(rule => rule.Name == "zaawansowany");
+        Assert.True(alias.IsAdvanced);
+        Assert.Equal("^z (.+)$", alias.Pattern);
+        Assert.Equal("execute(match.groups[1]);", alias.Action);
+        Assert.False(loaded.Rules.Single(rule => rule.Name == "alarm").IsEnabled);
+        var timer = loaded.Timers.Single(value => value.Name == "javascriptowy zegar");
+        Assert.True(timer.IsAdvanced);
+        Assert.Equal("timer-id", timer.Id);
+        Assert.Equal(1, timer.Minutes);
+        Assert.Equal(250, timer.Milliseconds);
+        Assert.Equal("variables.increment('ticks');", timer.CommandsText);
+        var script = Assert.Single(loaded.Scripts);
+        Assert.Equal("script-id", script.Id);
+        Assert.Equal("Char.Vitals", script.GmcpPattern);
+        Assert.Equal("echo(gmcp.data.hp);", script.Code);
+    }
+
+    [Fact]
+    public void Load_AcceptsBareJavaScriptFileInScriptsFolder()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Reczny" });
+        var path = Path.Combine(_directory, "Reczny", "Scripts", "moj-skrypt.js");
+        File.WriteAllText(path, "echo('recznie dodany');");
+
+        var script = Assert.Single(service.Load("Reczny")!.Scripts);
+
+        Assert.Equal("moj-skrypt", script.Name);
+        Assert.Equal("echo('recznie dodany');", script.Code);
+        Assert.True(script.IsEnabled);
+    }
+
+    [Fact]
+    public void Save_ConvertsAdvancedAutomationJsonFromPreviousDirectoryFormatToJavaScript()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Konwersja" });
+        var jsonPath = Path.Combine(_directory, "Konwersja", "Aliases", "stary.json");
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(new ProfileRule
+        {
+            Name = "stary",
+            Type = "alias",
+            Pattern = "^s$",
+            Action = "echo('stary');",
+            IsAdvanced = true,
+        }));
+
+        var profile = service.Load("Konwersja")!;
+        service.Save(profile);
+
+        Assert.False(File.Exists(jsonPath));
+        Assert.True(File.Exists(Path.Combine(_directory, "Konwersja", "Aliases", "stary.js")));
+        Assert.Equal("echo('stary');", Assert.Single(service.Load("Konwersja")!.Rules).Action);
+    }
+
+    [Fact]
+    public void Load_CorruptedJavaScriptPrimaryRecoversPreviousCompleteVersion()
+    {
+        var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "AwariaJs",
+            Rules = [new ProfileRule
+            {
+                Name = "alarm",
+                Type = "trigger",
+                Pattern = "^alarm$",
+                Action = "echo('pierwsza');",
+                IsAdvanced = true,
+            }],
+        };
+        service.Save(profile);
+        profile.Rules[0].Action = "echo('druga');";
+        service.Save(profile);
+        var path = Path.Combine(_directory, "AwariaJs", "Triggers", "alarm.js");
+        File.WriteAllText(path, "// KillerMudClient: { urwany naglowek");
+
+        var trigger = Assert.Single(service.Load("AwariaJs")!.Rules);
+
+        Assert.Equal("echo('pierwsza');", trigger.Action);
+        Assert.True(File.Exists(path + ".bak"));
+    }
+
+    [Fact]
+    public void Load_WhenJavaScriptAndLegacyJsonCoexist_LoadsHeavyAutomationOnlyOnce()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Duplikat",
+            Timers = [new ProfileTimer
+            {
+                Id = "timer-js",
+                Name = "namaris",
+                Seconds = 1,
+                CommandsText = "echo('nowy js');",
+                IsAdvanced = true,
+            }],
+        });
+        var timerDirectory = Path.Combine(_directory, "Duplikat", "Timers");
+        var legacyJsonPath = Path.Combine(timerDirectory, "namaris.json");
+        File.WriteAllText(legacyJsonPath, JsonSerializer.Serialize(new ProfileTimer
+        {
+            Id = "timer-json",
+            Name = "namaris",
+            Seconds = 1,
+            CommandsText = new string('x', 500_000),
+            IsAdvanced = true,
+        }));
+
+        var loaded = service.Load("Duplikat")!;
+
+        var timer = Assert.Single(loaded.Timers);
+        Assert.Equal("timer-js", timer.Id);
+        Assert.Equal("echo('nowy js');", timer.CommandsText);
+        service.Save(loaded);
+        Assert.False(File.Exists(legacyJsonPath));
+    }
+
+    [Fact]
+    public void Save_WhenOnlyProfileStateChanges_DoesNotRewriteUnchangedLargeJavaScript()
+    {
+        var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "DuzyTimer",
+            Timers = [new ProfileTimer
+            {
+                Name = "ciezki",
+                Seconds = 1,
+                CommandsText = new string('x', 500_000),
+                IsAdvanced = true,
+            }],
+        };
+        service.Save(profile);
+        var path = Path.Combine(_directory, "DuzyTimer", "Timers", "ciezki.js");
+        var unchangedTimestamp = new DateTime(2025, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(path, unchangedTimestamp);
+
+        profile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        service.Save(profile);
+
+        Assert.Equal(unchangedTimestamp, File.GetLastWriteTimeUtc(path));
+        Assert.False(File.Exists(path + ".bak"));
+    }
+
+    [Fact]
+    public void SaveState_UpdatesVariablesWithoutTouchingAutomationTree()
+    {
+        var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "StanRuntime",
+            Timers = [new ProfileTimer
+            {
+                Name = "ciezki",
+                Seconds = 1,
+                CommandsText = new string('x', 500_000),
+                IsAdvanced = true,
+            }],
+        };
+        service.Save(profile);
+        var timerDirectory = Path.Combine(_directory, "StanRuntime", "Timers");
+        var javaScriptPath = Path.Combine(timerDirectory, "ciezki.js");
+        var unchangedTimestamp = new DateTime(2025, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(javaScriptPath, unchangedTimestamp);
+        var unrelatedFile = Path.Combine(timerDirectory, "plik-uzytkownika.txt");
+        File.WriteAllText(unrelatedFile, "nie dotykaj");
+
+        profile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(123);
+        service.SaveState(profile);
+
+        Assert.Equal(unchangedTimestamp, File.GetLastWriteTimeUtc(javaScriptPath));
+        Assert.Equal("nie dotykaj", File.ReadAllText(unrelatedFile));
+        Assert.Equal(123, service.Load("StanRuntime")!.ScriptVariables["tick"].GetInt32());
+    }
+
+    [Fact]
+    public void ListProfileNames_MigratesLegacySingleFileProfile()
+    {
+        Directory.CreateDirectory(_directory);
+        var legacyPath = Path.Combine(_directory, "Stary.json");
+        File.WriteAllText(legacyPath, JsonSerializer.Serialize(new ProfileData
+        {
+            Name = "Stary",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Action = "look" }],
+        }));
+
+        var service = CreateService();
+        Assert.Equal(["Stary"], service.ListProfileNames());
+
+        Assert.False(File.Exists(legacyPath));
+        Assert.True(File.Exists(Path.Combine(_directory, "Stary", "profile.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "Stary", "Aliases", "l.json")));
+        Assert.Equal("look", Assert.Single(service.Load("Stary")!.Rules).Action);
+    }
+
+    [Fact]
+    public async Task Watcher_RaisesChangeAndLoadsExternallyEditedAutomationImmediately()
+    {
+        using var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Obserwowany",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        });
+        service.StartWatching();
+        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, _) => changed.TrySetResult();
+
+        var path = Path.Combine(_directory, "Obserwowany", "Aliases", "l.json");
+        var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
+        rule.Action = "examine";
+        File.WriteAllText(path, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
+
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal("examine", Assert.Single(service.Load("Obserwowany")!.Rules).Action);
+    }
+
+    [Fact]
+    public async Task Watcher_RaisesChangeForExternallyEditedJavaScriptFile()
+    {
+        using var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "ObserwowanyJs",
+            Rules = [new ProfileRule
+            {
+                Name = "js",
+                Type = "trigger",
+                Pattern = "^x$",
+                Action = "echo('przed');",
+                IsAdvanced = true,
+            }],
+        });
+        service.StartWatching();
+        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, _) => changed.TrySetResult();
+
+        var path = Path.Combine(_directory, "ObserwowanyJs", "Triggers", "js.js");
+        var lines = File.ReadAllLines(path);
+        File.WriteAllText(path, lines[0] + Environment.NewLine + "echo('po');");
+
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var trigger = Assert.Single(service.Load("ObserwowanyJs")!.Rules);
+        Assert.True(trigger.IsAdvanced);
+        Assert.Equal("echo('po');", trigger.Action);
     }
 
     // ====================================================================
@@ -565,6 +970,40 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("Legolas", vm.ActiveProfileName);
         Assert.Contains("Legolas", vm.AvailableProfiles);
         Assert.True(service.Exists("Legolas"));
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ReloadsActiveAutomationAfterExternalFileChange()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Watcher",
+            Rules = [new ProfileRule
+            {
+                Name = "l",
+                Type = "alias",
+                Pattern = "^l$",
+                Action = "echo('look');",
+                IsAdvanced = true,
+            }],
+        });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Watcher";
+        vm.SelectProfileCommand.Execute(null);
+        Assert.Equal("echo('look');", Assert.Single(vm.AliasRules).Action);
+
+        var path = Path.Combine(_directory, "Watcher", "Aliases", "l.js");
+        var lines = File.ReadAllLines(path);
+        File.WriteAllText(path, lines[0] + Environment.NewLine + "echo('examine');");
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline && vm.AliasRules.Single().Action != "echo('examine');")
+        {
+            await Task.Delay(25, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("echo('examine');", Assert.Single(vm.AliasRules).Action);
     }
 
     [Fact]

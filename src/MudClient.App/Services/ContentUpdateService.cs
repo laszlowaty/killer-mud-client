@@ -194,7 +194,7 @@ internal sealed class ContentUpdateService : IContentUpdateService
 
     private void CleanupOldVersions(string componentName, ActiveContentComponent active)
     {
-        var componentRoot = Path.Combine(_paths.ContentRoot, componentName);
+        var componentRoot = _paths.GetComponentRoot(componentName);
         if (!Directory.Exists(componentRoot))
         {
             return;

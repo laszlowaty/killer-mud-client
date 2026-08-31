@@ -79,6 +79,7 @@ public sealed class ContentUpdateServiceTests : IDisposable
         Assert.Equal(["killeropedia"], result.InstalledComponents);
         var activeDirectory = new ContentPathResolver(_directory).GetActiveDirectory("killeropedia");
         Assert.NotNull(activeDirectory);
+        Assert.StartsWith(Path.Combine(_directory, "Killeropedia", "Content"), activeDirectory);
         Assert.True(File.Exists(Path.Combine(activeDirectory, "lore-catalog.json.gz")));
         Assert.True(File.Exists(Path.Combine(activeDirectory, "teachers.json.gz")));
         Assert.True(File.Exists(Path.Combine(activeDirectory, "books.json")));

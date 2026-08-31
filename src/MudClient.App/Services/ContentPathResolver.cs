@@ -13,11 +13,14 @@ internal sealed class ContentPathResolver
     };
 
     private readonly string _contentRoot;
+    private readonly string _killeropediaRoot;
 
     public ContentPathResolver(string dataRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
         _contentRoot = Path.Combine(dataRoot, "Content");
+        _killeropediaRoot = Path.Combine(dataRoot, "Killeropedia", "Content");
+        MigrateLegacyKilleropediaContent();
     }
 
     public string ContentRoot => _contentRoot;
@@ -54,6 +57,9 @@ internal sealed class ContentPathResolver
             return null;
         }
 
+        var roots = string.Equals(componentName, "killeropedia", StringComparison.OrdinalIgnoreCase)
+            ? new[] { _killeropediaRoot, Path.Combine(_contentRoot, "killeropedia") }
+            : new[] { GetComponentRoot(componentName) };
         foreach (var storageKey in new[] { component.StorageKey, component.PreviousStorageKey })
         {
             if (!IsSafeStorageKey(storageKey))
@@ -61,10 +67,13 @@ internal sealed class ContentPathResolver
                 continue;
             }
 
-            var path = Path.Combine(_contentRoot, componentName, storageKey);
-            if (Directory.Exists(path))
+            foreach (var root in roots)
             {
-                return path;
+                var path = Path.Combine(root, storageKey);
+                if (Directory.Exists(path))
+                {
+                    return path;
+                }
             }
         }
 
@@ -72,7 +81,12 @@ internal sealed class ContentPathResolver
     }
 
     public string GetComponentDirectory(string componentName, string storageKey) =>
-        Path.Combine(_contentRoot, componentName, storageKey);
+        Path.Combine(GetComponentRoot(componentName), storageKey);
+
+    public string GetComponentRoot(string componentName) =>
+        string.Equals(componentName, "killeropedia", StringComparison.OrdinalIgnoreCase)
+            ? _killeropediaRoot
+            : Path.Combine(_contentRoot, componentName);
 
     public async Task SaveStateAsync(ContentActivationState state, CancellationToken cancellationToken)
     {
@@ -118,6 +132,25 @@ internal sealed class ContentPathResolver
         !string.IsNullOrWhiteSpace(value)
         && value.All(character => char.IsLetterOrDigit(character) || character is '.' or '-' or '_')
         && value is not "." and not "..";
+
+    private void MigrateLegacyKilleropediaContent()
+    {
+        var legacyDirectory = Path.Combine(_contentRoot, "killeropedia");
+        if (!Directory.Exists(legacyDirectory) || Directory.Exists(_killeropediaRoot))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_killeropediaRoot)!);
+            Directory.Move(legacyDirectory, _killeropediaRoot);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The old cache remains a valid fallback until a later startup can move it.
+        }
+    }
 }
 
 internal sealed class ContentActivationState

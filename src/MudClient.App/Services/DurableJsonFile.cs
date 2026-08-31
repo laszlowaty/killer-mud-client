@@ -35,6 +35,59 @@ internal static class DurableJsonFile
         WriteText(path, json);
     }
 
+    public static bool TryReadText(string path, out string value)
+    {
+        if (TryReadSingleText(path, out value)
+            || TryReadSingleText(path + BackupSuffix, out value))
+        {
+            return true;
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        var fileName = Path.GetFileName(path);
+        if (directory is not null && Directory.Exists(directory))
+        {
+            try
+            {
+                foreach (var candidate in Directory
+                             .EnumerateFiles(directory, fileName + ".tmp-*")
+                             .OrderByDescending(File.GetLastWriteTimeUtc))
+                {
+                    if (TryReadSingleText(candidate, out value))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                // Recovery candidates are optional.
+            }
+        }
+
+        value = string.Empty;
+        return false;
+    }
+
+    private static bool TryReadSingleText(string path, out string value)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                value = File.ReadAllText(path);
+                return true;
+            }
+        }
+        catch (IOException)
+        {
+            // The caller may still recover from a backup or temporary file.
+        }
+
+        value = string.Empty;
+        return false;
+    }
+
     private static bool TryReadSingle<T>(string path, JsonSerializerOptions options, out T? value)
     {
         value = default;
@@ -88,11 +141,16 @@ internal static class DurableJsonFile
         return false;
     }
 
-    private static void WriteText(string path, string contents)
+    internal static void WriteText(string path, string contents)
     {
         var directory = Path.GetDirectoryName(path)
             ?? throw new ArgumentException("Ścieżka pliku konfiguracji nie ma katalogu.", nameof(path));
         Directory.CreateDirectory(directory);
+
+        if (HasSameContents(path, contents))
+        {
+            return;
+        }
 
         var temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
         try
@@ -123,6 +181,31 @@ internal static class DurableJsonFile
                 // A failed cleanup only leaves an ignored temporary file. The live
                 // configuration and its backup are never removed here.
             }
+        }
+    }
+
+    private static bool HasSameContents(string path, string contents)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            var expectedByteCount = Encoding.UTF8.GetByteCount(contents);
+            if (new FileInfo(path).Length != expectedByteCount)
+            {
+                return false;
+            }
+
+            return string.Equals(File.ReadAllText(path), contents, StringComparison.Ordinal);
+        }
+        catch (IOException)
+        {
+            // Continue with the durable replacement path; it will either succeed or report
+            // the real I/O failure to the caller.
+            return false;
         }
     }
 

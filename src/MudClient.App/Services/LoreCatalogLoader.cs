@@ -36,10 +36,11 @@ internal static class LoreCatalogLoader
 
     private static LoreCatalogData LoadCore(string dataRoot)
     {
+        MigrateLegacyOverride(dataRoot);
         var warnings = new List<string>();
         var candidates = new[]
         {
-            Path.Combine(dataRoot, "Data", FileName),
+            Path.Combine(dataRoot, "Killeropedia", FileName),
             Path.Combine(AppContext.BaseDirectory, "Data", FileName),
         }.Distinct(StringComparer.OrdinalIgnoreCase);
 
@@ -70,6 +71,26 @@ internal static class LoreCatalogLoader
         using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
             ?? throw new InvalidOperationException($"Brak wbudowanego katalogu lore: {ResourceName}.");
         return Parse(resource, "katalog wbudowany", warnings.Count == 0 ? null : string.Join(Environment.NewLine, warnings));
+    }
+
+    private static void MigrateLegacyOverride(string dataRoot)
+    {
+        var legacyPath = Path.Combine(dataRoot, "Data", FileName);
+        var path = Path.Combine(dataRoot, "Killeropedia", FileName);
+        if (File.Exists(path) || !File.Exists(legacyPath))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.Move(legacyPath, path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Another process may have completed the same one-time migration.
+        }
     }
 
     private static LoreCatalogData Parse(Stream stream, string sourceText, string? warning)

@@ -17,16 +17,37 @@ public sealed class BookCatalogStore
     private readonly string _path;
     private readonly string? _fallbackPath;
 
-    public BookCatalogStore(string? path = null, string? fallbackPath = null)
+    public BookCatalogStore(string? path = null, string? fallbackPath = null, string? legacyPath = null)
     {
-        _path = path ?? System.IO.Path.Combine(
+        var dataRoot = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "KillerMudClient",
-            "killeropedia-books.json");
+            "KillerMudClient");
+        _path = path ?? System.IO.Path.Combine(dataRoot, "Killeropedia", "books.json");
         _fallbackPath = fallbackPath;
+        MigrateLegacyCatalog(legacyPath ?? (path is null
+            ? System.IO.Path.Combine(dataRoot, "killeropedia-books.json")
+            : null));
     }
 
     public string Path => _path;
+
+    private void MigrateLegacyCatalog(string? legacyPath)
+    {
+        if (string.IsNullOrWhiteSpace(legacyPath) || File.Exists(_path) || !File.Exists(legacyPath))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_path)!);
+            File.Move(legacyPath, _path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A concurrent startup can win the migration; either complete file is usable.
+        }
+    }
 
     public BookCatalogDocument Load()
     {

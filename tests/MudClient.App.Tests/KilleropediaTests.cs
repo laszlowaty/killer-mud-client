@@ -426,6 +426,8 @@ public sealed class KilleropediaTests : IDisposable
         Assert.Equal(191, catalog.Entries.Count);
         Assert.Equal("katalog wbudowany", catalog.SourceText);
         Assert.Contains("Nie udało się wczytać", catalog.Warning);
+        Assert.True(File.Exists(Path.Combine(_directory, "Killeropedia", "lore-catalog.json.gz")));
+        Assert.False(File.Exists(Path.Combine(dataDirectory, "lore-catalog.json.gz")));
     }
 
     [AvaloniaFact]

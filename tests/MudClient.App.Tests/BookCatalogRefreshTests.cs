@@ -259,6 +259,23 @@ public sealed class BookCatalogRefreshTests : IDisposable
         Assert.Contains(catalog.Books, book => book.Vnum == 16818);
     }
 
+    [Fact]
+    public void Store_MigratesLegacyRootCatalogToKilleropediaDirectory()
+    {
+        var legacyPath = Path.Combine(_directory, "killeropedia-books.json");
+        var newPath = Path.Combine(_directory, "Killeropedia", "books.json");
+        File.WriteAllText(legacyPath, JsonSerializer.Serialize(new BookCatalogDocument
+        {
+            Books = [new BookEntry { Vnum = 42, Name = "stara ksiega" }],
+        }));
+
+        var store = new BookCatalogStore(newPath, legacyPath: legacyPath);
+
+        Assert.False(File.Exists(legacyPath));
+        Assert.True(File.Exists(newPath));
+        Assert.Equal(42, Assert.Single(store.Load().Books).Vnum);
+    }
+
     private static void FeedDetails(
         BookCatalogRefreshCoordinator coordinator,
         string name,

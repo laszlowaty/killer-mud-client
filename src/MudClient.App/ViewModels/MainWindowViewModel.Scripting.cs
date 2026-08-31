@@ -353,7 +353,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             await Task.Delay(TimeSpan.FromMilliseconds(300), cancellation.Token);
-            await Dispatcher.UIThread.InvokeAsync(SaveActiveProfile);
+            await Dispatcher.UIThread.InvokeAsync(SaveActiveProfileState);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {

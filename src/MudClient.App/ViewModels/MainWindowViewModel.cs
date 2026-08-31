@@ -501,6 +501,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SyncAllTimers();
 
         AvailableProfiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProfiles));
+        _profiles.StorageChanged += OnProfileStorageChanged;
+        _profiles.StartWatching();
     }
 
     public MapViewModel Map { get; }
@@ -968,8 +970,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             .GetActiveDirectory("killeropedia");
         return new BookCatalogStore(
             DeveloperFeatures.BookCatalogOutputPath
-            ?? Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"),
-            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "books.json"));
+            ?? Path.Combine(_settingsService.DirectoryPath, "Killeropedia", "books.json"),
+            downloadedDirectory is null ? null : Path.Combine(downloadedDirectory, "books.json"),
+            Path.Combine(_settingsService.DirectoryPath, "killeropedia-books.json"));
     }
 
     private KilleropediaViewModel CreateKilleropediaViewModel()
@@ -5299,19 +5302,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        var profile = new ProfileData
+        var profile = CreateActiveProfileState(ActiveProfileName);
+        profile.Notes = Notes.Where(n => !n.IsGlobal).Select(ToProfileNote).ToList();
+        profile.Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList();
+        profile.Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList();
+        profile.Scripts = Scripts.Where(s => !s.IsGlobal).Select(ToProfileScript).ToList();
+        profile.Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList();
+        profile.Folders = Folders.Where(f => !f.IsGlobal).Select(ToProfileFolder).ToList();
+
+        try
         {
-            Name = ActiveProfileName,
-            Login = _activeProfileLogin,
-            Host = Host.Trim(),
-            Port = Port,
-            Notes = Notes.Where(n => !n.IsGlobal).Select(ToProfileNote).ToList(),
-            Rules = AutomationRules.Where(r => !r.IsGlobal).Select(ToProfileRule).ToList(),
-            Timers = Timers.Where(t => !t.IsGlobal).Select(ToProfileTimer).ToList(),
-            Scripts = Scripts.Where(s => !s.IsGlobal).Select(ToProfileScript).ToList(),
-            ScriptVariables = _scriptVariables.Snapshot(),
-            Locations = Locations.Where(l => !l.IsGlobal).Select(ToProfileLocation).ToList(),
-            Folders = Folders.Where(f => !f.IsGlobal).Select(ToProfileFolder).ToList(),
+            _profiles.Save(profile);
+        }
+        catch (Exception exception)
+        {
+            AddToast($"Nie udało się zapisać konta: {exception.Message}", "error");
+        }
+    }
+
+    private ProfileData CreateActiveProfileState(string profileName) => new()
+    {
+        Name = profileName,
+        Login = _activeProfileLogin,
+        Host = Host.Trim(),
+        Port = Port,
+        Encoding = Encoding,
+        ScriptVariables = _scriptVariables.Snapshot(),
             Deaths = Deaths.Select(d => new ProfileDeath
             {
                 Vnum = d.Vnum,
@@ -5332,16 +5348,64 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             ActiveBuffSetId = SelectedBuffSet?.Id ?? string.Empty,
             EncryptedPassword = _passwordProtector.Protect(_activeProfilePassword),
             NeedsRegistration = _activeProfileNeedsRegistration,
-        };
+    };
+
+    private void SaveActiveProfileState()
+    {
+        if (ActiveProfileName is not { } profileName)
+        {
+            return;
+        }
 
         try
         {
-            _profiles.Save(profile);
+            _profiles.SaveState(CreateActiveProfileState(profileName));
         }
         catch (Exception exception)
         {
-            AddToast($"Nie udało się zapisać konta: {exception.Message}", "error");
+            AddToast($"Nie udało się zapisać stanu konta: {exception.Message}", "error");
         }
+    }
+
+    private void OnProfileStorageChanged(object? sender, EventArgs eventArgs)
+    {
+        Dispatcher.UIThread.Post(ReloadProfileStorage);
+    }
+
+    private void ReloadProfileStorage()
+    {
+        var names = _profiles.ListProfileNames();
+        AvailableProfiles.Clear();
+        foreach (var name in names)
+        {
+            AvailableProfiles.Add(name);
+        }
+
+        if (ActiveProfileName is { } activeName)
+        {
+            var profile = _profiles.Load(activeName);
+            if (profile is not null)
+            {
+                ActivateProfile(profile);
+                AddToast("Przeładowano zmiany profilu z dysku.", "info");
+            }
+
+            return;
+        }
+
+        Notes.Clear();
+        AutomationRules.Clear();
+        Timers.Clear();
+        Scripts.Clear();
+        Locations.Clear();
+        Folders.Clear();
+        LoadGlobalEntries();
+        RebuildRuleViews();
+        RebuildFolderTrees();
+        ApplyAutomation();
+        CancelAllTimers();
+        SyncAllTimers();
+        AddToast("Przeładowano globalne automaty z dysku.", "info");
     }
 
     /// <summary>
@@ -7686,6 +7750,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public async ValueTask DisposeAsync()
     {
+        _profiles.StorageChanged -= OnProfileStorageChanged;
         SaveActiveProfile();
         StopScriptingPersistence();
         await StopReconnectRequestsAsync();
@@ -7885,5 +7950,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _triggerSendLock.Dispose();
         _triggerCts.Dispose();
         _autowalkCts.Dispose();
+        _profiles.Dispose();
     }
 }
