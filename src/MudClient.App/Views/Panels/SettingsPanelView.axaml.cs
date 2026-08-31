@@ -24,6 +24,37 @@ public sealed partial class SettingsPanelView : UserControl
         DetachedFromVisualTree += (_, _) => CancelTransfer();
     }
 
+    private async void SelectGameSessionLogFolder_OnClick(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel
+            || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storageProvider)
+        {
+            return;
+        }
+
+        try
+        {
+            var folders = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Folder zapisów sesji gry",
+                AllowMultiple = false,
+            });
+            var folder = folders.FirstOrDefault();
+            if (folder?.Path.IsFile == true)
+            {
+                viewModel.SetGameSessionLogFolder(folder.Path.LocalPath, folder.Path.LocalPath);
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException)
+        {
+            ShowStatus($"Nie udało się wybrać folderu zapisów: {exception.Message}");
+        }
+    }
+
     private async void ExportSettings_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (!TryGetTransferContext(out var service, out var storageProvider, out _))

@@ -148,6 +148,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     // --- App settings ---
     private readonly AppSettingsService _settingsService;
     private readonly AppSettings _settings;
+    private readonly IGameSessionLogStorage _gameSessionLogStorage;
+    private readonly GameSessionLogger _gameSessionLogger;
     private bool _settingsLoaded;
     private FloatingButtonSetDefinition? _selectedFloatingButtonSet;
 
@@ -275,7 +277,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         string? appBaseDirectory = null,
         IPasswordProtector? passwordProtector = null,
         TimeSpan? toastLifetime = null,
-        IScriptHttpClient? scriptHttpClient = null)
+        IScriptHttpClient? scriptHttpClient = null,
+        IGameSessionLogStorage? gameSessionLogStorage = null)
     {
         _toastLifetime = toastLifetime is { } lifetime && lifetime > TimeSpan.Zero
             ? lifetime
@@ -286,10 +289,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             text => OutputReceived?.Invoke(text),
             action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background));
         _triggerOutputCoordinator = new TriggerOutputCoordinator(
-            _uiOutputBatcher.Enqueue,
+            EmitMudOutput,
             action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background));
         _settingsService = settingsService ?? new AppSettingsService();
         _settings = _settingsService.Load();
+        _gameSessionLogStorage = gameSessionLogStorage ?? new FileGameSessionLogStorage();
+        _gameSessionLogger = new GameSessionLogger(
+            _gameSessionLogStorage,
+            message => Dispatcher.UIThread.Post(() => AddToast(message, "error")));
+        ConfigureGameSessionLogger();
         foreach (var set in _settings.FloatingButtonSets)
         {
             FloatingButtonSets.Add(set);
@@ -1305,6 +1313,50 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public double MinMobileButtonScale => AppSettings.MinMobileButtonScale;
     public double MaxMobileButtonScale => AppSettings.MaxMobileButtonScale;
 
+    public bool GameSessionLoggingEnabled
+    {
+        get => _settings.GameSessionLoggingEnabled;
+        set
+        {
+            if (_settings.GameSessionLoggingEnabled == value)
+            {
+                return;
+            }
+
+            _settings.GameSessionLoggingEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+            ConfigureGameSessionLogger();
+        }
+    }
+
+    public string GameSessionLogFolderDisplayName =>
+        !HasGameSessionLogFolder
+            ? "Nie wybrano folderu"
+            : _settings.GameSessionLogFolderDisplayName;
+
+    public bool HasGameSessionLogFolder =>
+        _gameSessionLogStorage.SupportsFolder(_settings.GameSessionLogFolder);
+
+    public void SetGameSessionLogFolder(string folderIdentifier, string displayName)
+    {
+        var normalizedIdentifier = folderIdentifier?.Trim() ?? string.Empty;
+        var normalizedDisplayName = displayName?.Trim() ?? string.Empty;
+        if (normalizedIdentifier.Length == 0)
+        {
+            return;
+        }
+
+        _settings.GameSessionLogFolder = normalizedIdentifier;
+        _settings.GameSessionLogFolderDisplayName = normalizedDisplayName.Length > 0
+            ? normalizedDisplayName
+            : normalizedIdentifier;
+        OnPropertyChanged(nameof(GameSessionLogFolderDisplayName));
+        OnPropertyChanged(nameof(HasGameSessionLogFolder));
+        SaveSettings();
+        ConfigureGameSessionLogger();
+    }
+
     /// <summary>Font family name for MUD output in the main screen.</summary>
     public string OutputFontFamily
     {
@@ -1842,6 +1894,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             AddToast($"Nie udało się zapisać ustawień: {exception.Message}", "error");
         }
+    }
+
+    private void ConfigureGameSessionLogger() => _gameSessionLogger.Configure(
+        _settings.GameSessionLoggingEnabled && HasGameSessionLogFolder,
+        _settings.GameSessionLogFolder,
+        ActiveProfileName);
+
+    private void EmitMudOutput(string text)
+    {
+        _gameSessionLogger.Write(text);
+        _uiOutputBatcher.Enqueue(text);
     }
 
     public FloatingButtonDefinition? AddFloatingButton(string? name, string? command)
@@ -4461,6 +4524,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 OnPropertyChanged(nameof(IsProfileSelected));
                 SwitchProfileCommand.NotifyCanExecuteChanged();
+                ConfigureGameSessionLogger();
             }
         }
     }
@@ -6074,6 +6138,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
 
             _session.EncodingMode = Encoding;
+            _gameSessionLogger.BeginSession(ActiveProfileName);
             await _session.ConnectAsync(Host.Trim(), Port, cancellationToken);
             IsConnected = true;
             await AutoLoginAsync(cancellationToken);
@@ -7814,6 +7879,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         await _timers.DisposeAsync();
         await _session.DisposeAsync();
         await Map.DisposeAsync();
+        await _gameSessionLogger.DisposeAsync();
         _reconnectCts.Dispose();
         _triggerSendLock.Dispose();
         _triggerCts.Dispose();

@@ -23,6 +23,18 @@ public sealed class AppSettings
     public const double MinMobileButtonScale = 0.7;
     public const double MaxMobileButtonScale = 1.5;
 
+    /// <summary>Whether every new game session is automatically written to a text file.</summary>
+    public bool GameSessionLoggingEnabled { get; set; }
+
+    /// <summary>
+    /// Platform-specific writable folder identifier: a local path on desktop or a persisted
+    /// Storage Access Framework tree URI on Android.
+    /// </summary>
+    public string GameSessionLogFolder { get; set; } = string.Empty;
+
+    /// <summary>User-facing name of the selected log folder.</summary>
+    public string GameSessionLogFolderDisplayName { get; set; } = string.Empty;
+
     /// <summary>Default for <see cref="CommandStackingSeparator"/>.</summary>
     public const string DefaultCommandStackingSeparator = ";";
 

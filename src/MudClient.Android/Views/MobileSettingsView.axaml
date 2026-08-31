@@ -7,6 +7,22 @@
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
     <StackPanel Margin="12" Spacing="8">
+      <TextBlock Classes="mud-heading" Text="Zapis sesji gry" />
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="10">
+          <CheckBox Content="Automatycznie zapisuj każdą sesję"
+                    IsChecked="{Binding GameSessionLoggingEnabled}"
+                    IsEnabled="{Binding HasGameSessionLogFolder}" />
+          <TextBlock Classes="mud-muted" TextWrapping="Wrap"
+                     Text="{Binding GameSessionLogFolderDisplayName, StringFormat='Folder: {0}'}" />
+          <Button Content="Wybierz folder zapisu"
+                  MinHeight="44"
+                  Click="SelectGameSessionLogFolder_OnClick" />
+          <TextBlock Classes="mud-muted" TextWrapping="Wrap"
+                     Text="Każde połączenie tworzy osobny plik TXT. Ustawienie jest wspólne dla wszystkich profili i pozostaje aktywne po restarcie aplikacji." />
+        </StackPanel>
+      </Border>
+
       <TextBlock Classes="mud-heading" Text="Terminal" />
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="10">

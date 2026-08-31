@@ -42,6 +42,7 @@ SIL Open Font License 1.1; jej treść znajduje się w `Assets/Fonts/OpenDyslexi
   aktualny magazyn JSON aktywnego profilu,
 - opcjonalne zawijanie długich linii (word wrap), przełączane w ustawieniach systemowych i zapamiętywane między uruchomieniami,
 - opcjonalne dopisywanie liczbowych zakresów do opisowych statystyk postaci; wspólne ustawienie działa na desktopie i Androidzie,
+- automatyczny zapis widocznego tekstu sesji do osobnych plików TXT w wybranym folderze; przełącznik i folder są ustawieniami globalnymi, pamiętanymi między profilami i restartami na desktopie oraz Androidzie,
 - opcjonalne dopisywanie liczbowych wartości do opisowych komunikatów zadawanych obrażeń, z zachowaniem osobnych progów zapisanych wielkimi literami,
 - zwirtualizowany bufor wyjścia: tekst trafia do bufora pierścieniowego (do 10 000 linii), a rysowane są wyłącznie linie widoczne w viewporcie (`OutputPaneControl`, własny `ILogicalScrollable`) — koszt dopisania tekstu nie zależy od wielkości scrollbacka, więc wielogodzinne sesje nie spowalniają UI,
 - zaznaczanie i kopiowanie tekstu lub kolorowego fragmentu terminala jako obrazu do schowka systemowego (przeciąganie myszą + menu kontekstowe).
@@ -261,6 +262,12 @@ nie tworzy drugiego połączenia.
 Po zimnym uruchomieniu aplikacja zawsze pokazuje wybór profilu. W trakcie pracy
 można wrócić do tego ekranu przez **Menu → Zmień profil**; aktywne połączenie
 zostanie wcześniej bezpiecznie rozłączone.
+
+Mobilne **Ustawienia → Zapis sesji gry** pozwalają wybrać folder przez systemowy
+selektor Androida i włączyć automatyczny zapis. Aplikacja zachowuje trwały dostęp do
+wybranego folderu, tworzy dla każdego połączenia osobny plik TXT w UTF-8 i usuwa
+z zapisu kody sterujące ANSI. Wysyłane komendy nie są zapisywane, aby automatyczne
+logowanie do konta nie mogło ujawnić hasła.
 Po otwarciu klawiatury ekranowej Activity zmniejsza powierzchnię aplikacji o obszar
 IME. Mobilna powłoka zwija wtedy panel mapy/buffów i ukrywa pad ruchu, aby input
 oraz koniec terminala pozostały widoczne. Na urządzeniach edge-to-edge brakującą

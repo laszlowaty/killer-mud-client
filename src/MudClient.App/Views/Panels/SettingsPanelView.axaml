@@ -11,6 +11,23 @@
       <TextBlock Classes="mud-faint" TextWrapping="Wrap"
                  Text="Wspólne dla wszystkich kont. Zapisywane automatycznie." />
 
+      <TextBlock Classes="mud-heading" Text="Zapis sesji gry" Margin="0,6,0,0" />
+      <Border Classes="mud-section" Padding="10">
+        <StackPanel Spacing="10">
+          <CheckBox Content="Automatycznie zapisuj każdą sesję"
+                    IsChecked="{Binding GameSessionLoggingEnabled}"
+                    IsEnabled="{Binding HasGameSessionLogFolder}" />
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="{Binding GameSessionLogFolderDisplayName, StringFormat='Folder: {0}'}" />
+          <Button Content="Wybierz folder zapisu"
+                  HorizontalAlignment="Left"
+                  Classes="mud-small"
+                  Click="SelectGameSessionLogFolder_OnClick" />
+          <TextBlock Classes="mud-faint" TextWrapping="Wrap"
+                     Text="Każde połączenie tworzy osobny plik TXT. Ustawienie jest wspólne dla wszystkich profili i pozostaje aktywne po restarcie aplikacji." />
+        </StackPanel>
+      </Border>
+
       <TextBlock Classes="mud-heading" Text="Tekst z MUD-a" Margin="0,6,0,0" />
       <Border Classes="mud-section" Padding="10">
         <StackPanel Spacing="10">

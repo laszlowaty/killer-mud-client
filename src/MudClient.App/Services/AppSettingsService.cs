@@ -80,6 +80,8 @@ public sealed class AppSettingsService
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
             settings.AutoAssistFollowUpCommands ??= string.Empty;
+            settings.GameSessionLogFolder ??= string.Empty;
+            settings.GameSessionLogFolderDisplayName ??= string.Empty;
             NormalizeFloatingButtonSets(settings);
 
             return settings;

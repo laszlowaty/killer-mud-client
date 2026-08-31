@@ -45,6 +45,8 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(settings.ShowTerminalVitalsBars);
         Assert.False(settings.ClearCommandInputAfterSend);
         Assert.False(settings.LordModeEnabled);
+        Assert.False(settings.GameSessionLoggingEnabled);
+        Assert.Empty(settings.GameSessionLogFolder);
         Assert.Equal(AppSettings.DefaultTelnetColorScheme, settings.TelnetColorScheme);
         Assert.Equal(AppSettings.DefaultMobileControlsOpacity, settings.MobileControlsOpacity);
         Assert.Equal(
@@ -202,6 +204,9 @@ public sealed class AppSettingsServiceTests : IDisposable
             GroupOrdersEnabled = true,
             ShowGroupMembersAsNumbers = true,
             LordModeEnabled = true,
+            GameSessionLoggingEnabled = true,
+            GameSessionLogFolder = @"C:\Gry\Logi",
+            GameSessionLogFolderDisplayName = "Logi",
             TelnetColorScheme = "Colorblind",
             FloatingButtons =
             [
@@ -241,6 +246,9 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.True(loaded.GroupOrdersEnabled);
         Assert.True(loaded.ShowGroupMembersAsNumbers);
         Assert.True(loaded.LordModeEnabled);
+        Assert.True(loaded.GameSessionLoggingEnabled);
+        Assert.Equal(@"C:\Gry\Logi", loaded.GameSessionLogFolder);
+        Assert.Equal("Logi", loaded.GameSessionLogFolderDisplayName);
         Assert.Equal("Colorblind", loaded.TelnetColorScheme);
         var floatingButton = Assert.Single(loaded.FloatingButtons);
         Assert.Equal("heal", floatingButton.Id);

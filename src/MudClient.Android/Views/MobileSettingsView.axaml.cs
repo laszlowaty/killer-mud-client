@@ -26,6 +26,43 @@ public sealed partial class MobileSettingsView : UserControl
         DetachedFromVisualTree += (_, _) => CancelTransfers();
     }
 
+    private async void SelectGameSessionLogFolder_OnClick(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not MainWindowViewModel viewModel
+            || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storageProvider)
+        {
+            ShowImportStatus("Nie udało się otworzyć wyboru folderu.");
+            return;
+        }
+
+        try
+        {
+            var folders = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Folder zapisów sesji gry",
+                AllowMultiple = false,
+            });
+            var folder = folders.FirstOrDefault();
+            if (folder is null)
+            {
+                return;
+            }
+
+            var identifier = folder.Path.AbsoluteUri;
+            AndroidGameSessionLogStorage.PersistFolderPermission(identifier);
+            viewModel.SetGameSessionLogFolder(identifier, folder.Name);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or Java.Lang.Exception)
+        {
+            ShowImportStatus($"Nie udało się wybrać folderu zapisów: {exception.Message}");
+        }
+    }
+
     private void AddFloatingButtonSet_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (DataContext is not MainWindowViewModel viewModel)

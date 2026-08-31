@@ -55,6 +55,20 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     // ====================================================================
 
     [Fact]
+    public void GameSessionLoggingSettings_AreGlobalAndPersistImmediately()
+    {
+        _vm.SetGameSessionLogFolder(_tempDir, "Moje logi");
+        _vm.GameSessionLoggingEnabled = true;
+
+        var saved = new AppSettingsService(_tempDir).Load();
+        Assert.True(saved.GameSessionLoggingEnabled);
+        Assert.Equal(_tempDir, saved.GameSessionLogFolder);
+        Assert.Equal("Moje logi", saved.GameSessionLogFolderDisplayName);
+        Assert.True(_vm.HasGameSessionLogFolder);
+        Assert.Equal("Moje logi", _vm.GameSessionLogFolderDisplayName);
+    }
+
+    [Fact]
     public void FloatingButtons_AddMoveAndRemove_PersistInSettings()
     {
         var button = _vm.AddFloatingButton("  Leczenie  ", "  quaff red  ");

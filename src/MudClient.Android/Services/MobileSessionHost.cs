@@ -60,7 +60,8 @@ public sealed class MobileSessionHost
                 layoutPresetService: new LayoutPresetService(dataDirectory),
                 appUpdateInstaller: new AndroidAppUpdateInstaller(_context),
                 appBaseDirectory: appBaseDirectory,
-                passwordProtector: new AndroidKeystorePasswordProtector());
+                passwordProtector: new AndroidKeystorePasswordProtector(),
+                gameSessionLogStorage: new AndroidGameSessionLogStorage(_context));
 
             viewModel.ShowTerminalVitalsBars = false;
             if (importException is not null)
