@@ -63,18 +63,30 @@ public sealed class FolderTreeViewUiTests
         var tabs = Assert.Single(window.GetLogicalDescendants().OfType<TabControl>());
         Assert.Equal(5, tabs.Items.Count);
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy timer"));
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button =>
+            button.Name == "OpenTimersFolderButton"
+            && Equals(button.CommandParameter, FolderKind.Timers));
 
         tabs.SelectedIndex = 1;
         window.UpdateLayout();
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy alias"));
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button =>
+            button.Name == "OpenAliasesFolderButton"
+            && Equals(button.CommandParameter, FolderKind.Aliases));
 
         tabs.SelectedIndex = 2;
         window.UpdateLayout();
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy trigger"));
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button =>
+            button.Name == "OpenTriggersFolderButton"
+            && Equals(button.CommandParameter, FolderKind.Triggers));
 
         tabs.SelectedIndex = 3;
         window.UpdateLayout();
         Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button => Equals(button.Content, "＋ Nowy skrypt"));
+        Assert.Contains(window.GetLogicalDescendants().OfType<Button>(), button =>
+            button.Name == "OpenScriptsFolderButton"
+            && Equals(button.CommandParameter, FolderKind.Scripts));
         Assert.Contains(
             window.GetLogicalDescendants().OfType<TextBlock>(),
             text => Equals(text.Text, "combat.target"));

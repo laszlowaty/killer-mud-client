@@ -34,6 +34,21 @@ public sealed class ProfileTests : IDisposable
         Assert.Empty(CreateService().ListProfileNames());
     }
 
+    [Theory]
+    [InlineData(FolderKind.Aliases, "Aliases")]
+    [InlineData(FolderKind.Triggers, "Triggers")]
+    [InlineData(FolderKind.Timers, "Timers")]
+    [InlineData(FolderKind.Scripts, "Scripts")]
+    public void EnsureAutomationDirectory_ReturnsAndCreatesCategoryFolder(
+        FolderKind kind,
+        string directoryName)
+    {
+        var path = CreateService().EnsureAutomationDirectory("Łucznik", kind);
+
+        Assert.Equal(Path.Combine(_directory, "Łucznik", directoryName), path);
+        Assert.True(Directory.Exists(path));
+    }
+
     [Fact]
     public void PasswordProtector_RoundTripsAndNeverStoresPlainText()
     {
@@ -972,6 +987,26 @@ public sealed class ProfileTests : IDisposable
         Assert.True(service.Exists("Legolas"));
     }
 
+    [Fact]
+    public async Task Vm_OpenAutomationFolder_OpensCategoryOfActiveProfile()
+    {
+        var links = new RecordingExternalLinkService();
+        await using var vm = new MainWindowViewModel(
+            CreateService(),
+            CreateSettingsService(),
+            externalLinkService: links);
+        vm.NewProfileName = "Legolas";
+        vm.CreateProfileCommand.Execute(null);
+
+        vm.OpenAutomationFolderCommand.Execute(FolderKind.Scripts);
+
+        var opened = Assert.Single(links.OpenedUris);
+        Assert.True(opened.IsFile);
+        Assert.Equal(
+            Path.GetFullPath(Path.Combine(_directory, "Legolas", "Scripts")),
+            Path.GetFullPath(opened.LocalPath));
+    }
+
     [Avalonia.Headless.XUnit.AvaloniaFact]
     public async Task Vm_ReloadsActiveAutomationAfterExternalFileChange()
     {
@@ -1577,5 +1612,12 @@ public sealed class ProfileTests : IDisposable
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         Assert.NotNull(method);
         method!.Invoke(vm, null);
+    }
+
+    private sealed class RecordingExternalLinkService : IExternalLinkService
+    {
+        public List<Uri> OpenedUris { get; } = [];
+
+        public void Open(Uri uri) => OpenedUris.Add(uri);
     }
 }

@@ -121,6 +121,24 @@ public sealed class ProfileService : IDisposable
     public bool Exists(string name) => Directory.Exists(GetProfileDirectory(name))
         || File.Exists(GetLegacyPath(name));
 
+    /// <summary>
+    /// Returns the physical directory for one automation category of a profile, creating it
+    /// when necessary so it can be opened directly from the application UI.
+    /// </summary>
+    public string EnsureAutomationDirectory(string profileName, FolderKind kind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileName);
+        if (kind is not (FolderKind.Aliases or FolderKind.Triggers or FolderKind.Timers or FolderKind.Scripts))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Nieobsługiwana kategoria automatyzacji.");
+        }
+
+        MigrateLegacyProfile(profileName);
+        var directory = Path.Combine(GetProfileDirectory(profileName), KindDirectoryName(kind));
+        Directory.CreateDirectory(directory);
+        return directory;
+    }
+
     public void Delete(string name)
     {
         var directory = GetProfileDirectory(name);

@@ -365,11 +365,13 @@ Po uruchomieniu aplikacji wybierz zapisane konto albo utwórz nowe. Każdy profi
 
 Każdy profil jest katalogiem w `%AppData%/KillerMudClient/Profiles`. Podstawowe dane
 konta znajdują się w `profile.json`, a `Aliases`, `Triggers`, `Timers`, `Scripts`,
-`Notes` i `Autowalk` zawierają po jednym pliku JSON na wpis. Foldery utworzone w
+`Notes` i `Autowalk` zawierają po jednym pliku na wpis. Foldery utworzone w
 aplikacji są prawdziwymi podkatalogami; przeniesienie albo edycja pliku na dysku jest
 wykrywana i przeładowywana bez restartu. Wspólne automaty mają taki sam układ w
 `Profiles/_global`. Przy pierwszym uruchomieniu stare pliki `Profiles/<nazwa>.json`
 i `Profiles/_global.json` są automatycznie migrowane po udanym odczycie.
+Paski kategorii aliasów, triggerów, timerów i skryptów mają przycisk otwierający
+ich główny folder aktywnego profilu w eksploratorze systemowym.
 
 Proste aliasy, triggery i timery są plikami `.json`. Ich warianty zaawansowane oraz
 samodzielne skrypty są zapisywane jako `.js`: pierwsza linia jest komentarzem

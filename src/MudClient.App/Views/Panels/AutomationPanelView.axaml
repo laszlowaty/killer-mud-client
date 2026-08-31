@@ -229,7 +229,7 @@
       </TabItem.Header>
       <Grid RowDefinitions="Auto,*">
         <Border Classes="mud-bar-bottom">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
             <Button Content="＋ Nowy timer" Command="{Binding StartAddTimerCommand}"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
@@ -239,6 +239,10 @@
             <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
                     ToolTip.Tip="Importuj timery lub folder z pliku JSON"
                     Tag="{x:Static models:FolderKind.Timers}" Click="Import_OnClick" />
+            <Button x:Name="OpenTimersFolderButton" Grid.Column="3" Classes="mud-small"
+                    Content="📂 Otwórz" ToolTip.Tip="Otwórz główny folder timerów aktywnego profilu"
+                    Command="{Binding OpenAutomationFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Timers}" />
           </Grid>
         </Border>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
@@ -283,7 +287,7 @@
       </TabItem.Header>
       <Grid RowDefinitions="Auto,*">
         <Border Classes="mud-bar-bottom">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
             <Button Content="＋ Nowy alias" Command="{Binding StartAddAliasCommand}"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
@@ -293,6 +297,10 @@
             <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
                     ToolTip.Tip="Importuj alias lub folder z pliku JSON"
                     Tag="{x:Static models:FolderKind.Aliases}" Click="Import_OnClick" />
+            <Button x:Name="OpenAliasesFolderButton" Grid.Column="3" Classes="mud-small"
+                    Content="📂 Otwórz" ToolTip.Tip="Otwórz główny folder aliasów aktywnego profilu"
+                    Command="{Binding OpenAutomationFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Aliases}" />
           </Grid>
         </Border>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
@@ -336,7 +344,7 @@
       </TabItem.Header>
       <Grid RowDefinitions="Auto,*">
         <Border Classes="mud-bar-bottom">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
             <Button Content="＋ Nowy trigger" Command="{Binding StartAddTriggerCommand}"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
@@ -346,6 +354,10 @@
             <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
                     ToolTip.Tip="Importuj trigger lub folder z pliku JSON"
                     Tag="{x:Static models:FolderKind.Triggers}" Click="Import_OnClick" />
+            <Button x:Name="OpenTriggersFolderButton" Grid.Column="3" Classes="mud-small"
+                    Content="📂 Otwórz" ToolTip.Tip="Otwórz główny folder triggerów aktywnego profilu"
+                    Command="{Binding OpenAutomationFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Triggers}" />
           </Grid>
         </Border>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
@@ -389,7 +401,7 @@
       </TabItem.Header>
       <Grid RowDefinitions="Auto,*">
         <Border Classes="mud-bar-bottom">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
             <Button Content="＋ Nowy skrypt" Command="{Binding StartAddScriptCommand}"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             <Button Grid.Column="1" Classes="mud-small" Content="📁 Folder"
@@ -397,6 +409,10 @@
                     CommandParameter="{x:Static models:FolderKind.Scripts}" />
             <Button Grid.Column="2" Classes="mud-small" Content="⇧ JSON"
                     Tag="{x:Static models:FolderKind.Scripts}" Click="Import_OnClick" />
+            <Button x:Name="OpenScriptsFolderButton" Grid.Column="3" Classes="mud-small"
+                    Content="📂 Otwórz" ToolTip.Tip="Otwórz główny folder skryptów aktywnego profilu"
+                    Command="{Binding OpenAutomationFolderCommand}"
+                    CommandParameter="{x:Static models:FolderKind.Scripts}" />
           </Grid>
         </Border>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">

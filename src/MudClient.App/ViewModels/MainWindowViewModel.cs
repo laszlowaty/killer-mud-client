@@ -353,6 +353,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         CancelCopyProfileCommand = new RelayCommand(CancelCopyProfile);
         SwitchProfileCommand = new RelayCommand(SwitchProfile, () => IsProfileSelected && !IsConnected && !IsBusy);
         DeleteProfileCommand = new RelayCommand<string>(DeleteProfile);
+        OpenAutomationFolderCommand = new RelayCommand<FolderKind>(OpenAutomationFolder);
         AddTimerCommand = new RelayCommand(AddTimer, () => !string.IsNullOrWhiteSpace(NewTimerName));
         StartAddTimerCommand = new RelayCommand(StartAddTimer);
         DeleteTimerCommand = new RelayCommand<TimerEntry>(DeleteTimer);
@@ -4517,6 +4518,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public RelayCommand CancelCopyProfileCommand { get; }
     public RelayCommand SwitchProfileCommand { get; }
     public RelayCommand<string> DeleteProfileCommand { get; }
+    public RelayCommand<FolderKind> OpenAutomationFolderCommand { get; }
+
+    private void OpenAutomationFolder(FolderKind kind)
+    {
+        if (ActiveProfileName is not { } profileName)
+        {
+            return;
+        }
+
+        try
+        {
+            var directory = _profiles.EnsureAutomationDirectory(profileName, kind);
+            _externalLinkService.Open(new Uri(Path.GetFullPath(directory)));
+        }
+        catch (Exception exception)
+        {
+            // Folder opening crosses into the platform shell; surface any OS-specific failure.
+            AddToast($"Nie udało się otworzyć folderu automatyzacji: {exception.Message}", "error");
+        }
+    }
 
     /// <summary>Name of the currently active profile, or null before one is chosen.</summary>
     public string? ActiveProfileName
