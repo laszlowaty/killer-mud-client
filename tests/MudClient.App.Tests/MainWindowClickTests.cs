@@ -279,11 +279,15 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Show(window);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
+        var idleTimeBadge = window.FindControl<Border>("IdleTimeBadge");
         var idleTime = window.FindControl<TextBlock>("IdleTimeIndicator");
 
+        Assert.NotNull(idleTimeBadge);
         Assert.NotNull(idleTime);
+        Assert.True(idleTimeBadge!.IsEffectivelyVisible);
+        Assert.True(idleTime!.IsEffectivelyVisible);
         Assert.Equal("Idle: —", idleTime!.Text);
-        Assert.Equal("Czas od ostatniej komendy wysłanej do MUD-a", ToolTip.GetTip(idleTime));
+        Assert.Equal("Czas od ostatniej komendy wysłanej do MUD-a", ToolTip.GetTip(idleTimeBadge));
     }
 
     [AvaloniaFact]

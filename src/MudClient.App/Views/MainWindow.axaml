@@ -114,12 +114,15 @@
                     Orientation="Horizontal"
                     Spacing="7"
                     VerticalAlignment="Center">
-          <TextBlock x:Name="IdleTimeIndicator"
-                     Text="{Binding IdleTimeText}"
-                     Classes="mud-caption"
-                     MinWidth="86"
-                     VerticalAlignment="Center"
-                     ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a" />
+          <Border x:Name="IdleTimeBadge"
+                  Classes="mud-status-chip"
+                  MinWidth="86"
+                  ToolTip.Tip="Czas od ostatniej komendy wysłanej do MUD-a">
+            <TextBlock x:Name="IdleTimeIndicator"
+                       Text="{Binding IdleTimeText}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Border>
           <TextBlock Text="{Binding StatusText}"
                      Classes="mud-connection-status"
                      VerticalAlignment="Center"
