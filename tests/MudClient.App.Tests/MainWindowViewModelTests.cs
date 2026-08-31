@@ -3424,7 +3424,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "998");
         var now = DateTimeOffset.UtcNow;
         typeof(MainWindowViewModel).GetField("_autowalkRoomEnteredAt",
-            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, now - TimeSpan.FromSeconds(6));
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, now - TimeSpan.FromSeconds(11));
 
         typeof(MainWindowViewModel).GetMethod("TryRecoverStalledAutowalk",
             BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [now]);
@@ -3433,6 +3433,73 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
             BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
         Assert.Contains("Idę do", _vm.AutowalkStatusText);
         Assert.Equal(now, (DateTimeOffset)typeof(MainWindowViewModel)
+            .GetField("_autowalkLastStallRetryAt", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_vm)!);
+    }
+
+    [Fact]
+    public void StallWatchdog_CombatPauseBeforeTenSeconds_DoesNotRetryStep()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("west", to)],
+            TotalCost = 1,
+        });
+        SetCurrentVnum("998");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
+        typeof(MainWindowViewModel).GetField("_autowalkPausedForCombat",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, true);
+        typeof(MainWindowViewModel).GetField("_autowalkObservedRoomVnum",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "998");
+        var now = DateTimeOffset.UtcNow;
+        typeof(MainWindowViewModel).GetField("_autowalkRoomEnteredAt",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, now - TimeSpan.FromSeconds(6));
+
+        typeof(MainWindowViewModel).GetMethod("TryRecoverStalledAutowalk",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [now]);
+
+        Assert.True((bool)typeof(MainWindowViewModel).GetField("_autowalkPausedForCombat",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
+        Assert.Equal(DateTimeOffset.MinValue, (DateTimeOffset)typeof(MainWindowViewModel)
+            .GetField("_autowalkLastStallRetryAt", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_vm)!);
+    }
+
+    [Fact]
+    public void StallWatchdog_StandingInSameRoomWithoutCombatPause_DoesNotRetryStep()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("west", to)],
+            TotalCost = 1,
+        });
+        SetCurrentVnum("998");
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "standing");
+        typeof(MainWindowViewModel).GetField("_autowalkObservedRoomVnum",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "998");
+        var now = DateTimeOffset.UtcNow;
+        typeof(MainWindowViewModel).GetField("_autowalkRoomEnteredAt",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, now - TimeSpan.FromSeconds(11));
+        typeof(MainWindowViewModel).GetProperty(nameof(MainWindowViewModel.AutowalkStatusText))!
+            .SetValue(_vm, "Oczekuję na potwierdzenie kroku.");
+
+        typeof(MainWindowViewModel).GetMethod("TryRecoverStalledAutowalk",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [now]);
+
+        Assert.Equal("Oczekuję na potwierdzenie kroku.", _vm.AutowalkStatusText);
+        Assert.Equal(DateTimeOffset.MinValue, (DateTimeOffset)typeof(MainWindowViewModel)
             .GetField("_autowalkLastStallRetryAt", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(_vm)!);
     }

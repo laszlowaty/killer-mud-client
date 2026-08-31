@@ -211,7 +211,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private DateTimeOffset _autowalkRoomEnteredAt;
     private DateTimeOffset _autowalkLastStallRetryAt;
 
-    private static readonly TimeSpan AutowalkStallTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan AutowalkStallTimeout = TimeSpan.FromSeconds(10);
 
     // Set while an active walk is on hold because a fight broke out mid-route:
     // no room change arrives during combat, so the walk must be nudged back to
@@ -3059,6 +3059,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void TryRecoverStalledAutowalk(DateTimeOffset now)
     {
         if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count ||
+            !_autowalkPausedForCombat ||
             !AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition) ||
             _autowalkRecoveringMovement || _autowalkWaitingForGate)
         {
@@ -3077,8 +3078,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _autowalkLastStallRetryAt = now;
         _autowalkPausedForCombat = false;
         _autowalkRecoveringPosition = false;
-        AutowalkStatusText = $"Brak zmiany pokoju przez 5 sekund — ponawiam krok do „{_autowalkTargetName}”.";
-        EmitSystem("Autowalk: postać stoi w tym samym pokoju od 5 sekund — ponawiam krok.", 90);
+        AutowalkStatusText = $"Brak zmiany pokoju przez 10 sekund — ponawiam krok do „{_autowalkTargetName}”.";
+        EmitSystem("Autowalk: postać stoi w tym samym pokoju od 10 sekund — ponawiam krok.", 90);
         SendAutowalkStep();
     }
 
