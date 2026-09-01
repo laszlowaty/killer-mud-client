@@ -125,6 +125,47 @@ public sealed class JavaScriptRunnerTests
             result.Effects);
     }
 
+    [Fact]
+    public async Task Execute_CommandHistory_ReturnsNewestCommandsUpToLimit()
+    {
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation(
+                "historia",
+                "script",
+                "echo(commandHistory(2).join('|'));",
+                CommandHistory: ["north", "look", "score"]),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Echo, "north|look", "cyan"),
+            Assert.Single(result.Effects));
+    }
+
+    [Fact]
+    public async Task Execute_CommandHistory_DefaultsToTenAndReturnsIndependentArray()
+    {
+        var commands = Enumerable.Range(1, 12).Select(index => $"cmd{index}").ToArray();
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation(
+                "historia",
+                "script",
+                """
+                const first = commandHistory();
+                first.shift();
+                echo(first.length + ":" + commandHistory()[0]);
+                """,
+                CommandHistory: commands),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Echo, "9:cmd1", "cyan"),
+            Assert.Single(result.Effects));
+    }
+
     [Theory]
     [InlineData("alias")]
     [InlineData("trigger")]

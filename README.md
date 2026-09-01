@@ -160,6 +160,8 @@ onGmcp("Char.Vitals", event => {
   profilu; jest dostępne w zaawansowanych aliasach, triggerach, timerach i skryptach,
 - `deleteLine()` ukrywa w terminalu bieżącą linię dopasowaną przez zaawansowany
   trigger; poza obsługą linii triggera nie zmienia terminala,
+- `commandHistory(limit = 10)` zwraca od najnowszej maksymalnie wskazaną liczbę
+  komend wpisanych w terminalu w bieżącej sesji (do 100 wpisów),
 - `echo(text, color)` wypisuje lokalny komunikat w terminalu,
 - `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
   **Konsola JavaScript**,

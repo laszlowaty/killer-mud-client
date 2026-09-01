@@ -165,6 +165,14 @@
 
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
+          <TextBlock Text="commandHistory(limit = 10)" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Zwraca tablicę komend wpisanych w terminalu, od najnowszej. Historia obejmuje bieżącą sesję i przechowuje najwyżej 100 oryginalnych wpisów; komendy wysłane przez automatyzację nie są do niej dodawane." />
+          <TextBlock FontFamily="monospace" TextWrapping="Wrap" Text="const recent = commandHistory(10);&#10;recent.forEach((command, index) =&gt; {&#10;  console.log(`${index + 1}.`, command);&#10;});" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="mud-section" Padding="12">
+        <StackPanel Spacing="6">
           <TextBlock Text="await http.get/post/put/patch/delete" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
           <TextBlock TextWrapping="Wrap" Text="Wykonuje asynchroniczny request HTTP lub HTTPS. Dostępne są http.get(url, opcje), http.post(url, body, opcje), http.put(...), http.patch(...), http.delete(url, opcje) oraz http.request(url, { method, headers, body, timeoutMs })." />
           <TextBlock FontFamily="monospace" TextWrapping="Wrap" Text="const response = await http.get(&quot;https://example.com/api&quot;);&#10;if (response.ok) {&#10;  console.log(response.json());&#10;}" />

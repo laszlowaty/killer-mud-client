@@ -295,6 +295,39 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task AdvancedAlias_CanReadTerminalCommandHistory()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            viewModel.CommandHistory.Add("north");
+            viewModel.CommandHistory.Add("look");
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "historia",
+                "alias",
+                "^historia$",
+                "echo(commandHistory(3).join('|'));",
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+            viewModel.CommandText = "historia";
+
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\u001b[36mhistoria|north|look\u001b[0m\n", output);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task Alias_CanRunNamedScriptThroughBuiltInCommand()
     {
         var (viewModel, directory) = CreateViewModel();

@@ -5484,6 +5484,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     // --- Command history ---
     private const int CommandHistoryMaxSize = 100;
+    private readonly object _commandHistoryLock = new();
     public ObservableCollection<string> CommandHistory { get; } = [];
 
     public IRelayCommand<string> ExaminePersonCommand { get; }
@@ -6383,10 +6384,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             : CommandStacker.Split(sourceCommand, CommandStackingSeparator);
 
         // Track history – record the original typed command as one entry.
-        CommandHistory.Insert(0, sourceCommand);
-        while (CommandHistory.Count > CommandHistoryMaxSize)
+        lock (_commandHistoryLock)
         {
-            CommandHistory.RemoveAt(CommandHistory.Count - 1);
+            CommandHistory.Insert(0, sourceCommand);
+            while (CommandHistory.Count > CommandHistoryMaxSize)
+            {
+                CommandHistory.RemoveAt(CommandHistory.Count - 1);
+            }
         }
 
         foreach (var segment in segments)

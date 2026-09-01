@@ -209,6 +209,7 @@ public sealed class JavaScriptRunner
                     captures = invocation.Match.Captures,
                     groups = invocation.Match.Groups,
                 },
+            commandHistory = invocation.CommandHistory ?? [],
             @event = eventContext,
         };
 
@@ -232,6 +233,16 @@ public sealed class JavaScriptRunner
         const input = __context.input;
         const match = __context.match;
         const event = __context.event;
+        const __commandHistory = Object.freeze(__context.commandHistory.slice());
+
+        function commandHistory(limit = 10) {
+            const count = Number(limit);
+            if (!Number.isFinite(count) || count < 0) {
+                throw new TypeError("Limit historii komend musi być nieujemną liczbą.");
+            }
+
+            return __commandHistory.slice(0, Math.trunc(count));
+        }
 
         const variables = Object.freeze({
             get(name, fallbackValue = null) {

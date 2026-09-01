@@ -533,6 +533,19 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="commandHistory(limit = 10)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <StackPanel Grid.Column="1" Spacing="7">
+                      <TextBlock TextWrapping="Wrap"
+                                 Text="Zwraca tablicę komend wpisanych w terminalu, od najnowszej. Historia obejmuje bieżącą sesję i przechowuje najwyżej 100 oryginalnych wpisów; komendy wysłane przez automatyzację nie są do niej dodawane." />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap"
+                                 Text="const recent = commandHistory(10);&#10;recent.forEach((command, index) =&gt; {&#10;  console.log(`${index + 1}.`, command);&#10;});" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <StackPanel Spacing="7">
                     <TextBlock Text="await http.get/post/put/patch/delete"
                                FontWeight="Bold"

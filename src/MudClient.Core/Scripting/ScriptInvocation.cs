@@ -16,4 +16,5 @@ public sealed record ScriptInvocation(
     string Code,
     string? Input = null,
     ScriptMatchContext? Match = null,
-    ScriptGmcpContext? Gmcp = null);
+    ScriptGmcpContext? Gmcp = null,
+    IReadOnlyList<string>? CommandHistory = null);

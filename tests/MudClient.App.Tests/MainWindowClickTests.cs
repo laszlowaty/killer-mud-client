@@ -245,6 +245,7 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.Contains("send(tekst)", scriptingTexts);
         Assert.Contains("echo(tekst, kolor)", scriptingTexts);
         Assert.Contains("reconnect()", scriptingTexts);
+        Assert.Contains("commandHistory(limit = 10)", scriptingTexts);
         Assert.Contains("await http.get/post/put/patch/delete", scriptingTexts);
         Assert.Contains("Konsola JavaScript", scriptingTexts);
         Assert.Contains("Zmienne profilu", scriptingTexts);
@@ -264,6 +265,10 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.Contains(
             scriptingTexts,
             text => text?.Contains("onGmcp(\"*\"", StringComparison.Ordinal) == true);
+        Assert.Contains(
+            scriptingTexts,
+            text => text?.Contains("const recent = commandHistory(10)", StringComparison.Ordinal)
+                == true);
         Assert.Contains(
             scriptingTexts,
             text => text?.Contains("nie ma synchronicznego getGmcp()", StringComparison.Ordinal)

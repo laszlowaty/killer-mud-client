@@ -571,6 +571,7 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
+        invocation = invocation with { CommandHistory = SnapshotCommandHistory() };
         var result = await Task.Run(
             async () => await _javaScriptRunner.ExecuteAsync(
                     invocation,
@@ -630,6 +631,14 @@ public sealed partial class MainWindowViewModel
         }
 
         return deleteLine;
+    }
+
+    private IReadOnlyList<string> SnapshotCommandHistory()
+    {
+        lock (_commandHistoryLock)
+        {
+            return CommandHistory.ToArray();
+        }
     }
 
     private void ScheduleReconnect()
