@@ -40,7 +40,9 @@ public sealed class ProfileService : IDisposable
 
     private readonly string _directory;
     private readonly object _watcherLock = new();
+    private readonly object _fingerprintLock = new();
     private readonly HashSet<string> _pendingWatcherPaths = new(PathComparer);
+    private readonly Dictionary<string, CachedFileFingerprint> _fingerprintCache = new(PathComparer);
     private FileSystemWatcher? _watcher;
     private CancellationTokenSource? _watcherDebounceCancellation;
     private bool _watcherRequiresFullReload;
@@ -223,7 +225,9 @@ public sealed class ProfileService : IDisposable
         ArgumentNullException.ThrowIfNull(profile);
         SaveProfileMetadata(profile, GetProfileDirectory(profile.Name));
         DeleteDurableFile(GetLegacyPath(profile.Name));
-        RecordOwnChanges();
+        // Runtime state can be saved while an external editor change is still inside the
+        // watcher debounce window. Do not absorb unreported automation content here.
+        RecordOwnChanges(preserveAutomationSnapshot: true);
     }
 
     private static void SaveProfileMetadata(ProfileData profile, string profileDirectory)
@@ -280,7 +284,7 @@ public sealed class ProfileService : IDisposable
             Path.Combine(_directory, ProfileOrderFileName + ".json"),
             new ProfileOrderData { Names = names.ToList() },
             SerializerOptions);
-        RecordOwnChanges();
+        RecordOwnChanges(preserveAutomationSnapshot: true);
     }
 
     public GlobalData LoadGlobal()
@@ -909,16 +913,29 @@ public sealed class ProfileService : IDisposable
         try
         {
             await Task.Delay(WatcherDebounce, cancellationToken).ConfigureAwait(false);
-            var fingerprint = CalculateFingerprint();
+            string[] changedPaths;
+            bool requiresFullReload;
+            lock (_watcherLock)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                changedPaths = _pendingWatcherPaths
+                    .OrderBy(path => path, PathComparer)
+                    .ToArray();
+                requiresFullReload = _watcherRequiresFullReload;
+            }
+
+            // Some editors preserve both file size and last-write time when replacing a file.
+            // Re-hash paths reported by the watcher so those content-only changes are not lost.
+            var fingerprint = CalculateFingerprint(changedPaths.ToHashSet(PathComparer));
             ProfileStorageChangedEventArgs changes;
             lock (_watcherLock)
             {
-                changes = new ProfileStorageChangedEventArgs(
-                    _pendingWatcherPaths.OrderBy(path => path, PathComparer).ToArray(),
-                    _watcherRequiresFullReload);
+                cancellationToken.ThrowIfCancellationRequested();
+                changes = new ProfileStorageChangedEventArgs(changedPaths, requiresFullReload);
                 _pendingWatcherPaths.Clear();
                 _watcherRequiresFullReload = false;
-                if (_disposed || string.Equals(fingerprint, _knownFingerprint, StringComparison.Ordinal))
+                if (_disposed || (!requiresFullReload
+                    && string.Equals(fingerprint, _knownFingerprint, StringComparison.Ordinal)))
                 {
                     return;
                 }
@@ -938,13 +955,14 @@ public sealed class ProfileService : IDisposable
         }
     }
 
-    private void RecordOwnChanges()
+    private void RecordOwnChanges(bool preserveAutomationSnapshot = false)
     {
         lock (_watcherLock)
         {
             if (_watcher is not null)
             {
-                _knownFingerprint = CalculateFingerprint();
+                _knownFingerprint = CalculateFingerprint(
+                    preserveAutomationSnapshot: preserveAutomationSnapshot);
             }
         }
     }
@@ -966,34 +984,108 @@ public sealed class ProfileService : IDisposable
         return string.Equals(topLevelDirectory, directoryName, PathComparison);
     }
 
-    private string CalculateFingerprint()
+    private string CalculateFingerprint(
+        IReadOnlySet<string>? forceContentRefresh = null,
+        bool preserveAutomationSnapshot = false)
     {
-        if (!Directory.Exists(_directory))
+        lock (_fingerprintLock)
         {
-            return string.Empty;
-        }
-
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (var path in Directory.EnumerateFiles(_directory, "*", SearchOption.AllDirectories)
-                     .Where(path => !Path.GetFileName(path).Contains(".tmp-", StringComparison.Ordinal))
-                     .OrderBy(path => path, PathComparer))
-        {
-            var relativePath = Path.GetRelativePath(_directory, path).Replace('\\', '/');
-            hash.AppendData(Encoding.UTF8.GetBytes(relativePath));
-            try
+            if (!Directory.Exists(_directory))
             {
+                _fingerprintCache.Clear();
+                return string.Empty;
+            }
+
+            var existingPaths = new HashSet<string>(PathComparer);
+            var snapshot = new Dictionary<string, CachedFileFingerprint>(PathComparer);
+            foreach (var path in Directory.EnumerateFiles(_directory, "*", SearchOption.AllDirectories)
+                         .Where(path => !Path.GetFileName(path).Contains(".tmp-", StringComparison.Ordinal))
+                         .OrderBy(path => path, PathComparer))
+            {
+                var relativePath = Path.GetRelativePath(_directory, path).Replace('\\', '/');
+                existingPaths.Add(relativePath);
+
+                if (preserveAutomationSnapshot && IsAutomationStoragePath(relativePath))
+                {
+                    if (_fingerprintCache.TryGetValue(relativePath, out var preserved))
+                    {
+                        snapshot[relativePath] = preserved;
+                    }
+
+                    // A new automation file remains absent from the known snapshot until its
+                    // watcher event is processed. This is intentional.
+                    continue;
+                }
+
                 var info = new FileInfo(path);
-                hash.AppendData(BitConverter.GetBytes(info.Length));
-                hash.AppendData(BitConverter.GetBytes(info.LastWriteTimeUtc.Ticks));
-            }
-            catch (IOException)
-            {
-                // An editor may be between atomic rename steps; the next event retries.
-            }
-        }
+                var length = info.Length;
+                var lastWriteTicks = info.LastWriteTimeUtc.Ticks;
+                var refreshContent = forceContentRefresh?.Contains(relativePath) == true;
+                if (!_fingerprintCache.TryGetValue(relativePath, out var cached)
+                    || cached.Length != length
+                    || cached.LastWriteTicks != lastWriteTicks
+                    || refreshContent)
+                {
+                    cached = new CachedFileFingerprint(
+                        length,
+                        lastWriteTicks,
+                        CalculateFileContentHash(path));
+                    _fingerprintCache[relativePath] = cached;
+                }
 
-        return Convert.ToHexString(hash.GetHashAndReset());
+                snapshot[relativePath] = cached;
+            }
+
+            foreach (var stalePath in _fingerprintCache.Keys.Where(path => !existingPaths.Contains(path)).ToList())
+            {
+                if (preserveAutomationSnapshot && IsAutomationStoragePath(stalePath))
+                {
+                    // A deleted automation file must likewise remain in the known snapshot
+                    // until the watcher reports its deletion.
+                    snapshot[stalePath] = _fingerprintCache[stalePath];
+                    continue;
+                }
+
+                _fingerprintCache.Remove(stalePath);
+            }
+
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (var (relativePath, file) in snapshot.OrderBy(pair => pair.Key, PathComparer))
+            {
+                hash.AppendData(Encoding.UTF8.GetBytes(relativePath));
+                hash.AppendData(BitConverter.GetBytes(file.Length));
+                hash.AppendData(BitConverter.GetBytes(file.LastWriteTicks));
+                hash.AppendData(file.ContentHash);
+            }
+
+            return Convert.ToHexString(hash.GetHashAndReset());
+        }
     }
+
+    private static bool IsAutomationStoragePath(string relativePath)
+    {
+        var segments = relativePath.Split('/');
+        return segments.Length > 2 && (
+            string.Equals(segments[1], "Aliases", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(segments[1], "Triggers", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(segments[1], "Timers", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(segments[1], "Scripts", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static byte[] CalculateFileContentHash(string path)
+    {
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+        return SHA256.HashData(stream);
+    }
+
+    private sealed record CachedFileFingerprint(
+        long Length,
+        long LastWriteTicks,
+        byte[] ContentHash);
 
     public void Dispose()
     {

@@ -736,6 +736,73 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Watcher_DetectsExternalEditWithUnchangedLengthAndTimestamp()
+    {
+        using var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "TenSamFingerprint",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        });
+        service.StartWatching();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
+
+        var path = Path.Combine(_directory, "TenSamFingerprint", "Aliases", "l.json");
+        var originalLength = new FileInfo(path).Length;
+        var originalTimestamp = File.GetLastWriteTimeUtc(path);
+        var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
+        rule.Action = "exam";
+        File.WriteAllText(path, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
+        File.SetLastWriteTimeUtc(path, originalTimestamp);
+
+        Assert.Equal(originalLength, new FileInfo(path).Length);
+        Assert.Equal(originalTimestamp, File.GetLastWriteTimeUtc(path));
+        var changes = await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        Assert.Contains("TenSamFingerprint/Aliases/l.json", changes.RelativePaths);
+        Assert.Equal("exam", Assert.Single(service.Load("TenSamFingerprint")!.Rules).Action);
+    }
+
+    [Fact]
+    public async Task Watcher_DoesNotLoseExternalAutomationEditDuringStateSave()
+    {
+        using var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "StanPodczasZmiany",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        };
+        service.Save(profile);
+        service.StartWatching();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) =>
+        {
+            if (changes.RelativePaths.Contains(
+                "StanPodczasZmiany/Aliases/l.json",
+                StringComparer.OrdinalIgnoreCase))
+            {
+                changed.TrySetResult(changes);
+            }
+        };
+
+        var path = Path.Combine(_directory, "StanPodczasZmiany", "Aliases", "l.json");
+        var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
+        rule.Action = "examine";
+        File.WriteAllText(path, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
+
+        profile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        service.SaveState(profile);
+
+        await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal("examine", Assert.Single(service.Load("StanPodczasZmiany")!.Rules).Action);
+    }
+
+    [Fact]
     public async Task Watcher_RaisesChangeForExternallyEditedJavaScriptFile()
     {
         using var service = CreateService();
@@ -1038,16 +1105,21 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("echo('look');", Assert.Single(vm.AliasRules).Action);
 
         var path = Path.Combine(_directory, "Watcher", "Aliases", "l.js");
+        var originalLength = new FileInfo(path).Length;
+        var originalTimestamp = File.GetLastWriteTimeUtc(path);
         var lines = File.ReadAllLines(path);
-        File.WriteAllText(path, lines[0] + Environment.NewLine + "echo('examine');");
+        File.WriteAllText(path, lines[0] + Environment.NewLine + "echo('exam');");
+        File.SetLastWriteTimeUtc(path, originalTimestamp);
+        Assert.Equal(originalLength, new FileInfo(path).Length);
+        Assert.Equal(originalTimestamp, File.GetLastWriteTimeUtc(path));
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (DateTime.UtcNow < deadline && vm.AliasRules.Single().Action != "echo('examine');")
+        while (DateTime.UtcNow < deadline && vm.AliasRules.Single().Action != "echo('exam');")
         {
             await Task.Delay(25, TestContext.Current.CancellationToken);
         }
 
-        Assert.Equal("echo('examine');", Assert.Single(vm.AliasRules).Action);
+        Assert.Equal("echo('exam');", Assert.Single(vm.AliasRules).Action);
         Assert.Equal(1, activationCount);
         Assert.Empty(vm.Toasts);
     }
