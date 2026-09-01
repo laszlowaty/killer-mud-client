@@ -5,7 +5,8 @@ namespace MudClient.App.Models;
 
 /// <summary>
 /// A named, per-profile collection of buffs. Only the selected set is shown
-/// and used by /recast, while every set keeps its live GMCP status.
+/// and used by /recast without an argument, while every set keeps its live GMCP status
+/// and can be recast directly with /recast &lt;set name&gt;.
 /// </summary>
 public sealed partial class BuffSetEntry : ObservableObject
 {

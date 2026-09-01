@@ -227,7 +227,7 @@ public sealed class MainWindowClickTests : IAsyncDisposable
         Assert.Contains("/idz vnum <vnum>", helpTexts);
         Assert.Contains("/idz_dodaj <nazwa>", helpTexts);
         Assert.Contains("/stop", helpTexts);
-        Assert.Contains("/recast", helpTexts);
+        Assert.Contains("/recast [nazwa zestawu]", helpTexts);
         Assert.Contains("/script <nazwa>", helpTexts);
         Assert.Contains("/map <komenda>", helpTexts);
         Assert.Contains("/map show <vnum>", helpTexts);

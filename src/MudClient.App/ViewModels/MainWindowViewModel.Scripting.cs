@@ -923,7 +923,31 @@ public sealed partial class MainWindowViewModel
 
         if (string.Equals(command, "/recast", StringComparison.OrdinalIgnoreCase))
         {
-            await RecastMissingBuffsAsync();
+            await RecastMissingBuffsAsync(SelectedBuffSet, cancellationToken);
+            return true;
+        }
+
+        const string recastPrefix = "/recast";
+        if (command.Length > recastPrefix.Length
+            && command.StartsWith(recastPrefix, StringComparison.OrdinalIgnoreCase)
+            && char.IsWhiteSpace(command[recastPrefix.Length]))
+        {
+            var setName = command[recastPrefix.Length..].Trim();
+            if (setName.Length == 0)
+            {
+                await RecastMissingBuffsAsync(SelectedBuffSet, cancellationToken);
+                return true;
+            }
+
+            var set = BuffSets.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, setName, StringComparison.OrdinalIgnoreCase));
+            if (set is null)
+            {
+                EmitSystem($"Nie znaleziono zestawu buffów „{setName}”.", 31);
+                return true;
+            }
+
+            await RecastMissingBuffsAsync(set, cancellationToken);
             return true;
         }
 

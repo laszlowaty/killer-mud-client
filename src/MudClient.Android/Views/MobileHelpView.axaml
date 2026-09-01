@@ -54,8 +54,8 @@
 
       <Border Classes="mud-section" Padding="12">
         <StackPanel Spacing="6">
-          <TextBlock Text="/recast" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
-          <TextBlock TextWrapping="Wrap" Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów na postać." />
+          <TextBlock Text="/recast [nazwa zestawu]" FontWeight="Bold" Foreground="{StaticResource MudBrushGoldBright}" />
+          <TextBlock TextWrapping="Wrap" Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów. Podanie nazwy rzuca brakujące czary z wybranego zestawu bez przełączania go, np. /recast smok." />
         </StackPanel>
       </Border>
 

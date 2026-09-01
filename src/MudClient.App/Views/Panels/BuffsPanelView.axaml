@@ -78,7 +78,7 @@
               Classes="mud-small"
               HorizontalAlignment="Stretch"
               HorizontalContentAlignment="Center"
-              ToolTip.Tip="/recast działa na aktualnie wybranym zestawie"
+              ToolTip.Tip="/recast działa na aktualnym zestawie; /recast &lt;nazwa zestawu&gt; na wskazanym"
               Command="{Binding RecastBuffsCommand}" />
     </StackPanel>
 

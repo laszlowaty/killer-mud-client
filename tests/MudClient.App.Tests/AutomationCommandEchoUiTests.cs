@@ -8,6 +8,7 @@ using MudClient.App.Services;
 using MudClient.App.ViewModels;
 using MudClient.Core.Automation;
 using MudClient.Core.Gmcp;
+using MudClient.Core.Networking;
 using MudClient.Core.Scripting;
 
 namespace MudClient.App.Tests;
@@ -680,6 +681,82 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task RecastNamedSet_SendsOnlyMissingBuffsWithoutChangingSelection()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var (viewModel, directory) = CreateViewModel();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        TcpClient? client = null;
+
+        try
+        {
+            viewModel.Host = IPAddress.Loopback.ToString();
+            viewModel.Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var accept = listener.AcceptTcpClientAsync(timeout.Token);
+            await viewModel.ConnectCommand.ExecuteAsync(null);
+            client = await accept;
+
+            var selectedSet = Assert.IsType<BuffSetEntry>(viewModel.SelectedBuffSet);
+            viewModel.NewBuffName = "armor";
+            viewModel.AddBuffCommand.Execute(null);
+
+            viewModel.NewBuffSetName = "Smok";
+            viewModel.CreateBuffSetCommand.Execute(null);
+            viewModel.NewBuffName = "smocza siła";
+            viewModel.AddBuffCommand.Execute(null);
+            viewModel.NewBuffName = "latanie";
+            viewModel.AddBuffCommand.Execute(null);
+            InvokeAffectsChanged(
+                viewModel,
+                [new CharacterAffect("latanie", string.Empty, false, false, null)]);
+            Dispatcher.UIThread.RunJobs();
+
+            viewModel.SelectedBuffSet = selectedSet;
+            var sentCommands = new List<string>();
+            GetSession(viewModel).CommandSent += sentCommands.Add;
+
+            viewModel.CommandText = "/recast smok";
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+
+            Assert.Equal(["cast \"smocza siła\" self"], sentCommands);
+            Assert.Same(selectedSet, viewModel.SelectedBuffSet);
+        }
+        finally
+        {
+            client?.Dispose();
+            listener.Stop();
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task RecastUnknownSet_IsHandledByClientAndReportsItsName()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            viewModel.CommandText = "/recast Behemot";
+
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+
+            Assert.Contains(
+                output,
+                line => line.Contains(
+                    "Nie znaleziono zestawu buffów „Behemot”.",
+                    StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ScriptVariableBurst_QueuesSingleUiRefresh()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -761,6 +838,15 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
         return Assert.IsType<ProfileScriptVariableStore>(field!.GetValue(viewModel));
+    }
+
+    private static MudSession GetSession(MainWindowViewModel viewModel)
+    {
+        var field = typeof(MainWindowViewModel).GetField(
+            "_session",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return Assert.IsType<MudSession>(field!.GetValue(viewModel));
     }
 
     private static void InvokeSyncTimer(MainWindowViewModel viewModel, TimerEntry timer)

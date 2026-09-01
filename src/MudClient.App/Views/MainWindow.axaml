@@ -384,10 +384,10 @@
 
                 <Border Classes="mud-section" Padding="14">
                   <Grid ColumnDefinitions="150,*" ColumnSpacing="18">
-                    <TextBlock Grid.Column="0" Text="/recast" FontWeight="Bold"
+                    <TextBlock Grid.Column="0" Text="/recast [nazwa zestawu]" FontWeight="Bold"
                                Foreground="{StaticResource MudBrushGoldBright}" />
                     <TextBlock Grid.Column="1" TextWrapping="Wrap"
-                               Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów na postać." />
+                               Text="Ponownie rzuca wszystkie brakujące czary z aktywnego zestawu buffów. Podanie nazwy rzuca brakujące czary z wybranego zestawu bez przełączania go, np. /recast smok." />
                   </Grid>
                 </Border>
 

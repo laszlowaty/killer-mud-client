@@ -4188,7 +4188,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Named buff sets persisted per profile.</summary>
     public ObservableCollection<BuffSetEntry> BuffSets { get; } = [];
 
-    /// <summary>The set displayed in the widget and used by /recast.</summary>
+    /// <summary>The set displayed in the widget and used by /recast without an argument.</summary>
     public BuffSetEntry? SelectedBuffSet
     {
         get => _selectedBuffSet;
@@ -4424,9 +4424,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     /// <summary>
     /// Sends "cast &quot;nazwa&quot; self" for every required buff missing from
-    /// the latest Char.Affects. Bound to the RECAST button and the /recast command.
+    /// the latest Char.Affects in the selected set. Bound to the RECAST button
+    /// and the /recast command without an argument.
     /// </summary>
-    private async Task RecastMissingBuffsAsync()
+    private Task RecastMissingBuffsAsync() =>
+        RecastMissingBuffsAsync(SelectedBuffSet, CancellationToken.None);
+
+    /// <summary>
+    /// Recasts missing buffs from the supplied set without changing the set selected in the UI.
+    /// </summary>
+    private async Task RecastMissingBuffsAsync(
+        BuffSetEntry? set,
+        CancellationToken cancellationToken)
     {
         if (!IsConnected)
         {
@@ -4434,7 +4443,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        var missing = RequiredBuffs.Where(b => !b.IsActive).ToList();
+        var missing = set?.Buffs.Where(b => !b.IsActive).ToList() ?? [];
         if (missing.Count == 0)
         {
             AddToast("Wszystkie wymagane buffy są aktywne.", "info");
@@ -4443,7 +4452,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         foreach (var buff in missing)
         {
-            await SendTriggeredCommandAsync($"cast \"{buff.Name}\" self");
+            cancellationToken.ThrowIfCancellationRequested();
+            await SendTriggeredCommandAsync($"cast \"{buff.Name}\" self", cancellationToken);
         }
     }
 
