@@ -720,15 +720,18 @@ public sealed class ProfileTests : IDisposable
             Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
         });
         service.StartWatching();
-        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        service.StorageChanged += (_, _) => changed.TrySetResult();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
 
         var path = Path.Combine(_directory, "Obserwowany", "Aliases", "l.json");
         var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
         rule.Action = "examine";
         File.WriteAllText(path, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
 
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var changes = await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Contains("Obserwowany/Aliases/l.json", changes.RelativePaths);
         Assert.Equal("examine", Assert.Single(service.Load("Obserwowany")!.Rules).Action);
     }
 
@@ -749,14 +752,17 @@ public sealed class ProfileTests : IDisposable
             }],
         });
         service.StartWatching();
-        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        service.StorageChanged += (_, _) => changed.TrySetResult();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
 
         var path = Path.Combine(_directory, "ObserwowanyJs", "Triggers", "js.js");
         var lines = File.ReadAllLines(path);
         File.WriteAllText(path, lines[0] + Environment.NewLine + "echo('po');");
 
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var changes = await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Contains("ObserwowanyJs/Triggers/js.js", changes.RelativePaths);
         var trigger = Assert.Single(service.Load("ObserwowanyJs")!.Rules);
         Assert.True(trigger.IsAdvanced);
         Assert.Equal("echo('po');", trigger.Action);
@@ -1024,8 +1030,11 @@ public sealed class ProfileTests : IDisposable
             }],
         });
         await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        var activationCount = 0;
+        vm.ProfileActivated += _ => activationCount++;
         vm.SelectedProfileName = "Watcher";
         vm.SelectProfileCommand.Execute(null);
+        vm.Toasts.Clear();
         Assert.Equal("echo('look');", Assert.Single(vm.AliasRules).Action);
 
         var path = Path.Combine(_directory, "Watcher", "Aliases", "l.js");
@@ -1039,6 +1048,44 @@ public sealed class ProfileTests : IDisposable
         }
 
         Assert.Equal("echo('examine');", Assert.Single(vm.AliasRules).Action);
+        Assert.Equal(1, activationCount);
+        Assert.Empty(vm.Toasts);
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_DoesNotReloadActiveProfileWhenAnotherProfileChanges()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Pierwszy",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        });
+        service.Save(new ProfileData { Name = "Drugi" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Pierwszy";
+        vm.SelectProfileCommand.Execute(null);
+        var originalAlias = Assert.Single(vm.AliasRules);
+        vm.Toasts.Clear();
+
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
+        using var secondClient = CreateService();
+        var secondProfile = Assert.IsType<ProfileData>(secondClient.Load("Drugi"));
+        secondProfile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        secondClient.SaveState(secondProfile);
+
+        var changes = await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.True(service.StorageChangeAffectsProfile(changes, "Drugi"));
+        Assert.False(service.StorageChangeAffectsProfile(changes, "Pierwszy"));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(originalAlias, Assert.Single(vm.AliasRules));
+        Assert.Equal("Pierwszy", vm.ActiveProfileName);
+        Assert.Empty(vm.Toasts);
     }
 
     [Fact]

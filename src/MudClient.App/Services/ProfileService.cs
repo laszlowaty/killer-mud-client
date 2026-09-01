@@ -5,6 +5,14 @@ using MudClient.App.Models;
 
 namespace MudClient.App.Services;
 
+public sealed class ProfileStorageChangedEventArgs(
+    IReadOnlyList<string> relativePaths,
+    bool requiresFullReload) : EventArgs
+{
+    public IReadOnlyList<string> RelativePaths { get; } = relativePaths;
+    public bool RequiresFullReload { get; } = requiresFullReload;
+}
+
 /// <summary>
 /// Stores every profile in its own directory. Automation folders are real file-system
 /// directories and every alias, trigger, timer, script, note and autowalk target is a
@@ -32,8 +40,10 @@ public sealed class ProfileService : IDisposable
 
     private readonly string _directory;
     private readonly object _watcherLock = new();
+    private readonly HashSet<string> _pendingWatcherPaths = new(PathComparer);
     private FileSystemWatcher? _watcher;
     private CancellationTokenSource? _watcherDebounceCancellation;
+    private bool _watcherRequiresFullReload;
     private string _knownFingerprint = string.Empty;
     private bool _disposed;
 
@@ -46,7 +56,7 @@ public sealed class ProfileService : IDisposable
     }
 
     /// <summary>Raised after files changed outside this service and the change settled.</summary>
-    public event EventHandler? StorageChanged;
+    public event EventHandler<ProfileStorageChangedEventArgs>? StorageChanged;
 
     /// <summary>
     /// Starts recursive file monitoring. Kept explicit so short-lived command-line and test
@@ -137,6 +147,22 @@ public sealed class ProfileService : IDisposable
         var directory = Path.Combine(GetProfileDirectory(profileName), KindDirectoryName(kind));
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    public bool StorageChangeAffectsProfile(ProfileStorageChangedEventArgs changes, string profileName)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileName);
+        var directoryName = Path.GetFileName(GetProfileDirectory(profileName));
+        return changes.RequiresFullReload || changes.RelativePaths.Any(path =>
+            HasTopLevelDirectory(path, directoryName));
+    }
+
+    public bool StorageChangeAffectsGlobal(ProfileStorageChangedEventArgs changes)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        return changes.RequiresFullReload || changes.RelativePaths.Any(path =>
+            HasTopLevelDirectory(path, GlobalName));
     }
 
     public void Delete(string name)
@@ -842,17 +868,21 @@ public sealed class ProfileService : IDisposable
 
     private void OnWatcherChanged(object sender, FileSystemEventArgs eventArgs)
     {
-        ScheduleWatcherNotification();
+        ScheduleWatcherNotification(eventArgs.FullPath);
+        if (eventArgs is RenamedEventArgs renamedEventArgs)
+        {
+            ScheduleWatcherNotification(renamedEventArgs.OldFullPath);
+        }
     }
 
     private void OnWatcherError(object sender, ErrorEventArgs eventArgs)
     {
         // A buffer overflow means individual events may have been lost. A full reload after
         // the debounce window is safer than attempting to infer which profile changed.
-        ScheduleWatcherNotification();
+        ScheduleWatcherNotification(requiresFullReload: true);
     }
 
-    private void ScheduleWatcherNotification()
+    private void ScheduleWatcherNotification(string? path = null, bool requiresFullReload = false)
     {
         lock (_watcherLock)
         {
@@ -861,6 +891,12 @@ public sealed class ProfileService : IDisposable
                 return;
             }
 
+            if (path is not null && TryGetRelativeStoragePath(path, out var relativePath))
+            {
+                _pendingWatcherPaths.Add(relativePath);
+            }
+
+            _watcherRequiresFullReload |= requiresFullReload;
             _watcherDebounceCancellation?.Cancel();
             _watcherDebounceCancellation?.Dispose();
             _watcherDebounceCancellation = new CancellationTokenSource();
@@ -874,8 +910,14 @@ public sealed class ProfileService : IDisposable
         {
             await Task.Delay(WatcherDebounce, cancellationToken).ConfigureAwait(false);
             var fingerprint = CalculateFingerprint();
+            ProfileStorageChangedEventArgs changes;
             lock (_watcherLock)
             {
+                changes = new ProfileStorageChangedEventArgs(
+                    _pendingWatcherPaths.OrderBy(path => path, PathComparer).ToArray(),
+                    _watcherRequiresFullReload);
+                _pendingWatcherPaths.Clear();
+                _watcherRequiresFullReload = false;
                 if (_disposed || string.Equals(fingerprint, _knownFingerprint, StringComparison.Ordinal))
                 {
                     return;
@@ -884,7 +926,7 @@ public sealed class ProfileService : IDisposable
                 _knownFingerprint = fingerprint;
             }
 
-            StorageChanged?.Invoke(this, EventArgs.Empty);
+            StorageChanged?.Invoke(this, changes);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -905,6 +947,23 @@ public sealed class ProfileService : IDisposable
                 _knownFingerprint = CalculateFingerprint();
             }
         }
+    }
+
+    private bool TryGetRelativeStoragePath(string path, out string relativePath)
+    {
+        relativePath = Path.GetRelativePath(_directory, path).Replace('\\', '/');
+        return !Path.IsPathRooted(relativePath)
+            && !relativePath.Equals("..", StringComparison.Ordinal)
+            && !relativePath.StartsWith("../", StringComparison.Ordinal);
+    }
+
+    private static bool HasTopLevelDirectory(string relativePath, string directoryName)
+    {
+        var separatorIndex = relativePath.IndexOf('/');
+        var topLevelDirectory = separatorIndex < 0
+            ? relativePath
+            : relativePath[..separatorIndex];
+        return string.Equals(topLevelDirectory, directoryName, PathComparison);
     }
 
     private string CalculateFingerprint()

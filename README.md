@@ -370,6 +370,8 @@ aplikacji są prawdziwymi podkatalogami; przeniesienie albo edycja pliku na dysk
 wykrywana i przeładowywana bez restartu. Wspólne automaty mają taki sam układ w
 `Profiles/_global`. Przy pierwszym uruchomieniu stare pliki `Profiles/<nazwa>.json`
 i `Profiles/_global.json` są automatycznie migrowane po udanym odczycie.
+Przy wielu uruchomionych klientach zmiana jednego profilu nie przeładowuje aktywnego
+profilu w pozostałych instancjach; zmiany `_global` nadal trafiają do każdej z nich.
 Paski kategorii aliasów, triggerów, timerów i skryptów mają przycisk otwierający
 ich główny folder aktywnego profilu w eksploratorze systemowym.
 

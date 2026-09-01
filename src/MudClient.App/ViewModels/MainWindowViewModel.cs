@@ -4963,7 +4963,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _activeProfileNeedsRegistration = false;
     }
 
-    private void ActivateProfile(ProfileData profile)
+    private void ActivateProfile(ProfileData profile, bool notifyActivation = true)
     {
         StopAutowalk("Autowalk zatrzymany (zmiana konta).");
 
@@ -5110,8 +5110,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyAutomation();
         CancelAllTimers();
         SyncAllTimers();
-        AddToast($"Konto „{profile.Name}” aktywne.", "info");
-        ProfileActivated?.Invoke(profile.Name);
+        if (notifyActivation)
+        {
+            AddToast($"Konto „{profile.Name}” aktywne.", "info");
+            ProfileActivated?.Invoke(profile.Name);
+        }
     }
 
     private static string ResolveProfileLogin(ProfileData profile) =>
@@ -5388,12 +5391,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
-    private void OnProfileStorageChanged(object? sender, EventArgs eventArgs)
+    private void OnProfileStorageChanged(object? sender, ProfileStorageChangedEventArgs eventArgs)
     {
-        Dispatcher.UIThread.Post(ReloadProfileStorage);
+        Dispatcher.UIThread.Post(() => ReloadProfileStorage(eventArgs));
     }
 
-    private void ReloadProfileStorage()
+    private void ReloadProfileStorage(ProfileStorageChangedEventArgs changes)
     {
         var names = _profiles.ListProfileNames();
         AvailableProfiles.Clear();
@@ -5404,13 +5407,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         if (ActiveProfileName is { } activeName)
         {
+            if (!_profiles.StorageChangeAffectsProfile(changes, activeName)
+                && !_profiles.StorageChangeAffectsGlobal(changes))
+            {
+                return;
+            }
+
             var profile = _profiles.Load(activeName);
             if (profile is not null)
             {
-                ActivateProfile(profile);
-                AddToast("Przeładowano zmiany profilu z dysku.", "info");
+                // A disk refresh is not a user profile selection: do not reconnect or emit
+                // activation/reload notifications for every external file-system write.
+                ActivateProfile(profile, notifyActivation: false);
             }
 
+            return;
+        }
+
+        if (!_profiles.StorageChangeAffectsGlobal(changes))
+        {
             return;
         }
 
@@ -5426,7 +5441,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyAutomation();
         CancelAllTimers();
         SyncAllTimers();
-        AddToast("Przeładowano globalne automaty z dysku.", "info");
     }
 
     /// <summary>
