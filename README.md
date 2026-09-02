@@ -163,6 +163,10 @@ onGmcp("Char.Vitals", event => {
   trigger; poza obsługą linii triggera nie zmienia terminala,
 - `commandHistory(limit = 10)` zwraca od najnowszej maksymalnie wskazaną liczbę
   komend wpisanych w terminalu w bieżącej sesji (do 100 wpisów),
+- `chatHistory(limit = 20)` zwraca ostatnie wiadomości z widżetu **Czat** w
+  kolejności czytania jako obiekty `{ id, text }`; `id` jest unikalnym UUID
+  stabilnym przez całą sesję, a `text` nie zawiera kodów ANSI ani końcowego
+  znaku nowej linii (do 500 wiadomości z bieżącej sesji),
 - `echo(text, color)` wypisuje lokalny komunikat w terminalu,
 - `log(...values)` oraz `console.log/warn/error(...)` zapisują wpis w widżecie
   **Konsola JavaScript**,

@@ -16,9 +16,13 @@ public static partial class ChatLineClassifier
             return false;
         }
 
-        var plainText = AnsiSequenceRegex().Replace(line, string.Empty);
+        var plainText = ToPlainText(line);
         return ChatLineRegex().IsMatch(plainText);
     }
+
+    /// <summary>Removes terminal formatting from a chat line while preserving its text.</summary>
+    public static string ToPlainText(string line) =>
+        AnsiSequenceRegex().Replace(line ?? string.Empty, string.Empty);
 
     [GeneratedRegex(
         @"^((\w+) (m[oó]wi|nuci|dudni|grzmi|piszczy|warczy|miauczy|szczeka|ryczy|syczy|[sś]piewa|zawodzi|wydaje d[zź]wi[ęe]k|pieje|skrzeczy).*'(.+)'|(\w+) (pyta|nuci|dudni|piszczy|warczy|miauczy|szczeka|ryczy|syczy|[sś]piewa|pieje|skrzeczy).*'(.+)'|()(M[oó]wisz|Nucisz|Dudnisz|Grzmisz|Piszczysz|Warczysz|Miauczysz|Szczekasz|Ryczysz|Syczysz|[ŚS]piewasz|Zawodzisz|Wydajesz d[zź]wi[eę]k|Piejesz|[ŚS]piewasz).*'(.+)'|()Pytasz.*'(.+)'|()Wykrzykujesz.*'(.+)'|()Krzyczysz '(.+)'|()Wrzeszczysz '(.+)'|(\w+) wrzeszczy '(.+)'|(\w+) krzyczy.*'(.+)'|(\w+) wykrzykuje.*'(.+)'|\[(\w+)\]:\s(.+))$",

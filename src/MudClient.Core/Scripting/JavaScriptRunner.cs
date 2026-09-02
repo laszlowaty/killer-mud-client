@@ -210,6 +210,11 @@ public sealed class JavaScriptRunner
                     groups = invocation.Match.Groups,
                 },
             commandHistory = invocation.CommandHistory ?? [],
+            chatHistory = invocation.ChatHistory?.Select(message => new
+            {
+                id = message.Id,
+                text = message.Text,
+            }) ?? [],
             @event = eventContext,
         };
 
@@ -234,6 +239,7 @@ public sealed class JavaScriptRunner
         const match = __context.match;
         const event = __context.event;
         const __commandHistory = Object.freeze(__context.commandHistory.slice());
+        const __chatHistory = Object.freeze(__context.chatHistory.slice());
 
         function commandHistory(limit = 10) {
             const count = Number(limit);
@@ -242,6 +248,22 @@ public sealed class JavaScriptRunner
             }
 
             return __commandHistory.slice(0, Math.trunc(count));
+        }
+
+        function chatHistory(limit = 20) {
+            const count = Number(limit);
+            if (!Number.isFinite(count) || count < 0) {
+                throw new TypeError("Limit historii czatu musi być nieujemną liczbą.");
+            }
+
+            const normalizedLimit = Math.trunc(count);
+            const start = Math.max(0, __chatHistory.length - normalizedLimit);
+            const messages = [];
+            for (let index = start; index < __chatHistory.length; index++) {
+                const message = __chatHistory[index];
+                messages.push(Object.freeze({ id: message.id, text: message.text }));
+            }
+            return messages;
         }
 
         const variables = Object.freeze({

@@ -132,7 +132,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private ContentUpdateAvailability? _availableContentUpdate;
     private string _contentUpdateStatus = "Dane wbudowane w aplikację.";
     private bool _isContentUpdateBusy;
-    private readonly List<string> _chatHistory = [];
+    private sealed record ChatHistoryEntry(string Id, string Output, string Text);
+
+    private readonly List<ChatHistoryEntry> _chatHistory = [];
+    private readonly object _chatHistoryLock = new();
 
     public event EventHandler? CharacterRollerConfigurationRequested;
 
@@ -1060,7 +1063,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// Last conversation lines from the current application session. Keeping this outside the
     /// view lets a restored Chat widget show messages received while it was closed or hidden.
     /// </summary>
-    public IReadOnlyList<string> ChatHistory => _chatHistory;
+    public IReadOnlyList<string> ChatHistory
+    {
+        get
+        {
+            lock (_chatHistoryLock)
+            {
+                return _chatHistory.Select(message => message.Output).ToArray();
+            }
+        }
+    }
 
     /// <summary>Raised when a profile becomes active; the view auto-connects then.</summary>
     public event Action<string>? ProfileActivated;
@@ -6928,10 +6940,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void AddChatLine(string line)
     {
         var output = line + "\n";
-        _chatHistory.Add(output);
-        while (_chatHistory.Count > MaximumChatHistoryLines)
+        var entry = new ChatHistoryEntry(
+            Guid.NewGuid().ToString("D"),
+            output,
+            ChatLineClassifier.ToPlainText(line));
+        lock (_chatHistoryLock)
         {
-            _chatHistory.RemoveAt(0);
+            _chatHistory.Add(entry);
+            while (_chatHistory.Count > MaximumChatHistoryLines)
+            {
+                _chatHistory.RemoveAt(0);
+            }
         }
 
         ChatOutputReceived?.Invoke(output);

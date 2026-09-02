@@ -571,7 +571,11 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
-        invocation = invocation with { CommandHistory = SnapshotCommandHistory() };
+        invocation = invocation with
+        {
+            CommandHistory = SnapshotCommandHistory(),
+            ChatHistory = SnapshotChatHistory(),
+        };
         var result = await Task.Run(
             async () => await _javaScriptRunner.ExecuteAsync(
                     invocation,
@@ -638,6 +642,16 @@ public sealed partial class MainWindowViewModel
         lock (_commandHistoryLock)
         {
             return CommandHistory.ToArray();
+        }
+    }
+
+    private IReadOnlyList<ScriptChatMessage> SnapshotChatHistory()
+    {
+        lock (_chatHistoryLock)
+        {
+            return _chatHistory
+                .Select(message => new ScriptChatMessage(message.Id, message.Text))
+                .ToArray();
         }
     }
 

@@ -166,6 +166,68 @@ public sealed class JavaScriptRunnerTests
             Assert.Single(result.Effects));
     }
 
+    [Fact]
+    public async Task Execute_ChatHistory_DefaultsToTwentyAndKeepsReadingOrder()
+    {
+        var messages = Enumerable.Range(1, 25)
+            .Select(index => new ScriptChatMessage($"id{index}", $"message{index}"))
+            .ToArray();
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation(
+                "historia czatu",
+                "script",
+                "const recent = chatHistory(); recent.shift(); const fresh = chatHistory(); echo(recent.length + ':' + fresh[0].id + ':' + fresh[0].text + ':' + fresh[fresh.length - 1].text);",
+                ChatHistory: messages),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Echo, "19:id6:message6:message25", "cyan"),
+            Assert.Single(result.Effects));
+    }
+
+    [Fact]
+    public async Task Execute_ChatHistory_UsesRequestedLimit()
+    {
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation(
+                "historia czatu",
+                "script",
+                "echo(chatHistory(2).map(message => message.text).join('|'));",
+                ChatHistory:
+                [
+                    new ScriptChatMessage("id1", "first"),
+                    new ScriptChatMessage("id2", "second"),
+                    new ScriptChatMessage("id3", "third"),
+                ]),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Echo, "second|third", "cyan"),
+            Assert.Single(result.Effects));
+    }
+
+    [Fact]
+    public async Task Execute_ChatHistory_ZeroReturnsEmptyArray()
+    {
+        var result = await ExecuteAsync(
+            new JavaScriptRunner(),
+            new ScriptInvocation(
+                "historia czatu",
+                "script",
+                "echo(String(chatHistory(0).length));",
+                ChatHistory: [new ScriptChatMessage("id", "message")]),
+            new TestVariableStore());
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(
+            new ScriptEffect(ScriptEffectKind.Echo, "0", "cyan"),
+            Assert.Single(result.Effects));
+    }
+
     [Theory]
     [InlineData("alias")]
     [InlineData("trigger")]

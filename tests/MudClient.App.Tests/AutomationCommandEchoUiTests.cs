@@ -329,6 +329,59 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task AdvancedAlias_CanReadPlainChatHistoryInReadingOrder()
+    {
+        var (viewModel, directory) = CreateViewModel();
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            SetConnected(viewModel);
+            InvokeReceivedLine(viewModel, "\u001b[33mAldar mówi 'Pierwsza.'\u001b[0m");
+            InvokeReceivedLine(viewModel, "Aldar przybywa z północy.");
+            InvokeReceivedLine(viewModel, "Borin mówi 'Druga.'");
+            Dispatcher.UIThread.RunJobs();
+
+            viewModel.AutomationRules.Add(new AutomationRuleEntry(
+                "historia czatu",
+                "alias",
+                "^czat$",
+                "const recent = chatHistory(2); echo(recent.map(message => message.id).join(',') + '#' + recent.map(message => message.text).join('|'));",
+                isEnabled: true,
+                isAdvanced: true));
+            InvokeApplyAutomation(viewModel);
+            viewModel.CommandText = "czat";
+
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            viewModel.CommandText = "czat";
+            await viewModel.SendCommandCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var snapshots = output
+                .Where(text => text.StartsWith("\u001b[36m", StringComparison.Ordinal)
+                    && text.Contains('#', StringComparison.Ordinal))
+                .ToArray();
+            Assert.Equal(2, snapshots.Length);
+            Assert.Equal(snapshots[0], snapshots[1]);
+            Assert.EndsWith(
+                "#Aldar mówi 'Pierwsza.'|Borin mówi 'Druga.'\u001b[0m\n",
+                snapshots[0]);
+            var ids = snapshots[0]["\u001b[36m".Length..snapshots[0].IndexOf('#')]
+                .Split(',');
+            Assert.Equal(2, ids.Length);
+            Assert.All(ids, id => Assert.True(Guid.TryParse(id, out _)));
+            Assert.NotEqual(ids[0], ids[1]);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task Alias_CanRunNamedScriptThroughBuiltInCommand()
     {
         var (viewModel, directory) = CreateViewModel();

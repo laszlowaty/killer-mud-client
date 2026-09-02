@@ -9,6 +9,10 @@ public sealed record ScriptGmcpContext(
     string Package,
     string Json);
 
+public sealed record ScriptChatMessage(
+    string Id,
+    string Text);
+
 /// <summary>Immutable input exposed to one JavaScript execution.</summary>
 public sealed record ScriptInvocation(
     string Name,
@@ -17,4 +21,5 @@ public sealed record ScriptInvocation(
     string? Input = null,
     ScriptMatchContext? Match = null,
     ScriptGmcpContext? Gmcp = null,
-    IReadOnlyList<string>? CommandHistory = null);
+    IReadOnlyList<string>? CommandHistory = null,
+    IReadOnlyList<ScriptChatMessage>? ChatHistory = null);

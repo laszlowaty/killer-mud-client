@@ -546,6 +546,19 @@
                 </Border>
 
                 <Border Classes="mud-section" Padding="14">
+                  <Grid ColumnDefinitions="190,*" ColumnSpacing="18">
+                    <TextBlock Grid.Column="0" Text="chatHistory(limit = 20)" FontWeight="Bold"
+                               Foreground="{StaticResource MudBrushGoldBright}" />
+                    <StackPanel Grid.Column="1" Spacing="7">
+                      <TextBlock TextWrapping="Wrap"
+                                 Text="Zwraca ostatnie wiadomości z widżetu Czat w kolejności czytania: od najstarszej do najnowszej. Każdy element ma pola id (unikalne UUID, stabilne przez całą sesję) oraz text bez kodów kolorów i końcowego znaku nowej linii. Historia bieżącej sesji przechowuje najwyżej 500 wiadomości." />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap"
+                                 Text="const messages = chatHistory(20);&#10;console.log(messages.map(message =&gt; `[${message.id}] ${message.text}`).join(&quot;&#92;n&quot;));" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
+                <Border Classes="mud-section" Padding="14">
                   <StackPanel Spacing="7">
                     <TextBlock Text="await http.get/post/put/patch/delete"
                                FontWeight="Bold"

@@ -298,7 +298,7 @@
                 <TextBox Text="{Binding NewScriptGmcpPattern}"
                          PlaceholderText="GMCP, np. Char.Vitals (puste = ręcznie)" />
                 <TextBlock Classes="mud-faint" TextWrapping="Wrap"
-                           Text="onGmcp(), execute(), send(), echo(), reconnect(), deleteLine(), commandHistory(), await http.*, variables" />
+                           Text="onGmcp(), execute(), send(), echo(), reconnect(), deleteLine(), commandHistory(), chatHistory(), await http.*, variables" />
                 <controls:FullscreenTextEditor Text="{Binding NewScriptCode}"
                                                EditorTitle="Kod JavaScript"
                                                IsJavaScript="True"
