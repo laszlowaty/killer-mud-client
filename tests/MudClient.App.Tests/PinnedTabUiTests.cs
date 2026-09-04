@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Dock.Avalonia.Controls;
@@ -111,7 +112,7 @@ public sealed class PinnedTabUiTests : IAsyncDisposable
             .ToList();
 
     [AvaloniaFact]
-    public void ApplyingLayout_ClosesNestedLayoutFlyouts()
+    public void ApplyingLayout_ClosesNestedLayoutFlyoutsBeforeReplacingDockTree()
     {
         var viewModel = CreateViewModel();
         var window = ShowWindow(viewModel);
@@ -121,13 +122,70 @@ public sealed class PinnedTabUiTests : IAsyncDisposable
         var layoutMenu = window.FindControl<Button>("LayoutMenuButton")!;
         var outerFlyout = Assert.IsType<Flyout>(moreActions.Flyout);
         var layoutFlyout = Assert.IsType<Flyout>(layoutMenu.Flyout);
-        outerFlyout.IsOpen = true;
-        layoutFlyout.IsOpen = true;
+        outerFlyout.ShowAt(moreActions);
+        Pump(window);
+        layoutFlyout.ShowAt(layoutMenu);
+        Pump(window);
+        Assert.True(outerFlyout.IsOpen);
+        Assert.True(layoutFlyout.IsOpen);
 
-        viewModel.ApplyLayoutCommand.Execute(LayoutPresetService.DefaultName);
+        var previousLayout = viewModel.Layout;
+        bool? flyoutsWereOpenWhenLayoutChanged = null;
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainWindowViewModel.Layout))
+            {
+                flyoutsWereOpenWhenLayoutChanged = outerFlyout.IsOpen || layoutFlyout.IsOpen;
+            }
+        };
+        var layoutContent = Assert.IsAssignableFrom<Visual>(layoutFlyout.Content);
+        var defaultLayoutButton = layoutContent.GetVisualDescendants()
+            .OfType<Button>()
+            .First(button => string.Equals(
+                button.Content?.ToString(),
+                LayoutPresetService.DefaultName,
+                StringComparison.Ordinal));
+        defaultLayoutButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Pump(window);
 
+        Assert.NotSame(previousLayout, viewModel.Layout);
+        Assert.False(flyoutsWereOpenWhenLayoutChanged);
         Assert.False(layoutFlyout.IsOpen);
+        Assert.False(outerFlyout.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void RestoringPanel_ClosesNestedFlyoutsBeforeRemovingMenuItem()
+    {
+        var viewModel = CreateViewModel();
+        var window = ShowWindow(viewModel);
+        Pump(window);
+
+        var moreActions = window.FindControl<Button>("MoreActionsButton")!;
+        var restorePanels = window.FindControl<Button>("RestorePanelsButton")!;
+        var outerFlyout = Assert.IsType<Flyout>(moreActions.Flyout);
+        var restoreFlyout = Assert.IsType<Flyout>(restorePanels.Flyout);
+        outerFlyout.ShowAt(moreActions);
+        Pump(window);
+        restoreFlyout.ShowAt(restorePanels);
+        Pump(window);
+        Assert.True(outerFlyout.IsOpen);
+        Assert.True(restoreFlyout.IsOpen);
+
+        var hiddenBefore = viewModel.HiddenPanels.Count;
+        bool? flyoutsWereOpenWhenPanelWasRemoved = null;
+        viewModel.HiddenPanels.CollectionChanged += (_, _) =>
+            flyoutsWereOpenWhenPanelWasRemoved = outerFlyout.IsOpen || restoreFlyout.IsOpen;
+        var restoreContent = Assert.IsAssignableFrom<Visual>(restoreFlyout.Content);
+        var restoreButton = restoreContent.GetVisualDescendants()
+            .OfType<Button>()
+            .First(button => button.CommandParameter is PanelTool);
+        restoreButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(hiddenBefore - 1, viewModel.HiddenPanels.Count);
+        Assert.False(flyoutsWereOpenWhenPanelWasRemoved);
+        Assert.False(restoreFlyout.IsOpen);
         Assert.False(outerFlyout.IsOpen);
     }
 

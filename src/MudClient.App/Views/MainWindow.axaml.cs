@@ -216,14 +216,42 @@ public partial class MainWindow : Window
     {
         if (eventArgs.PropertyName == nameof(MainWindowViewModel.Layout))
         {
-            // Layout selection is initiated from a nested Flyout.  The old popup can survive
-            // the Dock tree replacement and leave its overlay above the newly rendered layout,
-            // dimming the whole workspace until the application is restarted.  Close both
-            // levels after the replacement so the popup overlay is always detached.
-            _layoutFlyout?.Hide();
-            _moreActionsFlyout?.Hide();
+            // Keep this fallback for programmatic layout changes. Menu-driven changes close both
+            // levels before replacing the Dock tree so their overlay is detached in time.
+            CloseDockMutationFlyouts();
             SchedulePinnedPanelAudit();
         }
+    }
+
+    private void RestorePanelButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { CommandParameter: PanelTool panel } || _viewModel is null)
+        {
+            return;
+        }
+
+        CloseDockMutationFlyouts();
+        _viewModel.RestorePanelCommand.Execute(panel);
+    }
+
+    private void ApplyLayoutButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { CommandParameter: string layoutName } || _viewModel is null)
+        {
+            return;
+        }
+
+        CloseDockMutationFlyouts();
+        _viewModel.ApplyLayoutCommand.Execute(layoutName);
+    }
+
+    private void CloseDockMutationFlyouts()
+    {
+        // Close the child first while both popup owners still belong to a live visual tree.
+        // Restoring a panel removes the clicked child from HiddenPanels, while applying a preset
+        // replaces the Dock tree. Either mutation can otherwise orphan the light-dismiss overlay.
+        _layoutFlyout?.Hide();
+        _moreActionsFlyout?.Hide();
     }
 
     /// <summary>

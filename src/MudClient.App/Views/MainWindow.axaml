@@ -157,7 +157,8 @@
                           HorizontalContentAlignment="Left"
                           Classes="mud-menu-action" />
                   <Separator Margin="0,3" />
-                  <Button Content="{Binding HiddenPanels.Count, StringFormat='Przywróć panele ({0})'}"
+                  <Button x:Name="RestorePanelsButton"
+                          Content="{Binding HiddenPanels.Count, StringFormat='Przywróć panele ({0})'}"
                           IsVisible="{Binding HiddenPanels.Count}"
                           HorizontalContentAlignment="Left"
                           Classes="mud-menu-action">
@@ -170,8 +171,8 @@
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Left"
                                       Classes="mud-menu-action"
-                                      Command="{Binding $parent[Window].DataContext.RestorePanelCommand}"
-                                      CommandParameter="{Binding}" />
+                                      CommandParameter="{Binding}"
+                                      Click="RestorePanelButton_OnClick" />
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -195,8 +196,8 @@
                                           HorizontalAlignment="Stretch"
                                           HorizontalContentAlignment="Left"
                                           Classes="mud-menu-action"
-                                          Command="{Binding $parent[Window].DataContext.ApplyLayoutCommand}"
-                                          CommandParameter="{Binding Name}" />
+                                          CommandParameter="{Binding Name}"
+                                          Click="ApplyLayoutButton_OnClick" />
                                   <Button Grid.Column="1"
                                           Classes="mud-danger mud-small"
                                           Content="✕"
