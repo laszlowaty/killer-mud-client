@@ -5421,11 +5421,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void ReloadProfileStorage(ProfileStorageChangedEventArgs changes)
     {
         var names = _profiles.ListProfileNames();
-        AvailableProfiles.Clear();
-        foreach (var name in names)
-        {
-            AvailableProfiles.Add(name);
-        }
+        RefreshAvailableProfiles(names);
 
         if (ActiveProfileName is { } activeName)
         {
@@ -5463,6 +5459,47 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyAutomation();
         CancelAllTimers();
         SyncAllTimers();
+    }
+
+    private void RefreshAvailableProfiles(IReadOnlyList<string> names)
+    {
+        // Preserve existing collection items whenever possible. Clearing the bound ListBox
+        // briefly removes its selection and hides the profile editor, which drops keyboard
+        // focus and unsaved field edits whenever another client writes profile storage.
+        for (var targetIndex = 0; targetIndex < names.Count; targetIndex++)
+        {
+            var targetName = names[targetIndex];
+            var currentIndex = -1;
+            for (var index = targetIndex; index < AvailableProfiles.Count; index++)
+            {
+                if (string.Equals(AvailableProfiles[index], targetName, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentIndex = index;
+                    break;
+                }
+            }
+
+            if (currentIndex < 0)
+            {
+                AvailableProfiles.Insert(targetIndex, targetName);
+                continue;
+            }
+
+            if (currentIndex != targetIndex)
+            {
+                AvailableProfiles.Move(currentIndex, targetIndex);
+            }
+
+            if (!string.Equals(AvailableProfiles[targetIndex], targetName, StringComparison.Ordinal))
+            {
+                AvailableProfiles[targetIndex] = targetName;
+            }
+        }
+
+        while (AvailableProfiles.Count > names.Count)
+        {
+            AvailableProfiles.RemoveAt(AvailableProfiles.Count - 1);
+        }
     }
 
     /// <summary>

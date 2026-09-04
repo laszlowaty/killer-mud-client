@@ -350,6 +350,41 @@ public sealed class MainWindowClickTests : IAsyncDisposable
     }
 
     [AvaloniaFact]
+    public void ProfilePicker_ExternalProfileChange_PreservesFocusedEditorAndDraft()
+    {
+        var profiles = new ProfileService(_tempDirectory);
+        profiles.Save(new ProfileData { Name = "Mag", Login = "Gandalf" });
+        profiles.Save(new ProfileData { Name = "Wojownik", Login = "Boromir" });
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(_tempDirectory),
+            new DockLayoutService(_tempDirectory));
+        viewModel.SelectedProfileName = "Mag";
+        var window = new MainWindow { DataContext = viewModel };
+        Show(window);
+        EnsureLayout(window);
+
+        var nameInput = Assert.IsType<TextBox>(window.FindControl<TextBox>("SelectedProfileNameInput"));
+        nameInput.Focus();
+        nameInput.Text = "Mag roboczy";
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(nameInput.IsFocused);
+
+        var reload = typeof(MainWindowViewModel).GetMethod(
+            "ReloadProfileStorage",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(reload);
+        reload!.Invoke(viewModel, [new ProfileStorageChangedEventArgs(
+            [Path.Combine("Wojownik", "profile.json")],
+            requiresFullReload: false)]);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("Mag", viewModel.SelectedProfileName);
+        Assert.Equal("Mag roboczy", nameInput.Text);
+        Assert.True(nameInput.IsFocused);
+    }
+
+    [AvaloniaFact]
     public void ProfileCopyMode_ShowsOnlyIdentityFields()
     {
         var profiles = new ProfileService(_tempDirectory);
