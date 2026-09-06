@@ -15,6 +15,8 @@ public sealed class ConnectionForegroundService : Service
 {
     private const string ChannelId = "mud_connection";
     private const int NotificationId = 1001;
+    private const string WakeLockTag = "KillerMudClient:MudConnection";
+    private PowerManager.WakeLock? _wakeLock;
 
     public static void Start(Context context)
     {
@@ -55,6 +57,11 @@ public sealed class ConnectionForegroundService : Service
             StartForeground(NotificationId, notification);
         }
 
+        // A foreground service keeps the session process alive, but Android may
+        // still suspend the CPU. Keep timer delays and TCP processing running
+        // until disconnect stops this service.
+        AcquireWakeLock();
+
         // The TCP session lives in MobileSessionHost. Restarting only this service
         // after the process was killed could not recreate that connection safely.
         return StartCommandResult.NotSticky;
@@ -62,14 +69,60 @@ public sealed class ConnectionForegroundService : Service
 
     public override global::Android.OS.IBinder? OnBind(Intent? intent) => null;
 
+    public override void OnDestroy()
+    {
+        try
+        {
+            ReleaseWakeLock();
+        }
+        finally
+        {
+            base.OnDestroy();
+        }
+    }
+
     public override void OnTaskRemoved(Intent? rootIntent)
     {
+        ReleaseWakeLock();
         base.OnTaskRemoved(rootIntent);
 
         // If the user swipes the app away from recent tasks, terminate the session
         // so the background connection doesn't keep running indefinitely.
         StopSelf();
         Java.Lang.JavaSystem.Exit(0);
+    }
+
+    private void AcquireWakeLock()
+    {
+        if (_wakeLock?.IsHeld == true)
+        {
+            return;
+        }
+
+        var powerManager = GetSystemService(PowerService) as PowerManager
+            ?? throw new InvalidOperationException(
+                "Android nie udostępnił menedżera zasilania.");
+        _wakeLock ??= powerManager.NewWakeLock(
+            WakeLockFlags.Partial,
+            WakeLockTag);
+        _wakeLock.SetReferenceCounted(false);
+        _wakeLock.Acquire();
+    }
+
+    private void ReleaseWakeLock()
+    {
+        if (_wakeLock is null)
+        {
+            return;
+        }
+
+        if (_wakeLock.IsHeld)
+        {
+            _wakeLock.Release();
+        }
+
+        _wakeLock.Dispose();
+        _wakeLock = null;
     }
 
     private void EnsureNotificationChannel()
