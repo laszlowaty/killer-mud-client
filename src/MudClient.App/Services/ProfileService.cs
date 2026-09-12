@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using MudClient.App.Models;
 
 namespace MudClient.App.Services;
@@ -36,6 +37,10 @@ public sealed class ProfileService : IDisposable
     private const string ProfileFileName = "profile.json";
     private const string FolderFileName = ".folder.json";
     private const string JavaScriptHeaderPrefix = "// KillerMudClient: ";
+    private static readonly Regex TimerIntervalCommentRegex = new(
+        @"\bco\s+(?<milliseconds>\d+)\s*ms\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+        TimeSpan.FromMilliseconds(100));
     private static readonly TimeSpan WatcherDebounce = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan WatcherMaximumDebounce = TimeSpan.FromSeconds(1);
 
@@ -44,6 +49,7 @@ public sealed class ProfileService : IDisposable
     private readonly object _fingerprintLock = new();
     private readonly HashSet<string> _pendingWatcherPaths = new(PathComparer);
     private readonly Dictionary<string, CachedFileFingerprint> _fingerprintCache = new(PathComparer);
+    private readonly Dictionary<string, string> _loadedAutomationFingerprints = new(PathComparer);
     private FileSystemWatcher? _watcher;
     private CancellationTokenSource? _watcherDebounceCancellation;
     private DateTime? _watcherDebounceStartedAtUtc;
@@ -178,7 +184,9 @@ public sealed class ProfileService : IDisposable
         }
 
         DeleteDurableFile(GetLegacyPath(name));
-        RecordOwnChanges();
+        RecordOwnChanges(
+            preserveAutomationSnapshot: true,
+            refreshedAutomationOwner: Path.GetFileName(directory));
     }
 
     public ProfileData? Load(string name)
@@ -204,6 +212,7 @@ public sealed class ProfileService : IDisposable
         profile.Name = EffectiveProfileName(profileDirectory, metadata) ?? name;
         LoadCollections(profileDirectory, profile.Folders, profile.Notes, profile.Rules,
             profile.Timers, profile.Scripts, profile.Locations, isGlobal: false);
+        RememberLoadedAutomation(profileDirectory);
         return profile;
     }
 
@@ -211,11 +220,26 @@ public sealed class ProfileService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(profile);
         var profileDirectory = GetProfileDirectory(profile.Name);
+        var canWriteAutomation = CanWriteAutomation(profileDirectory);
         SaveProfileMetadata(profile, profileDirectory);
-        SaveCollections(profileDirectory, profile.Folders, profile.Notes, profile.Rules,
-            profile.Timers, profile.Scripts, profile.Locations, isGlobal: false);
+        if (canWriteAutomation)
+        {
+            SaveCollections(profileDirectory, profile.Folders, profile.Notes, profile.Rules,
+                profile.Timers, profile.Scripts, profile.Locations, isGlobal: false);
+            RememberLoadedAutomation(profileDirectory);
+        }
+        else
+        {
+            // Disk is authoritative. Do not let a stale in-memory profile overwrite an
+            // external edit that arrived before the watcher debounce completed.
+            ScheduleWatcherNotification(profileDirectory);
+        }
         DeleteDurableFile(GetLegacyPath(profile.Name));
-        RecordOwnChanges();
+        RecordOwnChanges(
+            preserveAutomationSnapshot: true,
+            refreshedAutomationOwner: canWriteAutomation
+                ? Path.GetFileName(profileDirectory)
+                : null);
     }
 
     /// <summary>
@@ -274,7 +298,7 @@ public sealed class ProfileService : IDisposable
             var temporaryDirectory = currentDirectory + ".rename-" + Guid.NewGuid().ToString("N");
             Directory.Move(currentDirectory, temporaryDirectory);
             Directory.Move(temporaryDirectory, newDirectory);
-            RecordOwnChanges();
+            RecordOwnChanges(preserveAutomationSnapshot: true);
         }
 
         return true;
@@ -293,8 +317,10 @@ public sealed class ProfileService : IDisposable
     {
         MigrateLegacyGlobal();
         var data = new GlobalData();
-        LoadCollections(GetGlobalDirectory(), data.Folders, data.Notes, data.Rules,
+        var globalDirectory = GetGlobalDirectory();
+        LoadCollections(globalDirectory, data.Folders, data.Notes, data.Rules,
             data.Timers, data.Scripts, data.Locations, isGlobal: true);
+        RememberLoadedAutomation(globalDirectory);
         return data;
     }
 
@@ -302,11 +328,97 @@ public sealed class ProfileService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(data);
         var globalDirectory = GetGlobalDirectory();
+        var canWriteAutomation = CanWriteAutomation(globalDirectory);
         Directory.CreateDirectory(globalDirectory);
-        SaveCollections(globalDirectory, data.Folders, data.Notes, data.Rules,
-            data.Timers, data.Scripts, data.Locations, isGlobal: true);
+        if (canWriteAutomation)
+        {
+            SaveCollections(globalDirectory, data.Folders, data.Notes, data.Rules,
+                data.Timers, data.Scripts, data.Locations, isGlobal: true);
+            RememberLoadedAutomation(globalDirectory);
+        }
+        else
+        {
+            ScheduleWatcherNotification(globalDirectory);
+        }
         DeleteDurableFile(Path.Combine(_directory, GlobalName + ".json"));
-        RecordOwnChanges();
+        RecordOwnChanges(
+            preserveAutomationSnapshot: true,
+            refreshedAutomationOwner: canWriteAutomation ? GlobalName : null);
+    }
+
+    private bool CanWriteAutomation(string ownerDirectory)
+    {
+        if (!Directory.Exists(ownerDirectory))
+        {
+            return true;
+        }
+
+        if (!TryCalculateAutomationFingerprint(ownerDirectory, out var currentFingerprint))
+        {
+            return false;
+        }
+
+        lock (_fingerprintLock)
+        {
+            return _loadedAutomationFingerprints.TryGetValue(
+                    Path.GetFullPath(ownerDirectory), out var loadedFingerprint)
+                && string.Equals(currentFingerprint, loadedFingerprint, StringComparison.Ordinal);
+        }
+    }
+
+    private void RememberLoadedAutomation(string ownerDirectory)
+    {
+        if (!TryCalculateAutomationFingerprint(ownerDirectory, out var fingerprint))
+        {
+            return;
+        }
+
+        lock (_fingerprintLock)
+        {
+            _loadedAutomationFingerprints[Path.GetFullPath(ownerDirectory)] = fingerprint;
+        }
+    }
+
+    private static bool TryCalculateAutomationFingerprint(
+        string ownerDirectory,
+        out string fingerprint)
+    {
+        try
+        {
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (var kind in Enum.GetValues<FolderKind>())
+            {
+                var root = Path.Combine(ownerDirectory, KindDirectoryName(kind));
+                if (!Directory.Exists(root))
+                {
+                    continue;
+                }
+
+                foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                             .Where(path => Path.GetExtension(path) is ".json" or ".js")
+                             .Where(path => !Path.GetFileName(path).Contains(".tmp-", StringComparison.Ordinal))
+                             .OrderBy(path => path, PathComparer))
+                {
+                    var relativePath = Path.GetRelativePath(ownerDirectory, path).Replace('\\', '/');
+                    hash.AppendData(Encoding.UTF8.GetBytes(relativePath));
+                    using var stream = new FileStream(
+                        path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+                    var fileHash = SHA256.HashData(stream);
+                    hash.AppendData(fileHash);
+                }
+            }
+
+            fingerprint = Convert.ToHexString(hash.GetHashAndReset());
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            fingerprint = string.Empty;
+            return false;
+        }
     }
 
     private void MigrateAllLegacyFiles()
@@ -639,6 +751,7 @@ public sealed class ProfileService : IDisposable
                 continue;
             }
 
+            EnsureJavaScriptHeader(kind, path, item);
             loadedJavaScriptStems.Add(Path.ChangeExtension(Path.GetFullPath(path), null));
             var parentPath = Path.GetDirectoryName(path)!;
             SetFolderAndGlobal(item,
@@ -691,6 +804,7 @@ public sealed class ProfileService : IDisposable
                     Name = rule.Name,
                     Pattern = rule.Pattern,
                     Enabled = rule.IsEnabled,
+                    LoadInstant = rule.LoadInstant,
                 };
                 code = rule.Action;
                 break;
@@ -704,6 +818,7 @@ public sealed class ProfileService : IDisposable
                     Seconds = timer.Seconds,
                     Milliseconds = timer.Milliseconds,
                     Enabled = timer.IsEnabled,
+                    LoadInstant = timer.LoadInstant,
                 };
                 code = !string.IsNullOrEmpty(timer.CommandsText)
                     ? timer.CommandsText
@@ -808,6 +923,40 @@ public sealed class ProfileService : IDisposable
                 return true;
             }
 
+            if (kind == FolderKind.Timers && typeof(T) == typeof(ProfileTimer))
+            {
+                var intervalMilliseconds = InferHeaderlessTimerInterval(contents);
+                item = (T)(object)new ProfileTimer
+                {
+                    Name = Path.GetFileNameWithoutExtension(sourcePath),
+                    Minutes = intervalMilliseconds / 60_000,
+                    Seconds = intervalMilliseconds % 60_000 / 1_000,
+                    Milliseconds = intervalMilliseconds % 1_000,
+                    CommandsText = contents,
+                    IsAdvanced = true,
+                    // A pasted timer without client metadata must be visible and editable,
+                    // but must not execute code before the user has reviewed it.
+                    IsEnabled = false,
+                };
+                return true;
+            }
+
+            if (kind is FolderKind.Aliases or FolderKind.Triggers
+                && typeof(T) == typeof(ProfileRule))
+            {
+                item = (T)(object)new ProfileRule
+                {
+                    Name = Path.GetFileNameWithoutExtension(sourcePath),
+                    Type = kind == FolderKind.Aliases ? "alias" : "trigger",
+                    Pattern = string.Empty,
+                    Action = contents,
+                    IsAdvanced = true,
+                    // Without an explicit pattern, running the rule would be unsafe.
+                    IsEnabled = false,
+                };
+                return true;
+            }
+
             return false;
         }
 
@@ -842,6 +991,7 @@ public sealed class ProfileService : IDisposable
                 Action = code,
                 IsEnabled = metadata.Enabled,
                 IsAdvanced = true,
+                LoadInstant = metadata.LoadInstant,
             },
             FolderKind.Triggers when metadata.Kind == "trigger" => new ProfileRule
             {
@@ -851,6 +1001,7 @@ public sealed class ProfileService : IDisposable
                 Action = code,
                 IsEnabled = metadata.Enabled,
                 IsAdvanced = true,
+                LoadInstant = metadata.LoadInstant,
             },
             FolderKind.Timers when metadata.Kind == "timer" => new ProfileTimer
             {
@@ -862,6 +1013,7 @@ public sealed class ProfileService : IDisposable
                 CommandsText = code,
                 IsEnabled = metadata.Enabled,
                 IsAdvanced = true,
+                LoadInstant = metadata.LoadInstant,
             },
             FolderKind.Scripts when metadata.Kind == "script" => new ProfileScript
             {
@@ -877,6 +1029,38 @@ public sealed class ProfileService : IDisposable
 
         item = value as T;
         return item is not null;
+    }
+
+    private static void EnsureJavaScriptHeader<T>(FolderKind kind, string path, T item)
+        where T : class
+    {
+        if (!DurableJsonFile.TryReadText(path, out var currentContents))
+        {
+            return;
+        }
+
+        var lineEnd = currentContents.IndexOf('\n');
+        var firstLine = (lineEnd < 0 ? currentContents : currentContents[..lineEnd]).TrimEnd('\r');
+        if (firstLine.StartsWith(JavaScriptHeaderPrefix, StringComparison.Ordinal)
+            || firstLine.StartsWith("// KillerMudClient", StringComparison.Ordinal)
+            || !TrySerializeJavaScript(kind, item, out var normalizedContents))
+        {
+            return;
+        }
+
+        DurableJsonFile.WriteText(path, normalizedContents);
+    }
+
+    private static int InferHeaderlessTimerInterval(string contents)
+    {
+        const int DefaultIntervalMilliseconds = 1_000;
+        var leadingText = contents[..Math.Min(contents.Length, 4_096)];
+        var match = TimerIntervalCommentRegex.Match(leadingText);
+        return match.Success
+            && int.TryParse(match.Groups["milliseconds"].Value, out var milliseconds)
+            && milliseconds > 0
+                ? milliseconds
+                : DefaultIntervalMilliseconds;
     }
 
     private static string? GetFolderId<T>(T item) => item switch
@@ -1002,14 +1186,17 @@ public sealed class ProfileService : IDisposable
         }
     }
 
-    private void RecordOwnChanges(bool preserveAutomationSnapshot = false)
+    private void RecordOwnChanges(
+        bool preserveAutomationSnapshot = false,
+        string? refreshedAutomationOwner = null)
     {
         lock (_watcherLock)
         {
             if (_watcher is not null)
             {
                 _knownFingerprint = CalculateFingerprint(
-                    preserveAutomationSnapshot: preserveAutomationSnapshot);
+                    preserveAutomationSnapshot: preserveAutomationSnapshot,
+                    refreshedAutomationOwner: refreshedAutomationOwner);
             }
         }
     }
@@ -1033,7 +1220,8 @@ public sealed class ProfileService : IDisposable
 
     private string CalculateFingerprint(
         IReadOnlySet<string>? forceContentRefresh = null,
-        bool preserveAutomationSnapshot = false)
+        bool preserveAutomationSnapshot = false,
+        string? refreshedAutomationOwner = null)
     {
         lock (_fingerprintLock)
         {
@@ -1052,7 +1240,8 @@ public sealed class ProfileService : IDisposable
                 var relativePath = Path.GetRelativePath(_directory, path).Replace('\\', '/');
                 existingPaths.Add(relativePath);
 
-                if (preserveAutomationSnapshot && IsAutomationStoragePath(relativePath))
+                if (ShouldPreserveAutomationSnapshot(
+                        relativePath, preserveAutomationSnapshot, refreshedAutomationOwner))
                 {
                     if (_fingerprintCache.TryGetValue(relativePath, out var preserved))
                     {
@@ -1085,7 +1274,8 @@ public sealed class ProfileService : IDisposable
 
             foreach (var stalePath in _fingerprintCache.Keys.Where(path => !existingPaths.Contains(path)).ToList())
             {
-                if (preserveAutomationSnapshot && IsAutomationStoragePath(stalePath))
+                if (ShouldPreserveAutomationSnapshot(
+                        stalePath, preserveAutomationSnapshot, refreshedAutomationOwner))
                 {
                     // A deleted automation file must likewise remain in the known snapshot
                     // until the watcher reports its deletion.
@@ -1118,6 +1308,15 @@ public sealed class ProfileService : IDisposable
             || string.Equals(segments[1], "Timers", StringComparison.OrdinalIgnoreCase)
             || string.Equals(segments[1], "Scripts", StringComparison.OrdinalIgnoreCase));
     }
+
+    private static bool ShouldPreserveAutomationSnapshot(
+        string relativePath,
+        bool preserveAutomationSnapshot,
+        string? refreshedAutomationOwner) =>
+        preserveAutomationSnapshot
+        && IsAutomationStoragePath(relativePath)
+        && (string.IsNullOrWhiteSpace(refreshedAutomationOwner)
+            || !HasTopLevelDirectory(relativePath, refreshedAutomationOwner));
 
     private static byte[] CalculateFileContentHash(string path)
     {

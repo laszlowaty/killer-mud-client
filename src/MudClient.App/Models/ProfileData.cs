@@ -187,6 +187,9 @@ public sealed class ProfileTimer
     /// <summary>True when <see cref="CommandsText"/> contains JavaScript.</summary>
     public bool IsAdvanced { get; set; }
 
+    /// <summary>Runs advanced JavaScript once after saving or reloading it.</summary>
+    public bool LoadInstant { get; set; }
+
     /// <summary>Id of the containing folder, or null when loose.</summary>
     public string? FolderId { get; set; }
 }
@@ -221,6 +224,9 @@ public sealed class ProfileRule
 
     /// <summary>True when <see cref="Action"/> contains JavaScript.</summary>
     public bool IsAdvanced { get; set; }
+
+    /// <summary>Runs advanced JavaScript once after saving or reloading it.</summary>
+    public bool LoadInstant { get; set; }
 
     /// <summary>True when stored in the shared global file, not a profile.</summary>
     public bool IsGlobal { get; set; }

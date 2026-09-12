@@ -469,6 +469,7 @@ public sealed class ProfileTests : IDisposable
                     Pattern = "^z (.+)$",
                     Action = "execute(match.groups[1]);",
                     IsAdvanced = true,
+                    LoadInstant = true,
                 },
                 new ProfileRule
                 {
@@ -491,6 +492,7 @@ public sealed class ProfileTests : IDisposable
                     Milliseconds = 250,
                     CommandsText = "variables.increment('ticks');",
                     IsAdvanced = true,
+                    LoadInstant = true,
                 },
             ],
             Scripts = [new ProfileScript
@@ -509,6 +511,12 @@ public sealed class ProfileTests : IDisposable
         Assert.True(File.Exists(Path.Combine(root, "Triggers", "alarm.js")));
         Assert.True(File.Exists(Path.Combine(root, "Timers", "zegar.json")));
         Assert.True(File.Exists(Path.Combine(root, "Timers", "javascriptowy zegar.js")));
+        Assert.Contains(
+            "\"loadInstant\":true",
+            File.ReadAllText(Path.Combine(root, "Aliases", "zaawansowany.js")));
+        Assert.Contains(
+            "\"loadInstant\":true",
+            File.ReadAllText(Path.Combine(root, "Timers", "javascriptowy zegar.js")));
         var scriptPath = Path.Combine(root, "Scripts", "gmcp status.js");
         Assert.True(File.Exists(scriptPath));
         var scriptText = File.ReadAllText(scriptPath);
@@ -519,11 +527,13 @@ public sealed class ProfileTests : IDisposable
         var loaded = Assert.IsType<ProfileData>(service.Load("JavaScript"));
         var alias = loaded.Rules.Single(rule => rule.Name == "zaawansowany");
         Assert.True(alias.IsAdvanced);
+        Assert.True(alias.LoadInstant);
         Assert.Equal("^z (.+)$", alias.Pattern);
         Assert.Equal("execute(match.groups[1]);", alias.Action);
         Assert.False(loaded.Rules.Single(rule => rule.Name == "alarm").IsEnabled);
         var timer = loaded.Timers.Single(value => value.Name == "javascriptowy zegar");
         Assert.True(timer.IsAdvanced);
+        Assert.True(timer.LoadInstant);
         Assert.Equal("timer-id", timer.Id);
         Assert.Equal(1, timer.Minutes);
         Assert.Equal(250, timer.Milliseconds);
@@ -549,6 +559,66 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("echo('recznie dodany');", script.Code);
         Assert.True(script.IsEnabled);
         Assert.False(script.LoadInstant);
+        var normalized = File.ReadAllText(path);
+        Assert.StartsWith("// KillerMudClient: {", normalized);
+        Assert.Contains("\"kind\":\"script\"", normalized);
+        Assert.EndsWith("echo('recznie dodany');", normalized);
+    }
+
+    [Theory]
+    [InlineData("Aliases", "alias")]
+    [InlineData("Triggers", "trigger")]
+    public void Load_AcceptsBareJavaScriptRuleAsDisabledDraftAndAddsHeader(
+        string directoryName,
+        string expectedType)
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "RecznaRegula" });
+        var path = Path.Combine(_directory, "RecznaRegula", directoryName, "nowa-regula.js");
+        File.WriteAllText(path, "echo('recznie dodana');");
+
+        var rule = Assert.Single(service.Load("RecznaRegula")!.Rules);
+
+        Assert.Equal("nowa-regula", rule.Name);
+        Assert.Equal(expectedType, rule.Type);
+        Assert.Empty(rule.Pattern);
+        Assert.Equal("echo('recznie dodana');", rule.Action);
+        Assert.True(rule.IsAdvanced);
+        Assert.False(rule.IsEnabled);
+        var normalized = File.ReadAllText(path);
+        Assert.StartsWith("// KillerMudClient: {", normalized);
+        Assert.Contains($"\"kind\":\"{expectedType}\"", normalized);
+        Assert.EndsWith("echo('recznie dodana');", normalized);
+    }
+
+    [Theory]
+    [InlineData("// Timer uruchamia ten skrypt co 250 ms.\necho('tick');", 0, 0, 250)]
+    [InlineData("// Uruchamiaj ten skrypt osobnym Timerem co 1000 ms.\necho('tick');", 0, 1, 0)]
+    [InlineData("echo('tick');", 0, 1, 0)]
+    public void Load_AcceptsBareJavaScriptTimerAsDisabledDraft(
+        string contents,
+        int expectedMinutes,
+        int expectedSeconds,
+        int expectedMilliseconds)
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "RecznyTimer" });
+        var path = Path.Combine(_directory, "RecznyTimer", "Timers", "namaris.js");
+        File.WriteAllText(path, contents);
+
+        var timer = Assert.Single(service.Load("RecznyTimer")!.Timers);
+
+        Assert.Equal("namaris", timer.Name);
+        Assert.Equal(expectedMinutes, timer.Minutes);
+        Assert.Equal(expectedSeconds, timer.Seconds);
+        Assert.Equal(expectedMilliseconds, timer.Milliseconds);
+        Assert.Equal(contents, timer.CommandsText);
+        Assert.True(timer.IsAdvanced);
+        Assert.False(timer.IsEnabled);
+        var normalized = File.ReadAllText(path);
+        Assert.StartsWith("// KillerMudClient: {", normalized);
+        Assert.Contains("\"kind\":\"timer\"", normalized);
+        Assert.EndsWith(contents, normalized);
     }
 
     [Fact]
@@ -709,13 +779,13 @@ public sealed class ProfileTests : IDisposable
         var pastedJsonPath = Path.Combine(aliasDirectory, "zewnetrzny.json");
         var pastedJavaScriptPath = Path.Combine(aliasDirectory, "stary-format.js");
         File.WriteAllText(pastedJsonPath, "{\"format\":\"innego-klienta\"}");
-        File.WriteAllText(pastedJavaScriptPath, "send('look');");
+        File.WriteAllText(pastedJavaScriptPath, "// KillerMudClient: { uszkodzony naglowek");
 
         var loadedAfterRestart = CreateService().Load("Wklejony")!;
         CreateService().Save(loadedAfterRestart);
 
         Assert.Equal("{\"format\":\"innego-klienta\"}", File.ReadAllText(pastedJsonPath));
-        Assert.Equal("send('look');", File.ReadAllText(pastedJavaScriptPath));
+        Assert.Equal("// KillerMudClient: { uszkodzony naglowek", File.ReadAllText(pastedJavaScriptPath));
         Assert.Equal("look", Assert.Single(CreateService().Load("Wklejony")!.Rules).Action);
     }
 
@@ -829,6 +899,81 @@ public sealed class ProfileTests : IDisposable
         await changed.Task.WaitAsync(
             TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal("examine", Assert.Single(service.Load("StanPodczasZmiany")!.Rules).Action);
+    }
+
+    [Fact]
+    public async Task Save_DoesNotOverwriteExternalAutomationEditBeforeWatcherReload()
+    {
+        using var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "DyskWygrywa",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        };
+        service.Save(profile);
+        service.StartWatching();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
+
+        var path = Path.Combine(_directory, "DyskWygrywa", "Aliases", "l.json");
+        var externalRule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
+        externalRule.Action = "examine";
+        File.WriteAllText(path, JsonSerializer.Serialize(externalRule));
+
+        // This is deliberately a full, stale save rather than SaveState. It must not put
+        // the old alias back while the external watcher event is still being debounced.
+        // MainWindowViewModel saves globals first, which must not absorb a pending edit in
+        // another owner's automation tree either.
+        var global = service.LoadGlobal();
+        service.SaveGlobal(global);
+        profile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        service.Save(profile);
+
+        Assert.Equal(
+            "examine",
+            JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!.Action);
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal("examine", Assert.Single(service.Load("DyskWygrywa")!.Rules).Action);
+    }
+
+    [Fact]
+    public void Save_DoesNotDeleteNewExternalAutomationFileBeforeWatcherReload()
+    {
+        using var service = CreateService();
+        var profile = new ProfileData { Name = "NowyDyskWygrywa" };
+        service.Save(profile);
+        service.StartWatching();
+        var path = Path.Combine(
+            _directory, "NowyDyskWygrywa", "Timers", "zewnetrzny-timer.js");
+        File.WriteAllText(path, "// Timer uruchamia ten skrypt co 250 ms.\necho('tick');");
+
+        service.Save(profile);
+
+        Assert.True(File.Exists(path));
+        var timer = Assert.Single(service.Load("NowyDyskWygrywa")!.Timers);
+        Assert.Equal("zewnetrzny-timer", timer.Name);
+        Assert.Equal(250, timer.Milliseconds);
+    }
+
+    [Fact]
+    public void Save_DoesNotRestoreAutomationFileDeletedExternally()
+    {
+        using var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "UsuniecieWygrywa",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        };
+        service.Save(profile);
+        service.StartWatching();
+        var path = Path.Combine(_directory, "UsuniecieWygrywa", "Aliases", "l.json");
+        File.Delete(path);
+
+        service.Save(profile);
+
+        Assert.False(File.Exists(path));
+        Assert.Empty(service.Load("UsuniecieWygrywa")!.Rules);
     }
 
     [Fact]
@@ -1226,33 +1371,14 @@ public sealed class ProfileTests : IDisposable
         vm.SelectProfileCommand.Execute(null);
         await Task.Delay(1500, TestContext.Current.CancellationToken);
 
-        File.WriteAllText(
-            Path.Combine(_directory, "NowePliki", "Aliases", "nowy-alias.json"),
-            JsonSerializer.Serialize(new ProfileRule
-            {
-                Name = "nowy-alias",
-                Pattern = "^na$",
-                Action = "look",
-            }));
-        File.WriteAllText(
-            Path.Combine(_directory, "NowePliki", "Triggers", "nowy-trigger.json"),
-            JsonSerializer.Serialize(new ProfileRule
-            {
-                Name = "nowy-trigger",
-                Pattern = "^test$",
-                Action = "look",
-            }));
-        File.WriteAllText(
-            Path.Combine(_directory, "NowePliki", "Timers", "nowy-timer.json"),
-            JsonSerializer.Serialize(new ProfileTimer
-            {
-                Name = "nowy-timer",
-                Seconds = 10,
-                CommandsText = "look",
-            }));
-        File.WriteAllText(
-            Path.Combine(_directory, "NowePliki", "Scripts", "nowy-skrypt.js"),
-            "send('look');");
+        var aliasPath = Path.Combine(_directory, "NowePliki", "Aliases", "nowy-alias.js");
+        var triggerPath = Path.Combine(_directory, "NowePliki", "Triggers", "nowy-trigger.js");
+        var timerPath = Path.Combine(_directory, "NowePliki", "Timers", "nowy-timer.js");
+        var scriptPath = Path.Combine(_directory, "NowePliki", "Scripts", "nowy-skrypt.js");
+        File.WriteAllText(aliasPath, "echo('alias');");
+        File.WriteAllText(triggerPath, "echo('trigger');");
+        File.WriteAllText(timerPath, "// Uruchamiaj timer co 250 ms.\necho('timer');");
+        File.WriteAllText(scriptPath, "echo('skrypt');");
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (DateTime.UtcNow < deadline
@@ -1268,6 +1394,51 @@ public sealed class ProfileTests : IDisposable
         Assert.Contains(vm.TriggerRules, rule => rule.Name == "nowy-trigger");
         Assert.Contains(vm.Timers, timer => timer.Name == "nowy-timer");
         Assert.Contains(vm.Scripts, script => script.Name == "nowy-skrypt");
+        Assert.StartsWith("// KillerMudClient: {", File.ReadAllText(aliasPath));
+        Assert.StartsWith("// KillerMudClient: {", File.ReadAllText(triggerPath));
+        Assert.StartsWith("// KillerMudClient: {", File.ReadAllText(timerPath));
+        Assert.StartsWith("// KillerMudClient: {", File.ReadAllText(scriptPath));
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ShowsBareJavaScriptTimerPastedIntoExistingFolder()
+    {
+        const string FolderId = "namaris-timers-id";
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "TimerNaZywo",
+            Folders =
+            [
+                new ProfileFolder
+                {
+                    Id = FolderId,
+                    Name = "namaris",
+                    Kind = FolderKind.Timers,
+                },
+            ],
+        });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "TimerNaZywo";
+        vm.SelectProfileCommand.Execute(null);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+        var path = Path.Combine(
+            _directory, "TimerNaZywo", "Timers", "namaris", "06_NamarisBot_Timer.js");
+        File.WriteAllText(path, "// Timer uruchamia ten skrypt co 250 ms.\necho('tick');");
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline
+               && vm.Timers.All(timer => timer.Name != "06_NamarisBot_Timer"))
+        {
+            await Task.Delay(25, TestContext.Current.CancellationToken);
+        }
+
+        var timer = Assert.Single(vm.Timers, timer => timer.Name == "06_NamarisBot_Timer");
+        Assert.Equal(250, timer.Milliseconds);
+        Assert.False(timer.IsEnabled);
+        var folder = Assert.Single(vm.TimerTree, node => node.Folder?.Id == FolderId);
+        Assert.Contains(folder.Children, node => ReferenceEquals(node.Content, timer));
     }
 
     [Avalonia.Headless.XUnit.AvaloniaFact]

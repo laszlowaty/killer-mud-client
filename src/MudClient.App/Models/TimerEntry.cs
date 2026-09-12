@@ -16,6 +16,7 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem, IScri
     private bool _isEnabled;
     private bool _isGlobal;
     private bool _isAdvanced;
+    private bool _loadInstant;
     private string? _folderId;
     private DateTimeOffset? _nextActivationAt;
     private string _remainingText = string.Empty;
@@ -106,6 +107,12 @@ public sealed class TimerEntry : ObservableObject, IActivatableFolderItem, IScri
     {
         get => _isAdvanced;
         set => SetProperty(ref _isAdvanced, value);
+    }
+
+    public bool LoadInstant
+    {
+        get => _loadInstant;
+        set => SetProperty(ref _loadInstant, value);
     }
 
     /// <summary>Id of the containing folder, or null when loose.</summary>

@@ -15,6 +15,7 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
     private bool _isEnabled;
     private bool _isGlobal;
     private bool _isAdvanced;
+    private bool _loadInstant;
     private string? _folderId;
     private string _lastError = string.Empty;
 
@@ -25,7 +26,8 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
         string action,
         bool isEnabled,
         bool isGlobal = false,
-        bool isAdvanced = false)
+        bool isAdvanced = false,
+        bool loadInstant = false)
     {
         _name = name;
         _type = type;
@@ -34,6 +36,7 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
         _isEnabled = isEnabled;
         _isGlobal = isGlobal;
         _isAdvanced = isAdvanced;
+        _loadInstant = loadInstant;
     }
 
     public string Name
@@ -87,6 +90,12 @@ public sealed class AutomationRuleEntry : ObservableObject, IActivatableFolderIt
     {
         get => _isAdvanced;
         set => SetProperty(ref _isAdvanced, value);
+    }
+
+    public bool LoadInstant
+    {
+        get => _loadInstant;
+        set => SetProperty(ref _loadInstant, value);
     }
 
     /// <summary>Id of the containing folder, or null when loose.</summary>

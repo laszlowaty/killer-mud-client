@@ -482,6 +482,121 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task SaveAdvancedRuleAndTimer_LoadInstant_RunsAndPersistsSetting()
+    {
+        var directory = Directory.CreateTempSubdirectory("load-instant-automation-save-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData { Name = "Automatyk" };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profile);
+            viewModel.NewRuleName = "startowy alias";
+            viewModel.NewRuleType = "alias";
+            viewModel.NewRulePattern = "^start$";
+            viewModel.NewRuleAction = "echo('rule load instant');";
+            viewModel.NewRuleIsAdvanced = true;
+            viewModel.NewRuleLoadInstant = true;
+            viewModel.AddRuleCommand.Execute(null);
+
+            viewModel.NewTimerName = "startowy timer";
+            viewModel.NewTimerSeconds = "10";
+            viewModel.NewTimerCommands = "echo('timer load instant');";
+            viewModel.NewTimerIsAdvanced = true;
+            viewModel.NewTimerLoadInstant = true;
+            viewModel.AddTimerCommand.Execute(null);
+
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(output, line => line.Contains("rule load instant", StringComparison.Ordinal));
+            Assert.Contains(output, line => line.Contains("timer load instant", StringComparison.Ordinal));
+            var stored = Assert.IsType<ProfileData>(profiles.Load("Automatyk"));
+            Assert.True(Assert.Single(stored.Rules).LoadInstant);
+            Assert.True(Assert.Single(stored.Timers).LoadInstant);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ReloadAdvancedRuleAndTimer_LoadInstant_RunsOnlyAfterContentChanges()
+    {
+        var directory = Directory.CreateTempSubdirectory("load-instant-automation-reload-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData
+        {
+            Name = "Automatyk",
+            Rules =
+            [
+                new ProfileRule
+                {
+                    Name = "konfiguracja aliasu",
+                    Type = "alias",
+                    Pattern = "^config$",
+                    Action = "echo('old rule');",
+                    IsAdvanced = true,
+                    LoadInstant = true,
+                },
+            ],
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Id = "config-timer-id",
+                    Name = "konfiguracja timera",
+                    Seconds = 10,
+                    CommandsText = "echo('old timer');",
+                    IsAdvanced = true,
+                    LoadInstant = true,
+                },
+            ],
+        };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profile);
+            profile.Rules[0].Action = "echo('new rule');";
+            profile.Timers[0].CommandsText = "echo('new timer');";
+            profiles.Save(profile);
+
+            InvokeReloadProfileStorage(viewModel, "Automatyk/Aliases/konfiguracja aliasu.js");
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(output, line => line.Contains("new rule", StringComparison.Ordinal));
+            Assert.Single(output, line => line.Contains("new timer", StringComparison.Ordinal));
+
+            InvokeReloadProfileStorage(viewModel, "Automatyk/profile.json");
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(output, line => line.Contains("new rule", StringComparison.Ordinal));
+            Assert.Single(output, line => line.Contains("new timer", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ReloadScript_LoadInstant_RunsOnlyWhenScriptChangedOnDisk()
     {
         var directory = Directory.CreateTempSubdirectory("load-instant-reload-").FullName;

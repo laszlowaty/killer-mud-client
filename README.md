@@ -135,7 +135,7 @@ aktualnej mapy bazowej. Konflikt połączenia można rozstrzygnąć przez
   kończącą tworzenie postaci. `/reroll` zatrzymuje automat i ponownie otwiera popup,
 - **Automaty** — aliasy, triggery i timery mogą działać w dotychczasowym trybie prostym albo wykonywać JavaScript. Komendy z każdego automatu przechodzą przez wspólny dispatcher klienta, dlatego mogą uruchamiać aliasy, `echo(...)` i komendy wbudowane takie jak `/idz`, `/recast`, `/reroll` czy `/map`,
 - **Edycja komend i kodu** — wielowierszowe pola aliasów, triggerów, timerów i skryptów są zwykłymi edytowalnymi polami tekstowymi z białym tłem, numerami linii, własnym przewijaniem oraz limitem wysokości około 20 wierszy; przycisk `⛶` otwiera to samo pole nad całym oknem na desktopie i Androidzie, a kod JavaScript ma proste kolorowanie komentarzy, napisów, liczb i słów kluczowych oraz jest na bieżąco sprawdzany przez parser Jint; dla kodu dłuższego niż 100 000 znaków kosztowne podświetlanie, numery linii i walidacja na żywo są automatycznie wyłączane, aby zachować płynną edycję,
-- **Skrypty** — samodzielne skrypty można uruchamiać przyciskiem, komendą `/script nazwa` albo podłączyć do dokładnego pakietu GMCP (`Char.Vitals`), prefiksu (`Char.*`) lub wszystkich pakietów (`*`). Pusty filtr GMCP oznacza skrypt wywoływany wyłącznie ręcznie. Opcja **Load instant** uruchamia skrypt tą samą ścieżką co przycisk Play natychmiast po zapisaniu go w UI albo po wczytaniu jego zmiany z dysku; taki hot-reload podmienia wyłącznie skrypty i nie przerywa działających timerów,
+- **Skrypty** — samodzielne skrypty można uruchamiać przyciskiem, komendą `/script nazwa` albo podłączyć do dokładnego pakietu GMCP (`Char.Vitals`), prefiksu (`Char.*`) lub wszystkich pakietów (`*`). Pusty filtr GMCP oznacza skrypt wywoływany wyłącznie ręcznie. Opcja **Load instant** jest też dostępna dla zaawansowanych aliasów, triggerów i timerów; uruchamia ich kod JavaScript natychmiast po zapisaniu w UI albo po wczytaniu zmiany z dysku. Niezmieniony wpis nie jest wykonywany ponownie przy kolejnym zdarzeniu watchera,
 - **Zmienne profilu** — trwałe wartości JSON współdzielone przez zaawansowane aliasy, triggery, timery i skrypty. Proste akcje mogą wstawiać je przez `${nazwa}`,
 - **Foldery** — timery, aliasy, triggery, skrypty, cele autowalk i notatki można układać w zagnieżdżonych folderach metodą drag&drop; folder obsługuje grupowe usuwanie, globalność oraz włączanie/wyłączanie tam, gdzie ma to zastosowanie,
 - **Import i eksport** — pojedyncze aliasy, triggery, timery i skrypty oraz całe drzewa ich folderów można przenosić w wersjonowanym formacie JSON; panel autowalka przenosi zawsze wszystkie zapisane cele wraz z pełną strukturą folderów; podczas importu identyfikatory folderów są bezpiecznie mapowane na nowe,
@@ -386,13 +386,21 @@ ich główny folder aktywnego profilu w eksploratorze systemowym.
 Proste aliasy, triggery i timery są plikami `.json`. Ich warianty zaawansowane oraz
 samodzielne skrypty są zapisywane jako `.js`: pierwsza linia jest komentarzem
 `// KillerMudClient: {...}` z nazwą, wzorcem/interwałem, stanem aktywności i filtrem
-GMCP, a kolejne linie są niezmienionym kodem JavaScript. Plik `.js` dodany ręcznie
-do `Scripts` nie wymaga nagłówka (nazwa pochodzi wtedy z nazwy pliku); pliki dodane
-do `Aliases`, `Triggers` i `Timers` wymagają nagłówka, ponieważ aplikacja potrzebuje
-odpowiednio wzorca albo interwału. Zaawansowane wpisy zapisane wcześniej jako JSON
+GMCP, a kolejne linie są niezmienionym kodem JavaScript. Ręcznie wklejony plik
+`.js` bez nagłówka jest od razu uzupełniany o właściwy nagłówek i pojawia się w UI.
+W `Scripts` nazwa pochodzi z nazwy pliku. W `Aliases` i `Triggers` taki wpis jest
+wyłączony do czasu uzupełnienia wzorca. W `Timers` klient również pozostawia wpis
+wyłączony, odczytuje interwał z komentarza `co N ms`, a bez niego przyjmuje jedną
+sekundę. Zaawansowane wpisy zapisane wcześniej jako JSON
 są odczytywane i przy następnym zapisie automatycznie zmieniane na `.js`. Pliki,
 których klient nie rozpoznaje jako własnych wpisów, pozostają na dysku i nie są
 usuwane podczas zapisu profilu.
+
+Przy konflikcie między stanem otwartej aplikacji a zewnętrzną zmianą pliku zawsze
+wygrywa dysk. Klient przed pełnym zapisem porównuje drzewo automatów z ostatnio
+wczytaną wersją; wykrytej edycji, nowego pliku ani usunięcia nie nadpisuje stanem
+z pamięci, tylko przeładowuje je do UI. Dopisywanie nagłówka do nowego pliku JS jest
+jedyną automatyczną normalizacją wykonywaną bezpośrednio po jego wykryciu.
 
 Dane Killeropedii są niezależne od profili: własny katalog ksiąg i pobrane paczki
 znajdują się pod `%AppData%/KillerMudClient/Killeropedia`. Starszy

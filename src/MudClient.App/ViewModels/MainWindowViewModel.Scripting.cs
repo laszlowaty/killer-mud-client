@@ -273,7 +273,12 @@ public sealed partial class MainWindowViewModel
 
     private void QueueLoadInstantScripts(IEnumerable<ScriptEntry> scripts)
     {
-        var pending = scripts.Where(script => script.LoadInstant).ToArray();
+        QueueLoadInstantAutomation(scripts.Select(ToLoadInstantAutomation));
+    }
+
+    private void QueueLoadInstantAutomation(IEnumerable<LoadInstantAutomation> automation)
+    {
+        var pending = automation.Where(item => item.LoadInstant).ToArray();
         if (pending.Length == 0)
         {
             return;
@@ -281,10 +286,14 @@ public sealed partial class MainWindowViewModel
 
         QueueAutomationWork(async cancellationToken =>
         {
-            foreach (var script in pending)
+            foreach (var item in pending)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await RunScriptAsync(script, cancellationToken);
+                await ExecuteScriptAsync(
+                    new ScriptInvocation(item.Name, item.Kind, item.Code),
+                    item.Owner,
+                    depth: 0,
+                    cancellationToken);
             }
         });
     }

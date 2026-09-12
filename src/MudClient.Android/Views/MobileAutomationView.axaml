@@ -141,6 +141,9 @@
                 <CheckBox IsChecked="{Binding NewTimerIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewTimerIsGlobal}" Content="Globalny" />
+                <CheckBox IsChecked="{Binding NewTimerLoadInstant}"
+                          IsVisible="{Binding NewTimerIsAdvanced}"
+                          Content="Load instant — uruchom po zapisie lub przeładowaniu" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding TimerFormButtonText}"
                           Command="{Binding AddTimerCommand}"
@@ -199,6 +202,9 @@
                 <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
+                <CheckBox IsChecked="{Binding NewRuleLoadInstant}"
+                          IsVisible="{Binding NewRuleIsAdvanced}"
+                          Content="Load instant — uruchom po zapisie lub przeładowaniu" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding RuleFormButtonText}"
                           Command="{Binding AddRuleCommand}"
@@ -257,6 +263,9 @@
                 <CheckBox IsChecked="{Binding NewRuleIsAdvanced}"
                           Content="Zaawansowany — JavaScript" />
                 <CheckBox IsChecked="{Binding NewRuleIsGlobal}" Content="Globalny" />
+                <CheckBox IsChecked="{Binding NewRuleLoadInstant}"
+                          IsVisible="{Binding NewRuleIsAdvanced}"
+                          Content="Load instant — uruchom po zapisie lub przeładowaniu" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding RuleFormButtonText}"
                           Command="{Binding AddRuleCommand}"

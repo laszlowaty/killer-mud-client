@@ -28,6 +28,9 @@
               <Border Classes="mud-badge mud-badge-gold" IsVisible="{Binding IsAdvanced}">
                 <TextBlock Text="JS" />
               </Border>
+              <Border Classes="mud-badge" IsVisible="{Binding LoadInstant}">
+                <TextBlock Text="LOAD" />
+              </Border>
             </StackPanel>
 
             <ToggleButton Grid.Column="1" Classes="mud-switch"
@@ -181,6 +184,9 @@
         </StackPanel>
         <CheckBox IsChecked="{Binding NewTimerIsGlobal}"
                   Content="Globalny — dostępny na wszystkich kontach" />
+        <CheckBox IsChecked="{Binding NewTimerLoadInstant}"
+                  IsVisible="{Binding NewTimerIsAdvanced}"
+                  Content="Load instant — uruchom po zapisie lub przeładowaniu z dysku" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
           <Button Content="{Binding TimerFormButtonText}" Command="{Binding AddTimerCommand}"
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
@@ -213,6 +219,9 @@
         </StackPanel>
         <CheckBox IsChecked="{Binding NewRuleIsGlobal}"
                   Content="Globalny — dostępny na wszystkich kontach" />
+        <CheckBox IsChecked="{Binding NewRuleLoadInstant}"
+                  IsVisible="{Binding NewRuleIsAdvanced}"
+                  Content="Load instant — uruchom po zapisie lub przeładowaniu z dysku" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
           <Button Content="{Binding RuleFormButtonText}" Command="{Binding AddRuleCommand}"
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />

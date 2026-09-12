@@ -166,6 +166,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private string? _newRulePatternError;
     private bool _newRuleIsGlobal;
     private bool _newRuleIsAdvanced;
+    private bool _newRuleLoadInstant;
     private AutomationRuleEntry? _editedRule;
     private bool _isRuleFormExpanded;
 
@@ -177,6 +178,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private string _newTimerCommands = string.Empty;
     private bool _newTimerIsGlobal;
     private bool _newTimerIsAdvanced;
+    private bool _newTimerLoadInstant;
     private TimerEntry? _editedTimer;
     private bool _isTimerFormExpanded;
     private int _selectedAutomationTabIndex;
@@ -2189,6 +2191,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         set => SetProperty(ref _newRuleIsAdvanced, value);
     }
 
+    public bool NewRuleLoadInstant
+    {
+        get => _newRuleLoadInstant;
+        set => SetProperty(ref _newRuleLoadInstant, value);
+    }
+
     /// <summary>Live regex validation message, or null when the pattern is valid.</summary>
     public string? NewRulePatternError
     {
@@ -2242,6 +2250,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
+        AutomationRuleEntry savedRule;
         if (_editedRule is { } edited)
         {
             edited.Name = NewRuleName.Trim();
@@ -2250,14 +2259,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             edited.Action = NewRuleAction;
             edited.IsGlobal = NewRuleIsGlobal;
             edited.IsAdvanced = NewRuleIsAdvanced;
+            edited.LoadInstant = NewRuleIsAdvanced && NewRuleLoadInstant;
             edited.LastError = string.Empty;
+            savedRule = edited;
         }
         else
         {
-            AutomationRules.Add(new AutomationRuleEntry(
+            savedRule = new AutomationRuleEntry(
                 NewRuleName.Trim(), NewRuleType, NewRulePattern, NewRuleAction,
                 isEnabled: true, isGlobal: NewRuleIsGlobal,
-                isAdvanced: NewRuleIsAdvanced));
+                isAdvanced: NewRuleIsAdvanced,
+                loadInstant: NewRuleIsAdvanced && NewRuleLoadInstant);
+            AutomationRules.Add(savedRule);
         }
 
         ClearRuleForm();
@@ -2265,6 +2278,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         RebuildFolderTrees();
         ApplyAutomation();
         SaveActiveProfile();
+        QueueLoadInstantAutomation([ToLoadInstantAutomation(savedRule)]);
     }
 
     private void EditRule(AutomationRuleEntry? entry)
@@ -2281,6 +2295,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         NewRuleAction = entry.Action;
         NewRuleIsGlobal = entry.IsGlobal;
         NewRuleIsAdvanced = entry.IsAdvanced;
+        NewRuleLoadInstant = entry.LoadInstant;
         IsRuleFormExpanded = true;
         SelectedAutomationTabIndex = entry.Type == "trigger" ? 2 : 1;
         NotifyRuleEditModeChanged();
@@ -2305,6 +2320,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         NewRuleAction = string.Empty;
         NewRuleIsGlobal = false;
         NewRuleIsAdvanced = false;
+        NewRuleLoadInstant = false;
         NotifyRuleEditModeChanged();
     }
 
@@ -2422,6 +2438,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         set => SetProperty(ref _newTimerIsAdvanced, value);
     }
 
+    public bool NewTimerLoadInstant
+    {
+        get => _newTimerLoadInstant;
+        set => SetProperty(ref _newTimerLoadInstant, value);
+    }
+
     private void AddTimer()
     {
         var name = NewTimerName.Trim();
@@ -2459,6 +2481,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
+        TimerEntry savedTimer;
         if (_editedTimer is { } edited)
         {
             edited.Name = name;
@@ -2468,12 +2491,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             edited.CommandsText = NewTimerCommands;
             edited.IsGlobal = NewTimerIsGlobal;
             edited.IsAdvanced = NewTimerIsAdvanced;
+            edited.LoadInstant = NewTimerIsAdvanced && NewTimerLoadInstant;
             edited.LastError = string.Empty;
             SyncTimer(edited);
+            savedTimer = edited;
         }
         else
         {
-            Timers.Add(new TimerEntry
+            savedTimer = new TimerEntry
             {
                 Name = name,
                 Minutes = minutes,
@@ -2482,11 +2507,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 CommandsText = NewTimerCommands,
                 IsGlobal = NewTimerIsGlobal,
                 IsAdvanced = NewTimerIsAdvanced,
-            });
+                LoadInstant = NewTimerIsAdvanced && NewTimerLoadInstant,
+            };
+            Timers.Add(savedTimer);
         }
 
         ClearTimerForm();
         SaveActiveProfile();
+        QueueLoadInstantAutomation([ToLoadInstantAutomation(savedTimer)]);
     }
 
     private void EditTimer(TimerEntry? entry)
@@ -2504,6 +2532,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         NewTimerCommands = entry.CommandsText;
         NewTimerIsGlobal = entry.IsGlobal;
         NewTimerIsAdvanced = entry.IsAdvanced;
+        NewTimerLoadInstant = entry.LoadInstant;
         IsTimerFormExpanded = true;
         SelectedAutomationTabIndex = 0;
         NotifyTimerEditModeChanged();
@@ -2529,6 +2558,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         NewTimerCommands = string.Empty;
         NewTimerIsGlobal = false;
         NewTimerIsAdvanced = false;
+        NewTimerLoadInstant = false;
         NotifyTimerEditModeChanged();
     }
 
@@ -5213,7 +5243,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             rule.Action,
             rule.IsEnabled,
             isGlobal,
-            rule.IsAdvanced)
+            rule.IsAdvanced,
+            rule.LoadInstant)
         {
             FolderId = rule.FolderId,
         };
@@ -5231,6 +5262,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         IsEnabled = timer.IsEnabled,
         IsGlobal = isGlobal,
         IsAdvanced = timer.IsAdvanced,
+        LoadInstant = timer.LoadInstant,
         FolderId = timer.FolderId,
     };
 
@@ -5281,6 +5313,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Action = r.Action,
         IsEnabled = r.IsEnabled,
         IsAdvanced = r.IsAdvanced,
+        LoadInstant = r.LoadInstant,
         IsGlobal = r.IsGlobal,
         FolderId = r.FolderId,
     };
@@ -5296,6 +5329,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         CommandsText = t.CommandsText,
         IsEnabled = t.IsEnabled,
         IsAdvanced = t.IsAdvanced,
+        LoadInstant = t.LoadInstant,
         IsGlobal = t.IsGlobal,
         FolderId = t.FolderId,
     };
@@ -5422,7 +5456,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void ReloadProfileStorage(ProfileStorageChangedEventArgs changes)
     {
-        var previousScripts = SnapshotReloadableScripts(Scripts);
+        var previousAutomation = SnapshotReloadableAutomation();
         var names = _profiles.ListProfileNames();
         RefreshAvailableProfiles(names);
 
@@ -5448,7 +5482,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     ActivateProfile(profile, notifyActivation: false);
                 }
 
-                QueueChangedLoadInstantScripts(previousScripts);
+                QueueChangedLoadInstantAutomation(previousAutomation);
             }
 
             return;
@@ -5462,7 +5496,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (ChangesOnlyAffectScripts(changes))
         {
             ReloadScriptsOnly(profile: null);
-            QueueChangedLoadInstantScripts(previousScripts);
+            QueueChangedLoadInstantAutomation(previousAutomation);
             return;
         }
 
@@ -5478,7 +5512,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyAutomation();
         CancelAllTimers();
         SyncAllTimers();
-        QueueChangedLoadInstantScripts(previousScripts);
+        QueueChangedLoadInstantAutomation(previousAutomation);
     }
 
     private static bool ChangesOnlyAffectScripts(ProfileStorageChangedEventArgs changes) =>
@@ -5531,44 +5565,92 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         RebuildFolderTrees();
     }
 
-    private void QueueChangedLoadInstantScripts(
-        IReadOnlyDictionary<string, ReloadableScriptSnapshot> previousScripts)
+    private void QueueChangedLoadInstantAutomation(
+        IReadOnlyDictionary<string, ReloadableAutomationSnapshot> previousAutomation)
     {
-        QueueLoadInstantScripts(Scripts.Where(script =>
-            script.LoadInstant
-            && (!previousScripts.TryGetValue(ReloadableScriptKey(script), out var previous)
-                || previous != ReloadableScriptSnapshot.From(script))));
+        QueueLoadInstantAutomation(CurrentLoadInstantAutomation().Where(item =>
+            item.LoadInstant
+            && (!previousAutomation.TryGetValue(item.Key, out var previous)
+                || previous != ReloadableAutomationSnapshot.From(item))));
     }
 
-    private static IReadOnlyDictionary<string, ReloadableScriptSnapshot> SnapshotReloadableScripts(
-        IEnumerable<ScriptEntry> scripts)
+    private IReadOnlyDictionary<string, ReloadableAutomationSnapshot> SnapshotReloadableAutomation()
     {
-        var snapshots = new Dictionary<string, ReloadableScriptSnapshot>(
+        var snapshots = new Dictionary<string, ReloadableAutomationSnapshot>(
             StringComparer.OrdinalIgnoreCase);
-        foreach (var script in scripts)
+        foreach (var item in CurrentLoadInstantAutomation())
         {
-            // Imported or externally copied files can legitimately retain the same metadata id.
-            // Keep the latest loaded entry instead of letting a duplicate block profile reload.
-            snapshots[ReloadableScriptKey(script)] = ReloadableScriptSnapshot.From(script);
+            // Externally copied files may retain metadata ids. Keep the latest entry so a
+            // duplicate cannot prevent the active profile from reloading.
+            snapshots[item.Key] = ReloadableAutomationSnapshot.From(item);
         }
 
         return snapshots;
     }
 
-    private static string ReloadableScriptKey(ScriptEntry script) =>
-        $"{script.IsGlobal}|{script.Id}|{script.FolderId}|{script.Name}";
+    private IEnumerable<LoadInstantAutomation> CurrentLoadInstantAutomation()
+    {
+        foreach (var script in Scripts)
+        {
+            yield return ToLoadInstantAutomation(script);
+        }
 
-    private sealed record ReloadableScriptSnapshot(
+        foreach (var rule in AutomationRules.Where(rule => rule.IsAdvanced))
+        {
+            yield return ToLoadInstantAutomation(rule);
+        }
+
+        foreach (var timer in Timers.Where(timer => timer.IsAdvanced))
+        {
+            yield return ToLoadInstantAutomation(timer);
+        }
+    }
+
+    private static LoadInstantAutomation ToLoadInstantAutomation(ScriptEntry script) => new(
+        $"script|{script.IsGlobal}|{script.Id}|{script.FolderId}|{script.Name}",
+        script.Name,
+        "script",
+        script.Code,
+        script.LoadInstant,
+        script.IsEnabled,
+        script);
+
+    private static LoadInstantAutomation ToLoadInstantAutomation(AutomationRuleEntry rule) => new(
+        $"{rule.Type}|{rule.IsGlobal}|{rule.FolderId}|{rule.Name}",
+        rule.Name,
+        rule.Type,
+        rule.Action,
+        rule.LoadInstant,
+        rule.IsEnabled,
+        rule);
+
+    private static LoadInstantAutomation ToLoadInstantAutomation(TimerEntry timer) => new(
+        $"timer|{timer.IsGlobal}|{timer.Id}|{timer.FolderId}|{timer.Name}",
+        timer.Name,
+        "timer",
+        timer.CommandsText,
+        timer.LoadInstant,
+        timer.IsEnabled,
+        timer);
+
+    private sealed record LoadInstantAutomation(
+        string Key,
+        string Name,
+        string Kind,
         string Code,
-        string GmcpPattern,
+        bool LoadInstant,
+        bool IsEnabled,
+        IScriptErrorSource Owner);
+
+    private sealed record ReloadableAutomationSnapshot(
+        string Code,
         bool LoadInstant,
         bool IsEnabled)
     {
-        public static ReloadableScriptSnapshot From(ScriptEntry script) => new(
-            script.Code,
-            script.GmcpPattern,
-            script.LoadInstant,
-            script.IsEnabled);
+        public static ReloadableAutomationSnapshot From(LoadInstantAutomation item) => new(
+            item.Code,
+            item.LoadInstant,
+            item.IsEnabled);
     }
 
     private void RefreshAvailableProfiles(IReadOnlyList<string> names)
@@ -6258,6 +6340,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Action = source.Action,
         IsEnabled = source.IsEnabled,
         IsAdvanced = source.IsAdvanced,
+        LoadInstant = source.LoadInstant,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
     };
@@ -6273,6 +6356,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         CommandsText = source.CommandsText,
         IsEnabled = source.IsEnabled,
         IsAdvanced = source.IsAdvanced,
+        LoadInstant = source.LoadInstant,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
     };
@@ -6283,6 +6367,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Name = source.Name,
         Code = source.Code,
         GmcpPattern = source.GmcpPattern,
+        LoadInstant = source.LoadInstant,
         IsEnabled = source.IsEnabled,
         IsGlobal = source.IsGlobal,
         FolderId = folderId,
