@@ -5437,9 +5437,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             var profile = _profiles.Load(activeName);
             if (profile is not null)
             {
-                // A disk refresh is not a user profile selection: do not reconnect or emit
-                // activation/reload notifications for every external file-system write.
-                ActivateProfile(profile, notifyActivation: false);
+                if (ChangesOnlyAffectScripts(changes))
+                {
+                    ReloadScriptsOnly(profile);
+                }
+                else
+                {
+                    // A disk refresh is not a user profile selection: do not reconnect or emit
+                    // activation/reload notifications for every external file-system write.
+                    ActivateProfile(profile, notifyActivation: false);
+                }
+
                 QueueChangedLoadInstantScripts(previousScripts);
             }
 
@@ -5448,6 +5456,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         if (!_profiles.StorageChangeAffectsGlobal(changes))
         {
+            return;
+        }
+
+        if (ChangesOnlyAffectScripts(changes))
+        {
+            ReloadScriptsOnly(profile: null);
+            QueueChangedLoadInstantScripts(previousScripts);
             return;
         }
 
@@ -5466,6 +5481,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         QueueChangedLoadInstantScripts(previousScripts);
     }
 
+    private static bool ChangesOnlyAffectScripts(ProfileStorageChangedEventArgs changes) =>
+        !changes.RequiresFullReload
+        && changes.RelativePaths.Count > 0
+        && changes.RelativePaths.All(path =>
+        {
+            var segments = path.Replace('\\', '/').Split('/');
+            return segments.Length > 2
+                && string.Equals(segments[1], "Scripts", StringComparison.OrdinalIgnoreCase);
+        });
+
+    private void ReloadScriptsOnly(ProfileData? profile)
+    {
+        Scripts.Clear();
+        foreach (var script in _profiles.LoadGlobal().Scripts ?? [])
+        {
+            Scripts.Add(MakeScriptEntry(script, isGlobal: true));
+        }
+
+        foreach (var script in profile?.Scripts ?? [])
+        {
+            Scripts.Add(MakeScriptEntry(script, isGlobal: false));
+        }
+
+        RebuildFolderTrees();
+    }
+
     private void QueueChangedLoadInstantScripts(
         IReadOnlyDictionary<string, ReloadableScriptSnapshot> previousScripts)
     {
@@ -5476,10 +5517,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     private static IReadOnlyDictionary<string, ReloadableScriptSnapshot> SnapshotReloadableScripts(
-        IEnumerable<ScriptEntry> scripts) => scripts.ToDictionary(
-            ReloadableScriptKey,
-            ReloadableScriptSnapshot.From,
+        IEnumerable<ScriptEntry> scripts)
+    {
+        var snapshots = new Dictionary<string, ReloadableScriptSnapshot>(
             StringComparer.OrdinalIgnoreCase);
+        foreach (var script in scripts)
+        {
+            // Imported or externally copied files can legitimately retain the same metadata id.
+            // Keep the latest loaded entry instead of letting a duplicate block profile reload.
+            snapshots[ReloadableScriptKey(script)] = ReloadableScriptSnapshot.From(script);
+        }
+
+        return snapshots;
+    }
 
     private static string ReloadableScriptKey(ScriptEntry script) =>
         $"{script.IsGlobal}|{script.Id}|{script.FolderId}|{script.Name}";

@@ -489,6 +489,18 @@ public sealed class AutomationCommandEchoUiTests
         var profile = new ProfileData
         {
             Name = "Skrypter",
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Id = "running-timer",
+                    Name = "działający timer",
+                    Seconds = 30,
+                    CommandsText = "echo('timer');",
+                    IsEnabled = true,
+                    IsAdvanced = true,
+                },
+            ],
             Scripts =
             [
                 new ProfileScript
@@ -512,6 +524,18 @@ public sealed class AutomationCommandEchoUiTests
         {
             InvokeActivateProfile(viewModel, profile);
             Assert.Empty(output);
+            var runningTimer = Assert.Single(viewModel.Timers);
+            Assert.NotEmpty(runningTimer.RemainingText);
+            var loadedScript = Assert.Single(viewModel.Scripts);
+            viewModel.Scripts.Add(new ScriptEntry
+            {
+                Id = loadedScript.Id,
+                Name = loadedScript.Name,
+                Code = loadedScript.Code,
+                LoadInstant = loadedScript.LoadInstant,
+                FolderId = loadedScript.FolderId,
+                IsGlobal = loadedScript.IsGlobal,
+            });
 
             profile.Scripts[0].Code = "echo('new version');";
             profiles.Save(profile);
@@ -520,6 +544,8 @@ public sealed class AutomationCommandEchoUiTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Single(output, line => line.Contains("new version", StringComparison.Ordinal));
+            Assert.Same(runningTimer, Assert.Single(viewModel.Timers));
+            Assert.NotEmpty(runningTimer.RemainingText);
 
             InvokeReloadProfileStorage(viewModel, "Skrypter/profile.json");
             await GetAutomationQueueTail(viewModel);
