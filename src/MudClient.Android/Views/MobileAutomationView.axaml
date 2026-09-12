@@ -77,7 +77,12 @@
     <DataTemplate x:Key="ScriptItemTemplate" x:DataType="models:ScriptEntry">
       <Border Classes="mud-section" Padding="12" Margin="0,3">
         <StackPanel Spacing="6">
-          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <Border Classes="mud-badge" IsVisible="{Binding LoadInstant}">
+              <TextBlock Text="LOAD" />
+            </Border>
+          </StackPanel>
           <TextBlock Text="{Binding LastError}"
                      Foreground="{StaticResource MudBrushCrimsonBright}"
                      IsVisible="{Binding HasLastError}" TextWrapping="Wrap" />
@@ -306,6 +311,8 @@
                                                TextWrapping="NoWrap"
                                                MinHeight="160" />
                 <CheckBox IsChecked="{Binding NewScriptIsGlobal}" Content="Globalny" />
+                <CheckBox IsChecked="{Binding NewScriptLoadInstant}"
+                          Content="Load instant — uruchom po zapisie lub przeładowaniu" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <Button Content="{Binding ScriptFormButtonText}"
                           Command="{Binding AddScriptCommand}"

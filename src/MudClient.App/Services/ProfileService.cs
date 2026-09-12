@@ -689,6 +689,7 @@ public sealed class ProfileService : IDisposable
                     Id = script.Id,
                     Name = script.Name,
                     GmcpPattern = script.GmcpPattern,
+                    LoadInstant = script.LoadInstant,
                     Enabled = script.IsEnabled,
                 };
                 code = script.Code;
@@ -841,6 +842,7 @@ public sealed class ProfileService : IDisposable
                 Name = name,
                 Code = code,
                 GmcpPattern = metadata.GmcpPattern,
+                LoadInstant = metadata.LoadInstant,
                 IsEnabled = metadata.Enabled,
             },
             _ => null,
@@ -1236,6 +1238,7 @@ public sealed class ProfileService : IDisposable
         public int Seconds { get; set; }
         public int Milliseconds { get; set; }
         public string GmcpPattern { get; set; } = string.Empty;
+        public bool LoadInstant { get; set; }
     }
 
     private sealed class ProfileMetadata

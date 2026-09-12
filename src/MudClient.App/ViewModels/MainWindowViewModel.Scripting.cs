@@ -42,6 +42,7 @@ public sealed partial class MainWindowViewModel
     private string _newScriptName = string.Empty;
     private string _newScriptCode = string.Empty;
     private string _newScriptGmcpPattern = string.Empty;
+    private bool _newScriptLoadInstant;
     private bool _newScriptIsGlobal;
     private string _newScriptVariableName = string.Empty;
     private string _newScriptVariableJson = "null";
@@ -108,6 +109,12 @@ public sealed partial class MainWindowViewModel
         set => SetProperty(ref _newScriptIsGlobal, value);
     }
 
+    public bool NewScriptLoadInstant
+    {
+        get => _newScriptLoadInstant;
+        set => SetProperty(ref _newScriptLoadInstant, value);
+    }
+
     public string NewScriptVariableName
     {
         get => _newScriptVariableName;
@@ -171,28 +178,37 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        ScriptEntry savedScript;
         if (_editedScript is { } edited)
         {
             edited.Name = NewScriptName.Trim();
             edited.Code = NewScriptCode;
             edited.GmcpPattern = NewScriptGmcpPattern.Trim();
+            edited.LoadInstant = NewScriptLoadInstant;
             edited.IsGlobal = NewScriptIsGlobal;
             edited.LastError = string.Empty;
+            savedScript = edited;
         }
         else
         {
-            Scripts.Add(new ScriptEntry
+            savedScript = new ScriptEntry
             {
                 Name = NewScriptName.Trim(),
                 Code = NewScriptCode,
                 GmcpPattern = NewScriptGmcpPattern.Trim(),
+                LoadInstant = NewScriptLoadInstant,
                 IsGlobal = NewScriptIsGlobal,
-            });
+            };
+            Scripts.Add(savedScript);
         }
 
         ClearScriptForm();
         RebuildFolderTrees();
         SaveActiveProfile();
+        if (savedScript.LoadInstant)
+        {
+            QueueLoadInstantScripts([savedScript]);
+        }
     }
 
     private void EditScript(ScriptEntry? script)
@@ -206,6 +222,7 @@ public sealed partial class MainWindowViewModel
         NewScriptName = script.Name;
         NewScriptCode = script.Code;
         NewScriptGmcpPattern = script.GmcpPattern;
+        NewScriptLoadInstant = script.LoadInstant;
         NewScriptIsGlobal = script.IsGlobal;
         IsScriptFormExpanded = true;
         SelectedAutomationTabIndex = 3;
@@ -254,6 +271,24 @@ public sealed partial class MainWindowViewModel
             cancellationToken);
     }
 
+    private void QueueLoadInstantScripts(IEnumerable<ScriptEntry> scripts)
+    {
+        var pending = scripts.Where(script => script.LoadInstant).ToArray();
+        if (pending.Length == 0)
+        {
+            return;
+        }
+
+        QueueAutomationWork(async cancellationToken =>
+        {
+            foreach (var script in pending)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await RunScriptAsync(script, cancellationToken);
+            }
+        });
+    }
+
     private void ClearScriptForm()
     {
         _editedScript = null;
@@ -261,6 +296,7 @@ public sealed partial class MainWindowViewModel
         NewScriptName = string.Empty;
         NewScriptCode = string.Empty;
         NewScriptGmcpPattern = string.Empty;
+        NewScriptLoadInstant = false;
         NewScriptIsGlobal = false;
         NotifyScriptEditModeChanged();
     }

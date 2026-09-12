@@ -7,6 +7,7 @@ public sealed class ScriptEntry : ObservableObject, IActivatableFolderItem, IScr
     private string _name = string.Empty;
     private string _code = string.Empty;
     private string _gmcpPattern = string.Empty;
+    private bool _loadInstant;
     private bool _isEnabled = true;
     private bool _isGlobal;
     private string? _folderId;
@@ -30,6 +31,12 @@ public sealed class ScriptEntry : ObservableObject, IActivatableFolderItem, IScr
     {
         get => _gmcpPattern;
         set => SetProperty(ref _gmcpPattern, value);
+    }
+
+    public bool LoadInstant
+    {
+        get => _loadInstant;
+        set => SetProperty(ref _loadInstant, value);
     }
 
     public bool IsEnabled

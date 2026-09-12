@@ -123,6 +123,9 @@
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
                          TextTrimming="CharacterEllipsis" />
               <Border Classes="mud-badge"><TextBlock Text="JS" /></Border>
+              <Border Classes="mud-badge" IsVisible="{Binding LoadInstant}">
+                <TextBlock Text="LOAD" />
+              </Border>
               <Border Classes="mud-badge mud-badge-gold" IsVisible="{Binding IsGlobal}">
                 <TextBlock Text="Globalny" />
               </Border>
@@ -435,6 +438,8 @@
                                                PlaceholderText="onGmcp(&quot;Char.Vitals&quot;, event => {&#x0a;  if (event.data.hp &lt; 25) execute(&quot;/idz lecznica&quot;);&#x0a;});" />
                 <CheckBox IsChecked="{Binding NewScriptIsGlobal}"
                           Content="Globalny — dostępny na wszystkich kontach" />
+                <CheckBox IsChecked="{Binding NewScriptLoadInstant}"
+                          Content="Load instant — uruchom po zapisie lub przeładowaniu z dysku" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                   <Button Content="{Binding ScriptFormButtonText}"
                           Command="{Binding AddScriptCommand}" />

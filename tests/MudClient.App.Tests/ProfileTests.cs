@@ -235,6 +235,7 @@ public sealed class ProfileTests : IDisposable
                 {
                     Name = "witalne",
                     GmcpPattern = "Char.Vitals",
+                    LoadInstant = true,
                     Code = "onGmcp(\"Char.Vitals\", event => variables.set(\"hp\", event.data.hp));",
                 },
             ],
@@ -251,6 +252,7 @@ public sealed class ProfileTests : IDisposable
         Assert.True(Assert.Single(loaded!.Rules).IsAdvanced);
         Assert.True(Assert.Single(loaded.Timers).IsAdvanced);
         Assert.Equal("Char.Vitals", Assert.Single(loaded.Scripts).GmcpPattern);
+        Assert.True(Assert.Single(loaded.Scripts).LoadInstant);
         Assert.Equal("ork", loaded.ScriptVariables["target"].GetString());
         Assert.Equal(3, loaded.ScriptVariables["count"].GetInt32());
     }
@@ -496,6 +498,7 @@ public sealed class ProfileTests : IDisposable
                 Id = "script-id",
                 Name = "gmcp status",
                 GmcpPattern = "Char.Vitals",
+                LoadInstant = true,
                 Code = "echo(gmcp.data.hp);",
             }],
         });
@@ -510,6 +513,7 @@ public sealed class ProfileTests : IDisposable
         Assert.True(File.Exists(scriptPath));
         var scriptText = File.ReadAllText(scriptPath);
         Assert.StartsWith("// KillerMudClient: {", scriptText);
+        Assert.Contains("\"loadInstant\":true", scriptText);
         Assert.EndsWith("echo(gmcp.data.hp);", scriptText);
 
         var loaded = Assert.IsType<ProfileData>(service.Load("JavaScript"));
@@ -527,6 +531,7 @@ public sealed class ProfileTests : IDisposable
         var script = Assert.Single(loaded.Scripts);
         Assert.Equal("script-id", script.Id);
         Assert.Equal("Char.Vitals", script.GmcpPattern);
+        Assert.True(script.LoadInstant);
         Assert.Equal("echo(gmcp.data.hp);", script.Code);
     }
 
@@ -543,6 +548,7 @@ public sealed class ProfileTests : IDisposable
         Assert.Equal("moj-skrypt", script.Name);
         Assert.Equal("echo('recznie dodany');", script.Code);
         Assert.True(script.IsEnabled);
+        Assert.False(script.LoadInstant);
     }
 
     [Fact]

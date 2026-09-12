@@ -448,6 +448,92 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task SaveScript_LoadInstant_RunsThroughPlayPathAndPersistsSetting()
+    {
+        var directory = Directory.CreateTempSubdirectory("load-instant-save-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData { Name = "Skrypter" };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profile);
+            viewModel.NewScriptName = "startowy";
+            viewModel.NewScriptCode = "echo('load instant save');";
+            viewModel.NewScriptLoadInstant = true;
+
+            viewModel.AddScriptCommand.Execute(null);
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(output, line => line.Contains("load instant save", StringComparison.Ordinal));
+            Assert.True(Assert.Single(profiles.Load("Skrypter")!.Scripts).LoadInstant);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ReloadScript_LoadInstant_RunsOnlyWhenScriptChangedOnDisk()
+    {
+        var directory = Directory.CreateTempSubdirectory("load-instant-reload-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData
+        {
+            Name = "Skrypter",
+            Scripts =
+            [
+                new ProfileScript
+                {
+                    Id = "startowy-id",
+                    Name = "startowy",
+                    Code = "echo('old version');",
+                    LoadInstant = true,
+                },
+            ],
+        };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+        var output = new List<string>();
+        viewModel.OutputReceived += output.Add;
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profile);
+            Assert.Empty(output);
+
+            profile.Scripts[0].Code = "echo('new version');";
+            profiles.Save(profile);
+            InvokeReloadProfileStorage(viewModel, "Skrypter/Scripts/startowy.js");
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(output, line => line.Contains("new version", StringComparison.Ordinal));
+
+            InvokeReloadProfileStorage(viewModel, "Skrypter/profile.json");
+            await GetAutomationQueueTail(viewModel);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(output, line => line.Contains("new version", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ScriptHttpRequest_AwaitsResponseBeforeDispatchingEffects()
     {
         var responseReleased = new TaskCompletionSource(
@@ -972,6 +1058,27 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(field);
         return Assert.IsAssignableFrom<Task>(field!.GetValue(viewModel));
+    }
+
+    private static void InvokeActivateProfile(MainWindowViewModel viewModel, ProfileData profile)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "ActivateProfile",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(viewModel, [profile, false]);
+    }
+
+    private static void InvokeReloadProfileStorage(MainWindowViewModel viewModel, string relativePath)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "ReloadProfileStorage",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(viewModel,
+        [
+            new ProfileStorageChangedEventArgs([relativePath], requiresFullReload: false),
+        ]);
     }
 
     private static Task GetReconnectTask(MainWindowViewModel viewModel)

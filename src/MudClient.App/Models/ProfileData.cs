@@ -243,6 +243,9 @@ public sealed class ProfileScript
     /// </summary>
     public string GmcpPattern { get; set; } = string.Empty;
 
+    /// <summary>Runs the script immediately after it is saved or reloaded from disk.</summary>
+    public bool LoadInstant { get; set; }
+
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>True when stored in the shared global file.</summary>

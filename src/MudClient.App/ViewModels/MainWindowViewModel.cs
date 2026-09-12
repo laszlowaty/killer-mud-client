@@ -5240,6 +5240,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Name = script.Name,
         Code = script.Code,
         GmcpPattern = script.GmcpPattern,
+        LoadInstant = script.LoadInstant,
         IsEnabled = script.IsEnabled,
         IsGlobal = isGlobal,
         FolderId = script.FolderId,
@@ -5305,6 +5306,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         Name = script.Name,
         Code = script.Code,
         GmcpPattern = script.GmcpPattern,
+        LoadInstant = script.LoadInstant,
         IsEnabled = script.IsEnabled,
         IsGlobal = script.IsGlobal,
         FolderId = script.FolderId,
@@ -5420,6 +5422,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void ReloadProfileStorage(ProfileStorageChangedEventArgs changes)
     {
+        var previousScripts = SnapshotReloadableScripts(Scripts);
         var names = _profiles.ListProfileNames();
         RefreshAvailableProfiles(names);
 
@@ -5437,6 +5440,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 // A disk refresh is not a user profile selection: do not reconnect or emit
                 // activation/reload notifications for every external file-system write.
                 ActivateProfile(profile, notifyActivation: false);
+                QueueChangedLoadInstantScripts(previousScripts);
             }
 
             return;
@@ -5459,6 +5463,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ApplyAutomation();
         CancelAllTimers();
         SyncAllTimers();
+        QueueChangedLoadInstantScripts(previousScripts);
+    }
+
+    private void QueueChangedLoadInstantScripts(
+        IReadOnlyDictionary<string, ReloadableScriptSnapshot> previousScripts)
+    {
+        QueueLoadInstantScripts(Scripts.Where(script =>
+            script.LoadInstant
+            && (!previousScripts.TryGetValue(ReloadableScriptKey(script), out var previous)
+                || previous != ReloadableScriptSnapshot.From(script))));
+    }
+
+    private static IReadOnlyDictionary<string, ReloadableScriptSnapshot> SnapshotReloadableScripts(
+        IEnumerable<ScriptEntry> scripts) => scripts.ToDictionary(
+            ReloadableScriptKey,
+            ReloadableScriptSnapshot.From,
+            StringComparer.OrdinalIgnoreCase);
+
+    private static string ReloadableScriptKey(ScriptEntry script) =>
+        $"{script.IsGlobal}|{script.Id}|{script.FolderId}|{script.Name}";
+
+    private sealed record ReloadableScriptSnapshot(
+        string Code,
+        string GmcpPattern,
+        bool LoadInstant,
+        bool IsEnabled)
+    {
+        public static ReloadableScriptSnapshot From(ScriptEntry script) => new(
+            script.Code,
+            script.GmcpPattern,
+            script.LoadInstant,
+            script.IsEnabled);
     }
 
     private void RefreshAvailableProfiles(IReadOnlyList<string> names)
