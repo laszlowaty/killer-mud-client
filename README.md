@@ -389,7 +389,9 @@ GMCP, a kolejne linie są niezmienionym kodem JavaScript. Plik `.js` dodany ręc
 do `Scripts` nie wymaga nagłówka (nazwa pochodzi wtedy z nazwy pliku); pliki dodane
 do `Aliases`, `Triggers` i `Timers` wymagają nagłówka, ponieważ aplikacja potrzebuje
 odpowiednio wzorca albo interwału. Zaawansowane wpisy zapisane wcześniej jako JSON
-są odczytywane i przy następnym zapisie automatycznie zmieniane na `.js`.
+są odczytywane i przy następnym zapisie automatycznie zmieniane na `.js`. Pliki,
+których klient nie rozpoznaje jako własnych wpisów, pozostają na dysku i nie są
+usuwane podczas zapisu profilu.
 
 Dane Killeropedii są niezależne od profili: własny katalog ksiąg i pobrane paczki
 znajdują się pod `%AppData%/KillerMudClient/Killeropedia`. Starszy

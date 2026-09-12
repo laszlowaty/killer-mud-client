@@ -470,12 +470,37 @@ public sealed class ProfileService : IDisposable
                      .Where(path => Path.GetExtension(path) is ".json" or ".js")
                      .Where(path => !string.Equals(Path.GetFileName(path), FolderFileName, StringComparison.OrdinalIgnoreCase)))
         {
-            if (!desiredFiles.Contains(Path.GetFullPath(file)))
+            var fullPath = Path.GetFullPath(file);
+            if (!desiredFiles.Contains(fullPath) && IsManagedEntryFile<T>(kind, file))
             {
                 DeleteDurableFile(file);
             }
         }
     }
+
+    private static bool IsManagedEntryFile<T>(FolderKind kind, string path)
+        where T : class
+    {
+        if (string.Equals(Path.GetExtension(path), ".js", StringComparison.OrdinalIgnoreCase))
+        {
+            return TryDeserializeJavaScript(kind, path, out T? javaScriptItem)
+                && javaScriptItem is not null;
+        }
+
+        return DurableJsonFile.TryRead<T>(path, SerializerOptions, out var jsonItem)
+            && jsonItem is not null
+            && HasEntryName(jsonItem);
+    }
+
+    private static bool HasEntryName<T>(T item) => item switch
+    {
+        ProfileRule value => !string.IsNullOrWhiteSpace(value.Name),
+        ProfileTimer value => !string.IsNullOrWhiteSpace(value.Name),
+        ProfileScript value => !string.IsNullOrWhiteSpace(value.Name),
+        ProfileNote value => !string.IsNullOrWhiteSpace(value.Title),
+        ProfileLocation value => !string.IsNullOrWhiteSpace(value.Name),
+        _ => false,
+    };
 
     private static Dictionary<string, string> BuildFolderPaths(
         string root,
@@ -633,7 +658,9 @@ public sealed class ProfileService : IDisposable
                 continue;
             }
 
-            if (!DurableJsonFile.TryRead<T>(path, SerializerOptions, out var item) || item is null)
+            if (!DurableJsonFile.TryRead<T>(path, SerializerOptions, out var item)
+                || item is null
+                || !HasEntryName(item))
             {
                 continue;
             }

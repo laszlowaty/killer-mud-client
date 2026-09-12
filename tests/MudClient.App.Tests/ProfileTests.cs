@@ -697,6 +697,29 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void Save_AfterOfflineFilePaste_PreservesUnrecognizedFiles()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Wklejony",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        });
+        var aliasDirectory = Path.Combine(_directory, "Wklejony", "Aliases");
+        var pastedJsonPath = Path.Combine(aliasDirectory, "zewnetrzny.json");
+        var pastedJavaScriptPath = Path.Combine(aliasDirectory, "stary-format.js");
+        File.WriteAllText(pastedJsonPath, "{\"format\":\"innego-klienta\"}");
+        File.WriteAllText(pastedJavaScriptPath, "send('look');");
+
+        var loadedAfterRestart = CreateService().Load("Wklejony")!;
+        CreateService().Save(loadedAfterRestart);
+
+        Assert.Equal("{\"format\":\"innego-klienta\"}", File.ReadAllText(pastedJsonPath));
+        Assert.Equal("send('look');", File.ReadAllText(pastedJavaScriptPath));
+        Assert.Equal("look", Assert.Single(CreateService().Load("Wklejony")!.Rules).Action);
+    }
+
+    [Fact]
     public void ListProfileNames_MigratesLegacySingleFileProfile()
     {
         Directory.CreateDirectory(_directory);
