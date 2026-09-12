@@ -803,6 +803,69 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public async Task Watcher_DoesNotStarveExternalAutomationEditDuringContinuousStateSaves()
+    {
+        using var service = CreateService();
+        var profile = new ProfileData
+        {
+            Name = "StanCiagly",
+            Rules = [new ProfileRule { Name = "l", Type = "alias", Pattern = "^l$", Action = "look" }],
+        };
+        service.Save(profile);
+        service.StartWatching();
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) =>
+        {
+            if (changes.RelativePaths.Contains(
+                "StanCiagly/Aliases/l.json",
+                StringComparer.OrdinalIgnoreCase))
+            {
+                changed.TrySetResult(changes);
+            }
+        };
+
+        var path = Path.Combine(_directory, "StanCiagly", "Aliases", "l.json");
+        var rule = JsonSerializer.Deserialize<ProfileRule>(File.ReadAllText(path))!;
+        rule.Action = "examine";
+        File.WriteAllText(path, JsonSerializer.Serialize(rule, new JsonSerializerOptions { WriteIndented = true }));
+
+        using var savesCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+        var saves = Task.Run(async () =>
+        {
+            var tick = 0;
+            while (true)
+            {
+                savesCancellation.Token.ThrowIfCancellationRequested();
+                profile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(++tick);
+                service.SaveState(profile);
+                await Task.Delay(TimeSpan.FromMilliseconds(100), savesCancellation.Token);
+            }
+        }, savesCancellation.Token);
+
+        try
+        {
+            await changed.Task.WaitAsync(
+                TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            savesCancellation.Cancel();
+            try
+            {
+                await saves;
+            }
+            catch (OperationCanceledException) when (savesCancellation.IsCancellationRequested)
+            {
+                // Expected when the test stops the continuous state-save loop.
+            }
+        }
+
+        Assert.Equal("examine", Assert.Single(service.Load("StanCiagly")!.Rules).Action);
+    }
+
+    [Fact]
     public async Task Watcher_RaisesChangeForExternallyEditedJavaScriptFile()
     {
         using var service = CreateService();

@@ -37,6 +37,7 @@ public sealed class ProfileService : IDisposable
     private const string FolderFileName = ".folder.json";
     private const string JavaScriptHeaderPrefix = "// KillerMudClient: ";
     private static readonly TimeSpan WatcherDebounce = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan WatcherMaximumDebounce = TimeSpan.FromSeconds(1);
 
     private readonly string _directory;
     private readonly object _watcherLock = new();
@@ -45,6 +46,7 @@ public sealed class ProfileService : IDisposable
     private readonly Dictionary<string, CachedFileFingerprint> _fingerprintCache = new(PathComparer);
     private FileSystemWatcher? _watcher;
     private CancellationTokenSource? _watcherDebounceCancellation;
+    private DateTime? _watcherDebounceStartedAtUtc;
     private bool _watcherRequiresFullReload;
     private string _knownFingerprint = string.Empty;
     private bool _disposed;
@@ -901,18 +903,32 @@ public sealed class ProfileService : IDisposable
             }
 
             _watcherRequiresFullReload |= requiresFullReload;
+            var nowUtc = DateTime.UtcNow;
+            _watcherDebounceStartedAtUtc ??= nowUtc;
+            var maximumDelayRemaining = WatcherMaximumDebounce
+                - (nowUtc - _watcherDebounceStartedAtUtc.Value);
+            if (maximumDelayRemaining <= TimeSpan.Zero)
+            {
+                // The currently scheduled notification is already due. In particular, do not
+                // cancel it during an event storm, because that would recreate the starvation
+                // this maximum delay is intended to prevent.
+                return;
+            }
+
+            var delay = TimeSpan.FromTicks(
+                Math.Min(WatcherDebounce.Ticks, maximumDelayRemaining.Ticks));
             _watcherDebounceCancellation?.Cancel();
             _watcherDebounceCancellation?.Dispose();
             _watcherDebounceCancellation = new CancellationTokenSource();
-            _ = NotifyAfterDebounceAsync(_watcherDebounceCancellation.Token);
+            _ = NotifyAfterDebounceAsync(delay, _watcherDebounceCancellation.Token);
         }
     }
 
-    private async Task NotifyAfterDebounceAsync(CancellationToken cancellationToken)
+    private async Task NotifyAfterDebounceAsync(TimeSpan delay, CancellationToken cancellationToken)
     {
         try
         {
-            await Task.Delay(WatcherDebounce, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             string[] changedPaths;
             bool requiresFullReload;
             lock (_watcherLock)
@@ -934,6 +950,7 @@ public sealed class ProfileService : IDisposable
                 changes = new ProfileStorageChangedEventArgs(changedPaths, requiresFullReload);
                 _pendingWatcherPaths.Clear();
                 _watcherRequiresFullReload = false;
+                _watcherDebounceStartedAtUtc = null;
                 if (_disposed || (!requiresFullReload
                     && string.Equals(fingerprint, _knownFingerprint, StringComparison.Ordinal)))
                 {
@@ -947,7 +964,8 @@ public sealed class ProfileService : IDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // A newer file-system event restarts the debounce window.
+            // A newer event restarts the quiet-period delay, but the maximum debounce time
+            // still guarantees progress during continuous runtime-state writes.
         }
         catch (IOException)
         {
@@ -1100,6 +1118,7 @@ public sealed class ProfileService : IDisposable
             _watcherDebounceCancellation?.Cancel();
             _watcherDebounceCancellation?.Dispose();
             _watcherDebounceCancellation = null;
+            _watcherDebounceStartedAtUtc = null;
             if (_watcher is not null)
             {
                 _watcher.EnableRaisingEvents = false;
