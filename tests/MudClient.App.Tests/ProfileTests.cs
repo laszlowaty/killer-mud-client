@@ -1217,6 +1217,101 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ReloadsNewAutomationFilesCreatedInEveryCategory()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "NowePliki" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "NowePliki";
+        vm.SelectProfileCommand.Execute(null);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+        File.WriteAllText(
+            Path.Combine(_directory, "NowePliki", "Aliases", "nowy-alias.json"),
+            JsonSerializer.Serialize(new ProfileRule
+            {
+                Name = "nowy-alias",
+                Pattern = "^na$",
+                Action = "look",
+            }));
+        File.WriteAllText(
+            Path.Combine(_directory, "NowePliki", "Triggers", "nowy-trigger.json"),
+            JsonSerializer.Serialize(new ProfileRule
+            {
+                Name = "nowy-trigger",
+                Pattern = "^test$",
+                Action = "look",
+            }));
+        File.WriteAllText(
+            Path.Combine(_directory, "NowePliki", "Timers", "nowy-timer.json"),
+            JsonSerializer.Serialize(new ProfileTimer
+            {
+                Name = "nowy-timer",
+                Seconds = 10,
+                CommandsText = "look",
+            }));
+        File.WriteAllText(
+            Path.Combine(_directory, "NowePliki", "Scripts", "nowy-skrypt.js"),
+            "send('look');");
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline
+               && (vm.AliasRules.All(rule => rule.Name != "nowy-alias")
+                   || vm.TriggerRules.All(rule => rule.Name != "nowy-trigger")
+                   || vm.Timers.All(timer => timer.Name != "nowy-timer")
+                   || vm.Scripts.All(script => script.Name != "nowy-skrypt")))
+        {
+            await Task.Delay(25, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Contains(vm.AliasRules, rule => rule.Name == "nowy-alias");
+        Assert.Contains(vm.TriggerRules, rule => rule.Name == "nowy-trigger");
+        Assert.Contains(vm.Timers, timer => timer.Name == "nowy-timer");
+        Assert.Contains(vm.Scripts, script => script.Name == "nowy-skrypt");
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ScriptOnlyReloadIncludesFolderCreatedWithNewScript()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "NowyFolderSkryptow" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "NowyFolderSkryptow";
+        vm.SelectProfileCommand.Execute(null);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+        var folderPath = Path.Combine(
+            _directory, "NowyFolderSkryptow", "Scripts", "wklejony-folder");
+        Directory.CreateDirectory(folderPath);
+        File.WriteAllText(Path.Combine(folderPath, ".folder.json"), """
+            {
+              "Id": "wklejony-folder-id",
+              "Name": "wklejony-folder",
+              "DirectoryName": "wklejony-folder"
+            }
+            """);
+        File.WriteAllText(Path.Combine(folderPath, "nowy-skrypt.js"), "send('look');");
+
+        var reload = typeof(MainWindowViewModel).GetMethod(
+            "ReloadProfileStorage",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        reload.Invoke(vm,
+        [
+            new ProfileStorageChangedEventArgs(
+            [
+                "NowyFolderSkryptow/Scripts/wklejony-folder",
+                "NowyFolderSkryptow/Scripts/wklejony-folder/.folder.json",
+                "NowyFolderSkryptow/Scripts/wklejony-folder/nowy-skrypt.js",
+            ],
+            requiresFullReload: false),
+        ]);
+
+        Assert.Contains(vm.Folders, folder => folder.Id == "wklejony-folder-id");
+        var script = Assert.Single(vm.Scripts, script => script.Name == "nowy-skrypt");
+        Assert.Equal("wklejony-folder-id", script.FolderId);
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
     public async Task Vm_DoesNotReloadActiveProfileWhenAnotherProfileChanges()
     {
         var service = CreateService();

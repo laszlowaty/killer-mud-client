@@ -5493,15 +5493,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void ReloadScriptsOnly(ProfileData? profile)
     {
-        Scripts.Clear();
-        foreach (var script in _profiles.LoadGlobal().Scripts ?? [])
+        var global = _profiles.LoadGlobal();
+        _suppressTreeRebuild = true;
+        try
         {
-            Scripts.Add(MakeScriptEntry(script, isGlobal: true));
-        }
+            Scripts.Clear();
+            foreach (var folder in Folders.Where(folder => folder.Kind == FolderKind.Scripts).ToList())
+            {
+                Folders.Remove(folder);
+            }
 
-        foreach (var script in profile?.Scripts ?? [])
+            foreach (var folder in global.Folders.Where(folder => folder.Kind == FolderKind.Scripts))
+            {
+                Folders.Add(MakeFolderNode(folder, isGlobal: true));
+            }
+
+            foreach (var folder in profile?.Folders.Where(folder => folder.Kind == FolderKind.Scripts) ?? [])
+            {
+                Folders.Add(MakeFolderNode(folder, isGlobal: false));
+            }
+
+            foreach (var script in global.Scripts ?? [])
+            {
+                Scripts.Add(MakeScriptEntry(script, isGlobal: true));
+            }
+
+            foreach (var script in profile?.Scripts ?? [])
+            {
+                Scripts.Add(MakeScriptEntry(script, isGlobal: false));
+            }
+        }
+        finally
         {
-            Scripts.Add(MakeScriptEntry(script, isGlobal: false));
+            _suppressTreeRebuild = false;
         }
 
         RebuildFolderTrees();

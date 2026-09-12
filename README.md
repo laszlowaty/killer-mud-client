@@ -374,7 +374,8 @@ Każdy profil jest katalogiem w `%AppData%/KillerMudClient/Profiles`. Podstawowe
 konta znajdują się w `profile.json`, a `Aliases`, `Triggers`, `Timers`, `Scripts`,
 `Notes` i `Autowalk` zawierają po jednym pliku na wpis. Foldery utworzone w
 aplikacji są prawdziwymi podkatalogami; przeniesienie albo edycja pliku na dysku jest
-wykrywana i przeładowywana bez restartu. Wspólne automaty mają taki sam układ w
+wykrywana i przeładowywana bez restartu. Dotyczy to również całkiem nowych plików
+i podkatalogów wklejonych przy uruchomionej aplikacji. Wspólne automaty mają taki sam układ w
 `Profiles/_global`. Przy pierwszym uruchomieniu stare pliki `Profiles/<nazwa>.json`
 i `Profiles/_global.json` są automatycznie migrowane po udanym odczycie.
 Przy wielu uruchomionych klientach zmiana jednego profilu nie przeładowuje aktywnego
