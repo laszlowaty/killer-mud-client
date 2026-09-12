@@ -19,6 +19,7 @@ public sealed partial class MobileSettingsView : UserControl
     private CancellationTokenSource? _importCancellation;
     private CancellationTokenSource? _exportCancellation;
     private bool _importReady;
+    private FloatingButtonDefinition? _editingFloatingButton;
 
     public MobileSettingsView()
     {
@@ -98,18 +99,52 @@ public sealed partial class MobileSettingsView : UserControl
             return;
         }
 
-        var button = viewModel.AddFloatingButton(
-            FloatingButtonNameInput.Text,
-            FloatingButtonCommandInput.Text);
-        if (button is null)
+        var succeeded = _editingFloatingButton is not null
+            ? viewModel.UpdateFloatingButton(
+                _editingFloatingButton,
+                FloatingButtonNameInput.Text,
+                FloatingButtonCommandInput.Text)
+            : viewModel.AddFloatingButton(
+                FloatingButtonNameInput.Text,
+                FloatingButtonCommandInput.Text) is not null;
+        if (!succeeded)
         {
             ShowFloatingButtonStatus("Podaj nazwę przycisku i komendę.");
             return;
         }
 
-        FloatingButtonNameInput.Text = string.Empty;
-        FloatingButtonCommandInput.Text = string.Empty;
+        ResetFloatingButtonEditor();
         FloatingButtonStatusText.IsVisible = false;
+    }
+
+    private void EditFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Avalonia.Controls.Button
+            { Tag: FloatingButtonDefinition definition })
+        {
+            return;
+        }
+
+        _editingFloatingButton = definition;
+        FloatingButtonNameInput.Text = definition.Name;
+        FloatingButtonCommandInput.Text = definition.Command;
+        FloatingButtonSubmitButton.Content = "Zapisz zmiany";
+        FloatingButtonCancelEditButton.IsVisible = true;
+        FloatingButtonStatusText.IsVisible = false;
+        FloatingButtonNameInput.Focus();
+    }
+
+    private void CancelFloatingButtonEdit_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        ResetFloatingButtonEditor();
+
+    private void FloatingButtonSet_OnSelectionChanged(
+        object? sender,
+        SelectionChangedEventArgs eventArgs)
+    {
+        if (_editingFloatingButton is not null)
+        {
+            ResetFloatingButtonEditor();
+        }
     }
 
     private void DeleteFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -118,7 +153,23 @@ public sealed partial class MobileSettingsView : UserControl
             && sender is Avalonia.Controls.Button { Tag: FloatingButtonDefinition button })
         {
             viewModel.RemoveFloatingButton(button);
+            if (string.Equals(
+                    _editingFloatingButton?.Id,
+                    button.Id,
+                    StringComparison.Ordinal))
+            {
+                ResetFloatingButtonEditor();
+            }
         }
+    }
+
+    private void ResetFloatingButtonEditor()
+    {
+        _editingFloatingButton = null;
+        FloatingButtonNameInput.Text = string.Empty;
+        FloatingButtonCommandInput.Text = string.Empty;
+        FloatingButtonSubmitButton.Content = "Dodaj pływający przycisk";
+        FloatingButtonCancelEditButton.IsVisible = false;
     }
 
     private void ShowFloatingButtonStatus(string message)

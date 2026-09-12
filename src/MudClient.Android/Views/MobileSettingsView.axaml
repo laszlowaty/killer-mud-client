@@ -168,6 +168,7 @@
             <TextBlock Classes="mud-label" Text="Aktywny schemat" />
             <ComboBox ItemsSource="{Binding FloatingButtonSets}"
                       SelectedItem="{Binding SelectedFloatingButtonSet}"
+                      SelectionChanged="FloatingButtonSet_OnSelectionChanged"
                       MinHeight="44">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="models:FloatingButtonSetDefinition">
@@ -197,10 +198,19 @@
                    PlaceholderText="Komenda"
                    MaxLength="300"
                    MinHeight="44" />
-          <Button Content="Dodaj pływający przycisk"
-                  MinHeight="44"
-                  HorizontalAlignment="Right"
-                  Click="AddFloatingButton_OnClick" />
+          <StackPanel Orientation="Horizontal"
+                      Spacing="8"
+                      HorizontalAlignment="Right">
+            <Button x:Name="FloatingButtonCancelEditButton"
+                    Content="Anuluj"
+                    MinHeight="44"
+                    IsVisible="False"
+                    Click="CancelFloatingButtonEdit_OnClick" />
+            <Button x:Name="FloatingButtonSubmitButton"
+                    Content="Dodaj pływający przycisk"
+                    MinHeight="44"
+                    Click="AddFloatingButton_OnClick" />
+          </StackPanel>
           <TextBlock x:Name="FloatingButtonStatusText"
                      Classes="mud-muted"
                      TextWrapping="Wrap"
@@ -209,7 +219,7 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="models:FloatingButtonDefinition">
                 <Border Classes="mud-section" Padding="10" Margin="0,3">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <StackPanel>
                       <TextBlock Text="{Binding Name}"
                                  FontWeight="SemiBold"
@@ -219,6 +229,11 @@
                                  TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <Button Grid.Column="1"
+                            Content="Edytuj"
+                            Tag="{Binding}"
+                            MinHeight="40"
+                            Click="EditFloatingButton_OnClick" />
+                    <Button Grid.Column="2"
                             Content="Usuń"
                             Classes="mud-danger"
                             Tag="{Binding}"

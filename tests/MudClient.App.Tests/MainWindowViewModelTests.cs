@@ -98,6 +98,45 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public void FloatingButtons_EditNameAndCommand_PreservesPositionAndPersists()
+    {
+        var button = _vm.AddFloatingButton("Leczenie", "quaff red");
+        Assert.NotNull(button);
+        _vm.MoveFloatingButton(button!.Id, 0.27, 0.81);
+
+        Assert.True(_vm.UpdateFloatingButton(
+            button,
+            "  Ucieczka  ",
+            "  flee  "));
+
+        var edited = Assert.Single(_vm.FloatingButtons);
+        Assert.Equal(button.Id, edited.Id);
+        Assert.Equal("Ucieczka", edited.Name);
+        Assert.Equal("flee", edited.Command);
+        Assert.Equal(0.27, edited.X);
+        Assert.Equal(0.81, edited.Y);
+
+        var persisted = Assert.Single(new AppSettingsService(_tempDir).Load().FloatingButtons);
+        Assert.Equal("Ucieczka", persisted.Name);
+        Assert.Equal("flee", persisted.Command);
+        Assert.Equal(0.27, persisted.X);
+        Assert.Equal(0.81, persisted.Y);
+    }
+
+    [Fact]
+    public void FloatingButtons_EditRejectsBlankFieldsWithoutChangingButton()
+    {
+        var button = _vm.AddFloatingButton("Leczenie", "quaff red");
+
+        Assert.False(_vm.UpdateFloatingButton(button, " ", "flee"));
+        Assert.False(_vm.UpdateFloatingButton(button, "Ucieczka", " "));
+
+        var unchanged = Assert.Single(_vm.FloatingButtons);
+        Assert.Equal("Leczenie", unchanged.Name);
+        Assert.Equal("quaff red", unchanged.Command);
+    }
+
+    [Fact]
     public void FloatingButtonSets_CreateSwitchAndDelete_PersistSelectionAndButtons()
     {
         var defaultButton = _vm.AddFloatingButton("Leczenie", "quaff red");

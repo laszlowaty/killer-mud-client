@@ -2009,6 +2009,44 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SaveSettings();
     }
 
+    public bool UpdateFloatingButton(
+        FloatingButtonDefinition? button,
+        string? name,
+        string? command)
+    {
+        var trimmedName = name?.Trim() ?? string.Empty;
+        var trimmedCommand = command?.Trim() ?? string.Empty;
+        var activeSet = SelectedFloatingButtonSet;
+        if (button is null || activeSet is null
+            || trimmedName.Length == 0 || trimmedCommand.Length == 0)
+        {
+            return false;
+        }
+
+        var buttonIndex = activeSet.Buttons.FindIndex(entry =>
+            string.Equals(entry.Id, button.Id, StringComparison.Ordinal));
+        var visibleIndex = FloatingButtons.IndexOf(button);
+        if (buttonIndex < 0 || visibleIndex < 0)
+        {
+            return false;
+        }
+
+        var updatedButton = new FloatingButtonDefinition
+        {
+            Id = button.Id,
+            Name = trimmedName,
+            Command = trimmedCommand,
+            X = button.X,
+            Y = button.Y,
+        };
+
+        activeSet.Buttons[buttonIndex] = updatedButton;
+        _settings.FloatingButtons = activeSet.Buttons;
+        FloatingButtons[visibleIndex] = updatedButton;
+        SaveSettings();
+        return true;
+    }
+
     public void MoveFloatingButton(string id, double x, double y)
     {
         var button = FloatingButtons.FirstOrDefault(entry =>

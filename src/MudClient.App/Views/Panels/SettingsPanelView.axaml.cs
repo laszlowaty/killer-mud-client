@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using MudClient.App.Controls;
+using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
 
@@ -17,6 +18,7 @@ public sealed partial class SettingsPanelView : UserControl
     };
 
     private CancellationTokenSource? _transferCancellation;
+    private FloatingButtonDefinition? _editingFloatingButton;
 
     public SettingsPanelView()
     {
@@ -204,10 +206,17 @@ public sealed partial class SettingsPanelView : UserControl
             return;
         }
 
-        if (viewModel.AddFloatingButton(FloatingButtonNameInput.Text, FloatingButtonCommandInput.Text) is not null)
+        var succeeded = _editingFloatingButton is not null
+            ? viewModel.UpdateFloatingButton(
+                _editingFloatingButton,
+                FloatingButtonNameInput.Text,
+                FloatingButtonCommandInput.Text)
+            : viewModel.AddFloatingButton(
+                FloatingButtonNameInput.Text,
+                FloatingButtonCommandInput.Text) is not null;
+        if (succeeded)
         {
-            FloatingButtonNameInput.Text = string.Empty;
-            FloatingButtonCommandInput.Text = string.Empty;
+            ResetFloatingButtonEditor();
             FloatingButtonStatusText.IsVisible = false;
         }
         else
@@ -217,13 +226,58 @@ public sealed partial class SettingsPanelView : UserControl
         }
     }
 
+    private void EditFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Control { Tag: FloatingButtonDefinition definition })
+        {
+            return;
+        }
+
+        _editingFloatingButton = definition;
+        FloatingButtonNameInput.Text = definition.Name;
+        FloatingButtonCommandInput.Text = definition.Command;
+        FloatingButtonSubmitButton.Content = "Zapisz zmiany";
+        FloatingButtonCancelEditButton.IsVisible = true;
+        FloatingButtonStatusText.IsVisible = false;
+        FloatingButtonNameInput.Focus();
+    }
+
+    private void CancelFloatingButtonEdit_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        ResetFloatingButtonEditor();
+
+    private void FloatingButtonSet_OnSelectionChanged(
+        object? sender,
+        SelectionChangedEventArgs eventArgs)
+    {
+        if (_editingFloatingButton is not null)
+        {
+            ResetFloatingButtonEditor();
+        }
+    }
+
     private void DeleteFloatingButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (DataContext is MainWindowViewModel viewModel
-            && sender is Control { Tag: MudClient.App.Models.FloatingButtonDefinition definition })
+            && sender is Control { Tag: FloatingButtonDefinition definition })
         {
             viewModel.RemoveFloatingButton(definition);
+            if (string.Equals(
+                    _editingFloatingButton?.Id,
+                    definition.Id,
+                    StringComparison.Ordinal))
+            {
+                ResetFloatingButtonEditor();
+            }
         }
+    }
+
+    private void ResetFloatingButtonEditor()
+    {
+        _editingFloatingButton = null;
+        FloatingButtonNameInput.Text = string.Empty;
+        FloatingButtonCommandInput.Text = string.Empty;
+        FloatingButtonSubmitButton.Content = "Dodaj pływający przycisk";
+        FloatingButtonCancelEditButton.IsVisible = false;
     }
 
     private void CancelTransfer()
