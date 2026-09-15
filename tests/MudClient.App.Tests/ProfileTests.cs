@@ -1518,6 +1518,104 @@ public sealed class ProfileTests : IDisposable
         Assert.Empty(vm.Toasts);
     }
 
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ExternalActiveProfileStateSave_PreservesExpandedFolders()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData
+        {
+            Name = "Pierwszy",
+            Folders =
+            [
+                new ProfileFolder
+                {
+                    Id = "boty",
+                    Name = "Boty",
+                    Kind = FolderKind.Timers,
+                },
+            ],
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Name = "bot",
+                    FolderId = "boty",
+                    Minutes = 1,
+                    IsEnabled = true,
+                },
+            ],
+        });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Pierwszy";
+        vm.SelectProfileCommand.Execute(null);
+        var originalFolder = Assert.Single(vm.Folders);
+        originalFolder.IsExpanded = true;
+
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
+        using var secondClient = CreateService();
+        var secondProfile = Assert.IsType<ProfileData>(secondClient.Load("Pierwszy"));
+        secondProfile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        secondClient.SaveState(secondProfile);
+
+        await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        var reloadedFolder = Assert.Single(vm.Folders);
+        Assert.NotSame(originalFolder, reloadedFolder);
+        Assert.True(reloadedFolder.IsExpanded);
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ContinuousScriptVariableChanges_ArePersistedAtBoundedRate()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Bot" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService())
+        {
+            ScriptVariableSaveInterval = TimeSpan.FromMilliseconds(100),
+        };
+        vm.SelectedProfileName = "Bot";
+        vm.SelectProfileCommand.Execute(null);
+        var variablesField = typeof(MainWindowViewModel).GetField(
+            "_scriptVariables",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var variables = Assert.IsType<ProfileScriptVariableStore>(variablesField?.GetValue(vm));
+        var profilePath = Path.Combine(_directory, "Bot", "profile.json");
+        var lastWrite = File.GetLastWriteTimeUtc(profilePath);
+        var writesObserved = 0;
+
+        for (var index = 0; index < 10; index++)
+        {
+            variables.SetJson("counter", index.ToString(CultureInfo.InvariantCulture));
+            await Task.Delay(30, TestContext.Current.CancellationToken);
+            var currentWrite = File.GetLastWriteTimeUtc(profilePath);
+            if (currentWrite != lastWrite)
+            {
+                writesObserved++;
+                lastWrite = currentWrite;
+            }
+        }
+
+        Assert.InRange(writesObserved, 1, 4);
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        ProfileData? saved;
+        do
+        {
+            await Task.Delay(25, TestContext.Current.CancellationToken);
+            saved = service.Load("Bot");
+        }
+        while ((!saved!.ScriptVariables.TryGetValue("counter", out var counter)
+                || counter.GetInt32() != 9)
+               && DateTime.UtcNow < deadline);
+
+        Assert.Equal(9, saved!.ScriptVariables["counter"].GetInt32());
+    }
+
     [Fact]
     public async Task Vm_CreateProfile_PersistsSeparateLoginAndEndpoint()
     {

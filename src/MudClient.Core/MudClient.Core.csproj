@@ -6,4 +6,8 @@
   <ItemGroup>
     <PackageReference Include="Jint" Version="4.15.3" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MudClient.Core.Tests" />
+  </ItemGroup>
 </Project>

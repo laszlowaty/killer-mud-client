@@ -29,6 +29,8 @@ public sealed partial class MainWindowViewModel
     private IReadOnlyList<AutomationRuleEntry> _activeTriggerRules = [];
     private CancellationTokenSource? _scriptVariableSaveCts;
     private readonly object _scriptVariableSaveLock = new();
+    private DateTimeOffset _lastScriptVariableSaveAt = DateTimeOffset.UtcNow;
+    private long _scriptVariableChangeVersion;
     private int _scriptVariableRefreshScheduled;
     private readonly AsyncLocal<int> _automationExecutionDepth = new();
     private readonly object _reconnectTaskLock = new();
@@ -49,6 +51,8 @@ public sealed partial class MainWindowViewModel
 
     public ObservableCollection<ScriptVariableEntry> ScriptVariables { get; } = [];
     public ObservableCollection<ScriptLogEntryViewModel> ScriptLogs { get; } = [];
+
+    internal TimeSpan ScriptVariableSaveInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     public RelayCommand AddScriptCommand { get; private set; } = null!;
     public RelayCommand StartAddScriptCommand { get; private set; } = null!;
@@ -366,15 +370,21 @@ public sealed partial class MainWindowViewModel
     {
         ScheduleScriptVariableRefresh();
 
-        CancellationTokenSource cancellation;
+        CancellationTokenSource? cancellation = null;
         lock (_scriptVariableSaveLock)
         {
-            _scriptVariableSaveCts?.Cancel();
-            cancellation = new CancellationTokenSource();
-            _scriptVariableSaveCts = cancellation;
+            _scriptVariableChangeVersion++;
+            if (_scriptVariableSaveCts is null)
+            {
+                cancellation = new CancellationTokenSource();
+                _scriptVariableSaveCts = cancellation;
+            }
         }
 
-        _ = SaveScriptVariablesAfterDelayAsync(cancellation);
+        if (cancellation is not null)
+        {
+            _ = SaveScriptVariablesPeriodicallyAsync(cancellation);
+        }
     }
 
     private void ScheduleScriptVariableRefresh()
@@ -393,16 +403,48 @@ public sealed partial class MainWindowViewModel
             DispatcherPriority.Background);
     }
 
-    private async Task SaveScriptVariablesAfterDelayAsync(CancellationTokenSource cancellation)
+    private async Task SaveScriptVariablesPeriodicallyAsync(CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(300), cancellation.Token);
-            await Dispatcher.UIThread.InvokeAsync(SaveActiveProfileState);
+            while (true)
+            {
+                TimeSpan delay;
+                lock (_scriptVariableSaveLock)
+                {
+                    delay = _lastScriptVariableSaveAt + ScriptVariableSaveInterval
+                        - DateTimeOffset.UtcNow;
+                }
+
+                if (delay > TimeSpan.Zero)
+                {
+                    await Task.Delay(delay, cancellation.Token);
+                }
+
+                long savedVersion;
+                lock (_scriptVariableSaveLock)
+                {
+                    cancellation.Token.ThrowIfCancellationRequested();
+                    savedVersion = _scriptVariableChangeVersion;
+                    _lastScriptVariableSaveAt = DateTimeOffset.UtcNow;
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(SaveActiveProfileState);
+
+                lock (_scriptVariableSaveLock)
+                {
+                    if (savedVersion == _scriptVariableChangeVersion)
+                    {
+                        _scriptVariableSaveCts = null;
+                        return;
+                    }
+                }
+            }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            // A newer variable change superseded this delayed save.
+            // Profile/session shutdown superseded the pending periodic save. The caller writes
+            // one final stable profile snapshot after stopping scripting persistence.
         }
         finally
         {

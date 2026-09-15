@@ -35,4 +35,16 @@ public sealed class ProfileScriptVariableStoreTests
 
         Assert.Equal("ork", snapshot["target"].GetProperty("name").GetString());
     }
+
+    [Fact]
+    public void SetJson_DoesNotReportSemanticallyUnchangedValue()
+    {
+        var changes = 0;
+        var store = new ProfileScriptVariableStore(() => changes++);
+
+        store.SetJson("state", "{\"enabled\":true,\"count\":1}");
+        store.SetJson("STATE", "{ \"enabled\": true, \"count\": 1 }");
+
+        Assert.Equal(1, changes);
+    }
 }

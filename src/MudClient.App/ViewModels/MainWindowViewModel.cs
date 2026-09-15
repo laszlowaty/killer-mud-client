@@ -5907,9 +5907,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// </summary>
     private void RebuildTree(ObservableCollection<FolderTreeNode> target, FolderKind kind, IEnumerable<IFolderItem> items)
     {
+        var expandedFolderIds = ExpandedFolderIds(target);
         target.Clear();
 
         var folders = Folders.Where(f => f.Kind == kind).ToList();
+        foreach (var folder in folders)
+        {
+            if (expandedFolderIds.Contains(folder.Id))
+            {
+                folder.IsExpanded = true;
+            }
+        }
+
         var folderIds = folders.Select(f => f.Id).ToHashSet();
         var nodesById = folders.ToDictionary(f => f.Id, f => new FolderTreeNode { IsFolder = true, Folder = f });
 
@@ -5962,6 +5971,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         _ = folderIds; // reserved for future validation
+    }
+
+    private static HashSet<string> ExpandedFolderIds(IEnumerable<FolderTreeNode> nodes)
+    {
+        var expanded = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in nodes)
+        {
+            CollectExpandedFolderIds(node, expanded);
+        }
+
+        return expanded;
+    }
+
+    private static void CollectExpandedFolderIds(
+        FolderTreeNode node,
+        HashSet<string> expanded)
+    {
+        if (node.Folder is { IsExpanded: true } folder)
+        {
+            expanded.Add(folder.Id);
+        }
+
+        foreach (var child in node.Children)
+        {
+            CollectExpandedFolderIds(child, expanded);
+        }
     }
 
     private static FolderMetrics ComputeFolderMetrics(FolderTreeNode node)

@@ -52,12 +52,21 @@ public sealed class ProfileScriptVariableStore : IScriptVariableStore
     public void SetJson(string name, string json)
     {
         using var document = JsonDocument.Parse(json);
+        var changed = false;
         lock (_sync)
         {
-            _values[name] = document.RootElement.Clone();
+            if (!_values.TryGetValue(name, out var current)
+                || !JsonElement.DeepEquals(current, document.RootElement))
+            {
+                _values[name] = document.RootElement.Clone();
+                changed = true;
+            }
         }
 
-        _changed();
+        if (changed)
+        {
+            _changed();
+        }
     }
 
     public bool Contains(string name)

@@ -1,16 +1,22 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Acornima.Ast;
 using Jint;
+using Jint.Runtime;
 
 namespace MudClient.Core.Scripting;
 
 /// <summary>
 /// Executes user JavaScript in a constrained Jint interpreter. CLR access is
-/// intentionally not enabled; only explicitly registered delegates are
-/// visible to scripts.
+/// intentionally not enabled; only explicitly registered delegates are visible
+/// to scripts. Prepared syntax trees are reused within one client runtime while
+/// every invocation still receives a fresh engine and profile variable store.
 /// </summary>
 public sealed class JavaScriptRunner
 {
+    private const int MaximumPreparedScripts = 32;
+    private const int MaximumPreparedScriptCharacters = 2_000_000;
+
     public const int MaximumEffects = 100;
     public const int MaximumHttpRequests = 5;
     public const int MaximumEffectTextLength = 16_384;
@@ -28,6 +34,23 @@ public sealed class JavaScriptRunner
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    private readonly object _preparedScriptsLock = new();
+    private readonly Dictionary<PreparedScriptKey, LinkedListNode<PreparedScriptEntry>>
+        _preparedScripts = [];
+    private readonly LinkedList<PreparedScriptEntry> _preparedScriptUsage = [];
+    private int _preparedScriptCharacters;
+
+    internal int PreparedScriptCount
+    {
+        get
+        {
+            lock (_preparedScriptsLock)
+            {
+                return _preparedScripts.Count;
+            }
+        }
+    }
 
     public string? Validate(string name, string code)
     {
@@ -81,15 +104,25 @@ public sealed class JavaScriptRunner
                 "__sendHttpRequest",
                 new Func<string, string, string, string?, int, Task<string>>(SendHttpRequestAsync));
 
+            var preparedScript = GetPreparedScript(invocation.Name, invocation.Code);
             _ = await engine.EvaluateAsync(
-                BuildProgram(invocation.Code),
-                invocation.Name,
+                in preparedScript,
                 cancellationToken).ConfigureAwait(false);
             return new ScriptExecutionResult(effects);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (ExecutionCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            // Jint uses its own exception for a cancellation constraint. Translate it to the
+            // standard task-cancellation contract so a profile reload, disconnect or timer
+            // restart is not reported as a JavaScript failure.
+            throw new OperationCanceledException(
+                "Wykonanie skryptu zostało anulowane.",
+                exception,
+                cancellationToken);
         }
         catch (Exception exception)
         {
@@ -182,6 +215,52 @@ public sealed class JavaScriptRunner
                     cancellationToken)
                 .ConfigureAwait(false);
             return JsonSerializer.Serialize(response, HttpSerializerOptions);
+        }
+    }
+
+    private Prepared<Script> GetPreparedScript(string name, string code)
+    {
+        var key = new PreparedScriptKey(name, code);
+        lock (_preparedScriptsLock)
+        {
+            if (_preparedScripts.TryGetValue(key, out var cachedNode))
+            {
+                _preparedScriptUsage.Remove(cachedNode);
+                _preparedScriptUsage.AddFirst(cachedNode);
+                return cachedNode.Value.Script;
+            }
+        }
+
+        var prepared = Engine.PrepareScript(BuildProgram(code), name);
+        if (code.Length > MaximumPreparedScriptCharacters)
+        {
+            return prepared;
+        }
+
+        lock (_preparedScriptsLock)
+        {
+            if (_preparedScripts.TryGetValue(key, out var cachedNode))
+            {
+                _preparedScriptUsage.Remove(cachedNode);
+                _preparedScriptUsage.AddFirst(cachedNode);
+                return cachedNode.Value.Script;
+            }
+
+            var entry = new PreparedScriptEntry(key, prepared, code.Length);
+            var node = _preparedScriptUsage.AddFirst(entry);
+            _preparedScripts.Add(key, node);
+            _preparedScriptCharacters += entry.CharacterCount;
+
+            while (_preparedScripts.Count > MaximumPreparedScripts
+                   || _preparedScriptCharacters > MaximumPreparedScriptCharacters)
+            {
+                var oldest = _preparedScriptUsage.Last!;
+                _preparedScriptUsage.RemoveLast();
+                _preparedScripts.Remove(oldest.Value.Key);
+                _preparedScriptCharacters -= oldest.Value.CharacterCount;
+            }
+
+            return prepared;
         }
     }
 
@@ -483,4 +562,11 @@ public sealed class JavaScriptRunner
         var message = exception.Message.Replace("\r", " ").Replace("\n", " ").Trim();
         return $"Skrypt „{scriptName}”: {message}";
     }
+
+    private sealed record PreparedScriptKey(string Name, string Code);
+
+    private sealed record PreparedScriptEntry(
+        PreparedScriptKey Key,
+        Prepared<Script> Script,
+        int CharacterCount);
 }

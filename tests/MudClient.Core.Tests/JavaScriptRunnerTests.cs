@@ -73,6 +73,36 @@ public sealed class JavaScriptRunnerTests
     }
 
     [Fact]
+    public async Task Execute_ReusesPreparedCodeWithoutSharingInvocationContext()
+    {
+        var runner = new JavaScriptRunner();
+        const string code = "echo(input + ':' + variables.increment('ticks'));";
+        var firstVariables = new TestVariableStore();
+        var secondVariables = new TestVariableStore();
+
+        var first = await ExecuteAsync(
+            runner,
+            new ScriptInvocation("timer", "timer", code, Input: "pierwszy"),
+            firstVariables);
+        var second = await ExecuteAsync(
+            runner,
+            new ScriptInvocation("timer", "timer", code, Input: "drugi"),
+            secondVariables);
+        var changed = await ExecuteAsync(
+            runner,
+            new ScriptInvocation("timer", "timer", "echo('zmieniony');"),
+            secondVariables);
+
+        Assert.True(first.Success, first.Error);
+        Assert.True(second.Success, second.Error);
+        Assert.True(changed.Success, changed.Error);
+        Assert.Equal("pierwszy:1", Assert.Single(first.Effects).Text);
+        Assert.Equal("drugi:1", Assert.Single(second.Effects).Text);
+        Assert.Equal("zmieniony", Assert.Single(changed.Effects).Text);
+        Assert.Equal(2, runner.PreparedScriptCount);
+    }
+
+    [Fact]
     public async Task Execute_OnGmcp_FiltersPackageAndExposesJsonData()
     {
         var runner = new JavaScriptRunner();
@@ -277,6 +307,22 @@ public sealed class JavaScriptRunnerTests
 
         Assert.False(result.Success);
         Assert.Contains("pętla", result.Error);
+    }
+
+    [Fact]
+    public async Task Execute_JintCancellation_IsReportedAsTaskCancellation()
+    {
+        var runner = new JavaScriptRunner();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        var execution = runner.ExecuteAsync(
+            new ScriptInvocation("anulowany timer", "timer", "while (true) {}"),
+            new TestVariableStore(),
+            new TestHttpClient(),
+            cancellation.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => execution);
     }
 
     [Fact]
