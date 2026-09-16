@@ -5055,7 +5055,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void ActivateProfile(ProfileData profile, bool notifyActivation = true)
     {
-        StopAutowalk("Autowalk zatrzymany (zmiana konta).");
+        if (notifyActivation)
+        {
+            StopAutowalk("Autowalk zatrzymany (zmiana konta).");
+        }
 
         // Suppress per-add tree rebuilds; rebuild once after the bulk load below.
         _suppressTreeRebuild = true;

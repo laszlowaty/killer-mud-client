@@ -3,6 +3,7 @@ using System.Text.Json;
 using MudClient.App.Models;
 using MudClient.App.Services;
 using MudClient.App.ViewModels;
+using MudClient.Core.Map;
 
 namespace MudClient.App.Tests;
 
@@ -1567,6 +1568,51 @@ public sealed class ProfileTests : IDisposable
         var reloadedFolder = Assert.Single(vm.Folders);
         Assert.NotSame(originalFolder, reloadedFolder);
         Assert.True(reloadedFolder.IsExpanded);
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public async Task Vm_ExternalActiveProfileStateSave_PreservesRunningAutowalk()
+    {
+        var service = CreateService();
+        service.Save(new ProfileData { Name = "Pierwszy" });
+        await using var vm = new MainWindowViewModel(service, CreateSettingsService());
+        vm.SelectedProfileName = "Pierwszy";
+        vm.SelectProfileCommand.Execute(null);
+        var room = new MapRoom
+        {
+            Id = 1,
+            AreaId = 1,
+            Coordinates = new MapCoordinates(0, 0, 0),
+        };
+        var path = new MapPath
+        {
+            From = room,
+            To = room,
+            Steps = [],
+            TotalCost = 0,
+        };
+        var autowalkPath = typeof(MainWindowViewModel).GetField(
+            "_autowalkPath",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(autowalkPath);
+        autowalkPath!.SetValue(vm, path);
+        Assert.True(vm.IsAutowalking);
+
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        var changed = new TaskCompletionSource<ProfileStorageChangedEventArgs>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.StorageChanged += (_, changes) => changed.TrySetResult(changes);
+        using var secondClient = CreateService();
+        var secondProfile = Assert.IsType<ProfileData>(secondClient.Load("Pierwszy"));
+        secondProfile.ScriptVariables["tick"] = JsonSerializer.SerializeToElement(1);
+        secondClient.SaveState(secondProfile);
+
+        await changed.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.True(vm.IsAutowalking);
+        Assert.Same(path, autowalkPath.GetValue(vm));
     }
 
     [Avalonia.Headless.XUnit.AvaloniaFact]
