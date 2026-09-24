@@ -135,8 +135,6 @@ public sealed class AutowalkRecoveryPolicyTests
     }
 
     [Theory]
-    [InlineData("resting")]
-    [InlineData("RESTING")]
     [InlineData("sleeping")]
     [InlineData("SLEEPING")]
     [InlineData("sitting")]
@@ -148,6 +146,8 @@ public sealed class AutowalkRecoveryPolicyTests
 
     [Theory]
     [InlineData("standing")]
+    [InlineData("resting")]
+    [InlineData("RESTING")]
     [InlineData("fighting")]
     [InlineData("")]
     [InlineData(null)]
