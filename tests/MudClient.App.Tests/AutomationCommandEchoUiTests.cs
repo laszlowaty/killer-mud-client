@@ -576,7 +576,10 @@ public sealed class AutomationCommandEchoUiTests
             profile.Timers[0].CommandsText = "echo('new timer');";
             profiles.Save(profile);
 
-            InvokeReloadProfileStorage(viewModel, "Automatyk/Aliases/konfiguracja aliasu.js");
+            InvokeReloadProfileStorage(
+                viewModel,
+                "Automatyk/Aliases/konfiguracja aliasu.js",
+                "Automatyk/Timers/konfiguracja timera.js");
             await GetAutomationQueueTail(viewModel);
             Dispatcher.UIThread.RunJobs();
 
@@ -667,6 +670,63 @@ public sealed class AutomationCommandEchoUiTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Single(output, line => line.Contains("new version", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ReloadTrigger_DoesNotRestartRunningTimer()
+    {
+        var directory = Directory.CreateTempSubdirectory("trigger-reload-timer-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData
+        {
+            Name = "Automatyk",
+            Rules =
+            [
+                new ProfileRule
+                {
+                    Name = "obrona",
+                    Type = "trigger",
+                    Pattern = "atak",
+                    Action = "blokuj",
+                    IsEnabled = true,
+                },
+            ],
+            Timers =
+            [
+                new ProfileTimer
+                {
+                    Id = "running-timer",
+                    Name = "działający timer",
+                    Seconds = 30,
+                    CommandsText = "spojrz",
+                    IsEnabled = true,
+                },
+            ],
+        };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profile);
+            var runningTimer = Assert.Single(viewModel.Timers);
+            Assert.NotEmpty(runningTimer.RemainingText);
+
+            profile.Rules[0].Action = "unik";
+            profiles.Save(profile);
+            InvokeReloadProfileStorage(viewModel, "Automatyk/Triggers/obrona.json");
+
+            Assert.Equal("unik", Assert.Single(viewModel.TriggerRules).Action);
+            Assert.Same(runningTimer, Assert.Single(viewModel.Timers));
+            Assert.NotEmpty(runningTimer.RemainingText);
         }
         finally
         {
@@ -1210,7 +1270,9 @@ public sealed class AutomationCommandEchoUiTests
         method!.Invoke(viewModel, [profile, false]);
     }
 
-    private static void InvokeReloadProfileStorage(MainWindowViewModel viewModel, string relativePath)
+    private static void InvokeReloadProfileStorage(
+        MainWindowViewModel viewModel,
+        params string[] relativePaths)
     {
         var method = typeof(MainWindowViewModel).GetMethod(
             "ReloadProfileStorage",
@@ -1218,7 +1280,7 @@ public sealed class AutomationCommandEchoUiTests
         Assert.NotNull(method);
         method!.Invoke(viewModel,
         [
-            new ProfileStorageChangedEventArgs([relativePath], requiresFullReload: false),
+            new ProfileStorageChangedEventArgs(relativePaths, requiresFullReload: false),
         ]);
     }
 

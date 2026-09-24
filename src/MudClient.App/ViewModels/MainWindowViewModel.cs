@@ -5516,6 +5516,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 {
                     ReloadScriptsOnly(profile);
                 }
+                else if (ChangesOnlyAffectRules(changes))
+                {
+                    ReloadRulesOnly(profile);
+                }
                 else
                 {
                     // A disk refresh is not a user profile selection: do not reconnect or emit
@@ -5537,6 +5541,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (ChangesOnlyAffectScripts(changes))
         {
             ReloadScriptsOnly(profile: null);
+            QueueChangedLoadInstantAutomation(previousAutomation);
+            return;
+        }
+
+        if (ChangesOnlyAffectRules(changes))
+        {
+            ReloadRulesOnly(profile: null);
             QueueChangedLoadInstantAutomation(previousAutomation);
             return;
         }
@@ -5565,6 +5576,63 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return segments.Length > 2
                 && string.Equals(segments[1], "Scripts", StringComparison.OrdinalIgnoreCase);
         });
+
+    private static bool ChangesOnlyAffectRules(ProfileStorageChangedEventArgs changes) =>
+        !changes.RequiresFullReload
+        && changes.RelativePaths.Count > 0
+        && changes.RelativePaths.All(path =>
+        {
+            var segments = path.Replace('\\', '/').Split('/');
+            return segments.Length > 2
+                && (string.Equals(segments[1], "Aliases", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(segments[1], "Triggers", StringComparison.OrdinalIgnoreCase));
+        });
+
+    private void ReloadRulesOnly(ProfileData? profile)
+    {
+        var global = _profiles.LoadGlobal();
+        _suppressTreeRebuild = true;
+        try
+        {
+            AutomationRules.Clear();
+            foreach (var folder in Folders
+                         .Where(folder => folder.Kind is FolderKind.Aliases or FolderKind.Triggers)
+                         .ToList())
+            {
+                Folders.Remove(folder);
+            }
+
+            foreach (var folder in global.Folders
+                         .Where(folder => folder.Kind is FolderKind.Aliases or FolderKind.Triggers))
+            {
+                Folders.Add(MakeFolderNode(folder, isGlobal: true));
+            }
+
+            foreach (var folder in profile?.Folders
+                         .Where(folder => folder.Kind is FolderKind.Aliases or FolderKind.Triggers) ?? [])
+            {
+                Folders.Add(MakeFolderNode(folder, isGlobal: false));
+            }
+
+            foreach (var rule in global.Rules)
+            {
+                AutomationRules.Add(MakeRuleEntry(rule, isGlobal: true));
+            }
+
+            foreach (var rule in profile?.Rules ?? [])
+            {
+                AutomationRules.Add(MakeRuleEntry(rule, isGlobal: false));
+            }
+        }
+        finally
+        {
+            _suppressTreeRebuild = false;
+        }
+
+        RebuildRuleViews();
+        RebuildFolderTrees();
+        ApplyAutomation();
+    }
 
     private void ReloadScriptsOnly(ProfileData? profile)
     {
