@@ -84,6 +84,8 @@
                     IsChecked="{Binding AutowalkUseRefreshes}" />
           <CheckBox Content="Używaj recuperate"
                     IsChecked="{Binding AutowalkUseRecuperate}" />
+          <CheckBox Content="Komenda rest przerywa walkę"
+                    IsChecked="{Binding AutowalkRestCommandInterruptsCombat}" />
           <CheckBox Content="Siadaj po dotarciu do celu"
                     IsChecked="{Binding AutowalkRestOnArrival}" />
           <CheckBox Content="Podwójne kliknięcie mapy od razu uruchamia /idz"

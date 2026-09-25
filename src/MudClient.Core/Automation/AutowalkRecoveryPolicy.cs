@@ -62,8 +62,13 @@ public static class AutowalkRecoveryPolicy
 
     /// <summary>True when GMCP reports a position that requires standing before movement.</summary>
     public static bool RequiresStandBeforeMovement(string? position) =>
+        string.Equals(position, "resting", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(position, "sleeping", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(position, "sitting", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True while GMCP reports at least one spell currently being memorized.</summary>
+    public static bool IsMemorizing(IReadOnlyList<MemorizedSpell> memorizedSpells) =>
+        memorizedSpells.Any(spell => spell.Meming);
 
     /// <summary>True when GMCP confirms that the character can resume walking.</summary>
     public static bool IsStandingPosition(string? position) =>

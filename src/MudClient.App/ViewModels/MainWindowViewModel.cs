@@ -208,6 +208,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private TaskCompletionSource<bool>? _autowalkRefreshReady;
     private bool _autowalkRecoveringMovement;
     private bool _autowalkRecoveringPosition;
+    private bool _autowalkWaitingForMemorization;
     private bool _autowalkWaitingForGate;
     private bool _autowalkGateCommandsSent;
     private bool _autowalkGateIsOpen;
@@ -1764,6 +1765,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public bool AutowalkRestCommandInterruptsCombat
+    {
+        get => _settings.AutowalkRestCommandInterruptsCombat;
+        set
+        {
+            if (_settings.AutowalkRestCommandInterruptsCombat == value)
+            {
+                return;
+            }
+
+            _settings.AutowalkRestCommandInterruptsCombat = value;
+            OnPropertyChanged();
+            SaveSettings();
+
+            if (!value && _autowalkWaitingForMemorization)
+            {
+                _autowalkWaitingForMemorization = false;
+                BeginAutowalkStandRecovery();
+            }
+        }
+    }
+
     public bool AutowalkRestOnArrival
     {
         get => _settings.AutowalkRestOnArrival;
@@ -3114,6 +3137,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         _autowalkRecoveringMovement = false;
         _autowalkRecoveringPosition = false;
+        _autowalkWaitingForMemorization = false;
         _autowalkWaitingForGate = false;
         _autowalkGateCommandsSent = false;
         _autowalkGateIsOpen = false;
@@ -3145,7 +3169,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         if (_autowalkPath is null || _autowalkStep >= _autowalkPath.Steps.Count ||
             !_autowalkPausedForCombat ||
             !AutowalkRecoveryPolicy.IsStandingPosition(_latestCharacterPosition) ||
-            _autowalkRecoveringMovement || _autowalkWaitingForGate)
+            _autowalkRecoveringMovement || _autowalkWaitingForMemorization ||
+            _autowalkWaitingForGate)
         {
             return;
         }
@@ -3175,14 +3200,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         if (_autowalkWaitingForGate || _autowalkRecoveringMovement ||
-            _autowalkRecoveringPosition || _autowalkPausedForCombat)
+            _autowalkRecoveringPosition || _autowalkWaitingForMemorization ||
+            _autowalkPausedForCombat)
         {
             return;
         }
 
         if (AutowalkRecoveryPolicy.RequiresStandBeforeMovement(_latestCharacterPosition))
         {
-            BeginAutowalkStandRecovery();
+            HandleAutowalkPositionRequiresStand();
             return;
         }
 
@@ -3256,6 +3282,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _autowalkRecoveringPosition = true;
         AutowalkStatusText = $"Postać nie stoi — wstaję i wznawiam trasę do „{_autowalkTargetName}”.";
         _ = StandForAutowalkAsync(_autowalkCts.Token);
+    }
+
+    private void HandleAutowalkPositionRequiresStand()
+    {
+        if (_autowalkRecoveringMovement)
+        {
+            return;
+        }
+
+        if (AutowalkRestCommandInterruptsCombat &&
+            string.Equals(_latestCharacterPosition, "resting", StringComparison.OrdinalIgnoreCase) &&
+            AutowalkRecoveryPolicy.IsMemorizing(_latestMemorizedSpells))
+        {
+            _autowalkWaitingForMemorization = true;
+            AutowalkStatusText = $"Postać memuje — po zakończeniu wstanę i wznowię trasę do „{_autowalkTargetName}”.";
+            return;
+        }
+
+        BeginAutowalkStandRecovery();
     }
 
     private async Task StandForAutowalkAsync(CancellationToken cancellationToken)
@@ -7406,7 +7451,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void OnAutowalkPositionRequiresStand()
     {
-        Dispatcher.UIThread.Post(BeginAutowalkStandRecovery);
+        Dispatcher.UIThread.Post(HandleAutowalkPositionRequiresStand);
     }
 
     private void OnAutowalkStanding()
@@ -7842,6 +7887,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         Dispatcher.UIThread.Post(() =>
         {
+            if (_autowalkWaitingForMemorization &&
+                !AutowalkRecoveryPolicy.IsMemorizing(_latestMemorizedSpells))
+            {
+                _autowalkWaitingForMemorization = false;
+                BeginAutowalkStandRecovery();
+            }
+
             MemSpells.Clear();
             foreach (var circle in MemSpellCircle.FromCore(spells))
             {

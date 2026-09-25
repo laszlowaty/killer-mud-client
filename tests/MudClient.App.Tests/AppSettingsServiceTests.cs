@@ -199,6 +199,7 @@ public sealed class AppSettingsServiceTests : IDisposable
             AutoAssistFollowUpCommands = "wesprzyj;czar 'ochrona'",
             AutowalkUseRefreshes = true,
             AutowalkUseRecuperate = true,
+            AutowalkRestCommandInterruptsCombat = true,
             AutowalkRestOnArrival = false,
             AutowalkStartOnMapDoubleClick = true,
             GroupOrdersEnabled = true,
@@ -241,6 +242,7 @@ public sealed class AppSettingsServiceTests : IDisposable
         Assert.Equal("wesprzyj;czar 'ochrona'", loaded.AutoAssistFollowUpCommands);
         Assert.True(loaded.AutowalkUseRefreshes);
         Assert.True(loaded.AutowalkUseRecuperate);
+        Assert.True(loaded.AutowalkRestCommandInterruptsCombat);
         Assert.False(loaded.AutowalkRestOnArrival);
         Assert.True(loaded.AutowalkStartOnMapDoubleClick);
         Assert.True(loaded.GroupOrdersEnabled);

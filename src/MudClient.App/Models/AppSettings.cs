@@ -97,6 +97,9 @@ public sealed class AppSettings
     /// <summary>Sends recuperate immediately after autowalk starts resting at low movement.</summary>
     public bool AutowalkUseRecuperate { get; set; }
 
+    /// <summary>Keeps autowalk paused while GMCP reports resting after the rest command interrupts combat.</summary>
+    public bool AutowalkRestCommandInterruptsCombat { get; set; }
+
     /// <summary>Sends "rest" after autowalk reaches its destination.</summary>
     public bool AutowalkRestOnArrival { get; set; } = true;
 

@@ -3378,6 +3378,7 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Theory]
+    [InlineData("resting")]
     [InlineData("sleeping")]
     [InlineData("sitting")]
     public void SendAutowalkStep_WhileNotStanding_WaitsForStandingConfirmation(string position)
@@ -3413,10 +3414,8 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Contains("Idę do", _vm.AutowalkStatusText);
     }
 
-    [Theory]
-    [InlineData("standing")]
-    [InlineData("resting")]
-    public void SendAutowalkStep_WithoutAutomaticStand_DoesNotEnterStandRecovery(string position)
+    [AvaloniaFact]
+    public async Task SendAutowalkStep_WhileRestingAndRestInterruptsCombat_WaitsUntilMemorizationEnds()
     {
         var from = CreateTestRoom(998, "998");
         var to = CreateTestRoom(999, "999");
@@ -3430,7 +3429,13 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         typeof(MainWindowViewModel).GetField("_autowalkTargetName",
             BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
         typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
-            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, position);
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "resting");
+        typeof(MainWindowViewModel).GetField("_latestMemorizedSpells",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, new MemorizedSpell[]
+            {
+                new(1, 3, "refresh", Memed: false, Meming: true),
+            });
+        _vm.AutowalkRestCommandInterruptsCombat = true;
 
         typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
             BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
@@ -3438,7 +3443,17 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         var recoveringField = typeof(MainWindowViewModel).GetField("_autowalkRecoveringPosition",
             BindingFlags.NonPublic | BindingFlags.Instance)!;
         Assert.False((bool)recoveringField.GetValue(_vm)!);
-        Assert.DoesNotContain("wstaję", _vm.AutowalkStatusText);
+        Assert.Contains("memuje", _vm.AutowalkStatusText);
+
+        typeof(MainWindowViewModel).GetMethod("OnMemSpellsChanged",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [new MemorizedSpell[]
+            {
+                new(1, 3, "refresh", Memed: true, Meming: false),
+            }]);
+        await Dispatcher.UIThread.InvokeAsync(() => { });
+
+        Assert.True((bool)recoveringField.GetValue(_vm)!);
+        Assert.Contains("wstaję", _vm.AutowalkStatusText);
     }
 
     [Fact]

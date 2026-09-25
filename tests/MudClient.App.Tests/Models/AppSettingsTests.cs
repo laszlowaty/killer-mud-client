@@ -87,6 +87,7 @@ public sealed class AppSettingsTests
 
         Assert.False(settings.AutowalkUseRefreshes);
         Assert.False(settings.AutowalkUseRecuperate);
+        Assert.False(settings.AutowalkRestCommandInterruptsCombat);
     }
 
     [Fact]
