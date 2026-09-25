@@ -84,7 +84,7 @@
                     IsChecked="{Binding AutowalkUseRefreshes}" />
           <CheckBox Content="Używaj recuperate"
                     IsChecked="{Binding AutowalkUseRecuperate}" />
-          <CheckBox Content="Komenda rest przerywa walkę"
+          <CheckBox Content="Komenda rest przerywa chodzenie"
                     IsChecked="{Binding AutowalkRestCommandInterruptsCombat}" />
           <CheckBox Content="Siadaj po dotarciu do celu"
                     IsChecked="{Binding AutowalkRestOnArrival}" />

@@ -34,8 +34,8 @@ public sealed class AutowalkRecoveryUiTests
                 Equals(checkBox.Content, "Używaj refreshy"));
             var recuperate = Assert.Single(checkBoxes, checkBox =>
                 Equals(checkBox.Content, "Używaj recuperate"));
-            var restInterruptsCombat = Assert.Single(checkBoxes, checkBox =>
-                Equals(checkBox.Content, "Komenda rest przerywa walkę"));
+            var restInterruptsWalking = Assert.Single(checkBoxes, checkBox =>
+                Equals(checkBox.Content, "Komenda rest przerywa chodzenie"));
             var restOnArrival = Assert.Single(checkBoxes, checkBox =>
                 Equals(checkBox.Content, "Siadaj po dotarciu do celu"));
             var startOnMapDoubleClick = Assert.Single(checkBoxes, checkBox =>
@@ -43,7 +43,7 @@ public sealed class AutowalkRecoveryUiTests
 
             refreshes.IsChecked = true;
             recuperate.IsChecked = true;
-            restInterruptsCombat.IsChecked = true;
+            restInterruptsWalking.IsChecked = true;
             restOnArrival.IsChecked = false;
             startOnMapDoubleClick.IsChecked = true;
 
