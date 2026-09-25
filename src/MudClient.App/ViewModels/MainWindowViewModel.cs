@@ -7463,6 +7463,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 return;
             }
 
+            // Entering combat invalidates a previous rest/memorization wait. Keeping it
+            // would block SendAutowalkStep even after GMCP reports standing after the fight.
+            _autowalkWaitingForMemorization = false;
             _autowalkPausedForCombat = true;
             AutowalkStatusText = $"Walka — autowalk wstrzymany (cel „{_autowalkTargetName}”).";
         });

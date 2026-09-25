@@ -3456,6 +3456,47 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
         Assert.Contains("wstaję", _vm.AutowalkStatusText);
     }
 
+    [AvaloniaFact]
+    public void Autowalk_CombatInterruptsMemorizationWait_ResumesAfterCombat()
+    {
+        var from = CreateTestRoom(998, "998");
+        var to = CreateTestRoom(999, "999");
+        GetAutowalkPathField().SetValue(_vm, new MapPath
+        {
+            From = from,
+            To = to,
+            Steps = [new MapPathStep("north", to)],
+            TotalCost = 1,
+        });
+        typeof(MainWindowViewModel).GetField("_autowalkTargetName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "Cel");
+        typeof(MainWindowViewModel).GetField("_latestCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, "resting");
+        typeof(MainWindowViewModel).GetField("_latestMemorizedSpells",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_vm, new MemorizedSpell[]
+            {
+                new(1, 3, "refresh", Memed: false, Meming: true),
+            });
+        _vm.AutowalkRestCommandInterruptsCombat = true;
+
+        typeof(MainWindowViewModel).GetMethod("SendAutowalkStep",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(_vm, [false]);
+        Assert.Contains("memuje", _vm.AutowalkStatusText);
+
+        var updatePosition = typeof(MainWindowViewModel).GetMethod(
+            "UpdateCharacterPosition",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        updatePosition.Invoke(_vm, ["fighting"]);
+        Dispatcher.UIThread.RunJobs();
+        updatePosition.Invoke(_vm, ["standing"]);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains("Idę do", _vm.AutowalkStatusText);
+        Assert.False((bool)typeof(MainWindowViewModel).GetField(
+            "_autowalkWaitingForMemorization",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_vm)!);
+    }
+
     [Fact]
     public void StallWatchdog_StandingInSameRoom_ClearsStaleCombatPauseAndRetries()
     {
