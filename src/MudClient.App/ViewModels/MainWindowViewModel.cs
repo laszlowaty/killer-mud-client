@@ -5681,6 +5681,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void ReloadScriptsOnly(ProfileData? profile)
     {
+        var editedScript = _editedScript;
         var global = _profiles.LoadGlobal();
         _suppressTreeRebuild = true;
         try
@@ -5716,7 +5717,45 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             _suppressTreeRebuild = false;
         }
 
+        RestoreScriptEditorAfterReload(editedScript);
         RebuildFolderTrees();
+    }
+
+    private void RestoreScriptEditorAfterReload(ScriptEntry? previouslyEdited)
+    {
+        if (previouslyEdited is null)
+        {
+            return;
+        }
+
+        var reloaded = Scripts.FirstOrDefault(script =>
+            string.Equals(script.Id, previouslyEdited.Id, StringComparison.Ordinal)
+            && string.Equals(script.Name, previouslyEdited.Name, StringComparison.Ordinal)
+            && script.IsGlobal == previouslyEdited.IsGlobal
+            && string.Equals(script.FolderId, previouslyEdited.FolderId, StringComparison.Ordinal));
+        if (reloaded is null)
+        {
+            ClearScriptForm();
+            return;
+        }
+
+        var editedScriptChangedOnDisk =
+            !string.Equals(reloaded.Code, previouslyEdited.Code, StringComparison.Ordinal)
+            || !string.Equals(reloaded.GmcpPattern, previouslyEdited.GmcpPattern, StringComparison.Ordinal)
+            || reloaded.LoadInstant != previouslyEdited.LoadInstant
+            || reloaded.IsEnabled != previouslyEdited.IsEnabled;
+        if (editedScriptChangedOnDisk)
+        {
+            // The disk remains authoritative when the script currently open in the form
+            // changed externally. Refresh the draft instead of letting a stale UI save
+            // overwrite that external edit.
+            EditScript(reloaded);
+            return;
+        }
+
+        // A different script changed. Keep the user's draft, but attach the form to the
+        // replacement object that now belongs to Scripts so the next UI save is persisted.
+        _editedScript = reloaded;
     }
 
     private void QueueChangedLoadInstantAutomation(

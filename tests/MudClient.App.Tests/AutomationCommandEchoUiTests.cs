@@ -482,6 +482,123 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task EditScript_FromUi_PersistsAfterAnotherScriptReloadsFromDisk()
+    {
+        var directory = Directory.CreateTempSubdirectory("script-ui-save-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData
+        {
+            Name = "Skrypter",
+            Scripts =
+            [
+                new ProfileScript
+                {
+                    Name = "edytowany",
+                    Code = "echo('stary');",
+                    IsEnabled = true,
+                },
+                new ProfileScript
+                {
+                    Name = "zewnetrzny",
+                    Code = "echo('przed');",
+                    IsEnabled = true,
+                },
+            ],
+        };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profiles.Load("Skrypter")!);
+            var script = Assert.Single(viewModel.Scripts, item => item.Name == "edytowany");
+            viewModel.EditScriptCommand.Execute(script);
+            viewModel.NewScriptCode = "echo('nowy');";
+
+            var externalProfiles = new ProfileService(directory);
+            var externallyChanged = externalProfiles.Load("Skrypter")!;
+            externallyChanged.Scripts.Single(item => item.Name == "zewnetrzny").Code =
+                "echo('po');";
+            externalProfiles.Save(externallyChanged);
+            externalProfiles.Dispose();
+            InvokeReloadProfileStorage(
+                viewModel,
+                "Skrypter/Scripts/zewnetrzny.js");
+
+            viewModel.AddScriptCommand.Execute(null);
+
+            Assert.Equal(
+                "echo('nowy');",
+                Assert.Single(viewModel.Scripts, item => item.Name == "edytowany").Code);
+            var persisted = profiles.Load("Skrypter")!;
+            Assert.Equal(
+                "echo('nowy');",
+                persisted.Scripts.Single(item => item.Name == "edytowany").Code);
+            Assert.Equal(
+                "echo('po');",
+                persisted.Scripts.Single(item => item.Name == "zewnetrzny").Code);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task EditScript_RefreshesDraftWhenTheEditedScriptChangesOnDisk()
+    {
+        var directory = Directory.CreateTempSubdirectory("script-ui-external-save-").FullName;
+        var profiles = new ProfileService(directory);
+        var profile = new ProfileData
+        {
+            Name = "Skrypter",
+            Scripts =
+            [
+                new ProfileScript
+                {
+                    Name = "edytowany",
+                    Code = "echo('stary');",
+                    IsEnabled = true,
+                },
+            ],
+        };
+        profiles.Save(profile);
+        var viewModel = new MainWindowViewModel(
+            profiles,
+            new AppSettingsService(directory),
+            new DockLayoutService(directory));
+
+        try
+        {
+            InvokeActivateProfile(viewModel, profiles.Load("Skrypter")!);
+            viewModel.EditScriptCommand.Execute(Assert.Single(viewModel.Scripts));
+            viewModel.NewScriptCode = "echo('szkic');";
+
+            var externalProfiles = new ProfileService(directory);
+            var externallyChanged = externalProfiles.Load("Skrypter")!;
+            Assert.Single(externallyChanged.Scripts).Code = "echo('z dysku');";
+            externalProfiles.Save(externallyChanged);
+            externalProfiles.Dispose();
+            InvokeReloadProfileStorage(
+                viewModel,
+                "Skrypter/Scripts/edytowany.js");
+
+            Assert.Equal("echo('z dysku');", viewModel.NewScriptCode);
+            viewModel.AddScriptCommand.Execute(null);
+            Assert.Equal(
+                "echo('z dysku');",
+                Assert.Single(profiles.Load("Skrypter")!.Scripts).Code);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task SaveAdvancedRuleAndTimer_LoadInstant_RunsAndPersistsSetting()
     {
         var directory = Directory.CreateTempSubdirectory("load-instant-automation-save-").FullName;
