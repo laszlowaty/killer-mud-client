@@ -1142,24 +1142,19 @@ public sealed class ProfileService : IDisposable
         try
         {
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-            string[] changedPaths;
-            bool requiresFullReload;
-            lock (_watcherLock)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                changedPaths = _pendingWatcherPaths
-                    .OrderBy(path => path, PathComparer)
-                    .ToArray();
-                requiresFullReload = _watcherRequiresFullReload;
-            }
-
-            // Some editors preserve both file size and last-write time when replacing a file.
-            // Re-hash paths reported by the watcher so those content-only changes are not lost.
-            var fingerprint = CalculateFingerprint(changedPaths.ToHashSet(PathComparer));
             ProfileStorageChangedEventArgs changes;
             lock (_watcherLock)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                var changedPaths = _pendingWatcherPaths
+                    .OrderBy(path => path, PathComparer)
+                    .ToArray();
+                var requiresFullReload = _watcherRequiresFullReload;
+
+                // Keep fingerprint calculation and comparison atomic with RecordOwnChanges.
+                // Otherwise a concurrent runtime-state save can absorb the freshly re-hashed
+                // automation content and incorrectly suppress this external notification.
+                var fingerprint = CalculateFingerprint(changedPaths.ToHashSet(PathComparer));
                 changes = new ProfileStorageChangedEventArgs(changedPaths, requiresFullReload);
                 _pendingWatcherPaths.Clear();
                 _watcherRequiresFullReload = false;
