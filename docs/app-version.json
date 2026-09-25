@@ -1,5 +1,5 @@
 {
   "schemaVersion": 1,
-  "version": "0.6.22",
-  "prerelease": false
+  "version": "0.6.23-beta.1",
+  "prerelease": true
 }
