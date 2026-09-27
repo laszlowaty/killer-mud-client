@@ -262,6 +262,59 @@ public sealed class AutomationCommandEchoUiTests
     }
 
     [AvaloniaFact]
+    public async Task TimerContinuesAfterAutomationQueueIsReset()
+    {
+        var requestStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var httpClient = new TestScriptHttpClient(async (_, cancellationToken) =>
+        {
+            requestStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("Unreachable after cancellation.");
+        });
+        var (viewModel, directory) = CreateViewModel(httpClient);
+        var recovered = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        viewModel.OutputReceived += text =>
+        {
+            if (text.Contains("timer działa", StringComparison.Ordinal))
+            {
+                recovered.TrySetResult();
+            }
+        };
+
+        try
+        {
+            SetConnected(viewModel);
+            var timer = new TimerEntry
+            {
+                Name = "odporny timer",
+                Milliseconds = 20,
+                CommandsText = "await http.get('https://example.com/');",
+                IsEnabled = true,
+                IsAdvanced = true,
+            };
+
+            InvokeSyncTimer(viewModel, timer);
+            await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+            await InvokeResetAutomationQueueAsync(viewModel)
+                .WaitAsync(TimeSpan.FromSeconds(2));
+            timer.CommandsText = "echo('timer działa');";
+
+            await recovered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(timer.IsEnabled);
+            Assert.NotEqual("0.0 s", timer.RemainingText);
+        }
+        finally
+        {
+            await DisposeAsync(viewModel, directory);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task AdvancedAlias_CanUseVariablesAndEcho()
     {
         var (viewModel, directory) = CreateViewModel();
@@ -1313,6 +1366,15 @@ public sealed class AutomationCommandEchoUiTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
         method!.Invoke(viewModel, [timer]);
+    }
+
+    private static Task InvokeResetAutomationQueueAsync(MainWindowViewModel viewModel)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod(
+            "ResetAutomationQueueAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        return Assert.IsAssignableFrom<Task>(method!.Invoke(viewModel, null));
     }
 
     private static void InvokeApplyAutomation(MainWindowViewModel viewModel)

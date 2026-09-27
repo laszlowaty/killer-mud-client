@@ -2691,37 +2691,45 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         entry.ScheduleNextActivation(now + interval, now);
         _timers.StartPeriodic(TimerKey(entry), interval, async token =>
         {
-            if (IsConnected && _bookRefreshCts is null)
+            try
             {
-                await QueueAutomationWork(async queueToken =>
+                if (IsConnected && _bookRefreshCts is null)
                 {
-                    using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                        token,
-                        queueToken);
-                    if (entry.IsAdvanced)
+                    await QueueAutomationWork(async queueToken =>
                     {
-                        await ExecuteScriptAsync(
-                            new ScriptInvocation(
-                                entry.Name,
-                                "timer",
-                                entry.CommandsText),
-                            owner: entry,
-                            depth: 0,
-                            linked.Token);
-                    }
-                    else
-                    {
-                        foreach (var command in commands)
+                        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                            token,
+                            queueToken);
+                        if (entry.IsAdvanced)
                         {
-                            linked.Token.ThrowIfCancellationRequested();
-                            await ExecuteClientCommandSegmentAsync(
-                                command,
-                                expandAliases: true,
+                            await ExecuteScriptAsync(
+                                new ScriptInvocation(
+                                    entry.Name,
+                                    "timer",
+                                    entry.CommandsText),
+                                owner: entry,
                                 depth: 0,
                                 linked.Token);
                         }
-                    }
-                });
+                        else
+                        {
+                            foreach (var command in commands)
+                            {
+                                linked.Token.ThrowIfCancellationRequested();
+                                await ExecuteClientCommandSegmentAsync(
+                                    command,
+                                    expandAliases: true,
+                                    depth: 0,
+                                    linked.Token);
+                            }
+                        }
+                    });
+                }
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                // A connection/profile transition cancels the shared automation queue,
+                // but it must not terminate an otherwise enabled periodic timer.
             }
 
             var nextIntervalStartedAt = DateTimeOffset.UtcNow;
