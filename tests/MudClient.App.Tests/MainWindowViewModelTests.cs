@@ -922,6 +922,20 @@ public sealed class MainWindowViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SendCommand_HistoryKeepsOnlyMostRecentOccurrence()
+    {
+        SetIsConnected(true);
+
+        foreach (var command in new[] { "first", "second", "third", "first" })
+        {
+            _vm.CommandText = command;
+            await _vm.SendCommandCommand.ExecuteAsync(null);
+        }
+
+        Assert.Equal(["first", "third", "second"], _vm.CommandHistory);
+    }
+
+    [Fact]
     public async Task SendCommand_HistoryTrimsAtMaxSize()
     {
         // Arrange: send 101 commands (1 more than the 100-entry cap)

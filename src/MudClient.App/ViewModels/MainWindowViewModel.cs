@@ -6873,9 +6873,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             ? [string.Empty]
             : CommandStacker.Split(sourceCommand, CommandStackingSeparator);
 
-        // Track history – record the original typed command as one entry.
+        // Track history – keep unique original commands ordered by most recent use.
         lock (_commandHistoryLock)
         {
+            CommandHistory.Remove(sourceCommand);
             CommandHistory.Insert(0, sourceCommand);
             while (CommandHistory.Count > CommandHistoryMaxSize)
             {
